@@ -1,0 +1,126 @@
+
+html {
+	margin: 0; padding: 0;
+	--text-color: rgba(255, 255, 255, 1.0);
+	--color: rgba(0, 0, 0, 0);
+}
+body {
+
+}
+a {
+	text-decoration: none;
+}
+
+.secondary {
+	--text-color: rgba(255, 255, 255, 0.5);
+}
+.primary {
+	--text-color: rgba(255, 255, 255, 1.0);
+}
+.red {
+	--text-color: rgba(255, 0, 0, 1.0);
+}
+ .medium {
+	line-height: 0.0rem;
+	font-size: 1.1rem;
+	--height: 1.6rem;
+	--width: 1.6rem;
+	--label-offset: 0.3rem;
+	--box-padding-top: 1.1rem;
+	--box-padding-bottom: 0.4rem
+}
+body, .small {
+	line-height: 1rem;
+	font-size: 1rem;
+	--height: 1.5rem;
+	--width: 1.5rem;
+	--label-offset: 0.3rem;
+	--box-padding-top: 0.5rem;
+	--box-padding-bottom: 0.0rem
+}
+.height {
+	height: var(--height);
+}
+.width {
+	width: var(--width);
+}
+.Img {
+	width: var(--height);
+	height: var(--height);
+}
+.Segment {
+	--background: #000000;
+	height: var(--height);
+	background-color: color(var(--background) alpha(0.5));
+	border-radius: 5px;
+	border: 0.5px;
+	border-color: black;
+	border-style: solid;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+.Box {
+	--background: #FFFFFF;
+	background-color: color(var(--background) alpha(0.1));
+	border-radius: 5px;
+	padding-top: var(--box-padding-top);
+	padding-bottom: var(--box-padding-bottom);
+}
+a {
+	padding-top: var(--box-padding-top);
+	padding-bottom: var(--box-padding-bottom);
+}
+
+.Label {
+	color: var(--text-color);
+	position: relative;
+	bottom: var(--label-offset);
+}
+
+
+
+.Table {
+}
+.Table.inset {
+	padding-left: 2rem;
+}
+.TableItem {
+
+}
+
+.Input .Box {
+	background-color: rgba(0, 0, 0, 0.25);
+	border-radius: 5px;
+}
+.Input .Box.editing {
+	border-style: solid;
+	border-width: 0.75px;
+	border-color: grey;
+}
+.Input .Box.error {
+	border-style: solid;
+	border-width: 0.75px;
+	border-color: rgba(200, 100, 100, 1.0);
+}
+
+.StackframeSelected {
+	background-color: rgba(102, 204, 255, 0.5);
+}
+.StackframeSelectedError {
+	background-color: rgba(255, 25, 25, 0.25);
+}
+.ThreadSelected {
+	background-color: rgba(25, 255, 25, 0.25);
+}
+.ThreadSelectedError {
+	background-color: rgba(255, 25, 25, 0.25);
+}
+
+.Panel {
+	height: 100rem;
+	border-radius: 5px;
+	background-color: rgba(0, 0, 0, 0.2);
+}
+.Panel .Segment {
+	--width: 18rem;
+}

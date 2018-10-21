@@ -1,0 +1,71 @@
+from debug.core.typecheck import Dict, Optional
+
+import sublime
+
+from .component import Component
+from .layout import Layout
+
+def _image_to_data(path: str) -> bytes:
+	p = '{}/../{}'.format(sublime.packages_path(), path)
+	f = open(p, 'rb')
+	r = f.read()
+	f.close()
+	return r
+
+
+def _b64_data_from_image_data(png_data: bytes):
+	import base64
+	return "data:image/png;base64,{}".format(base64.b64encode(png_data).decode('ascii'))
+
+class Image:
+	cached = {} #type: Dict[str, str]
+
+	@staticmethod
+	def named(name: str) -> 'Image':
+		return Image(_path_for_image(name))
+
+	def __init__(self, file: str) -> None:
+		self.file = file
+		if file in Image.cached:
+			self.data = Image.cached[file]
+		else:
+			self.data = _b64_data_from_image_data(_image_to_data(file))
+			Image.cached[file] = self.data
+
+class Img (Component):
+	def __init__(self, image: Image) -> None:
+		super().__init__()
+		self.image = image
+
+	def html(self, layout: Layout) -> str:
+		return '''<img class="{}" src="{}">'''.format(self.className, self.image.data)
+	
+
+def _path_for_image(name): #type: (str) -> str
+	return 'Packages/debug/images/{}'.format(name)
+
+def package_file_str(path: str) -> str:
+	p = '{}/debug/{}'.format(sublime.packages_path(), path)
+	f = open(p, 'r')
+	return f.read()
+
+
+
+class Images:
+	shared = None #type: Images
+	def __init__(self) -> None:
+		self.dot = Image.named('breakpoint.png')
+		self.dot_emtpy = Image.named('breakpoint-broken.png')
+		self.dot_expr = Image.named('breakpoint-expr.png')
+		self.dot_log = Image.named('breakpoint-log.png')
+		self.dot_disabled = Image.named('breakpoint-disabled.png')
+		self.play = Image.named('baseline_play_arrow_white_48dp.png')
+		self.stop = Image.named('baseline_stop_white_48dp.png')
+		self.settings = Image.named('baseline_settings_white_48dp.png')
+		self.thread_running = Image.named('baseline_360_white_48dp.png')
+		self.pause = Image.named('baseline_pause_white_48dp.png')
+		self.up = Image.named('baseline_keyboard_arrow_up_white_48dp.png')
+		self.right = Image.named('baseline_keyboard_arrow_right_white_48dp.png')
+		self.down = Image.named('baseline_keyboard_arrow_down_white_48dp.png')
+		self.left = Image.named('baseline_keyboard_arrow_left_white_48dp.png')
+		self.thread = Image.named('baseline_sort_white_48dp.png')
