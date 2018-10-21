@@ -1,0 +1,1 @@
+These are the few debug adapters I have added configurations for in the default debug_configurations in this plugin's settings file. Running .configure will download the vscode extensions and unzip them. Most of them require node to be installed
