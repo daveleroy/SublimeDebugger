@@ -71,7 +71,6 @@ class Phantom(Layout):
 
 	def clear_phantom_set(self) -> None:
 		assert self.set, '??'
-		assert self.cachedPhantom, "??"
 		self.set.update([])
 		self.requires_updated_set = False
 

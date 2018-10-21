@@ -185,7 +185,7 @@ class Main (DebuggerComponentListener):
 
 			config = self.configuration
 			settings = sublime.load_settings("debug.sublime-settings")
-			debuggers = get_setting(settings, 'debuggers', dict)
+			debuggers = get_setting(settings, 'debug_adapters', dict)
 			
 			debugger = debuggers.get(config.type)
 			assert debugger, 'no debugger named {}'.format(config.type)
@@ -465,7 +465,7 @@ def startup() -> None:
 	print('Starting up')
 	core.startup()
 	ui.startup()
-	ui.import_css('{}/{}'.format(sublime.packages_path(), 'debug/modules/components/components.css'))	
+	ui.import_css('{}/{}'.format(sublime.packages_path(), 'debug/main/components/components.css'))	
 
 def shutdown() -> None:
 	print('shutdown')
