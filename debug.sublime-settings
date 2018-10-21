@@ -1,0 +1,44 @@
+{
+	// Where would you like to have the UI display?
+	// "window" puts the UI in a entirely seperate window
+	// "view" puts the UI in a new tab on the window that opens the debugger
+	// "output" puts the UI in the bottom output panel of the window that called "Open"
+	"display" : "output",
+	"debug_configurations" : [],
+	"debuggers" : {
+		"lldb" : {
+			"command" : [
+				"lldb",
+				"-b",
+				"-O \"command script import '${packages}/debug/debuggers/vscode-lldb/extension/adapter'\"",
+				"-O \"script adapter.main.run_tcp_server()"
+			],
+			"tcp_port" : 4711
+		},
+		"chrome" : {
+			"command" : [
+				"node",
+				"${packages}/debug/debuggers/vscode-chrome-debug/extension/out/src/chromeDebug.js",
+				"--server=4872",
+			],
+			"tcp_port" : 4872
+		},
+		"firefox" : {
+			"command" : [
+				"node",
+				"${packages}/debug/debuggers/vscode-firefox-debug/extension/out/firefoxDebugAdapter.js",
+				"--server=4712",
+			],
+			"tcp_port" : 4712
+		},
+		"python" : {
+			"command" : [
+				"node",
+				"${packages}/debug/debuggers/vscode-python/extension/out/client/debugger/MainV2.js",
+				"--server=4716",
+			],
+			"tcp_port" : 4716
+		}
+	}
+}
+
