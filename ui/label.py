@@ -1,10 +1,11 @@
 
 from debug.core.typecheck import (
 	Optional,
+	List
 )
 
 from .layout import Layout
-from .component import ComponentInline
+from .component import ComponentInline, components
 
 
 html_escape_table = {
@@ -26,16 +27,20 @@ class Label(ComponentInline):
 		self.padding_right = padding_right
 		if color:
 			self.add_class(color)
+		self.render_text = ""
 
-	def added(self, layout: Layout) -> None:
+	def render(self) -> components:
+		layout = self.layout
+		assert layout, '??'
 		align = self.align
 		max_size = self.width
+		self.render_text = self.text
 		if max_size:
 			emWidth = layout.em_width()
 			count = max_size / emWidth
-			self.text = self.text[0:int(count)]
+			self.render_text = self.render_text[0:int(count)]
 		if self.width:
-			length = len(self.text)
+			length = len(self.render_text)
 			emWidth = layout.em_width()
 	
 			leftover = self.width - (length) * emWidth
@@ -48,8 +53,9 @@ class Label(ComponentInline):
 		
 		self.paddingleft += self.padding_left
 		self.paddingright += self.padding_right
-		self.text = html_escape(self.text) or ""
+		self.render_text = html_escape(self.render_text) or ""
 		self.html_tag_extra = 'style="padding-left:{}rem; padding-right:{}rem;"'.format(self.paddingleft, self.paddingright)
-		
+		return []
+
 	def html_inner(self, layout: Layout) -> str:
-		return self.text
+		return self.render_text
