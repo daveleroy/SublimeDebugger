@@ -1,0 +1,40 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"debug_configurations" : [
+			{
+				"name": "Chrome",
+				"type": "chrome",
+				"request": "launch",
+				"file":"${project_path}/index.html"
+			},
+			{
+				"name": "Firefox",
+				"type": "firefox",
+				"request": "launch",
+				"file":"${project_path}/index.html"
+			},
+			{
+				"name": "Debug the debugger...",
+				"type": "python",
+				"request": "attach",
+				"port": 5678,
+	         	 	"host": "localhost",
+			},
+			{
+				"name": "Python (main.py)",
+				"type": "python",
+				"request": "launch",
+				"program": "${project_path}/main.py",
+				"debugOptions" : [
+					"RedirectOutput"
+				]
+			}
+		]
+	}
+}

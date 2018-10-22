@@ -1,0 +1,48 @@
+
+<!DOCTYPE html>
+<html>
+<body>
+
+<p id="demo"></p>
+
+<script>
+	document.getElementById("demo").innerHTML = "Running";
+	
+	let integer = 25
+	let string = "string"
+	let array = [1, 2, 3, "One", "Two", "Three"]
+
+	let object = {
+		a: 1,
+		b: "Two",
+		c: [1, 2, 3]
+	} 
+
+	try {
+		throw "A test exception";
+	}
+	catch (e) {
+	}
+	
+	function tesUting1(argument) {
+		console.log(integer)
+		console.log(string)
+		console.log(array)
+		console.log(object)
+	}
+
+	function testing(argument) {
+		console.log(integer)
+		console.log(string)
+		console.log(array)
+		tesUting1()
+	}
+
+	testing()
+
+	document.getElementById("demo").innerHTML = "Done";
+</script> 
+
+</body>
+</html>
+      
