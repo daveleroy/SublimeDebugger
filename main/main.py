@@ -196,16 +196,28 @@ class Main (DebuggerComponentListener):
 			if 'command' in adapter_type_config:
 				command = adapter_type_config['command']
 				print('Starting Process: {}'.format(command))
-				self.process = Process(command)
+				try:
+					self.process = Process(command, 
+						on_stdout = lambda msg: self.eventLog.Add(msg), 
+						on_stderr = lambda msg: self.eventLog.Add(msg))
+				except Exception as e:
+					self.eventLog.AddStderr('Failed to start debug adapter process: {}'.format(e))
+					self.eventLog.AddStderr('Command in question: {}'.format(command))
+					core.display('Failed to start debug adapter process: Check the Event Log for more details')
 
 			address = adapter_type_config.get('address', 'localhost')
 			port = adapter_type_config.get('tcp_port')
 			assert port, 'expected "tcp_port" in debugger settings'
 
-			transport = yield from start_tcp_transport(address, port)
+			try:
+				transport = yield from start_tcp_transport(address, port)
+			except Exception as e:
+				self.eventLog.AddStderr('Failed to connect to debug adapter: {}'.format(e))
+				self.eventLog.AddStderr('address: {} port: {}'.format(address, port))
+				core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
+				return
 		except Exception as e:
 			core.display(e)
-			self.eventLog.AddStderr('Failed to start tcp connection: {}'.format(e))
 			return
 			
 		debugAdapterClient = DebugAdapterClient(transport)

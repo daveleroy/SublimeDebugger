@@ -40,10 +40,28 @@ SOFTWARE.
 '''
 
 class Process:
-	def __init__(self, command: List[str]) -> None:
+	def __init__(self, command: List[str], on_stdout: Callable[[str], None], on_stderr: Callable[[str], None]) -> None:
 		print('Starting process: {}'.format(command))
 		self.process = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+		
+		thread = threading.Thread(target=self._read, args= (self.process.stdout, on_stdout))
+		thread.start()
 
+		thread = threading.Thread(target=self._read, args= (self.process.stderr, on_stderr))
+		thread.start()
+
+	def _read (self, file: Any, callback: Callable[[str], None]) -> None:
+		while True:
+			try:
+				line = file.readline().decode('ascii')
+				if not line:
+					print("no data received, closing")
+					break
+				core.main_loop.call_soon_threadsafe(callback, line)
+			except Exception as err:
+				print("Failure reading from process", err)
+				break
+				
 	def dispose(self) -> None:
 		print('Ending process')
 		self.process.kill()
