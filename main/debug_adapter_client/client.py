@@ -62,14 +62,15 @@ class DebugAdapterClient:
 		self.on_error_event = core.Event() #type: core.Event[str]
 		self.onSelectedStackFrame = core.Event() #type: core.Event[Any]
 		self.state = DebuggerState.exited
-		self.initialized_future = None #type: Optional[asyncio.Future]
+		self._on_initialized_future = core.main_loop.create_future()
+		self._on_terminated_future = core.main_loop.create_future()
 		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
 
 	def transport_closed(self) -> None:
 		print('Debugger Transport: closed')
 		if self.state != DebuggerState.exited:
 			self.on_error_event.post('Debug Adapter process was terminated prematurely')
-		self._on_exited({})
+			self._on_terminated({})
 
 	def transport_message(self, message: str) -> None:
 		msg = json.loads(message)
@@ -118,6 +119,7 @@ class DebugAdapterClient:
 	def Disconnect(self) -> core.awaitable[None]:
 		yield from self.send_request_asyc('disconnect', {
 		})
+		yield from self._on_terminated_future
 
 	def clear_selection(self) -> None:
 		print('clear_selection')
@@ -224,9 +226,7 @@ class DebugAdapterClient:
 
 	@core.async
 	def Initialized(self) -> core.awaitable[None]:
-		self.initialized_future = core.main_loop.create_future()
-		assert self.initialized_future 
-		yield from self.initialized_future
+		yield from self._on_initialized_future
 
 	@core.async
 	def Initialize(self) -> core.awaitable[dict]:
@@ -361,8 +361,7 @@ class DebugAdapterClient:
 	def _on_initialized(self) -> None:
 		def response(response: dict) -> None:
 			pass
-		assert self.initialized_future, 'expected Initialized() to be called before'
-		self.initialized_future.set_result(None)
+		self._on_initialized_future.set_result(None)
 	
 	def _continued(self, threadId: int, allThreadsContinued: bool) -> None:
 		if allThreadsContinued:
@@ -418,10 +417,10 @@ class DebugAdapterClient:
 		event = StoppedEvent(body.get('description') or body['reason'], body.get('text'))
 		self.onStopped.post(event)
 
-	def _on_exited(self, body: dict) -> None:
+	def _on_terminated(self, body: dict) -> None:
 		self.state = DebuggerState.exited
 		self.onExited.post(None)
-
+		self._on_terminated_future.set_result(None)
 	def _on_output(self, body: dict) -> None:
 		category = body.get('category', 'console')
 		data = OutputEvent(category, body['output'], body.get('variablesReference', 0))
@@ -471,7 +470,7 @@ class DebugAdapterClient:
 			if event == 'stopped':
 				return self._on_stopped(body)
 			if event == 'terminated':
-				return self._on_exited(body)
+				return self._on_terminated(body)
 			if event == 'thread':
 				return self._on_thread(body)
 			if event == 'breakpoint':
