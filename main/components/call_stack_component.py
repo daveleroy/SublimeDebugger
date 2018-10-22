@@ -16,9 +16,14 @@ class  CallStackComponent (ui.Component):
 		self.threads = [] #type: List[Thread]
 		self.selected = 0 #type: int
 		self.error = False #type: bool
+		self.thread_components = [] #type: List[ThreadComponent]
 
 	def clear(self) -> None:
 		self.setThreads(None, [], False)
+		
+	def dirty_threads(self) -> None:
+		for thread_component in self.thread_components:
+			thread_component.dirty()
 
 	def setThreads(self, debugger: Optional[DebugAdapterClient], threads: List[Thread], error: bool) -> None:
 		self.threads = threads
@@ -27,17 +32,17 @@ class  CallStackComponent (ui.Component):
 		self.dirty()
 		
 	def render(self) -> ui.components:			
-		items = [] #type: List[ui.Component]
+		self.thread_components = []
 		for index, thread in enumerate(self.threads):
 			assert self.debugger
 			item = ThreadComponent(self.debugger, thread)
-			items.append(item)
-
+			self.thread_components.append(item)
 		return [
 			ui.Panel(items = [
 				ui.Segment(items = [
 					ui.Label('Call Stack')
 				]),
-				ui.Table(items = items)
+				# FIXME?? Table should not take List
+				ui.Table(items = self.thread_components) #type: ignore 
 			])
 		]

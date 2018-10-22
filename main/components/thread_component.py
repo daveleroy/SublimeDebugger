@@ -26,11 +26,6 @@ class StackFrameComponent (ui.Component):
 			ui.Label(name, padding_left = 0.8, padding_right = 0.8),
 			ui.Label(frame.name, color="secondary"),
 		])
-		className = ""
-		selected = False
-		selected_frame = self.debugger.selected_frame
-		if selected_frame and frame.id == selected_frame.id:
-			className = ("StackframeSelected", "StackframeSelectedError")[self.debugger.stoppedOnError]
 		
 		return [
 			fileAndLine
@@ -64,7 +59,6 @@ class ThreadComponent (ui.Component):
 	def onClicked(self, index: int) -> None:
 		frame = self.frames[index]
 		self.debugger.set_selected_thread_and_frame(self.thread, frame)
-		self.dirty()
 
 	def render (self) -> ui.components:
 		if self.thread.stopped:
@@ -101,9 +95,9 @@ class ThreadComponent (ui.Component):
 			for index, frame in enumerate(self.frames):
 				on_click = lambda index=index: self.onClicked(index) #type: ignore
 				component = StackFrameComponent(self.debugger, frame, on_click)
-				if frame == self.debugger.selected_frame:
+				if self.debugger.selected_frame and frame.id == self.debugger.selected_frame.id:
 					selected_index = index
-					print('selected_index is', index)
+
 				frames.append(component)
 			
 			table = ui.Table(items = frames, selected_index = selected_index)

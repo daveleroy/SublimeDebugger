@@ -255,6 +255,7 @@ class Main (DebuggerComponentListener):
 			self.variablesComponent.set_variables(debugAdapterClient.variables)
 		def onSelectedStackFrame(frame: Optional[StackFrame]) -> None:
 			self.onSelectedStackFrame(frame)
+			self.callstackComponent.dirty_threads()
 		def on_error(error: str) -> None:
 			self.eventLog.AddStderr(error)
 

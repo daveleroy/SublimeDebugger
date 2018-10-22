@@ -136,17 +136,21 @@ class DebugAdapterClient:
 
 	#FIXME async
 	def getStackTrace(self, thread: Thread, response: Callable[[List[StackFrame]], None]) -> None:
-		calculateNewSelection = False
+		selection_in_other_thread = False
+		selected_frame_id = -1
 
-		if not self.selected_thread and not self.selected_frame:
-			calculateNewSelection = True
-		if not self.selected_frame and self.selected_thread and self.selected_thread.id == thread.id:
-			calculateNewSelection = True
+		if self.selected_thread:
+			if self.selected_thread.id == thread.id:
+				assert self.selected_frame
+				selected_frame_id = self.selected_frame.id
+			else:
+				selection_in_other_thread = True
 
 		def cb(body: dict) -> None:
 			frames = []
-			foundPrimary = False
-			selectedIndex = -1
+			default_selected_index = -1
+			found_selected_frame = False
+
 			for index, frame in enumerate(body['stackFrames']):
 				source = frame.get('source')
 				hint = frame.get('presentationHint', 'normal')
@@ -156,9 +160,8 @@ class DebugAdapterClient:
 				elif hint == 'subtle':
 					presentation = StackFramePresentation.subtle
 				else:
-					if not foundPrimary:
-						foundPrimary = True
-						selectedIndex = index
+					if default_selected_index < 0:
+						default_selected_index = index
 					presentation = StackFramePresentation.normal
 				internal = False
 
@@ -170,11 +173,16 @@ class DebugAdapterClient:
 					internal = True
 				frame = StackFrame(frame['id'], file, frame['name'], frame.get('line', 0), internal, presentation)
 				frames.append(frame)
+				if frame.id == selected_frame_id:
+					found_selected_frame = True
 
+			# we auto select a frame if we don't already have a frame selected in another thread
+			# if the frame selected is in our thread but we didn't find the same frame then we select a new one
+			
 			# ensure this thread is still stopped before we select the frame
 			# it is possible this thread started running again so we don't want to auto select its frame
-			if calculateNewSelection and selectedIndex  >= 0:
-				self.set_selected_thread_and_frame(thread, frames[selectedIndex])
+			if thread.stopped and not selection_in_other_thread and not found_selected_frame:
+				self.set_selected_thread_and_frame(thread, frames[default_selected_index])
 
 			response(frames)
 
