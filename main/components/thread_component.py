@@ -53,7 +53,7 @@ class ThreadComponent (ui.Component):
 		self.dirty()
 
 	def fetch_frames_if_needed(self) -> None:
-		if self.thread.expanded and not self.fetched:
+		if self.thread.stopped and self.thread.expanded and not self.fetched:
 			self.fetched = True
 			def response(response: List[StackFrame]) -> None:
 				self.frames = response
