@@ -30,3 +30,9 @@ class Thread:
 		self.stopped = False
 		self.selected = False
 		self.expanded = False
+
+class EvaluateResponse:
+	def __init__(self, result: str, variablesReference: int) -> None:
+		self.result = result
+		self.variablesReference = variablesReference
+		

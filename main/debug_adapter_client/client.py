@@ -40,6 +40,7 @@ class OutputEvent:
 		self.text = text
 		self.variablesReference = variablesReference
 
+@core.all_methods(core.require_main_thread)
 class DebugAdapterClient:
 	def __init__(self, transport: Transport) -> None:
 		self.transport = transport
@@ -73,8 +74,9 @@ class DebugAdapterClient:
 			self._on_terminated({})
 
 	def transport_message(self, message: str) -> None:
+		print('>> ', message)
 		msg = json.loads(message)
-		core.main_loop.call_soon_threadsafe(self.recieved_msg, msg)
+		self.recieved_msg(msg)
 
 	def dispose(self) -> None:
 		print('disposing Debugger')
@@ -235,6 +237,24 @@ class DebugAdapterClient:
 	@core.async
 	def Initialized(self) -> core.awaitable[None]:
 		yield from self._on_initialized_future
+
+	@core.async
+	def Evaluate(self, expression: str, context: Optional[str]) -> core.awaitable[Optional[EvaluateResponse]]:
+		frameId = None #type: Optional[int]
+		if self.selected_frame:
+			frameId = self.selected_frame.id
+
+		response = yield from self.send_request_asyc("evaluate", {
+			"expression" : expression,
+			"context" : context,
+			"frameId" : frameId,
+		})
+
+		# the spec doesn't say this is optional? does this mean some implementations throw errors and others return a null result?
+		if response['result'] is None:
+			return None
+		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
+		return EvaluateResponse(response["result"], response.get("variablesReference", 0))
 
 	@core.async
 	def Initialize(self) -> core.awaitable[dict]:
