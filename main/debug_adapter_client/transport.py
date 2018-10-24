@@ -96,7 +96,7 @@ class TCPTransport(Transport):
     def close(self) -> None:
         self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
         self.socket = None
-        self.on_closed()
+        core.main_loop.call_soon_threadsafe(self.on_closed)
 
     def read_socket(self) -> None:
         remaining_data = b""
@@ -138,8 +138,7 @@ class TCPTransport(Transport):
                     if len(data) >= content_length:
                         content = data[:content_length]
                         message = content.decode("UTF-8")
-                        print(' >> ', message)
-                        self.on_receive(message)
+                        core.main_loop.call_soon_threadsafe(self.on_receive, message)
                         data = data[content_length:]
                         read_state = STATE_HEADERS
                     else:
