@@ -31,9 +31,14 @@ def _start_render() -> None:
 	
 	@core.async
 	def _run_render() -> core.awaitable[None]:
+		last_time = core.main_loop.time()
 		while _rendering:
+			time = core.main_loop.time()
+			delta = time - last_time
+			last_time = time
+			update(delta)
 			render()
-			yield from asyncio.sleep(0.016)
+			yield from asyncio.sleep(0.05)
 	core.run(_run_render())
 
 def _stop_render() -> None:

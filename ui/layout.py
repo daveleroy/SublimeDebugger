@@ -30,14 +30,14 @@ class Layout:
 		self.focused = None #type: Optional['Component']
 		self.requires_render = True
 		self.css = _all_css
-
+		
 	def dirty(self) -> None:
 		self.requires_render = True
 
 	def remove_component(self, item: 'Component') -> None:
 		if self.focused == item:
 			print('unfocusing removed item')
-			self.unfocus()
+			self.unfocus(item)
 			
 		for item in item.render_items:
 			self.remove_component(item)
@@ -52,12 +52,14 @@ class Layout:
 
 	def focus(self, item: 'Component') -> None:
 		if self.focused == item: return #already focused
-		self.unfocus()
+		if self.focused:
+			self.unfocus(self.focused)
 		self.focused = item
 		item.on_focus()
 
-	def unfocus(self, item: 'Component' = None) -> None:
+	def unfocus(self, item: 'Component') -> None:
 		if not self.focused: return
+		if self.focused != item: return
 		self.focused.on_unfocus()
 		self.focused = None
 
