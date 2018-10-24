@@ -55,8 +55,8 @@ class Input(ComponentInline):
 		self.dirty()
 
 	def on_cancel(self) -> None:
-		assert self.layout
-		self.layout.unfocus(self)	
+		if self.layout:
+			self.layout.unfocus(self)	
 
 	def on_click(self) -> None:
 		assert self.layout
