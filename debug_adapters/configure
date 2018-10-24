@@ -5,8 +5,8 @@ unzip_to_from_link() {
  curl $2 | tar -xf - -C $1
 }
 
-unzip_to_from_link "vscode-python" "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/2018.8.0/vspackage"
-unzip_to_from_link "vscode-chrome-debug" "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/4.10.2/vspackage"
-unzip_to_from_link "vscode-lldb" "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/1.0.0/vspackage"
-unzip_to_from_link "vscode-firefox-debug" "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/hbenl/vsextensions/vscode-firefox-debug/1.7.0/vspackage"
+unzip_to_from_link "vscode-python" "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/latest/vspackage"
+unzip_to_from_link "vscode-chrome-debug" "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage"
+unzip_to_from_link "vscode-lldb" "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/latest/vspackage"
+unzip_to_from_link "vscode-firefox-debug" "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/hbenl/vsextensions/vscode-firefox-debug/latest/vspackage"
 
