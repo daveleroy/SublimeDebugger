@@ -127,6 +127,9 @@ class Breakpoints:
 
 		self.onChangedFilter = core.Event() #type: core.Event[Filter]
 
+		self.onSelectedBreakpoint = core.Event() #type: core.Event[Optional[Breakpoint]]
+		self.selected_breakpoint = None #type: Optional[Breakpoint]
+
 		def update_views(breakpoint: Breakpoint) -> None:
 			breakpoint.update_views()
 
@@ -140,7 +143,14 @@ class Breakpoints:
 		] #type: List[Any]
 
 	
-
+	def clear_breakpoint(self) -> None:
+		self.selected_breakpoint = None
+		self.onSelectedBreakpoint.post(None)
+		
+	def select_breakpoint(self, breakpoint: Breakpoint) -> None:
+		self.selected_breakpoint = breakpoint
+		self.onSelectedBreakpoint.post(breakpoint)
+		
 	def toggle_filter(self, filter: Filter) -> None:
 		filter.enabled = not filter.enabled
 		self.onChangedFilter.post(filter)

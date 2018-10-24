@@ -12,16 +12,16 @@ from debug import core
 
 from debug.main.breakpoints import Breakpoints, Breakpoint, Filter
 
-from debug.main.components.variable_component import VariablesComponent, Variable
+from debug.main.components.variable_component import VariablesComponent, VariableComponent, Variable
 from debug.main.components.breakpoint_inline_component import BreakpointInlineComponent
 from debug.main.components.call_stack_component import CallStackComponent
 from debug.main.components.console_component import EventLogComponent
 
-from debug.main.components.breakpoints_component import DebuggerComponent, STOPPED, PAUSED, RUNNING, DebuggerComponentListener
+from debug.main.components.breakpoints_component import DebuggerComponent, STOPPED, PAUSED, RUNNING, LOADING, DebuggerComponentListener
 
 from debug.main.debug_adapter_client.client import DebugAdapterClient, StoppedEvent, OutputEvent
 from debug.main.debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport
-from debug.main.debug_adapter_client.types import StackFrame
+from debug.main.debug_adapter_client.types import StackFrame, EvaluateResponse
 from debug.main.configurations import Configuration, select_configuration, all_configurations, get_configuration_for_name
 from . import (
 	config
@@ -150,7 +150,8 @@ class Main (DebuggerComponentListener):
 		self.breakpoints.onRemovedBreakpoint.add(lambda b: self.clearBreakpointInformation())
 		self.breakpoints.onChangedBreakpoint.add(self.onChangedBreakpoint)
 		self.breakpoints.onChangedFilter.add(self.onChangedFilter)
-
+		self.breakpoints.onSelectedBreakpoint.add(self.onSelectedBreakpoint)
+		
 	def show(self) -> None:
 		self.window.run_command('show_panel', {
 			'panel': 'output.debugger'
@@ -176,6 +177,7 @@ class Main (DebuggerComponentListener):
 		self.KillDebugger()
 		self.eventLog.clear()
 		self.eventLog.Add('Starting debugger...')
+		self.debuggerComponent.setState(LOADING)
 		try:
 			if not self.configuration:
 				yield from self.EditSettings()
@@ -304,7 +306,7 @@ class Main (DebuggerComponentListener):
 			self.selectedFrameComponent.dispose()
 			self.selectedFrameComponent = None
 
-		self.debuggerComponent.setState(STOPPED)
+		
 		self.variablesComponent.clear()
 		self.callstackComponent.clear()
 
@@ -316,11 +318,13 @@ class Main (DebuggerComponentListener):
 			self.process.dispose()
 			self.process = None
 
+		self.debuggerComponent.setState(STOPPED)
 		self.breakpoints.clear_breakpoint_results()
 
 	@core.async
 	def Disconnect(self) -> core.awaitable[None]:
 		print('Disconnect Adapter')
+		self.debuggerComponent.setState(LOADING)
 		assert self.debugAdapterClient
 		self.disconnecting = True
 		yield from self.debugAdapterClient.Disconnect()
@@ -352,7 +356,7 @@ class Main (DebuggerComponentListener):
 		breakpoint =  self.breakpoints.get_breakpoint(file, event.line + 1)
 		if not breakpoint:
 			return
-		self.OnExpandBreakpoint(breakpoint)
+		self.breakpoints.select_breakpoint(breakpoint)
 
 	def dispose(self) -> None:
 		json_breakpoints = []
@@ -365,6 +369,8 @@ class Main (DebuggerComponentListener):
 
 		if self.selectedFrameComponent:
 			self.selectedFrameComponent.dispose()
+			self.selectedFrameComponent = None
+
 		self.clearBreakpointInformation()
 		print('dispose: Main')
 		for d in self.disposeables:
@@ -383,6 +389,12 @@ class Main (DebuggerComponentListener):
 			file = breakpoint.file
 			breakpoints = self.breakpoints.breakpoints_for_file(file)
 			core.run(self.debugAdapterClient.SetBreakpointsFile(file, breakpoints))
+
+	def onSelectedBreakpoint(self, breakpoint: Optional[Breakpoint]) -> None:
+		if breakpoint:
+			self.OnExpandBreakpoint(breakpoint)
+		else:
+			self.clearBreakpointInformation()
 
 	def OnSettings(self) -> None:
 		core.run(self.EditSettings())
@@ -413,6 +425,7 @@ class Main (DebuggerComponentListener):
 	def add_selected_stack_frame_component(self, view: sublime.View, line: int) -> None:
 		if self.selectedFrameComponent:
 			self.selectedFrameComponent.dispose()
+			self.selectedFrameComponent = None
 
 		if not self.debugAdapterClient:
 			return

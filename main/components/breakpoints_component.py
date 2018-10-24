@@ -8,10 +8,12 @@ import sublime
 from debug import ui
 
 from debug.main.breakpoints import Breakpoints, Breakpoint, Filter
+from .loading_component import LoadingComponent
 
 STOPPED = 0
 RUNNING = 1
 PAUSED = 2
+LOADING = 3
 
 class BreakpintsComponent(ui.Component):
 	def __init__(self, breakpoints: Breakpoints, on_expand: Callable[[Breakpoint], None]) -> None:
@@ -22,20 +24,27 @@ class BreakpintsComponent(ui.Component):
 		self.breakpoints.onChangedBreakpoint.add(self._updated)
 		self.breakpoints.onMovedBreakpoints.add(self._updated)
 		self.breakpoints.onResultBreakpoint.add(self._updated)
+		self.breakpoints.onSelectedBreakpoint.add(self._updated)
 		self.on_expand = on_expand
 
 	def _updated(self, data: Any) -> None:
 		self.dirty()
 
 	def onClicked(self, breakpoint: Breakpoint) -> None:
-		self.on_expand(breakpoint)
+		self.breakpoints.select_breakpoint(breakpoint)
 
 	def on_toggle(self, breakpoint: Breakpoint) -> None:
 		self.breakpoints.toggle_enabled(breakpoint)
+		
 	def render(self) -> ui.components:
 		items = [] #type: List[ui.TableItem]
 		for breakpoint in self.breakpoints.breakpoints:
 			base, name = os.path.split(breakpoint.file)
+
+			if breakpoint == self.breakpoints.selected_breakpoint:
+				color = 'primary'
+			else:
+				color = 'secondary'
 
 			on_toggle = lambda bp=breakpoint: self.on_toggle(bp) #type: ignore
 			on_click = lambda bp=breakpoint: self.onClicked(bp) #type: ignore
@@ -45,10 +54,10 @@ class BreakpintsComponent(ui.Component):
 			])
 			fileAndLine = ui.Button(on_click = on_click, items = [
 				# filename
-				ui.Label(name, color = 'secondary', padding_left = 0.25, width = 15, align = 0),
+				ui.Label(name, color = color, padding_left = 0.25, width = 15, align = 0),
 				# line number
 				ui.Box(items = [
-					ui.Label(str(breakpoint.line), color = 'secondary', width = 3),
+					ui.Label(str(breakpoint.line), color = color, width = 3),
 				]),
 			])
 			items.append(ui.TableItem(items = [
@@ -177,6 +186,17 @@ class DebuggerComponent(ui.Component):
 				ui.Button(self.listener.OnPlay, items = [
 					ui.Img(ui.Images.shared.play)
 				]),
+			]
+		if self.state == LOADING:
+			buttons = [
+				ui.Label(self.name, width = 6),
+				ui.Button(self.listener.OnSettings, items = [
+					ui.Img(ui.Images.shared.settings)
+				]),
+				ui.Button(self.listener.OnStop, items = [
+					ui.Img(ui.Images.shared.stop)
+				]),
+				LoadingComponent()
 			]
 
 		return [
