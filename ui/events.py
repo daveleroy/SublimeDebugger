@@ -17,9 +17,15 @@ class GutterEvent:
 		self.view = view
 		self.line = line
 
+class HoverEvent:
+	def __init__(self, view: sublime.View, point: int) -> None:
+		self.view = view
+		self.point = point
+
 # all these events are dispatched from sublime's main thread to our own main loop
 view_loaded = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
 view_activated = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
+view_text_hovered = core.EventDispatchMain() #type: core.EventDispatchMain[HoverEvent]
 view_gutter_hovered = core.EventDispatchMain() #type: core.EventDispatchMain[GutterEvent]
 view_gutter_double_clicked = core.EventDispatchMain() #type: core.EventDispatchMain[GutterEvent]
 view_selection_modified = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
@@ -58,7 +64,8 @@ class ViewEventsListener(sublime_plugin.EventListener):
 			line = view.rowcol(point)[0]
 			print('on_gutter_hover: {}'.format(line))
 			view_gutter_hovered.post(GutterEvent(view, line))
-
+		elif hover_zone == sublime.HOVER_TEXT:
+			view_text_hovered.post(HoverEvent(view, point))
 	def on_selection_modified(self, view: sublime.View) -> None:
 		view_selection_modified.post(view)
 		if self.was_drag_select:
