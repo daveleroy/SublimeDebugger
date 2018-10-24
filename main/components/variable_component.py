@@ -60,29 +60,22 @@ class VariablesComponent (ui.Component):
 	def __init__(self) -> None:
 		super().__init__()
 		self.variables = [] #type: List[Variable]
-		self.no_scope = True
 	def clear(self) -> None:
-		self.no_scope = True
 		self.variables = []
 		self.dirty()
 	def set_variables(self, locals: List[Variable]) -> None:
-		self.no_scope = False
 		self.variables = locals
 		self.dirty()
 	def render(self) -> ui.components:
+		items = [
+			ui.Segment(items = [ui.Label('Variables')])
+		] #type: List[ui.Component]
+
+		variables = [] #type: List[ui.Component]
+		for v in self.variables:
+			variables.append(VariableComponent(v))
+		items.append(ui.Table(items = variables))
 		
-		if self.no_scope:
-			item = ui.Label('No stack frame selected', padding_left = 0.5, color = 'secondary') #type: ui.Component
-		else:
-			items = [] #type: List[ui.Component]
-			for v in self.variables:
-				items.append(VariableComponent(v))
-			item = ui.Table(items = items)
 		return [
-			ui.Panel(items = [
-				ui.Segment(items = [
-					ui.Label('Variables')
-				]),
-				item
-			])
+			ui.Panel(items = items)
 		]
