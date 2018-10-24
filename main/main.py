@@ -101,6 +101,7 @@ class Main (DebuggerComponentListener):
 
 		self.disposeables.extend([
 			ui.view_gutter_hovered.add(self.on_gutter_hovered),
+			ui.view_text_hovered.add(self.on_text_hovered),
 			ui.view_drag_select.add(self.on_drag_select),
 		])
 		
@@ -344,6 +345,23 @@ class Main (DebuggerComponentListener):
 	def on_drag_select(self, view: sublime.View) -> None:
 		print('on_selection: clearing breakpoint information')
 		self.clearBreakpointInformation()
+
+	def on_text_hovered(self, event: ui.HoverEvent) -> None:
+		if self.debugAdapterClient:
+			word = event.view.word(event.point)
+			expr = event.view.substr(word)
+
+			def complete(response: Optional[EvaluateResponse]) -> None:
+				if not response:
+					return
+				if self.debugAdapterClient:
+					variable = Variable(self.debugAdapterClient, response.result, '', response.variablesReference)
+					event.view.add_regions('selected_hover', [word], scope = "comment", flags = sublime.DRAW_NO_OUTLINE)
+					def on_close() -> None:
+						event.view.erase_regions('selected_hover')
+					ui.Popup(VariableComponent(variable), event.view, word.a, on_close = on_close)
+					
+			core.run(self.debugAdapterClient.Evaluate(expr, 'hover'), complete)
 
 	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
 		print('Gutter Hovered')
