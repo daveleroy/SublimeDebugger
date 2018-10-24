@@ -63,21 +63,21 @@ def select_configuration(window: sublime.Window, index: int) -> core.awaitable[O
 		show_settings(window)
 		
 	done = core.main_loop.create_future()
-	names = list(map(lambda x: x.name, configs)) + ["Add configuration"]
+	names = list(map(lambda x: x.name, configs)) + ["-"] +  ["Add configuration"]
 
 	index = yield from core.sublime_show_quick_panel_async(window, names, index)
 	if index < 0:
 		return None
 	if index >= len(configs):
-		project = window.project_data()
+		project = window.project_file_name()
 		if project:
-			settings_file = project
-		else:
-			"${packages}/debug/debug.sublime-settings"
-			
-		sublime.active_window().run_command('edit_settings', {
-			"base_file" : "${packages}/debug/debug.sublime-settings"
-		})
+			sublime.run_command("new_window")
+			window = sublime.active_window()
+			window.open_file(project)
+		else:				
+			window.run_command('edit_settings', {
+				"base_file" : "${packages}/debug/debug.sublime-settings"
+			})
 		return None
 	return configs[index]
 
