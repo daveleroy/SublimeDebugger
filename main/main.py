@@ -474,19 +474,37 @@ class Main (DebuggerComponentListener):
 		core.run(a())
 
 
-def startup() -> None:
+@core.async
+def startup_main_thread() -> None:
 	print('Starting up')
-	core.startup()
 	ui.startup()
 	ui.import_css('{}/{}'.format(sublime.packages_path(), 'debug/main/components/components.css'))	
 
+def startup() -> None:
+	core.startup()
+	core.run(startup_main_thread())
+
+import threading
+
+@core.async
+def shutdown_main_thread(event: threading.Event) -> None:
+	# we just want to ensure that we still set the event if we had an exception somewhere
+	# shutdown would lock us up
+	try:
+		print('shutdown')
+		for key, instance in dict(Main.instances).items():
+			instance.dispose()
+		Main.instances = {}
+		ui.shutdown()
+	except Exception as e:
+		raise e
+	finally:
+		event.set()
+
 def shutdown() -> None:
-	print('shutdown')
-	for key, instance in dict(Main.instances).items():
-		instance.dispose()
-	Main.instances = {}
-	ui.shutdown()
+	event = threading.Event()
+	core.run(shutdown_main_thread(event))
+	event.wait()
 	core.shutdown()
-	
 
 
