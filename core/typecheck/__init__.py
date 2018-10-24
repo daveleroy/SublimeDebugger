@@ -1,7 +1,7 @@
 
 # this is for mypy we want typing for mypy but sublime doesnt have it
 # we add our own stubs so we don't need to escape types
-if False:
+try:
 	from typing import *
-else:
+except:
 	from .typing import * #type: ignore

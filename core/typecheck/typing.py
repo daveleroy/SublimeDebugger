@@ -1,6 +1,5 @@
 
 TYPE_CHECKING = False
-
 class Any:
     pass 
 class _GetAttr(type):
@@ -21,6 +20,8 @@ class Tuple(Generic):
 class Union(Generic):
     pass
 class Dict(Generic):
+    pass
+class Set(Generic):
     pass
 class Sequence(Generic):
     pass
