@@ -9,20 +9,20 @@
 	https://microsoft.github.io/debug-adapter-protocol/implementors/adapters/
 '''
 
-from debug.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator
+from sublime_db.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator
 
 import socket
 import threading
 import json
 
 
-from debug import ui, core
+from sublime_db import ui, core
 
-from debug.libs import asyncio
-from debug.main.debug_adapter_client.types import StackFrame, StackFramePresentation, Variable, Thread, EvaluateResponse
-from debug.main.debug_adapter_client.transport import Transport
+from sublime_db.libs import asyncio
+from sublime_db.main.debug_adapter_client.types import StackFrame, StackFramePresentation, Variable, Thread, EvaluateResponse
+from sublime_db.main.debug_adapter_client.transport import Transport
 
-from debug.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter
+from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter
 
 class DebuggerState:
 	exited = 1

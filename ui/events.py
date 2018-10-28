@@ -1,5 +1,5 @@
 
-from debug.core.typecheck import (
+from sublime_db.core.typecheck import (
 	TypeVar, 
 	Generic, 
 	Callable, 
@@ -10,7 +10,7 @@ from debug.core.typecheck import (
 import sublime 
 import sublime_plugin
 
-from debug import core
+from sublime_db import core
 
 class GutterEvent:
 	def __init__(self, view: sublime.View, line: int) -> None:

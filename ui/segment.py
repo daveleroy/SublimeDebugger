@@ -1,4 +1,4 @@
-from debug.core.typecheck import (
+from sublime_db.core.typecheck import (
 	Sequence
 )
 from .component import Component, ComponentInline

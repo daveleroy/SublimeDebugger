@@ -1,8 +1,8 @@
 
-from debug.core.typecheck import Tuple, List, Optional, Any
+from sublime_db.core.typecheck import Tuple, List, Optional, Any
 
 import sublime
-from debug import ui, core
+from sublime_db import ui, core
 
 class Filter:
 	def __init__(self, id: str, name: str, enabled: bool) -> None:

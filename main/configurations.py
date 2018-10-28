@@ -1,8 +1,8 @@
-from debug.core.typecheck import List, Optional, Generator, Any
+from sublime_db.core.typecheck import List, Optional, Generator, Any
 
 import sublime
 
-from debug import core
+from sublime_db import core
 
 def get_setting(view: Optional[sublime.View], setting: str, default: Any = None) -> Any:
 	plugin_settings = sublime.load_settings('debug.sublime-settings')
@@ -51,7 +51,7 @@ def all_configurations (window: sublime.Window) -> List[Configuration]:
 
 def show_settings(window: sublime.Window) -> None:
 	sublime.active_window().run_command('edit_settings', {
-		"base_file" : "${packages}/debug/debug.sublime-settings"
+		"base_file" : "${packages}/sublime_db/debug.sublime-settings"
 	})
 
 @core.async
@@ -76,7 +76,7 @@ def select_configuration(window: sublime.Window, index: int) -> core.awaitable[O
 			window.open_file(project)
 		else:				
 			window.run_command('edit_settings', {
-				"base_file" : "${packages}/debug/debug.sublime-settings"
+				"base_file" : "${packages}/sublime_db/debug.sublime-settings"
 			})
 		return None
 	return configs[index]

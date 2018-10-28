@@ -1,4 +1,4 @@
-from debug.core.typecheck import Dict, Optional
+from sublime_db.core.typecheck import Dict, Optional
 
 import sublime
 
@@ -42,10 +42,10 @@ class Img (Component):
 	
 
 def _path_for_image(name): #type: (str) -> str
-	return 'Packages/debug/images/{}'.format(name)
+	return 'Packages/sublime_db/images/{}'.format(name)
 
 def package_file_str(path: str) -> str:
-	p = '{}/debug/{}'.format(sublime.packages_path(), path)
+	p = '{}/sublime_db/{}'.format(sublime.packages_path(), path)
 	f = open(p, 'r')
 	return f.read()
 

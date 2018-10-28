@@ -1,13 +1,13 @@
-from debug.core.typecheck import (
+from sublime_db.core.typecheck import (
 	List, 
 	Optional
 )
-from debug import ui
+from sublime_db import ui
 
-from debug.main.debug_adapter_client.types import Thread
-from debug.main.debug_adapter_client.client import DebugAdapterClient
+from sublime_db.main.debug_adapter_client.types import Thread
+from sublime_db.main.debug_adapter_client.client import DebugAdapterClient
 
-from debug.main.components.thread_component import ThreadComponent
+from sublime_db.main.components.thread_component import ThreadComponent
 
 
 class  CallStackComponent (ui.Component):

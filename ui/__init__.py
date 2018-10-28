@@ -1,5 +1,18 @@
 
-from .events import *
+from .render import *
+from .events import (
+	GutterEvent,
+	HoverEvent,
+	ViewEventsListener,
+	view_loaded,
+	view_activated,
+	view_text_hovered,
+	view_gutter_hovered,
+	view_gutter_double_clicked,
+	view_selection_modified,
+	view_modified,
+	view_drag_select)
+
 from .layout import *
 from .component import *
 from .image import *
@@ -8,12 +21,11 @@ from .table import *
 from .button import *
 from .label import *
 from .input import *
-from .render import *
 
 import os
 
-from debug.libs import asyncio 
-from debug import core
+from sublime_db.libs import asyncio 
+from sublime_db import core
 
 def startup () -> None:
 	Images.shared = Images()

@@ -1,4 +1,4 @@
-from debug.core.typecheck import (
+from sublime_db.core.typecheck import (
 	Any,
 	Generator,
 	Callable,
@@ -13,7 +13,7 @@ import sublime
 import threading
 import concurrent
 
-from debug.libs import asyncio
+from sublime_db.libs import asyncio
 
 T = TypeVar('T')
 
@@ -33,11 +33,12 @@ def start_event_loop() -> None:
 
 def stop_event_loop() -> None:
 	main_loop.stop()
+	
 
 def all_methods(decorator):
-    def decorate(cls):
+    def decorate(cls): 
         for attribute in cls.__dict__:
-            if callable(getattr(cls,attribute)):
+            if callable(getattr(cls,attribute)): 
                 setattr(cls, attribute, decorator(getattr(cls, attribute)))
         return cls
     return decorate

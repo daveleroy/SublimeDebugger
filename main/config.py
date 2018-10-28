@@ -1,5 +1,5 @@
 
-from debug.core.typecheck import (
+from sublime_db.core.typecheck import (
 	Optional
 )
 
@@ -13,7 +13,7 @@ FILE_SETTINGS = 'debug.sublime-settings'
 FILE_PERSISTANCE = 'persistance.json'
 
 def package_path(path: str) -> str:
-	return "{}/debug/{}".format(sublime.packages_path(), path)
+	return "{}/sublime_db/{}".format(sublime.packages_path(), path)
 
 # _already_saving_breakpoints = False
 

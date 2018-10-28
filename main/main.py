@@ -1,28 +1,27 @@
-from debug.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator, Set
-
+from sublime_db.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator, Set
 
 import sublime
-import sys, os
+import os
 
-from debug.libs import asyncio
+from sublime_db.libs import asyncio
+from sublime_db import ui
+from sublime_db import core
 
-from debug import ui
-from debug import core
+from sublime_db.main.breakpoints import Breakpoints, Breakpoint, Filter
 
-from debug.main.breakpoints import Breakpoints, Breakpoint, Filter
-from debug.main import config
+from sublime_db.main import config
+from sublime_db.main.configurations import Configuration, select_configuration, all_configurations, get_configuration_for_name, get_setting
 
-from debug.main.components.variable_component import VariablesComponent, VariableComponent, Variable
-from debug.main.components.breakpoint_inline_component import BreakpointInlineComponent
-from debug.main.components.call_stack_component import CallStackComponent
-from debug.main.components.console_component import EventLogComponent
+from sublime_db.main.components.variable_component import VariablesComponent, VariableComponent, Variable
+from sublime_db.main.components.breakpoint_inline_component import BreakpointInlineComponent
+from sublime_db.main.components.call_stack_component import CallStackComponent
+from sublime_db.main.components.console_component import EventLogComponent
+from sublime_db.main.components.breakpoints_component import DebuggerComponent, STOPPED, PAUSED, RUNNING, LOADING, DebuggerComponentListener
 
-from debug.main.components.breakpoints_component import DebuggerComponent, STOPPED, PAUSED, RUNNING, LOADING, DebuggerComponentListener
+from sublime_db.main.debug_adapter_client.client import DebugAdapterClient, StoppedEvent, OutputEvent
+from sublime_db.main.debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport, StdioTransport
+from sublime_db.main.debug_adapter_client.types import StackFrame, EvaluateResponse
 
-from debug.main.debug_adapter_client.client import DebugAdapterClient, StoppedEvent, OutputEvent
-from debug.main.debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport, StdioTransport
-from debug.main.debug_adapter_client.types import StackFrame, EvaluateResponse
-from debug.main.configurations import Configuration, select_configuration, all_configurations, get_configuration_for_name, get_setting
 	
 class Main (DebuggerComponentListener):
 	instances = {} #type: Dict[int, Main]
@@ -89,7 +88,6 @@ class Main (DebuggerComponentListener):
 			
 		print('Creating a window: h')
 		
-
 		self.disposeables.extend([
 			ui.view_gutter_hovered.add(self.on_gutter_hovered),
 			ui.view_text_hovered.add(self.on_text_hovered),
@@ -503,7 +501,7 @@ class Main (DebuggerComponentListener):
 def startup_main_thread() -> None:
 	print('Starting up')
 	ui.startup()
-	ui.import_css('{}/{}'.format(sublime.packages_path(), 'debug/main/components/components.css'))
+	ui.import_css('{}/{}'.format(sublime.packages_path(), 'sublime_db/main/components/components.css'))
 	
 	was_opened_at_startup = set() #type: Set[int]
 	
@@ -524,7 +522,7 @@ import threading
 @core.async
 def shutdown_main_thread(event: threading.Event) -> None:
 	# we just want to ensure that we still set the event if we had an exception somewhere
-	# shutdown would lock us up
+	# otherwise shutdown could lock us up
 	try:
 		print('shutdown')
 		for key, instance in dict(Main.instances).items():

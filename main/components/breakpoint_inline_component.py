@@ -1,7 +1,7 @@
 
-from debug import ui
+from sublime_db import ui
 
-from debug.main.breakpoints import Breakpoints, Breakpoint
+from sublime_db.main.breakpoints import Breakpoints, Breakpoint
 
 class BreakpointInlineComponent (ui.Component):
 	def __init__(self, breakpoints: Breakpoints, breakpoint: Breakpoint) -> None:

@@ -1,4 +1,4 @@
-from debug.core.typecheck import (
+from sublime_db.core.typecheck import (
 	Any, 
 	TypeVar, 
 	Generic, 
@@ -11,13 +11,13 @@ from debug.core.typecheck import (
 import sublime
 import sublime_plugin
 
-from debug.libs import asyncio
+from sublime_db.libs import asyncio
 
 from .core import main_loop, async, awaitable
 
 @async
 def sublime_open_file_async(window: sublime.Window, file: str, line: int) -> awaitable[sublime.View]:
-	from debug import ui
+	from sublime_db import ui
 	view = window.open_file(file)	
 	if view.is_loading():
 		future = main_loop.create_future()

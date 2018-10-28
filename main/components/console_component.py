@@ -1,10 +1,10 @@
 
 import os
-from debug import ui, core
+from sublime_db import ui, core
 
-from debug.core.typecheck import List
+from sublime_db.core.typecheck import List
 
-from debug.main.components.variable_component import VariableComponent, Variable, VariableComponent
+from sublime_db.main.components.variable_component import VariableComponent, Variable, VariableComponent
 
 class EventLogVariable (ui.Component):
 	def __init__(self, variable: Variable) -> None:

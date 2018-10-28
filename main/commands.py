@@ -1,10 +1,10 @@
 import sublime_plugin
 import sublime
 
-from debug import core
+from sublime_db import core
 
-from debug.main.main import Main
-from debug.main.debug_adapter_client.client import DebuggerState, DebugAdapterClient
+from sublime_db.main.main import Main
+from sublime_db.main.debug_adapter_client.client import DebuggerState, DebugAdapterClient
 
 def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	debugger = Main.debuggerForWindow(window)

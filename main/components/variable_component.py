@@ -1,8 +1,8 @@
 
-from debug.core.typecheck import List
-from debug.main.debug_adapter_client.types import Variable
+from sublime_db.core.typecheck import List
+from sublime_db.main.debug_adapter_client.types import Variable
 
-from debug import ui, core
+from sublime_db import ui, core
 
 class VariableComponent (ui.Component):
 	def __init__(self, variable: Variable) -> None:

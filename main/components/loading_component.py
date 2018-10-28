@@ -1,6 +1,6 @@
 
-from debug.core.typecheck import List
-from debug import ui
+from sublime_db.core.typecheck import List
+from sublime_db import ui
 
 class LoadingComponent (ui.ComponentInline):
 	def __init__(self) -> None:

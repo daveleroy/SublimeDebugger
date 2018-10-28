@@ -12,7 +12,7 @@
 			"command" : [
 				"lldb",
 				"-b",
-				"-O \"command script import '${packages}/debug/debug_adapters/vscode-lldb/extension/adapter'\"",
+				"-O \"command script import '${packages}/sublime_db/debug_adapters/vscode-lldb/extension/adapter'\"",
 				"-O \"script adapter.main.run_tcp_server()"
 			],
 			"tcp_port" : 4711
@@ -20,13 +20,13 @@
 		"chrome" : {
 			"command" : [
 				"node", 
-				"${packages}/debug/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js"	
+				"${packages}/sublime_db/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js"	
 			],
 		},
 		"chrome_tcp" : {
 			"command" : [
 				"node", 
-				"${packages}/debug/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js",
+				"${packages}/sublime_db/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js",
 				"--server=4713",	
 			],
 			"tcp_port" : 4713
@@ -34,13 +34,13 @@
 		"firefox" : {
 			"command" : [
 				"node",
-				"${packages}/debug/debug_adapters/vscode-firefox-debug/extension/out/firefoxDebugAdapter.js",
+				"${packages}/sublime_db/debug_adapters/vscode-firefox-debug/extension/out/firefoxDebugAdapter.js",
 			],
 		},
 		"python" : {
 			"command" : [
 				"node",
-				"${packages}/debug/debug_adapters/vscode-python/extension/out/client/debugger/MainV2.js",
+				"${packages}/sublime_db/debug_adapters/vscode-python/extension/out/client/debugger/MainV2.js",
 			],
 		}
 	}

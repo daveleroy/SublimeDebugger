@@ -1,4 +1,4 @@
-from debug.core.typecheck import (
+from sublime_db.core.typecheck import (
 	List,
 	Optional,
 	Callable,
@@ -10,7 +10,7 @@ if TYPE_CHECKING: from .component import Component
 import sublime
 import os
 
-from debug import core
+from sublime_db import core
 
 
 _all_css = ''

@@ -1,10 +1,10 @@
 import os
-from debug import ui
+from sublime_db import ui
 
-from debug.core.typecheck import List, Callable, Union
+from sublime_db.core.typecheck import List, Callable, Union
 
-from debug.main.debug_adapter_client.client import DebugAdapterClient
-from debug.main.debug_adapter_client.types import StackFrame, Thread
+from sublime_db.main.debug_adapter_client.client import DebugAdapterClient
+from sublime_db.main.debug_adapter_client.types import StackFrame, Thread
 
 class StackFrameComponent (ui.Component):
 	def __init__(self, debugger: DebugAdapterClient, frame: StackFrame, on_click: Callable[[], None]) -> None:

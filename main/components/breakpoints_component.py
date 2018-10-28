@@ -1,13 +1,13 @@
-from debug.core.typecheck import (
+from sublime_db.core.typecheck import (
 	Callable,
 	Any,
 	List
 )
 import os
 import sublime
-from debug import ui
+from sublime_db import ui
 
-from debug.main.breakpoints import Breakpoints, Breakpoint, Filter
+from sublime_db.main.breakpoints import Breakpoints, Breakpoint, Filter
 from .loading_component import LoadingComponent
 
 STOPPED = 0
