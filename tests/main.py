@@ -17,6 +17,7 @@ def outer(i):
 		func(i)
 	outer(i - 1)
 
+
 t1 = Thread(target = outer, args = (1,))
 t1.start()
 t2 = Thread(target = outer, args = (5,))

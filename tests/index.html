@@ -24,21 +24,21 @@
 	catch (e) {
 	}
 	
-	function tesUting1(argument) {
+	function SomeFunction(argument) {
 		console.log(integer)
 		console.log(string)
 		console.log(array)
 		console.log(object)
 	}
 
-	function testing(argument) {
+	function SomeOuterFunction(argument) {
 		console.log(integer)
 		console.log(string)
 		console.log(array)
-		tesUting1()
+		SomeFunction()
 	}
 
-	testing()
+	SomeOuterFunction()
 
 	document.getElementById("demo").innerHTML = "Done";
 </script> 
