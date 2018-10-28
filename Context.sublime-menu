@@ -1,39 +1,31 @@
 [
     { "caption": "-", "id": "debug_start" },
     {
-        "caption" : "Debug: Open",
-        "command" : "sublime_debug_open"
-    },
-    {
-        "caption" : "Debug: Quit",
-        "command" : "sublime_debug_quit"
-    },
-    {
-        "caption" : "Debug: Start",
+        "caption" : "Start debugging",
         "command" : "sublime_debug_start"
     },
     {
-        "caption" : "Debug: Stop",
+        "caption" : "Stop debugging",
         "command" : "sublime_debug_stop"
     },
     {
-        "caption" : "Debug: StepOver",
+        "caption" : "Step Over",
         "command" : "sublime_debug_step_over"
     },
     {
-        "caption" : "Debug: StepOut",
+        "caption" : "Step Out",
         "command" : "sublime_debug_step_out"
     },
     {
-        "caption" : "Debug: StepIn",
+        "caption" : "Step In",
         "command" : "sublime_debug_step_in"
     },
     {
-        "caption" : "Debug: Pause",
+        "caption" : "Pause",
         "command" : "sublime_debug_pause"
     },
     {
-        "caption" : "Debug: Resume",
+        "caption" : "Resume",
         "command" : "sublime_debug_resume"
     },
     { "caption": "-", "id": "debug_end" },

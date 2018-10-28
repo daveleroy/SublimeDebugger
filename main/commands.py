@@ -11,31 +11,33 @@ def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	if debugger and debugger.state == state:
 		return True
 	return False
-	
-class SublimeDebugOpenCommand(sublime_plugin.WindowCommand):
+
+class RunMainCommand(sublime_plugin.WindowCommand):
 	def run(self) -> None:
 		core.main_loop.call_soon_threadsafe(self.run_main)
+	def run_main (self) -> None:
+		pass
+
+class DebugWindowCommand(RunMainCommand):
+	def is_visible(self) -> bool:
+		return Main.forWindow(self.window) != None
+
+class SublimeDebugOpenCommand(RunMainCommand):
 	def run_main (self) -> None:
 		main = Main.forWindow(self.window, True)
 		assert main
 		main.show()
 
-class SublimeDebugQuitCommand(sublime_plugin.WindowCommand):
-	def run(self) -> None:
-		core.main_loop.call_soon_threadsafe(self.run_main)
+class SublimeDebugQuitCommand(RunMainCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
-		assert main
-		main.dispose()
-	def is_enabled(self) -> bool:
-		main = Main.forWindow(self.window)
-		return not main is None
+		if main:
+			main.dispose()
 
-class SublimeDebugStartCommand(sublime_plugin.WindowCommand):
-	def run(self) -> None:
+class SublimeDebugStartCommand(DebugWindowCommand):
+	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
-		if main and main.debugAdapterClient == None:
-			core.run(main.LaunchDebugger())
+		if main: main.OnPlay()
 		
 	def is_enabled(self) -> bool:
 		main = Main.forWindow(self.window)
@@ -43,53 +45,47 @@ class SublimeDebugStartCommand(sublime_plugin.WindowCommand):
 			return True
 		return False
 		
-class SublimeDebugStopCommand(sublime_plugin.WindowCommand):
-	def run(self) -> None:
+class SublimeDebugStopCommand(DebugWindowCommand):
+	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
-		if main and main.debugAdapterClient:
-			main.KillDebugger()
+		if main: main.OnStop()
 	def is_enabled(self) -> bool:
 		main = Main.forWindow(self.window)
 		if main and main.debugAdapterClient:
 			return True
 		return False
 
-class SublimeDebugStepOverCommand(sublime_plugin.WindowCommand):
-	def run(self) -> None:
-		debugger = Main.debuggerForWindow(self.window)
-		if debugger and debugger.state == DebuggerState.stopped:
-			core.run(debugger.StepOver())
-	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.stopped)
-
-class SublimeDebugStepInCommand(sublime_plugin.WindowCommand):
-	def run(self) -> None:
-		debugger = Main.debuggerForWindow(self.window)
-		if debugger and debugger.state == DebuggerState.stopped:
-			core.run(debugger.StepIn())
-	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.stopped)
-
-class SublimeDebugStepOutCommand(sublime_plugin.WindowCommand):
-	def run(self) -> None:
-		debugger = Main.debuggerForWindow(self.window)
-		if debugger and debugger.state == DebuggerState.stopped:
-			core.run(debugger.StepOut())
-	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.stopped)
-
-class SublimeDebugPauseCommand(sublime_plugin.WindowCommand):
-	def run(self) -> None:
-		debugger = Main.debuggerForWindow(self.window)
-		if debugger and debugger.state == DebuggerState.running:
-			core.run(debugger.Pause())
+class SublimeDebugPauseCommand(DebugWindowCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window)
+		if main: main.OnPause()
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.running)
 
-class SublimeDebugResumeCommand(sublime_plugin.WindowCommand):
-	def run(self) -> None:
-		debugger = Main.debuggerForWindow(self.window)
-		if debugger and debugger.state == DebuggerState.stopped:
-			core.run(debugger.Resume())
+class SublimeDebugStepOverCommand(DebugWindowCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window)
+		if main: main.OnStepOver()
+	def is_enabled(self) -> bool:
+		return DebuggerInState(self.window, DebuggerState.stopped)
+
+class SublimeDebugStepInCommand(DebugWindowCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window)
+		if main: main.OnStepIn()
+	def is_enabled(self) -> bool:
+		return DebuggerInState(self.window, DebuggerState.stopped)
+
+class SublimeDebugStepOutCommand(DebugWindowCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window)
+		if main: main.OnStepOut()
+	def is_enabled(self) -> bool:
+		return DebuggerInState(self.window, DebuggerState.stopped)
+
+class SublimeDebugResumeCommand(DebugWindowCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window)
+		if main: main.OnResume()
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.stopped)

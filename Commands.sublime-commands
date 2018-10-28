@@ -1,0 +1,46 @@
+[
+    {
+        "caption": "Preferences: Debugger Settings",
+        "command": "edit_settings",
+        "args": {
+          "base_file": "${packages}/debug/debug.sublime-settings",
+        }
+    },
+    {
+        "caption" : "Debugger: Open",
+        "command" : "sublime_debug_open"
+    },
+    {
+        "caption" : "Debugger: Quit",
+        "command" : "sublime_debug_quit"
+    },
+    {
+        "caption" : "Debugger: Start",
+        "command" : "sublime_debug_start"
+    },
+    {
+        "caption" : "Debugger: Stop",
+        "command" : "sublime_debug_stop"
+    },
+    {
+        "caption" : "Debugger: StepOver",
+        "command" : "sublime_debug_step_over"
+    },
+    {
+        "caption" : "Debugger: StepOut",
+        "command" : "sublime_debug_step_out"
+    },
+    {
+        "caption" : "Debugger: StepIn",
+        "command" : "sublime_debug_step_in"
+    },
+    {
+        "caption" : "Debugger: Pause",
+        "command" : "sublime_debug_pause"
+    },
+    {
+        "caption" : "Debugger: Resume",
+        "command" : "sublime_debug_resume"
+    },
+    { "caption": "-", "id": "debug_end" },
+]
