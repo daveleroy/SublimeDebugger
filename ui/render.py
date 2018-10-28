@@ -3,11 +3,12 @@ from debug.core.typecheck import (
 	List,
 	Optional,
 	Callable,
-	Set
+	Set,
+	TYPE_CHECKING
 )
 
 #for mypy
-if False: from .component import Component
+if TYPE_CHECKING: from .component import Component
 
 from .layout import Layout
 

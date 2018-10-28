@@ -34,9 +34,10 @@ body, .small {
 	font-size: 1rem;
 	--height: 1.5rem;
 	--width: 1.5rem;
-	--label-offset: 0.3rem;
+	--label-offset: 0.25rem;
 	--box-padding-top: 0.5rem;
-	--box-padding-bottom: 0.0rem
+	--box-padding-bottom: 0.1rem;
+	--img-offset: 0.1rem;
 }
 .height {
 	height: var(--height);
@@ -50,19 +51,18 @@ body, .small {
 }
 .Segment {
 	--background: #000000;
-	height: var(--height);
 	background-color: color(var(--background) alpha(0.5));
-	border-radius: 5px;
+	border-radius: 10px;
 	border: 0.5px;
 	border-color: black;
 	border-style: solid;
-	padding-left: 5px;
-	padding-right: 5px;
+	padding-left: 10px;
+	padding-right: 10px
 }
 .Box {
-	--background: #FFFFFF;
-	background-color: color(var(--background) alpha(0.1));
-	border-radius: 5px;
+	--background: rgb(100, 100, 100);
+	background-color: color(var(--background) alpha(0.5));
+	border-radius: 10px;
 	padding-top: var(--box-padding-top);
 	padding-bottom: var(--box-padding-bottom);
 }
@@ -77,8 +77,6 @@ a {
 	bottom: var(--label-offset);
 }
 
-
-
 .Table {
 }
 .Table.inset {
@@ -87,10 +85,16 @@ a {
 .TableItem {
 
 }
-
+.Input {
+	padding-left: 4px;
+}
+.img_span {
+	position: relative;
+	top: var(--img-offset);
+}
 .Input .Box {
 	background-color: rgba(0, 0, 0, 0.25);
-	border-radius: 5px;
+	border-radius: 3px;
 }
 .Input .Box.editing {
 	border-style: solid;
@@ -118,7 +122,7 @@ a {
 
 .Panel {
 	height: 100rem;
-	border-radius: 5px;
+	border-radius: 10px;
 	background-color: rgba(0, 0, 0, 0.2);
 }
 .Panel .Segment {

@@ -38,7 +38,7 @@ class Img (Component):
 		self.image = image
 
 	def html(self, layout: Layout) -> str:
-		return '''<img class="{}" src="{}">'''.format(self.className, self.image.data)
+		return '''<span class="img_span"><img class="{}" src="{}"></span>'''.format(self.className, self.image.data)
 	
 
 def _path_for_image(name): #type: (str) -> str
