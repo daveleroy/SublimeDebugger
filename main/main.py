@@ -503,7 +503,17 @@ class Main (DebuggerComponentListener):
 def startup_main_thread() -> None:
 	print('Starting up')
 	ui.startup()
-	ui.import_css('{}/{}'.format(sublime.packages_path(), 'debug/main/components/components.css'))	
+	ui.import_css('{}/{}'.format(sublime.packages_path(), 'debug/main/components/components.css'))
+	
+	was_opened_at_startup = set() #type: Set[int]
+	
+	def on_view_activated (view: sublime.View) -> None:
+		window = view.window()
+		if window and not window.id() in was_opened_at_startup and get_setting(view, 'open_at_startup', False):
+			was_opened_at_startup.add(window.id())
+			Main.forWindow(window, True)
+
+	ui.view_activated.add(on_view_activated)
 
 def startup() -> None:
 	core.startup()
