@@ -5,6 +5,12 @@
       "version": "0.2.0",
       "configurations": [
       {
+            "program": "${workspaceFolder}/go.go",
+            "name": "Go",
+            "request": "launch",
+            "type": "go"
+      },
+      {
             "type": "firefox",
             "request": "attach",
             "name": "Firefox",

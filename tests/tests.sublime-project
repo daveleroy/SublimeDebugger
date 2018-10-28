@@ -23,6 +23,12 @@
 				"type": "chrome"
 			},
 			{
+				"program": "${project_path}/go.go",
+				"name": "Go",
+				"request": "launch",
+				"type": "go",
+			},
+			{
 				"file": "${project_path}/index.html",
 				"name": "Firefox",
 				"request": "launch",
