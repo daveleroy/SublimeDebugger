@@ -46,10 +46,8 @@
 		"go" : {
 			"command": [
 				"node",
-				"${packages}/sublime_db/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js",
-				"--server=4714"
-			],
-			"tcp_port": 4714
+				"${packages}/sublime_db/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
+			]
 		}
 	}
 }
