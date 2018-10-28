@@ -49,7 +49,9 @@ class DebugAdapterClient:
 		self.seq = 0
 		self.frames = [] #type: List[StackFrame]
 		self.variables = [] #type: List[Variable]
+
 		self.threads = [] #type: List[Thread]
+		self.threads_for_id = {} #type: Dict[int, Thread]
 
 		self.selected_thread = None #type: Optional[Thread]
 		self.selected_frame = None #type: Optional[StackFrame]
@@ -212,19 +214,20 @@ class DebugAdapterClient:
 		}, response)
 	
 	def _thread_for_id(self, id: int) -> Thread:
-		for t in self.threads:
-			if t.id == id:
-				return t
-		return Thread(id, '...')
+		thread = self.threads_for_id.get(id)
+		if thread:
+			return thread
+
+		thread = Thread(id, '...')
+		self.threads_for_id[id] = thread
+		return thread
 
 	def threadsCommandBase(self) -> None:
 		def response(response: dict) -> None:
 			def get_or_create_thread(id: int, name: str) -> Optional[Thread]:
-				for t in self.threads:
-					if t.id == id:
-						t.name = name
-						return t
-				return Thread(id, name)
+				thread = self._thread_for_id(id)
+				thread.name = name
+				return thread
 
 			threads = []
 			for thread in response['threads']:
@@ -420,26 +423,25 @@ class DebugAdapterClient:
 		#only ask for threads if there was a reason for the stoppage
 		threadId = body.get('threadId', None)
 		allThreadsStopped = body.get('allThreadsStopped', False)
+
+		thread_for_event = self._thread_for_id(threadId)
+		thread_for_event.stopped = True
+		thread_for_event.expanded = True
+
 		if allThreadsStopped:
 			for thread in self.threads:
 				thread.stopped = True
-				if thread.id == threadId:
-					thread.expanded = True
 			self.clear_selection()
-		elif not threadId is None:
-			thread = self._thread_for_id(threadId)
-			thread.stopped = True
-			thread.expanded = True
-
+		else:
 			# clear the selected frame but only if the thread stopped is the one that is already selected
-			if self.selected_thread and thread.id == self.selected_thread.id:
+			if self.selected_thread and thread_for_event.id == self.selected_thread.id:
 				self.clear_selection()
 
 		# we aren't going to post that we changed the threads
 		# we will let the threadsCommandBase to that for us so we don't update the UI twice
 		self.threadsCommandBase()
 
-		if body.get('allThreadsStopped', True) and body.get('reason', False):
+		if allThreadsStopped and body.get('reason', False):
 			reason = body.get('reason', '')
 			self.stoppedOnError = reason == 'signal' or reason == 'exception'
 			
