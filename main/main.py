@@ -1,4 +1,4 @@
-from debug.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator
+from debug.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator, Set
 
 
 import sublime
@@ -83,7 +83,7 @@ class Main (DebuggerComponentListener):
 		self.path = window.project_file_name()
 		if self.path:
 			self.path = os.path.dirname(self.path)
-			self.eventLog.Add('from: {}'.format(self.path))
+			self.eventLog.Add('Opened In Workspace: {}'.format(self.path))
 		else:
 			self.eventLog.AddStderr('warning: debugger opened in a window that is not part of a project')
 			
@@ -341,7 +341,6 @@ class Main (DebuggerComponentListener):
 			self.breakpointInformation = None
 
 	def on_drag_select(self, view: sublime.View) -> None:
-		print('on_selection: clearing breakpoint information')
 		self.clearBreakpointInformation()
 
 	def on_text_hovered(self, event: ui.HoverEvent) -> None:
@@ -362,8 +361,6 @@ class Main (DebuggerComponentListener):
 			core.run(self.debugAdapterClient.Evaluate(expr, 'hover'), complete)
 
 	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
-		print('Gutter Hovered')
-
 		file = event.view.file_name() 
 		if not file:  return #ignore if the view does not have a file
 
@@ -388,7 +385,7 @@ class Main (DebuggerComponentListener):
 			self.selectedFrameComponent = None
 
 		self.clearBreakpointInformation()
-		print('dispose: Main')
+
 		for d in self.disposeables:
 			d.dispose()
 
@@ -422,7 +419,6 @@ class Main (DebuggerComponentListener):
 		else:
 			core.run(self.Disconnect())
 	def OnResume(self) -> None:
-		print('resume!')
 		assert self.debugAdapterClient
 		core.run(self.debugAdapterClient.Resume())
 	def OnPause(self) -> None:
@@ -462,7 +458,7 @@ class Main (DebuggerComponentListener):
 			region =  sublime.Region(pt, pt)
 			layout = sublime.LAYOUT_BELOW
 
-		variables = ui.Box(items = [
+		variables = ui.Segment(items = [
 			ui.Button(self.OnResume, items = [
 				ui.Img(ui.Images.shared.play)
 			]),
@@ -535,5 +531,3 @@ def shutdown() -> None:
 	core.run(shutdown_main_thread(event))
 	event.wait()
 	core.shutdown()
-
-
