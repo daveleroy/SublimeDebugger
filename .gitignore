@@ -2,4 +2,5 @@ debug_adapters/vscode-chrome-debug
 debug_adapters/vscode-firefox-debug
 debug_adapters/vscode-lldb
 debug_adapters/vscode-python
+debug_adapters/vscode-go
 persistance.json
