@@ -45,7 +45,7 @@ class DebugAdapterClient:
 	def __init__(self, transport: Transport) -> None:
 		self.transport = transport
 		self.transport.start(self.transport_message, self.transport_closed)
-		self.pending_requests = {} #type: Dict[int, Callable[[dict], None]]
+		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
 		self.frames = [] #type: List[StackFrame]
 		self.variables = [] #type: List[Variable]
@@ -192,9 +192,9 @@ class DebugAdapterClient:
 
 			response(frames)
 
-		self.send_request('stackTrace', {
+		core.run(self.send_request_asyc('stackTrace', {
 			"threadId" : thread.id
-		}, cb)
+		}), cb)
 
 	def _default_thread_id(self) -> int:
 		assert self.threads, 'requires at least one thread?'
@@ -209,9 +209,9 @@ class DebugAdapterClient:
 				var = Variable(self, scope['name'], '', scope['variablesReference'])
 				self.variables.append(var)
 			self.onVariables.post(None)
-		self.send_request('scopes', {
+		core.run(self.send_request_asyc('scopes', {
 			"frameId" : frameId
-		}, response)
+		}), response)
 	
 	def _thread_for_id(self, id: int) -> Thread:
 		thread = self.threads_for_id.get(id)
@@ -237,7 +237,7 @@ class DebugAdapterClient:
 			self.threads = threads
 			self.onThreads.post(None)
 
-		self.send_request('threads', {}, response)
+		core.run(self.send_request_asyc('threads', {}), response)
 
 	@core.async
 	def Initialized(self) -> core.awaitable[None]:
@@ -372,15 +372,6 @@ class DebugAdapterClient:
 		yield from self.send_request_asyc('configurationDone', {})
 
 	@core.async
-	def send_request_asyc(self, command: str, data: dict) -> core.awaitable[dict]:
-		future = core.main_loop.create_future()
-		def response(response: dict) -> None:
-			future.set_result(response)
-		self.send_request(command, data, response)
-		value = yield from future
-		return value
-
-	@core.async
 	def GetVariables(self, variablesReference: int) -> core.awaitable[List[Variable]]:
 		response = yield from self.send_request_asyc('variables', {
 			"variablesReference" : variablesReference
@@ -470,7 +461,18 @@ class DebugAdapterClient:
 			return
 		self._merg_breakpoint(breakpoint, breakpoint_result)
 
-	def send_request(self, command: str, args: dict, response: Callable[[dict], None]) -> None:
+	# @core.async
+	# def send_request_asyc(self, command: str, data: dict) -> core.awaitable[dict]:
+		
+	# 	def response(response: dict) -> None:
+	# 		future.set_result(response)
+	# 	self.send_request(command, data, response)
+	# 	value = yield from future
+	# 	return value
+
+	@core.async
+	def send_request_asyc(self, command: str, args: dict) -> core.awaitable[dict]:
+		future = core.main_loop.create_future()
 		self.seq += 1
 		request = {
 			"seq" : self.seq,
@@ -478,16 +480,24 @@ class DebugAdapterClient:
 			"command": command,
 			"arguments" : args
 		}
-		self.pending_requests[self.seq] = response
+		self.pending_requests[self.seq] = future
 		msg = json.dumps(request)
 		self.transport.send(msg)
+
+		value = yield from future
+		return value
 	
 	def recieved_msg(self, data: dict) -> None:
 		t = data['type']
 		if t == 'response':
+			future = self.pending_requests.pop(data['request_seq'])
+
+			success = data['success']
+			if not success:
+				future.set_exception(Exception(data.get('message', 'no error message')))
+
 			body = data.get('body', {})
-			callback = self.pending_requests.pop(data['request_seq'])
-			callback(body)
+			future.set_result(body)
 			return
 		if t == 'event':
 			body = data.get('body', {})
