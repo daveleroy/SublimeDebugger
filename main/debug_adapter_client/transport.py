@@ -1,21 +1,6 @@
-from debug.core.typecheck import Optional as Option, List, Any, Callable, Generator
-
-import subprocess
-import socket
-import json
-import sys
-import threading
-from time import sleep
-from queue import Queue
-import time
-
-from debug import core
-
 '''
-This code was modified from here https://github.com/tomv564/LSP
-'''
+This code was modified from https://github.com/tomv564/LSP with the following license 
 
-'''
 MIT License
 
 Copyright (c) 2017 Tom van Ommeren
@@ -39,21 +24,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
-class Process:
-	def __init__(self, command: List[str], on_stdout: Callable[[str], None], on_stderr: Callable[[str], None]) -> None:
-		print('Starting process: {}'.format(command))
-		self.process = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-		
-		thread = threading.Thread(target=self._read, args= (self.process.stdout, on_stdout))
-		thread.start()
+from debug.core.typecheck import Optional, List, Any, Callable, Generator
 
-		thread = threading.Thread(target=self._read, args= (self.process.stderr, on_stderr))
-		thread.start()
+from queue import Queue
+import subprocess
+import socket
+import threading
+import time
+
+from debug import core
+
+class Process:
+	def __init__(self, command: List[str], on_stdout: Optional[Callable[[str], None]], on_stderr: Optional[Callable[[str], None]]) -> None:
+		print('Starting process: {}'.format(command))
+		self.process = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, stdin = subprocess.PIPE)
+		self.on_stdout = on_stdout
+		self.on_stderr = on_stderr
+
+		if on_stdout:
+			thread = threading.Thread(target=self._read, args= (self.process.stdout, on_stdout))
+			thread.start()
+
+		if on_stderr:
+			thread = threading.Thread(target=self._read, args= (self.process.stderr, on_stderr))
+			thread.start()
 
 	def _read (self, file: Any, callback: Callable[[str], None]) -> None:
 		while True:
 			try:
-				line = file.readline().decode('ascii')
+				line = file.readline().decode('UTF-8')
 				if not line:
 					print("no data received, closing")
 					break
@@ -68,22 +67,21 @@ class Process:
 
 class Transport:
 	def send(self, message: str) -> None:
-		pass
+		assert False
 	def start(self, on_receive: 'Callable[[str], None]', on_closed: 'Callable[[], None]') -> None:
-		pass
+		assert False
 	def dispose(self) -> None:
-		pass
+		assert False
 
 STATE_HEADERS = 0
 STATE_CONTENT = 1
-ContentLengthHeader = b"Content-Length: "
 TCP_CONNECT_TIMEOUT = 5
-
+CONTENT_HEADER = b"Content-Length: "
 
 class TCPTransport(Transport):
-    def __init__(self, socket: 'Any') -> None:
-        self.socket = socket  # type: 'Option[Any]'
-        self.send_queue = Queue()  # type: Queue[Option[str]]
+    def __init__(self, s: socket.socket) -> None:
+        self.socket = s  # type: 'Optional[socket.socket]'
+        self.send_queue = Queue()  # type: Queue[Optional[str]]
 
     def start(self, on_receive: Callable[[str], None], on_closed: Callable[[], None]) -> None:
         self.on_receive = on_receive
@@ -94,9 +92,13 @@ class TCPTransport(Transport):
         self.write_thread.start()
 
     def close(self) -> None:
+        if self.socket == None: return
         self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
         self.socket = None
         core.main_loop.call_soon_threadsafe(self.on_closed)
+        
+    def dispose(self) -> None:
+        self.close()
 
     def read_socket(self) -> None:
         remaining_data = b""
@@ -127,8 +129,8 @@ class TCPTransport(Transport):
                         remaining_data = data
                     else:
                         for header in headers.split(b"\r\n"):
-                            if header.startswith(ContentLengthHeader):
-                                header_value = header[len(ContentLengthHeader):]
+                            if header.startswith(CONTENT_HEADER):
+                                header_value = header[len(CONTENT_HEADER):]
                                 content_length = int(header_value)
                                 read_state = STATE_CONTENT
                         data = rest
@@ -163,8 +165,7 @@ class TCPTransport(Transport):
                     self.close()
 
 
-
-# starts the tcp connection in a none blocking fashion
+# starts the tcp connection in a none blocking fashion 
 @core.async
 def start_tcp_transport(host: str, port: int) -> core.awaitable[TCPTransport]:
 	def start_tcp_transport_inner() -> TCPTransport:
@@ -182,3 +183,75 @@ def start_tcp_transport(host: str, port: int) -> core.awaitable[TCPTransport]:
 	print('connecting to {}:{}'.format(host, port))
 	transport = yield from core.main_loop.run_in_executor(core.main_executor, start_tcp_transport_inner)
 	return transport
+
+class StdioTransport(Transport):
+    def __init__(self, process: Process) -> None:
+        assert process.on_stdout == None, 'expected process to not read stdout'
+        self.process = process.process  # type: Optional[subprocess.Popen]
+        self.send_queue = Queue()  # type: Queue[Optional[str]]
+
+    def start(self, on_receive: 'Callable[[str], None]', on_closed: 'Callable[[], None]') -> None:
+        self.on_receive = on_receive
+        self.on_closed = on_closed
+        self.write_thread = threading.Thread(target=self.write_stdin)
+        self.write_thread.start()
+        self.read_thread = threading.Thread(target=self.read_stdout)
+        self.read_thread.start()
+
+    def close(self) -> None:
+        if self.process == None: return
+        self.process = None
+        self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
+        core.main_loop.call_soon_threadsafe(self.on_closed)
+
+    def dispose(self) -> None:
+        self.close()
+
+    def read_stdout(self) -> None:
+        """
+        Reads JSON responses from process and dispatch them to response_handler
+        """
+        running = True
+        while running and self.process:
+            running = self.process.poll() is None
+
+            try:
+                content_length = 0
+                while self.process:
+                    header = self.process.stdout.readline()
+                    if header:
+                        header = header.strip()
+                    if not header:
+                        break
+                    if header.startswith(CONTENT_HEADER):
+                        content_length = int(header[len(CONTENT_HEADER):])
+
+                if (content_length > 0):
+                    content = self.process.stdout.read(content_length)
+                    message = content.decode("UTF-8")
+                    core.main_loop.call_soon_threadsafe(self.on_receive, message)
+
+            except IOError as err:
+                self.close()
+                print("Failure reading stdout", err)
+                break
+
+        print("LSP stdout process ended.")
+
+    def send(self, message: str) -> None:
+        self.send_queue.put(message)
+
+    def write_stdin(self) -> None:
+        while self.process:
+            message = self.send_queue.get()
+            if message is None:
+                break
+            else:
+                try:
+                    self.process.stdin.write(bytes('Content-Length: {}\r\n\r\n'.format(len(message)), 'UTF-8'))
+                    self.process.stdin.write(bytes(message, 'UTF-8'))
+                    self.process.stdin.flush()
+                    print('<< ', message)
+                except (BrokenPipeError, OSError) as err:
+                    print("Failure writing to stdout", err)
+                    self.close()

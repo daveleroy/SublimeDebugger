@@ -20,7 +20,7 @@ from debug.main.components.console_component import EventLogComponent
 from debug.main.components.breakpoints_component import DebuggerComponent, STOPPED, PAUSED, RUNNING, LOADING, DebuggerComponentListener
 
 from debug.main.debug_adapter_client.client import DebugAdapterClient, StoppedEvent, OutputEvent
-from debug.main.debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport
+from debug.main.debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport, StdioTransport
 from debug.main.debug_adapter_client.types import StackFrame, EvaluateResponse
 from debug.main.configurations import Configuration, select_configuration, all_configurations, get_configuration_for_name, get_setting
 	
@@ -201,21 +201,26 @@ class Main (DebuggerComponentListener):
 					self.eventLog.AddStderr('Command in question: {}'.format(command))
 					core.display('Failed to start debug adapter process: Check the Event Log for more details')
 
-			address = adapter_type_config.get('address', 'localhost')
-			port = adapter_type_config.get('tcp_port')
-			assert port, 'expected "tcp_port" in debugger settings'
+				address = adapter_type_config.get('tcp_address', 'localhost')
+				try:
+					transport = yield from start_tcp_transport(address, port)
+				except Exception as e:
+					self.eventLog.AddStderr('Failed to connect to debug adapter: {}'.format(e))
+					self.eventLog.AddStderr('address: {} port: {}'.format(address, port))
+					core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
+					return
+			else:
+				# dont monitor stdout the StdioTransport users it
+				self.process = Process(command, 
+						on_stdout = None, 
+						on_stderr = lambda msg: self.eventLog.Add(msg))
+				
+				transport = StdioTransport(self.process)
 
-			try:
-				transport = yield from start_tcp_transport(address, port)
-			except Exception as e:
-				self.eventLog.AddStderr('Failed to connect to debug adapter: {}'.format(e))
-				self.eventLog.AddStderr('address: {} port: {}'.format(address, port))
-				core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
-				return
 		except Exception as e:
 			core.display(e)
 			return
-			
+		
 		debugAdapterClient = DebugAdapterClient(transport)
 		self.debugAdapterClient = debugAdapterClient
 
