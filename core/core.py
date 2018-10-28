@@ -19,6 +19,7 @@ T = TypeVar('T')
 
 awaitable = Generator[Any, Any, T]
 async = asyncio.coroutine
+future = asyncio.Future
 
 main_loop = asyncio.new_event_loop()
 main_executor = concurrent.futures.ThreadPoolExecutor(max_workers = 5)

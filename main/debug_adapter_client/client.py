@@ -319,22 +319,29 @@ class DebugAdapterClient:
 			if breakpoint.count:
 				sourceBreakpoint["hitCondition"] = str(breakpoint.count)
 			sourceBreakpoints.append(sourceBreakpoint)
-	
-		result = yield from self.send_request_asyc('setBreakpoints', {
-			"source" : {
-				"path" : file
-			},
-			"breakpoints" : sourceBreakpoints
-		})
+		
+		try:
+			result = yield from self.send_request_asyc('setBreakpoints', {
+				"source" : {
+					"path" : file
+				},
+				"breakpoints" : sourceBreakpoints
+			})
+			breakpoints_result = result['breakpoints']
+			assert len(breakpoints_result) == len(breakpoints), 'expected #breakpoints to match results'
+			for breakpoint, breakpoint_result in zip(breakpoints, breakpoints_result):
+				self._merg_breakpoint(breakpoint, breakpoint_result)
+				id = breakpoint_result.get('id')
+				if not id is None:
+					self.breakpoints_for_id[id] = breakpoint
 
-		breakpoints_result = result['breakpoints']
-		assert len(breakpoints_result) == len(breakpoints), 'expected #breakpoints to match results'
+		except Exception as e:
+			for breakpoint in breakpoints:
+				result = BreakpointResult(False, breakpoint.line, str(e))
+				self.breakpoints.set_breakpoint_result(breakpoint, result)
+				
+			raise e #re raise the exception
 
-		for breakpoint, breakpoint_result in zip(breakpoints, breakpoints_result):
-			self._merg_breakpoint(breakpoint, breakpoint_result)
-			id = breakpoint_result.get('id')
-			if not id is None:
-				self.breakpoints_for_id[id] = breakpoint
 	def _merg_breakpoint(self, breakpoint: Breakpoint, breakpoint_result: dict) -> None:
 		result = BreakpointResult(breakpoint_result['verified'], breakpoint_result.get('line', breakpoint.line), breakpoint_result.get('message'))
 		self.breakpoints.set_breakpoint_result(breakpoint, result)
