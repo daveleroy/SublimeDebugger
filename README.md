@@ -6,8 +6,10 @@ See [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/
 # Getting started
 ![Image of GUI](https://raw.githubusercontent.com/daveleroy/sublime_db/master/images/screenshots/basic.png)
 
-Run Debugger: Open from the command palette
-Add breakpoints by double tapping on the gutter. Hover over the breakpoint to edit it.
+- Opening the debug panel
+  - from the command palette `Debugger: Open`
+- Add breakpoints by double tapping on the gutter. 
+  - Hover over the breakpoint to edit it
 
 # Installing
 
