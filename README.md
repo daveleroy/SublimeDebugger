@@ -9,7 +9,7 @@ See [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/
 - Opening the debug panel
   - from the command palette `Debugger: Open`
 - Add breakpoints by double tapping on the gutter. 
-  - Hover over the breakpoint to edit it
+  - Hover over the breakpoint to edit it or click on it in the breakpoint panel (bottom left)
 
 # Installing
 
