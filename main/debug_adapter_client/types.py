@@ -1,6 +1,6 @@
-from debug.core.typecheck import NamedTuple, Optional as Option
+from debug.core.typecheck import TYPE_CHECKING
 
-if False: from .client import DebugAdapterClient
+if TYPE_CHECKING: from .client import DebugAdapterClient
 		
 class StackFramePresentation:
 	normal = 1
