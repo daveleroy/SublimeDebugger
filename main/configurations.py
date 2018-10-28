@@ -4,13 +4,13 @@ import sublime
 
 from debug import core
 
-def _get_setting_(view: Optional[sublime.View], setting: str, default: Any = None) -> Any:
+def get_setting(view: Optional[sublime.View], setting: str, default: Any = None) -> Any:
 	plugin_settings = sublime.load_settings('debug.sublime-settings')
 	plugin_setting = plugin_settings.get(setting, default)
 	if not view:
 		return plugin_setting
 
-	project_setting = view.settings().get(setting, plugin_setting)
+	project_setting = view.settings().get("debug." + setting, plugin_setting)
 	return project_setting
 
 class Configuration:
@@ -25,21 +25,21 @@ def _get_configurations(configs: list) -> List[Configuration]:
 	r = []
 	for config in configs:
 		name = config.get('name')
-		assert name, 'expecting name for debug_configuration'
+		assert name, 'expecting name for debug.configuration'
 		type = config.get('type')
-		assert type, 'expecting type for debug_configuration'
+		assert type, 'expecting type for debug.configuration'
 		request = config.get('request')
-		assert request, 'expecting request for debug_configuration'
+		assert request, 'expecting request for debug.configuration'
 		c = Configuration(name, type, request, config)
 		r.append(c)
 	return r
 
 def _project_configurations(window: sublime.Window) -> List[Configuration]:
-	configs = _get_setting_(window.active_view(), 'debug_configurations')
+	configs = get_setting(window.active_view(), 'configurations')
 	if not configs:
 		return []
 
-	assert isinstance(configs, list), 'expected [] for debug_configurations'
+	assert isinstance(configs, list), 'expected [] for debug.configurations'
 	return _get_configurations(configs)
 
 

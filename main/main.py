@@ -9,8 +9,8 @@ from debug.libs import asyncio
 from debug import ui
 from debug import core
 
-
 from debug.main.breakpoints import Breakpoints, Breakpoint, Filter
+from debug.main import config
 
 from debug.main.components.variable_component import VariablesComponent, VariableComponent, Variable
 from debug.main.components.breakpoint_inline_component import BreakpointInlineComponent
@@ -22,17 +22,7 @@ from debug.main.components.breakpoints_component import DebuggerComponent, STOPP
 from debug.main.debug_adapter_client.client import DebugAdapterClient, StoppedEvent, OutputEvent
 from debug.main.debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport
 from debug.main.debug_adapter_client.types import StackFrame, EvaluateResponse
-from debug.main.configurations import Configuration, select_configuration, all_configurations, get_configuration_for_name
-from . import (
-	config
-)
-
-def get_setting(settings: sublime.Settings, key: str, cls: type) -> 'Any': 
-	assert settings.has(key), "Expected {} in settings".format(key)
-	mi = settings.get(key)
-	assert mi, "Expected {} in settings".format(key)
-	assert isinstance(mi, cls), "Expected {} in settings to be of type {}".format(key, cls)
-	return mi
+from debug.main.configurations import Configuration, select_configuration, all_configurations, get_configuration_for_name, get_setting
 	
 class Main (DebuggerComponentListener):
 	instances = {} #type: Dict[int, Main]
@@ -54,7 +44,6 @@ class Main (DebuggerComponentListener):
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
 		print('new Main for window', window.id())
-		self.project_name = window.project_file_name() or "user"
 		self.window = window
 		self.disposeables = [] #type: List[Any]
 		self.breakpoints = Breakpoints()
@@ -63,19 +52,20 @@ class Main (DebuggerComponentListener):
 		self.variablesComponent = VariablesComponent()
 		self.callstackComponent = CallStackComponent()
 		self.debuggerComponent = DebuggerComponent(self.breakpoints, self)
+
 		self.debugAdapterClient = None #type: Optional[DebugAdapterClient]
-		self.path = window.project_file_name()
+		
 		self.selectedFrameComponent = None #type: Optional[ui.Phantom]
 		self.breakpointInformation = None #type: Optional[ui.Phantom]
 		self.pausedWithError = False
 		self.process = None #type: Optional[Process]
 		self.disconnecting = False
 
+		self.project_name = window.project_file_name() or "user"
 		data = config.persisted_for_project(self.project_name)
 		config_name = data.get('config_name')
 		config_maybe_at_index = data.get('config_maybe_at_index')
 
-		
 		for bp in data.get('breakpoints', []):
 			self.breakpoints.add(Breakpoint.from_json(bp))
 
@@ -90,6 +80,7 @@ class Main (DebuggerComponentListener):
 			self.debuggerComponent.set_name('select config')
 
 		self.stopped_reason = ''
+		self.path = window.project_file_name()
 		if self.path:
 			self.path = os.path.dirname(self.path)
 			self.eventLog.Add('from: {}'.format(self.path))
@@ -105,8 +96,7 @@ class Main (DebuggerComponentListener):
 			ui.view_drag_select.add(self.on_drag_select),
 		])
 		
-		settings = sublime.load_settings("debug.sublime-settings")
-		mode = get_setting(settings, 'display', str)
+		mode = get_setting(window.active_view(), 'display')
 
 		if mode == 'window':
 			sublime.run_command("new_window")
@@ -187,17 +177,20 @@ class Main (DebuggerComponentListener):
 				return
 
 			config = self.configuration
-			settings = sublime.load_settings("debug.sublime-settings")
-			debuggers = get_setting(settings, 'debug_adapters', dict)
+
+			debuggers = get_setting(self.window.active_view(), 'adapters', {})
 			
 			debugger = debuggers.get(config.type)
 			assert debugger, 'no debugger named {}'.format(config.type)
 
 			adapter_type_config = sublime.expand_variables(debugger, self.window.extract_variables())
-			
+			command = adapter_type_config.get('command')
+			assert command, 'expected "command" in debugger settings'
+
+			port = adapter_type_config.get('tcp_port')
+
 			#If there is a command to run for this debugger run it now
-			if 'command' in adapter_type_config:
-				command = adapter_type_config['command']
+			if port:
 				print('Starting Process: {}'.format(command))
 				try:
 					self.process = Process(command, 
@@ -295,7 +288,7 @@ class Main (DebuggerComponentListener):
 		elif config.request == 'attach':
 			yield from debugAdapterClient.Attach(adapter_config)
 		else:
-			raise Exception('expected debug_configuration to have request of either "launch" or "attach" found {}'.format(config.request))
+			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(config.request))
 		
 		print ('Adapter has been launched/attached')
 		# At this point we are running?
