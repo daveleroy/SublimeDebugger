@@ -5,36 +5,47 @@
 			"path": "."
 		}
 	],
-	"settings": {
-		"debug_configurations" : [
+	"settings":
+	{
+		"LSP":
+		{
+			"mypy":
 			{
+				"enabled": true
+			},
+		},
+		"debug.configurations":
+		[
+			{
+				"file": "${project_path}/index.html",
 				"name": "Chrome",
-				"type": "chrome",
 				"request": "launch",
-				"file":"${project_path}/index.html"
+				"type": "chrome"
 			},
 			{
+				"file": "${project_path}/index.html",
 				"name": "Firefox",
-				"type": "firefox",
 				"request": "launch",
-				"file":"${project_path}/index.html"
+				"type": "firefox"
 			},
 			{
+				"host": "localhost",
 				"name": "Debug the debugger...",
-				"type": "python",
-				"request": "attach",
 				"port": 5678,
-	         	 	"host": "localhost",
+				"request": "attach",
+				"type": "python"
 			},
 			{
-				"name": "Python (main.py)",
-				"type": "python",
-				"request": "launch",
-				"program": "${project_path}/main.py",
-				"debugOptions" : [
+				"debugOptions":
+				[
 					"RedirectOutput"
-				]
+				],
+				"name": "Python (main.py)",
+				"program": "${project_path}/main.py",
+				"request": "launch",
+				"type": "python"
 			}
-		]
+		],
+		"debug.open_at_startup": true
 	}
 }
