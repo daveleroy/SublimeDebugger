@@ -19,7 +19,7 @@ import json
 from debug import ui, core
 
 from debug.libs import asyncio
-from debug.main.debug_adapter_client.types import *
+from debug.main.debug_adapter_client.types import StackFrame, StackFramePresentation, Variable, Thread, EvaluateResponse
 from debug.main.debug_adapter_client.transport import Transport
 
 from debug.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter
@@ -131,6 +131,8 @@ class DebugAdapterClient:
 
 	def set_selected_thread_and_frame(self, thread: Thread, frame: StackFrame) -> None:
 		print('set_selected_thread_and_frame')
+		assert thread
+		assert frame
 		self.selected_thread = thread
 		self.selected_frame = frame
 		self.onSelectedStackFrame.post(frame)
@@ -142,8 +144,8 @@ class DebugAdapterClient:
 		selected_frame_id = -1
 
 		if self.selected_thread:
+			assert self.selected_frame
 			if self.selected_thread.id == thread.id:
-				assert self.selected_frame
 				selected_frame_id = self.selected_frame.id
 			else:
 				selection_in_other_thread = True
@@ -423,16 +425,15 @@ class DebugAdapterClient:
 				thread.stopped = True
 				if thread.id == threadId:
 					thread.expanded = True
-			self.selected_frame = None
+			self.clear_selection()
 		elif not threadId is None:
 			thread = self._thread_for_id(threadId)
 			thread.stopped = True
 			thread.expanded = True
 
 			# clear the selected frame but only if the thread stopped is the one that is already selected
-			# when fetching the stack trace we won't select a thread and frame just a new frame on the same thread
 			if self.selected_thread and thread.id == self.selected_thread.id:
-				self.selected_frame = None
+				self.clear_selection()
 
 		# we aren't going to post that we changed the threads
 		# we will let the threadsCommandBase to that for us so we don't update the UI twice
