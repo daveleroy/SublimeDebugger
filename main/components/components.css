@@ -1,4 +1,6 @@
-
+.BreakpointInlineComponent {
+	width: 100rem;
+}
 .StackFrameComponent {
 	padding-left: var(--width);
 }
