@@ -10,13 +10,6 @@ try:
 except ImportError:
     import selectors  # Will also be exported.
 
-if sys.platform == 'win32':
-    # Similar thing for _overlapped.
-    try:
-        from . import _overlapped
-    except ImportError:
-        import _overlapped  # Will also be exported.
-
 # This relies on each of the submodules having an __all__ variable.
 from .base_events import *
 from .coroutines import *
