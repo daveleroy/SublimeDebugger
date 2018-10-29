@@ -28,6 +28,20 @@ class SublimeDebugOpenCommand(RunMainCommand):
 		assert main
 		main.show()
 
+class SublimeDebugToggleBreakpointCommand(RunMainCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window, True)
+		assert main
+		view = self.window.active_view()
+		x, y = view.rowcol(view.sel()[0].begin())
+		line = x + 1
+		file = view.file_name()
+		breakpoint = main.breakpoints.get_breakpoint(file, line)
+		if breakpoint is not None:
+			main.breakpoints.remove_breakpoint(breakpoint)
+		else:
+			main.breakpoints.add_breakpoint(file, line)
+
 class SublimeDebugQuitCommand(RunMainCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
