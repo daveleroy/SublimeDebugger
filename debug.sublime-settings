@@ -15,45 +15,80 @@
 				"-O \"command script import '${packages}/sublime_db/debug_adapters/vscode-lldb/extension/adapter'\"",
 				"-O \"script adapter.main.run_tcp_server()"
 			],
-			"tcp_port" : 4711
+			"tcp_port" : 4711,
+			"installation": {
+				"name": "vscode-lldb",
+				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/latest/vspackage",
+				"format": "zip.gz"
+			}
 		},
 		"chrome" : {
 			"command" : [
-				"node", 
-				"${packages}/sublime_db/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js"	
-			]
+				"node",
+				"${packages}/sublime_db/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js"
+			],
+			"installation": {
+				"name": "vscode-chrome-debug",
+				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
+				"format": "zip.gz"
+			}
 		},
 		"chrome_tcp" : {
 			"command" : [
-				"node", 
+				"node",
 				"${packages}/sublime_db/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js",
-				"--server=4713"	
+				"--server=4713"
 			],
-			"tcp_port" : 4713
+			"tcp_port" : 4713,
+			"installation": {
+				"name": "vscode-chrome-debug",
+				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
+				"format": "zip.gz"
+			}
 		},
 		"firefox" : {
 			"command" : [
 				"node",
 				"${packages}/sublime_db/debug_adapters/vscode-firefox-debug/extension/out/firefoxDebugAdapter.js"
-			]
+			],
+			"installation": {
+				"name": "vscode-firefox-debug",
+				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/hbenl/vsextensions/vscode-firefox-debug/latest/vspackage",
+				"format": "zip.gz"
+			}
 		},
 		"python" : {
 			"command" : [
 				"node",
 				"${packages}/sublime_db/debug_adapters/vscode-python/extension/out/client/debugger/MainV2.js"
-			]
+			],
+			"installation": {
+				"name": "vscode-python",
+				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/latest/vspackage",
+				"format": "zip.gz"
+			}
 		},
 		"go" : {
 			"command": [
 				"node",
 				"${packages}/sublime_db/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
-			]
+			],
+			"installation": {
+				"name": "vscode-go",
+				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage",
+				"format": "zip.gz"
+			}
 		},
 		"php" : {
 			"command": [
 				"node",
 				"${packages}/sublime_db/debug_adapters/vscode-php/extension/out/phpDebug.js"
-			]
+			],
+			"installation": {
+				"name": "vscode-php",
+				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/felixfbecker/vsextensions/php-debug/latest/vspackage",
+				"format": "zip.gz"
+			}
 		}
 	}
 }

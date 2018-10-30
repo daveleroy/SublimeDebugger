@@ -46,5 +46,9 @@
         "caption" : "Debugger: Toggle Breakpoint",
         "command" : "sublime_debug_toggle_breakpoint"
     },
+    {
+        "caption" : "Debugger: Install adapter",
+        "command" : "sublime_debug_install_adapter"
+    },
     { "caption": "-", "id": "debug_end" }
 ]
