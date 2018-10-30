@@ -4,7 +4,7 @@ Graphical Debugger for sublime text for languages that support the debug adapter
 See [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/)
 
 # Getting started
-![Image of GUI](https://raw.githubusercontent.com/daveleroy/sublime_db/master/images/screenshots/basic.png)
+![Image of GUI](https://raw.githubusercontent.com/daveleroy/sublime_db/master/docs/images/basic.png)
 
 - Opening the debug panel
   - from the command palette `Debugger: Open`
