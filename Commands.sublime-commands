@@ -3,7 +3,7 @@
         "caption": "Preferences: Debugger Settings",
         "command": "edit_settings",
         "args": {
-          "base_file": "${packages}/sublime_db/debug.sublime-settings",
+          "base_file": "${packages}/sublime_db/debug.sublime-settings"
         }
     },
     {
@@ -42,5 +42,9 @@
         "caption" : "Debugger: Resume",
         "command" : "sublime_debug_resume"
     },
-    { "caption": "-", "id": "debug_end" },
+    {
+        "caption" : "Debugger: Toggle Breakpoint",
+        "command" : "sublime_debug_toggle_breakpoint"
+    },
+    { "caption": "-", "id": "debug_end" }
 ]
