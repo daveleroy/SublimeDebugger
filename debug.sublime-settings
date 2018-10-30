@@ -48,6 +48,12 @@
 				"node",
 				"${packages}/sublime_db/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
 			]
+		},
+		"php" : {
+			"command": [
+				"node",
+				"${packages}/sublime_db/debug_adapters/vscode-php/extension/out/phpDebug.js"
+			]
 		}
 	}
 }
