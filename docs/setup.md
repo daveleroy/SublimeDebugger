@@ -2,7 +2,7 @@
 
 ## Settings
 Settings can either be set at the project level or globally.
-Project settings can be changed by appeding `debug.` to the setting name 
+Project settings can be changed by appending `debug.` to the setting name 
 
 Within a `.sublime_settings` file
 - `open_at_startup` `false` the debug panel will open the first that a window with this setting is activated
@@ -27,7 +27,12 @@ Example configuration
 
 ```
 ## Default Debuggers
-TODO
+This project comes with some pre-configured debuggers
+* chrome
+* python
+* go
+* php
+* lldb
 
 ## Adding a new debugger
 The list of supported debuggers can be found in the `adapters` setting. The `type` attribute in a configuration tells us which adapter we will be running. 
