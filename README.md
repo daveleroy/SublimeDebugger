@@ -15,4 +15,6 @@ See [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/
 # Installing
 
 1. Clone into your sublime Packages directory
-2. Download debug adapters by running: ```Debugger: Install adapter``` inside sublime text (These are the debuggers I have added configurations for in the [settings file](https://github.com/daveleroy/sublime_db/blob/master/debug.sublime-settings) 
+2. Install a debug adapter by running: ```Debugger: Install adapter``` inside sublime text.
+  - These are just a few of the debug adapters out that that have been added
+  - You can add your own to the [settings file](https://github.com/daveleroy/sublime_db/blob/master/debug.sublime-settings)
