@@ -64,7 +64,7 @@ class EventLogComponent (ui.Component):
 		return [
 			ui.Panel(items = [
 				ui.Segment(items = [
-					ui.Label('Event Log')
+					ui.Label('Event Log', color="white")
 				]),
 				ui.Table(items = self.lines)
 			])

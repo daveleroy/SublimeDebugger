@@ -68,7 +68,7 @@ class VariablesComponent (ui.Component):
 		self.dirty()
 	def render(self) -> ui.components:
 		items = [
-			ui.Segment(items = [ui.Label('Variables')])
+			ui.Segment(items = [ui.Label('Variables', color="white")])
 		] #type: List[ui.Component]
 
 		variables = [] #type: List[ui.Component]

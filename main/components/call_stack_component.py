@@ -40,7 +40,7 @@ class  CallStackComponent (ui.Component):
 		return [
 			ui.Panel(items = [
 				ui.Segment(items = [
-					ui.Label('Call Stack')
+					ui.Label('Call Stack', color="white")
 				]),
 				# FIXME?? Table should not take List
 				ui.Table(items = self.thread_components) #type: ignore 

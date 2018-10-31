@@ -12,13 +12,16 @@ a {
 }
 
 .secondary {
-	--text-color: rgba(255, 255, 255, 0.5);
+	--text-color: color(var(--foreground) alpha(0.7));
 }
 .primary {
-	--text-color: rgba(255, 255, 255, 1.0);
+	--text-color: var(--foreground);
+}
+.white {
+	--text-color: var(--whitish);
 }
 .red {
-	--text-color: rgba(255, 0, 0, 1.0);
+	--text-color: var(--redish);
 }
  .medium {
 	line-height: 0.0rem;
