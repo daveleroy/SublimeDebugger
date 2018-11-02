@@ -14,6 +14,7 @@ import threading
 import concurrent
 
 from sublime_db.libs import asyncio
+from .log import log_exception
 
 T = TypeVar('T')
 
@@ -56,6 +57,14 @@ def run(awaitable: awaitable[T], on_done: Optional[Callable[[T], None]] = None) 
 	task = main_loop.create_task(awaitable)
 	if on_done:
 		task.add_done_callback(lambda task, on_done=on_done: on_done(task.result())) #type: ignore
+	else:
+		def done(task) -> None:
+			e = task.exception()
+			if e:
+				try: raise e
+				except: log_exception('An exception occured in an async task:\n')
+
+		task.add_done_callback(done)
 
 def assert_main_thread() -> None:
 	assert threading.current_thread() == _main_thread, 'expecting main thread'
