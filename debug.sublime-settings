@@ -1,10 +1,6 @@
 {
 	"open_at_startup" : false,
-
-	// Where would you like to have the UI display?
-	// "window" puts the UI in a entirely seperate window
-	// "view" puts the UI in a new tab on the window that opens the debugger
-	// "output" puts the UI in the bottom output panel of the window that called "Open"
+	"ui_scale" : 12,
 	"display" : "output",
 	"configurations" : [],
 	"custom_adapters" : {},

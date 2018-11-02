@@ -59,33 +59,8 @@ class Main (DebuggerComponentListener):
 		self.pausedWithError = False
 		self.process = None #type: Optional[Process]
 		self.disconnecting = False
-
-		self.project_name = window.project_file_name() or "user"
-		self.persistance = PersistedData(self.project_name)
-
-		for breakpoint in self.persistance.load_breakpoints():
-			self.breakpoints.add(breakpoint)
-
-		self.load_configurations()
-
-		self.stopped_reason = ''
-		self.path = window.project_file_name()
-		if self.path:
-			self.path = os.path.dirname(self.path)
-			self.eventLog.Add('Opened In Workspace: {}'.format(self.path))
-		else:
-			self.eventLog.AddStderr('warning: debugger opened in a window that is not part of a project')
-			
-		print('Creating a window: h')
-		
-		self.disposeables.extend([
-			ui.view_gutter_hovered.add(self.on_gutter_hovered),
-			ui.view_text_hovered.add(self.on_text_hovered),
-			ui.view_drag_select.add(self.on_drag_select),
-		])
 		
 		mode = get_setting(window.active_view(), 'display')
-
 		if mode == 'window':
 			sublime.run_command("new_window")
 			new_window = sublime.active_window()
@@ -121,6 +96,30 @@ class Main (DebuggerComponentListener):
 
 		self.view = output
 		
+		self.project_name = window.project_file_name() or "user"
+		self.persistance = PersistedData(self.project_name)
+
+		for breakpoint in self.persistance.load_breakpoints():
+			self.breakpoints.add(breakpoint)
+
+		self.load_configurations()
+
+		self.stopped_reason = ''
+		self.path = window.project_file_name()
+		if self.path:
+			self.path = os.path.dirname(self.path)
+			self.eventLog.Add('Opened In Workspace: {}'.format(self.path))
+		else:
+			self.eventLog.AddStderr('warning: debugger opened in a window that is not part of a project')
+			
+		print('Creating a window: h')
+		
+		self.disposeables.extend([
+			ui.view_gutter_hovered.add(self.on_gutter_hovered),
+			ui.view_text_hovered.add(self.on_text_hovered),
+			ui.view_drag_select.add(self.on_drag_select),
+		])
+
 		self.disposeables.extend([
 			ui.Phantom(self.debuggerComponent, output, sublime.Region(1, 1), sublime.LAYOUT_INLINE),
 			ui.Phantom(self.callstackComponent, output, sublime.Region(1, 2), sublime.LAYOUT_INLINE),
@@ -172,6 +171,8 @@ class Main (DebuggerComponentListener):
 			self.debuggerComponent.set_name(self.configuration.name)
 		else:
 			self.debuggerComponent.set_name('select config')
+
+		self.view.settings().set('font_size', get_setting(self.view, 'ui_scale', 12))
 
 	def on_settings_updated(self) -> None:
 		print('Settings were udpdated: reloading configuations')
