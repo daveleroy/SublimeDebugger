@@ -23,15 +23,15 @@
         "command" : "sublime_debug_stop"
     },
     {
-        "caption" : "Debugger: StepOver",
+        "caption" : "Debugger: Step Over",
         "command" : "sublime_debug_step_over"
     },
     {
-        "caption" : "Debugger: StepOut",
+        "caption" : "Debugger: Step Out",
         "command" : "sublime_debug_step_out"
     },
     {
-        "caption" : "Debugger: StepIn",
+        "caption" : "Debugger: Step In",
         "command" : "sublime_debug_step_in"
     },
     {
@@ -47,7 +47,7 @@
         "command" : "sublime_debug_toggle_breakpoint"
     },
     {
-        "caption" : "Debugger: Install adapter",
+        "caption" : "Debugger: Install Adapters",
         "command" : "sublime_debug_install_adapter"
     },
     { "caption": "-", "id": "debug_end" }
