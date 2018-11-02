@@ -1,11 +1,14 @@
 import sublime_plugin
 import sublime
 
+from sublime_db.core.typecheck import List
+
 from sublime_db import core
+from sublime_db.libs import asyncio
 
 from sublime_db.main.main import Main
 from sublime_db.main.debug_adapter_client.client import DebuggerState, DebugAdapterClient
-from sublime_db.main.configurations import get_setting
+from sublime_db.main.adapter_configuration import AdapterConfiguration, install_adapter
 
 def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	debugger = Main.debuggerForWindow(window)
@@ -107,74 +110,48 @@ class SublimeDebugResumeCommand(DebugWindowCommand):
 
 class SublimeDebugInstallAdapter(RunMainCommand):
 	def run_main(self) -> None:
-		self.adapters = list(get_setting(self.window.active_view(), "adapters").keys())
-		self.adapters.insert(0, "Install All")
-		self.window.show_quick_panel(self.adapters, self.install)
+		main = Main.forWindow(self.window)
+		self.adapters = main.adapters
+		core.run(self.install())
+		
+	@core.async
+	def install(self) -> core.awaitable[None]:
+		names = []
+		adapters = []
 
-	def download(self, install_cfg: dict):
-		import os
-		import shutil
-		import zipfile
-		import gzip
-		import urllib.request
+		for adapter in self.adapters.values():
+			if not adapter.installation:
+				continue
+			if adapter.installed:
+				names.append(adapter.installation.name + ' ✓')
+			else:
+				names.append(adapter.installation.name)
+			adapters.append(adapter)
 
-		os.chdir(os.path.join(sublime.packages_path() ,"sublime_db/debug_adapters"))
-		adapter_name = install_cfg.get("name", None)
-		download_link = install_cfg.get("link", None)
-		archive_format = install_cfg.get("format", None)
-		if not adapter_name:
-			print("No name for the adapter folder")
+		names.append('Install All')
+
+		index = yield from core.sublime_show_quick_panel_async(self.window, names, 0)
+		if index < 0:
 			return
-		if not download_link:
-			print("No download link found")
-			return
-		if not archive_format or archive_format not in ["zip", "zip.gz"]:
-			print("The archive extension is not specified or incorrect")
-		if os.path.isdir(adapter_name):
-			print("Adapter %s already exists, deleting folder" % (adapter_name,))
-			shutil.rmtree(adapter_name, ignore_errors=True)
 
-		request = urllib.request.Request(download_link)
-		response = urllib.request.urlopen(request)
-		print(download_link)
-		if response.getcode() != 200:
-			print("Bad response from server, got code %d" % (response.getcode(),))
-		os.mkdir(adapter_name)
-		os.chdir(adapter_name)
+		status = "Installing adapters... "
+		view = self.window.active_view()
+		view.set_status('sublime_db_adapter_install', status)
 
-		if archive_format == "zip.gz":
-			# If it's a zip.gz we first apply zip.gz and then unzip it
-			archive_format = "zip"
-			response = gzip.GzipFile(fileobj=response)
+		adapters_to_install = [] #type: List[AdapterConfiguration]
+		if index >= len(adapters):
+			adapters_to_install = adapters
+		else:
+			adapters_to_install = [adapters[index]]
 
-		archive_name = "%s.%s" % (adapter_name, archive_format)
-		with open(archive_name, "wb") as out_file:
-			shutil.copyfileobj(response, out_file)
+		for adapter in adapters_to_install:
+			try:
+				yield from install_adapter(adapter)
+				status = 'Installing adapters... Installed {}'.format(adapter.installation.name)
+			except Exception as e:
+				status = 'Installing adapters... Failed {} {}'.format(adapter.installation.name, e)
 
-		if archive_format == "zip":
-			with zipfile.ZipFile(archive_name) as zf:
-				zf.extractall()
+			view.set_status('sublime_db_adapter_install', status)
 
-		os.remove(archive_name)
-		os.chdir(sublime.packages_path())
-
-	def install(self, adapter_id: int) -> None:
-		install_list = []
-		if adapter_id < 0:
-			return
-		if adapter_id == 0:
-			# Installation of all adapters
-			cfg = get_setting(self.window.active_view(), "adapters")
-			for adapter in cfg.keys():
-				install_cfg = cfg[adapter].get("installation", None)
-				if install_cfg:
-					install_list.append(install_cfg)
-		if adapter_id > 0:
-			cfg = get_setting(self.window.active_view(), "adapters")[self.adapters[adapter_id]]
-			install_cfg = cfg.get("installation", None)
-			if not install_cfg:
-				print("No installation instruction found for adapter %s" % (self.adapters[adapter_id],))
-				return
-			install_list.append(install_cfg)
-		for cfg in install_list:
-			self.download(cfg)
+		asyncio.sleep(2)
+		view.erase_status('sublime_db_adapter_install')

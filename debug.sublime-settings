@@ -7,6 +7,7 @@
 	// "output" puts the UI in the bottom output panel of the window that called "Open"
 	"display" : "output",
 	"configurations" : [],
+	"custom_adapters" : {},
 	"adapters" : {
 		"lldb" : {
 			"command" : [
@@ -18,7 +19,7 @@
 			"tcp_port" : 4711,
 			"installation": {
 				"name": "vscode-lldb",
-				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/latest/vspackage",
+				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/latest/vspackage",
 				"format": "zip.gz"
 			}
 		},
@@ -29,9 +30,10 @@
 			],
 			"installation": {
 				"name": "vscode-chrome-debug",
-				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
+				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
 				"format": "zip.gz"
-			}
+			},
+			"tcp_port" : 4711
 		},
 		"chrome_tcp" : {
 			"command" : [
@@ -42,7 +44,7 @@
 			"tcp_port" : 4713,
 			"installation": {
 				"name": "vscode-chrome-debug",
-				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
+				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
 				"format": "zip.gz"
 			}
 		},
@@ -53,9 +55,9 @@
 			],
 			"installation": {
 				"name": "vscode-firefox-debug",
-				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/hbenl/vsextensions/vscode-firefox-debug/latest/vspackage",
+				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/hbenl/vsextensions/vscode-firefox-debug/latest/vspackage",
 				"format": "zip.gz"
-			}
+			},
 		},
 		"python" : {
 			"command" : [
@@ -64,7 +66,7 @@
 			],
 			"installation": {
 				"name": "vscode-python",
-				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/latest/vspackage",
+				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/latest/vspackage",
 				"format": "zip.gz"
 			}
 		},
@@ -75,9 +77,9 @@
 			],
 			"installation": {
 				"name": "vscode-go",
-				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage",
+				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage",
 				"format": "zip.gz"
-			}
+			},
 		},
 		"php" : {
 			"command": [
@@ -86,7 +88,7 @@
 			],
 			"installation": {
 				"name": "vscode-php",
-				"link": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/felixfbecker/vsextensions/php-debug/latest/vspackage",
+				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/felixfbecker/vsextensions/php-debug/latest/vspackage",
 				"format": "zip.gz"
 			}
 		}

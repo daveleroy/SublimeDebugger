@@ -10,7 +10,7 @@ from sublime_db import core
 from sublime_db.main.breakpoints import Breakpoints, Breakpoint, Filter
 
 from sublime_db.main import config
-from sublime_db.main.configurations import Configuration, select_configuration, all_configurations, get_configuration_for_name, get_setting
+from sublime_db.main.configurations import Configuration, AdapterConfiguration, select_configuration, all_configurations, get_configuration_for_name, get_setting, register_on_changed_setting
 
 from sublime_db.main.components.variable_component import VariablesComponent, VariableComponent, Variable
 from sublime_db.main.components.breakpoint_inline_component import BreakpointInlineComponent
@@ -68,15 +68,7 @@ class Main (DebuggerComponentListener):
 		for bp in data.get('breakpoints', []):
 			self.breakpoints.add(Breakpoint.from_json(bp))
 
-		if config_name:
-			self.configuration = get_configuration_for_name(window, config_name, config_maybe_at_index)
-		else:
-			self.configuration = None
-			
-		if self.configuration:
-			self.debuggerComponent.set_name(self.configuration.name)
-		else:
-			self.debuggerComponent.set_name('select config')
+		self.load_configurations()
 
 		self.stopped_reason = ''
 		self.path = window.project_file_name()
@@ -141,6 +133,53 @@ class Main (DebuggerComponentListener):
 		self.breakpoints.onChangedFilter.add(self.onChangedFilter)
 		self.breakpoints.onSelectedBreakpoint.add(self.onSelectedBreakpoint)
 		
+		assert not self.view.is_loading()
+
+		active_view = self.window.active_view()
+		if active_view:
+			self.disposeables.append(
+				register_on_changed_setting(active_view, self.on_settings_updated)
+			)
+		else:
+			print('Failed to find active view to listen for settings changes')
+
+	def load_configurations (self) -> None:
+		data = self.window.project_data()
+		if data:
+			data.setdefault('settings', {}).setdefault('debug.configurations', [])
+			self.window.set_project_data(data)
+
+		adapters = {}
+		
+		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters', {}).items():
+			try:
+				adapter = AdapterConfiguration.from_json(adapter_name, adapter_json, self.window)
+				adapters[adapter.type] = adapter
+			except Exception as e:
+				core.display('There was an error creating a AdapterConfiguration {}'.format(e))
+
+		self.adapters = adapters
+
+		data = config.persisted_for_project(self.project_name)
+		config_name = data.get('config_name')
+		config_maybe_at_index = data.get('config_maybe_at_index')
+		
+		self.configuration = None
+		try:
+			if config_name:
+				self.configuration = get_configuration_for_name(self.window, config_name, config_maybe_at_index)				
+		except Exception as e:
+			core.display('There was an error loading configuration named {}: {}'.format(config_name, e))
+			
+		if self.configuration:
+			self.debuggerComponent.set_name(self.configuration.name)
+		else:
+			self.debuggerComponent.set_name('select config')
+
+	def on_settings_updated(self) -> None:
+		print('Settings were udpdated: reloading configuations')
+		self.load_configurations()
+
 	def show(self) -> None:
 		self.window.run_command('show_panel', {
 			'panel': 'output.debugger'
@@ -152,7 +191,7 @@ class Main (DebuggerComponentListener):
 		if self.configuration:
 			index = self.configuration.index
 
-		configuration = yield from select_configuration(self.window, index)
+		configuration = yield from select_configuration(self.window, index, self.adapters)
 		print('Selected configuration:', configuration)
 		if configuration:
 			persist = config.persisted_for_project(self.project_name)
@@ -161,6 +200,7 @@ class Main (DebuggerComponentListener):
 			config.save_data()
 			self.configuration = configuration
 			self.debuggerComponent.set_name(configuration.name)
+
 	@core.async
 	def LaunchDebugger (self) -> Generator[Any, None, None]:
 		self.KillDebugger()
@@ -176,40 +216,37 @@ class Main (DebuggerComponentListener):
 
 			config = self.configuration
 
-			debuggers = get_setting(self.window.active_view(), 'adapters', {})
-			
-			debugger = debuggers.get(config.type)
-			assert debugger, 'no debugger named {}'.format(config.type)
+			adapter = self.adapters.get(config.type)
+			if not adapter:
+				raise Exception('Unable to find debug adapter with the type name "{}"'.format(config.type))
+			if not adapter.installed:
+				raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(config.type))
+				
 
-			adapter_type_config = sublime.expand_variables(debugger, self.window.extract_variables())
-			command = adapter_type_config.get('command')
-			assert command, 'expected "command" in debugger settings'
-
-			port = adapter_type_config.get('tcp_port')
 
 			#If there is a command to run for this debugger run it now
-			if port:
-				print('Starting Process: {}'.format(command))
+			if adapter.tcp_port:
+				print('Starting Process: {}'.format(adapter.command))
 				try:
-					self.process = Process(command, 
+					self.process = Process(adapter.command, 
 						on_stdout = lambda msg: self.eventLog.Add(msg), 
 						on_stderr = lambda msg: self.eventLog.Add(msg))
 				except Exception as e:
 					self.eventLog.AddStderr('Failed to start debug adapter process: {}'.format(e))
-					self.eventLog.AddStderr('Command in question: {}'.format(command))
+					self.eventLog.AddStderr('Command in question: {}'.format(adapter.command))
 					core.display('Failed to start debug adapter process: Check the Event Log for more details')
 
-				address = adapter_type_config.get('tcp_address', 'localhost')
+				tcp_address = adapter.tcp_address or 'localhost'
 				try:
-					transport = yield from start_tcp_transport(address, port)
+					transport = yield from start_tcp_transport(tcp_address, adapter.tcp_port)
 				except Exception as e:
 					self.eventLog.AddStderr('Failed to connect to debug adapter: {}'.format(e))
-					self.eventLog.AddStderr('address: {} port: {}'.format(address, port))
+					self.eventLog.AddStderr('address: {} port: {}'.format(tcp_address, adapter.tcp_port))
 					core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
 					return
 			else:
 				# dont monitor stdout the StdioTransport users it
-				self.process = Process(command, 
+				self.process = Process(adapter.command, 
 						on_stdout = None, 
 						on_stderr = lambda msg: self.eventLog.Add(msg))
 				
@@ -217,6 +254,7 @@ class Main (DebuggerComponentListener):
 
 		except Exception as e:
 			core.display(e)
+			self.debuggerComponent.setState(STOPPED)
 			return
 		
 		debugAdapterClient = DebugAdapterClient(transport)
@@ -303,7 +341,6 @@ class Main (DebuggerComponentListener):
 			self.selectedFrameComponent.dispose()
 			self.selectedFrameComponent = None
 
-		
 		self.variablesComponent.clear()
 		self.callstackComponent.clear()
 
@@ -495,7 +532,6 @@ class Main (DebuggerComponentListener):
 			self.clearBreakpointInformation()
 			self.breakpointInformation = ui.Phantom(BreakpointInlineComponent(breakpoints = self.breakpoints, breakpoint = breakpoint), view, sublime.Region(at, at), sublime.LAYOUT_BELOW)
 		core.run(a())
-
 
 @core.async
 def startup_main_thread() -> None:
