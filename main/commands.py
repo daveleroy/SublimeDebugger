@@ -9,6 +9,7 @@ from sublime_db.libs import asyncio
 from sublime_db.main.main import Main
 from sublime_db.main.debug_adapter_client.client import DebuggerState, DebugAdapterClient
 from sublime_db.main.adapter_configuration import AdapterConfiguration, install_adapter
+from .configurations import add_configuration
 
 def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	debugger = Main.debuggerForWindow(window)
@@ -45,6 +46,9 @@ class SublimeDebugToggleBreakpointCommand(RunMainCommand):
 			main.breakpoints.remove_breakpoint(breakpoint)
 		else:
 			main.breakpoints.add_breakpoint(file, line)
+
+	def is_enabled(self) -> bool:
+		return Main.forWindow(self.window) != None
 
 class SublimeDebugQuitCommand(RunMainCommand):
 	def run_main(self) -> None:
@@ -108,9 +112,14 @@ class SublimeDebugResumeCommand(DebugWindowCommand):
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.stopped)
 
+class SublimeDebugAddConfiguration(RunMainCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window, True)
+		core.run(add_configuration(self.window, main.adapters))
+		
 class SublimeDebugInstallAdapter(RunMainCommand):
 	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
+		main = Main.forWindow(self.window, True)
 		self.adapters = main.adapters
 		core.run(self.install())
 		
@@ -128,7 +137,7 @@ class SublimeDebugInstallAdapter(RunMainCommand):
 				names.append(adapter.installation.name)
 			adapters.append(adapter)
 
-		names.append('Install All')
+		names.append('-- Install All --')
 
 		index = yield from core.sublime_show_quick_panel_async(self.window, names, 0)
 		if index < 0:

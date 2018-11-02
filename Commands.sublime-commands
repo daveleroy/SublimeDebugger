@@ -47,6 +47,10 @@
         "command" : "sublime_debug_toggle_breakpoint"
     },
     {
+        "caption" : "Debugger: Add Configuration",
+        "command" : "sublime_debug_add_configuration"
+    },
+    {
         "caption" : "Debugger: Install Adapters",
         "command" : "sublime_debug_install_adapter"
     },
