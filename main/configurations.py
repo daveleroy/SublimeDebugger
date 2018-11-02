@@ -5,33 +5,7 @@ import json
 import re
 from sublime_db import core
 from .adapter_configuration import AdapterConfiguration
-
-class SettingsChangedCallbabck:
-	id = 0
-	def __init__(self, settings: List[sublime.Settings], on_changed: Callable[[], None]) -> None:
-		SettingsChangedCallbabck.id += 1
-		self.settings = settings
-		self.key = 'SettingsChangedCallbabck{}'.format(SettingsChangedCallbabck.id)
-		for setting in settings:
-			setting.add_on_change(self.key, on_changed)
-
-	def dispose (self) -> None:
-		for setting in self.settings:
-			setting.clear_on_change(self.key)
-
-def register_on_changed_setting(view: sublime.View, on_changed: Callable[[], None]) -> SettingsChangedCallbabck:
-	plugin_settings = sublime.load_settings('debug.sublime-settings')
-	view_settings = view.settings()
-	return SettingsChangedCallbabck([plugin_settings, view_settings], on_changed)
-
-def get_setting(view: Optional[sublime.View], setting: str, default: Any = None) -> Any:
-	plugin_settings = sublime.load_settings('debug.sublime-settings')
-	plugin_setting = plugin_settings.get(setting, default)
-	if not view:
-		return plugin_setting
-
-	project_setting = view.settings().get("debug." + setting, plugin_setting)
-	return project_setting
+from .util import get_setting
 
 class Configuration:
 	def __init__(self, name: str, type: str, request: str, all: dict) -> None:
@@ -108,38 +82,21 @@ def show_settings(window: sublime.Window) -> None:
 	})
 
 @core.async
-def select_configuration(window: sublime.Window, index: int, adapters: List[AdapterConfiguration]) -> core.awaitable[Optional[Configuration]]:
-	try:
-		configs = all_configurations(window)
-	except Exception as e:
-		core.display(e)
-		show_settings(window)
-		
+def select_or_add_configuration(window: sublime.Window, index: int, configurations: List[Configuration], adapters: List[AdapterConfiguration]) -> core.awaitable[Optional[Configuration]]:
 	done = core.main_loop.create_future()
-	names = list(map(lambda x: x.name, configs)) + ["-"] +  ["Add Configuration"]
+	names = []
+	for c in configurations:
+		if c.index == index:
+			names.append(c.name + ' ✓')
+		else:
+			names.append(c.name)
+
+	names.append("-- Add Configuration -- ")
 
 	index = yield from core.sublime_show_quick_panel_async(window, names, index)
 	if index < 0:
 		return None
-	if index >= len(configs):
+	if index >= len(configurations):
 		yield from add_configuration(window, adapters)
 		return None
-	return configs[index]
-
-# since configurations are in an array and we allow duplicate names like vs code 
-# we use the combination of index + name to attempt to find the correct configuration
-def get_configuration_for_name(window: sublime.Window, name: str, index: Optional[int]) -> Optional[Configuration]:
-	configs = all_configurations(window)
-	if index:
-		try:
-			config_at_index = configs[index]
-			if config_at_index.name == name:
-				return config_at_index
-		except IndexError:
-			pass
-
-	for config in configs:
-		if config.name == name:
-			return config
-
-	return None
+	return configurations[index]

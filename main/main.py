@@ -7,20 +7,21 @@ from sublime_db.libs import asyncio
 from sublime_db import ui
 from sublime_db import core
 
-from sublime_db.main.breakpoints import Breakpoints, Breakpoint, Filter
+from .breakpoints import Breakpoints, Breakpoint, Filter
 
-from sublime_db.main import config
-from sublime_db.main.configurations import Configuration, AdapterConfiguration, select_configuration, all_configurations, get_configuration_for_name, get_setting, register_on_changed_setting
+from .util import get_setting, register_on_changed_setting
+from .configurations import Configuration, AdapterConfiguration, select_or_add_configuration
+from .config import PersistedData
 
-from sublime_db.main.components.variable_component import VariablesComponent, VariableComponent, Variable
-from sublime_db.main.components.breakpoint_inline_component import BreakpointInlineComponent
-from sublime_db.main.components.call_stack_component import CallStackComponent
-from sublime_db.main.components.console_component import EventLogComponent
-from sublime_db.main.components.breakpoints_component import DebuggerComponent, STOPPED, PAUSED, RUNNING, LOADING, DebuggerComponentListener
+from .components.variable_component import VariablesComponent, VariableComponent, Variable
+from .components.breakpoint_inline_component import BreakpointInlineComponent
+from .components.call_stack_component import CallStackComponent
+from .components.console_component import EventLogComponent
+from .components.breakpoints_component import DebuggerComponent, STOPPED, PAUSED, RUNNING, LOADING, DebuggerComponentListener
 
-from sublime_db.main.debug_adapter_client.client import DebugAdapterClient, StoppedEvent, OutputEvent
-from sublime_db.main.debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport, StdioTransport
-from sublime_db.main.debug_adapter_client.types import StackFrame, EvaluateResponse
+from .debug_adapter_client.client import DebugAdapterClient, StoppedEvent, OutputEvent
+from .debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport, StdioTransport
+from .debug_adapter_client.types import StackFrame, EvaluateResponse
 
 	
 class Main (DebuggerComponentListener):
@@ -61,12 +62,10 @@ class Main (DebuggerComponentListener):
 		self.disconnecting = False
 
 		self.project_name = window.project_file_name() or "user"
-		data = config.persisted_for_project(self.project_name)
-		config_name = data.get('config_name')
-		config_maybe_at_index = data.get('config_maybe_at_index')
+		self.persistance = PersistedData(self.project_name)
 
-		for bp in data.get('breakpoints', []):
-			self.breakpoints.add(Breakpoint.from_json(bp))
+		for breakpoint in self.persistance.load_breakpoints():
+			self.breakpoints.add(breakpoint)
 
 		self.load_configurations()
 
@@ -158,19 +157,16 @@ class Main (DebuggerComponentListener):
 			except Exception as e:
 				core.display('There was an error creating a AdapterConfiguration {}'.format(e))
 
-		self.adapters = adapters
+		configurations = []
+		for index, configuration_json in enumerate(get_setting(self.window.active_view(), 'configurations', [])):
+			configuration = Configuration.from_json(configuration_json)
+			configuration.index = index
+			configurations.append(configuration)
 
-		data = config.persisted_for_project(self.project_name)
-		config_name = data.get('config_name')
-		config_maybe_at_index = data.get('config_maybe_at_index')
-		
-		self.configuration = None
-		try:
-			if config_name:
-				self.configuration = get_configuration_for_name(self.window, config_name, config_maybe_at_index)				
-		except Exception as e:
-			core.display('There was an error loading configuration named {}: {}'.format(config_name, e))
-			
+		self.adapters = adapters
+		self.configurations = configurations
+		self.configuration = self.persistance.load_configuration_option(configurations)
+
 		if self.configuration:
 			self.debuggerComponent.set_name(self.configuration.name)
 		else:
@@ -187,17 +183,14 @@ class Main (DebuggerComponentListener):
 	
 	@core.async
 	def EditSettings (self) -> Generator[Any, None, None]:
-		index = 0
+		selected_index = 0
 		if self.configuration:
-			index = self.configuration.index
+			selected_index = self.configuration.index
 
-		configuration = yield from select_configuration(self.window, index, self.adapters)
+		configuration = yield from select_or_add_configuration(self.window, selected_index, self.configurations, self.adapters)
 		print('Selected configuration:', configuration)
 		if configuration:
-			persist = config.persisted_for_project(self.project_name)
-			persist['config_name'] = configuration.name
-			persist['config_maybe_at_index'] = configuration.index
-			config.save_data()
+			self.persistance.save_configuration_option(configuration)
 			self.configuration = configuration
 			self.debuggerComponent.set_name(configuration.name)
 
@@ -221,8 +214,6 @@ class Main (DebuggerComponentListener):
 				raise Exception('Unable to find debug adapter with the type name "{}"'.format(config.type))
 			if not adapter.installed:
 				raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(config.type))
-				
-
 
 			#If there is a command to run for this debugger run it now
 			if adapter.tcp_port:
@@ -408,13 +399,8 @@ class Main (DebuggerComponentListener):
 		self.breakpoints.select_breakpoint(breakpoint)
 
 	def dispose(self) -> None:
-		json_breakpoints = []
-		for bp in self.breakpoints.breakpoints:
-			json_breakpoints.append(bp.into_json())
-
-		persist = config.persisted_for_project(self.project_name)
-		persist['breakpoints'] = json_breakpoints
-		config.save_data()
+		self.persistance.save_breakpoints(self.breakpoints)
+		self.persistance.save_to_file()
 
 		if self.selectedFrameComponent:
 			self.selectedFrameComponent.dispose()
@@ -450,7 +436,7 @@ class Main (DebuggerComponentListener):
 	def OnPlay(self) -> None:
 		core.run(self.LaunchDebugger())
 	def OnStop(self) -> None:
-		if self.disconnecting:
+		if self.disconnecting or self.debugAdapterClient == None:
 			self.KillDebugger()
 		else:
 			core.run(self.Disconnect())
