@@ -25,11 +25,21 @@ class VariableComponent (ui.Component):
 
 	def render(self) -> ui.components:
 		v = self.variable
+		name = v.name
+
+		MAX_LENGTH = 40
+		if len(name) > MAX_LENGTH:
+			name = name[:MAX_LENGTH-1] + '…'
 		
+		MAX_LENGTH -= len(name)
+		value = v.value
+		if len(value) > MAX_LENGTH:
+			value = value[:MAX_LENGTH-1] + '…'
+
 		if v.reference == 0:
 			return [
-				ui.Label(v.name, padding_left = 0.5, padding_right = 1),
-				ui.Label(v.value, color = 'secondary'),
+				ui.Label(name, padding_left = 0.5, padding_right = 1),
+				ui.Label(value, color = 'secondary'),
 			]
 
 		if self.expanded:
@@ -42,8 +52,8 @@ class VariableComponent (ui.Component):
 				ui.Button(self.toggle, items = [
 					ui.Img(ui.Images.shared.down)
 				]),
-				ui.Label(v.name, padding_right = 1),
-				ui.Label(v.value, color = 'secondary'),
+				ui.Label(name, padding_right = 1),
+				ui.Label(value, color = 'secondary'),
 				table
 			]
 			return items
@@ -52,8 +62,8 @@ class VariableComponent (ui.Component):
 				ui.Button(self.toggle, items = [
 					ui.Img(ui.Images.shared.right)
 				]),
-				ui.Label(v.name, padding_right = 1),
-				ui.Label(v.value, color = 'secondary'),
+				ui.Label(name, padding_right = 1),
+				ui.Label(value, color = 'secondary'),
 			]
 
 class VariablesComponent (ui.Component):

@@ -23,7 +23,6 @@ from .debug_adapter_client.client import DebugAdapterClient, StoppedEvent, Outpu
 from .debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport, StdioTransport
 from .debug_adapter_client.types import StackFrame, EvaluateResponse
 
-	
 class Main (DebuggerComponentListener):
 	instances = {} #type: Dict[int, Main]
 	@staticmethod
@@ -116,10 +115,12 @@ class Main (DebuggerComponentListener):
 		view_settings = output.settings()
 		view_settings.set("is_widget", True)
 		view_settings.set("gutter", False)
-		view_settings.set("margin", 0)
-		view_settings.set("always_show_minimap_viewport", False)		
-		self.view = output
+		view_settings.set("margin", -5)
+		view_settings.set('line_padding_top', 0)	
+		view_settings.set('line_padding_bottom', 0)	
 
+		self.view = output
+		
 		self.disposeables.extend([
 			ui.Phantom(self.debuggerComponent, output, sublime.Region(1, 1), sublime.LAYOUT_INLINE),
 			ui.Phantom(self.callstackComponent, output, sublime.Region(1, 2), sublime.LAYOUT_INLINE),

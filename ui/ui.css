@@ -124,7 +124,7 @@ a {
 }
 
 .Panel {
-	height: 100rem;
+	padding-bottom: 100rem;
 	border-radius: 10px;
 	background-color: rgba(0, 0, 0, 0.2);
 }
