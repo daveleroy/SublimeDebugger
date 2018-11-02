@@ -142,14 +142,11 @@ class Breakpoints:
 			ui.view_modified.add(self.view_modified)
 		] #type: List[Any]
 
-	
-	def clear_breakpoint(self) -> None:
-		self.selected_breakpoint = None
-		self.onSelectedBreakpoint.post(None)
-		
-	def select_breakpoint(self, breakpoint: Breakpoint) -> None:
-		self.selected_breakpoint = breakpoint
-		self.onSelectedBreakpoint.post(breakpoint)
+	def dispose(self) -> None:
+		for d in self.disposeables:
+			d.dispose()
+		for bp in self.breakpoints:
+			bp.clear_views()
 		
 	def toggle_filter(self, filter: Filter) -> None:
 		filter.enabled = not filter.enabled
@@ -160,19 +157,13 @@ class Breakpoints:
 				return
 		self.filters.append(Filter(id, name, initial))
 
-	def dispose(self) -> None:
-		for d in self.disposeables:
-			d.dispose()
+	def clear_selected_breakpoint(self) -> None:
+		self.selected_breakpoint = None
+		self.onSelectedBreakpoint.post(None)
 
-		for bp in self.breakpoints:
-			bp.clear_views()
-	def view_modified(self, view: sublime.View):
-		self.sync(view) 
-	def on_view_activated(self, view: sublime.View):
-		self.sync_from_breakpoints(view) 
-	def on_gutter_double_clicked(self, event: ui.GutterEvent) -> None:
-		print('toggle: breakpoint {}'.format(event))
-		self.toggle(event.view, event.line + 1)
+	def select_breakpoint(self, breakpoint: Breakpoint) -> None:
+		self.selected_breakpoint = breakpoint
+		self.onSelectedBreakpoint.post(breakpoint)
 		 		
 	def remove_breakpoint(self, b: Breakpoint) -> None:
 		b.clear_views()
@@ -195,6 +186,10 @@ class Breakpoints:
 				return b
 		return None
 
+	def add_breakpoint(self, file: str, line: int):
+		b = Breakpoint(file, line, True)
+		self.add(b)
+
 	def add(self, breakpoint: Breakpoint):
 		self.breakpoints.append(breakpoint)
 		self.breakpoints.sort()
@@ -203,10 +198,6 @@ class Breakpoints:
 		view = sublime.active_window().active_view()
 		if view:
 			self.sync_from_breakpoints(view) 
-
-	def add_breakpoint(self, file: str, line: int):
-		b = Breakpoint(file, line, True)
-		self.add(b)
 
 	def toggle_enabled(self, breakpoint: Breakpoint) -> None:
 		breakpoint._enabled = not breakpoint.enabled
@@ -235,7 +226,13 @@ class Breakpoints:
 
 	def add_breakpoint_to_view(self, view: sublime.View, b: Breakpoint) -> None:
 		b.add_to_view(view)
-
+	def view_modified(self, view: sublime.View):
+		self.sync(view) 
+	def on_view_activated(self, view: sublime.View):
+		self.sync_from_breakpoints(view) 
+	def on_gutter_double_clicked(self, event: ui.GutterEvent) -> None:
+		print('toggle: breakpoint {}'.format(event))
+		self.toggle(event.view, event.line + 1)
 	# changes the data model to match up with the view regions
 	# adds any breakpoints found in the data model that are not found on the view
 	def sync(self, view: sublime.View) -> None:
