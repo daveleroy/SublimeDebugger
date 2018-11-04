@@ -1,12 +1,12 @@
 [
-    { "caption": "-", "id": "debug_start" },
-    {
-        "caption" : "Start debugging",
-        "command" : "sublime_debug_start"
-    },
+    { "caption": "-", "id": "sublime_debug_start" },
     {
         "caption": "Toggle breakpoint",
         "command": "sublime_debug_toggle_breakpoint"
+    },
+    {
+        "caption" : "Start debugging",
+        "command" : "sublime_debug_start"
     },
     {
         "caption" : "Stop debugging",
@@ -32,5 +32,5 @@
         "caption" : "Resume",
         "command" : "sublime_debug_resume"
     },
-    { "caption": "-", "id": "debug_end" }
+    { "caption": "-", "id": "sublime_debug_end" }
 ]
