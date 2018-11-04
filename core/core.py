@@ -23,6 +23,14 @@ async = asyncio.coroutine
 future = asyncio.Future
 
 main_loop = asyncio.new_event_loop()
+def _exception_handler(loop: Any, context: dict) -> None:
+	print('An exception occured in the main_loop')
+	try: 
+		raise context['exception']
+	except:
+		log_exception()
+
+main_loop.set_exception_handler(_exception_handler)
 main_executor = concurrent.futures.ThreadPoolExecutor(max_workers = 5)
 
 def _run_event_loop() -> None:
@@ -55,16 +63,12 @@ def require_main_thread(function):
 
 def run(awaitable: awaitable[T], on_done: Optional[Callable[[T], None]] = None) -> None:
 	task = main_loop.create_task(awaitable)
-	if on_done:
-		task.add_done_callback(lambda task, on_done=on_done: on_done(task.result())) #type: ignore
-	else:
-		def done(task) -> None:
-			e = task.exception()
-			if e:
-				try: raise e
-				except: log_exception('An exception occured in an async task:\n')
-
-		task.add_done_callback(done)
+	def done(task) -> None:
+		result = task.result()
+		if on_done:
+			on_done(result)
+			
+	task.add_done_callback(done)
 
 def assert_main_thread() -> None:
 	assert threading.current_thread() == _main_thread, 'expecting main thread'
