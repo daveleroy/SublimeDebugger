@@ -82,18 +82,18 @@ def show_settings(window: sublime.Window) -> None:
 	})
 
 @core.async
-def select_or_add_configuration(window: sublime.Window, index: int, configurations: List[Configuration], adapters: List[AdapterConfiguration]) -> core.awaitable[Optional[Configuration]]:
+def select_or_add_configuration(window: sublime.Window, index: Optional[int], configurations: List[Configuration], adapters: List[AdapterConfiguration]) -> core.awaitable[Optional[Configuration]]:
 	done = core.main_loop.create_future()
 	names = []
 	for c in configurations:
-		if c.index == index:
+		if index is not None and c.index == index:
 			names.append(c.name + ' ✓')
 		else:
 			names.append(c.name)
 
 	names.append("-- Add Configuration -- ")
 
-	index = yield from core.sublime_show_quick_panel_async(window, names, index)
+	index = yield from core.sublime_show_quick_panel_async(window, names, index or 0)
 	if index < 0:
 		return None
 	if index >= len(configurations):
