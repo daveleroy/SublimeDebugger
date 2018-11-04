@@ -1,0 +1,26 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"settings":
+	{
+		"debug.configurations":
+		[
+			{
+				"file": "${project_path}/index.html",
+				"name": "Chrome Debug",
+				"request": "launch",
+				"type": "chrome"
+			},
+			{
+				"file": "${project_path}/index.html",
+				"name": "Firefox Debug",
+				"request": "launch",
+				"type": "firefox"
+			},
+		]
+	}
+}

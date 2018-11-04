@@ -1,0 +1,20 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"settings":
+	{
+		"debug.configurations":
+		[
+			{
+				"program": "${project_path}/test.go", 
+				"request": "launch", 
+				"name": "Go Debug", 
+				"type": "go"
+			},
+		]
+	}
+}

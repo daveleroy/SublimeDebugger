@@ -1,0 +1,20 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"settings":
+	{
+		"debug.configurations":
+		[
+			{
+				"name": "Python Debug",
+				"type": "python",
+				"request": "launch",
+				"program": "${project_path}/test.py",
+			},
+		]
+	}
+}

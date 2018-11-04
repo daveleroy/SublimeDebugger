@@ -2,13 +2,13 @@
 <!DOCTYPE html>
 <html>
 <body>
-
-<p id="demo"></p>
+x
+<p id="done_element"></p>
 
 <script>
-	document.getElementById("demo").innerHTML = "Running";
+	document.getElementById("done_element").innerHTML = "Running";
 	
-	let integer = 25
+	let integer = 25;
 	let string = "string"
 	let array = [1, 2, 3, "One", "Two", "Three"]
 
@@ -23,26 +23,23 @@
 	}
 	catch (e) {
 	}
-	
 	function SomeFunction(argument) {
 		console.log(integer)
 		console.log(string)
 		console.log(array)
 		console.log(object)
 	}
-
-	function SomeOuterFunction(argument) {
+	function SomeOuterFunctions(argument) {
 		console.log(integer)
 		console.log(string)
 		console.log(array)
 		SomeFunction()
 	}
 
-	SomeOuterFunction()
+	SomeOuterFunctions()
 
-	document.getElementById("demo").innerHTML = "Done";
+	document.getElementById("done_element").innerHTML = "Done";
 </script> 
 
 </body>
 </html>
-      
