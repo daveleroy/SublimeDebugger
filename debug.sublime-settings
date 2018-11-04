@@ -16,7 +16,7 @@
 			"installation": {
 				"name": "vscode-lldb",
 				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/latest/vspackage",
-				"format": "zip.gz"
+				"format": "zip"
 			}
 		},
 		"chrome" : {
@@ -27,7 +27,7 @@
 			"installation": {
 				"name": "vscode-chrome-debug",
 				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
-				"format": "zip.gz"
+				"format": "zip"
 			},
 		},
 		"chrome_tcp" : {
@@ -40,7 +40,7 @@
 			"installation": {
 				"name": "vscode-chrome-debug",
 				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
-				"format": "zip.gz"
+				"format": "zip"
 			}
 		},
 		"firefox" : {
@@ -51,7 +51,7 @@
 			"installation": {
 				"name": "vscode-firefox-debug",
 				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/hbenl/vsextensions/vscode-firefox-debug/latest/vspackage",
-				"format": "zip.gz"
+				"format": "zip"
 			},
 		},
 		"python" : {
@@ -62,7 +62,7 @@
 			"installation": {
 				"name": "vscode-python",
 				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/latest/vspackage",
-				"format": "zip.gz"
+				"format": "zip"
 			}
 		},
 		"go" : {
@@ -73,7 +73,7 @@
 			"installation": {
 				"name": "vscode-go",
 				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage",
-				"format": "zip.gz"
+				"format": "zip"
 			},
 		},
 		"php" : {
@@ -84,7 +84,7 @@
 			"installation": {
 				"name": "vscode-php",
 				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/felixfbecker/vsextensions/php-debug/latest/vspackage",
-				"format": "zip.gz"
+				"format": "zip"
 			}
 		}
 	}

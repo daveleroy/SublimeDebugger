@@ -31,13 +31,14 @@ class AdapterConfiguration:
 		self.vscode_package_file = vscode_package_file
 		self.snippets = [] #type: List[dict]
 		self.installation = installation
-		self.installed = True
-		if installation:
-			self.installed = os.path.isdir(os.path.join(_adapters_path(), installation.name))
-			self.load_installation()
+		self.installed = True			
+		self.load_installation_if_needed()
 		
-	def load_installation (self) -> None:
-		assert self.installation
+	def load_installation_if_needed (self) -> None:
+		if not self.installation:
+			return
+
+		self.installed = os.path.isdir(os.path.join(_adapters_path(), self.installation.name))
 		snippets_file = os.path.join(os.path.join(_adapters_path(), self.installation.name, 'snippets.json'))
 		try:
 			with open(snippets_file) as file:
@@ -96,7 +97,7 @@ def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:
 	except Exception as e:
 		print('Failed to find debug configuration snippets in vscode package.json file, ', str(e))
 
-	adapter.load_installation()
+	adapter.load_installation_if_needed()
 
 def _install_adapter_blocking(adapter: AdapterConfiguration):
 	install_cfg = adapter.installation
@@ -117,16 +118,17 @@ def _install_adapter_blocking(adapter: AdapterConfiguration):
 		print("Adapter %s already exists, deleting folder" % (adapter_path,))
 		shutil.rmtree(adapter_path, ignore_errors=True)
 
-	request = urllib.request.Request(url)
+	request = urllib.request.Request(url, headers =  {
+		"Accept-Encoding": "gzip"
+	})
+
 	response = urllib.request.urlopen(request)
-	print(url)
 	if response.getcode() != 200:
 		raise Exception("Bad response from server, got code %d" % (response.getcode(),))
 	os.mkdir(adapter_path)
 	
-	if archive_format == "zip.gz":
-		# If it's a zip.gz we first apply zip.gz and then unzip it
-		archive_format = "zip"
+	content_encoding = response.headers.get('Content-Encoding')
+	if content_encoding == 'gzip':
 		response = gzip.GzipFile(fileobj=response)
 
 	archive_name = "%s.%s" % (adapter_path, archive_format)
