@@ -1,9 +1,9 @@
-
-import os
-from sublime_db import ui, core
-
 from sublime_db.core.typecheck import List
 
+import os
+import sublime
+
+from sublime_db import ui, core
 from sublime_db.main.components.variable_component import VariableComponent, Variable, VariableComponent
 
 class EventLogVariable (ui.Component):
@@ -33,40 +33,61 @@ class EventLogVariable (ui.Component):
 class EventLogComponent (ui.Component):
 	def __init__(self):
 		super().__init__()
-		self.lines = [] #type: List[ui.Component]
-
+		self.items = [] #type: List[ui.Component]
+		self.text = [] #type: List[str]
+	def get_text (self) -> str:
+		return ''.join(self.text)
+	def open_in_view(self) -> None:
+		file = sublime.active_window().new_file()
+		file.run_command('append', {
+			'characters' : self.get_text(),
+			'scroll_to_end' : True
+		})
 	def AddVariable(self, variable: Variable) -> None:
+		self.text.append(variable.name)
+		self.text.append(' = ')
+		self.text.append(variable.value)
+
 		item = EventLogVariable(variable)
-		self.lines.append(item)
+		self.items.append(item)
 		self.dirty()
 
 	def Add(self, text: str) -> None:
-		item = ui.Label(text, color = 'secondary')
-		self.lines.append(item)
+		self.text.append(text)
+		for line in reversed(text.rstrip('\n').split('\n')):
+			item = ui.Label(line, color = 'secondary')
+			self.items.append(item)
 		self.dirty()
 
 	def AddStdout(self, text: str) -> None:
-		print('added output!')
-		item = ui.Label(text, color = 'primary')
-		self.lines.append(item)
+		self.text.append(text)
+		for line in reversed(text.rstrip('\n').split('\n')):
+			item = ui.Label(line, color = 'primary')
+			self.items.append(item)
 		self.dirty()
 
 	def AddStderr(self, text: str) -> None:
-		item = ui.Label(text, color = 'red')
-		self.lines.append(item)
+		self.text.append(text)
+		for line in reversed(text.rstrip('\n').split('\n')):
+			item = ui.Label(line, color = 'red')
+			self.items.append(item)
 		self.dirty()
 
 	def clear(self) -> None:
-		self.lines.clear()
+		self.items.clear()
+		self.text.clear()
 		self.dirty()
 
 	def render (self) -> ui.components:
+		items = list(reversed(self.items[-25:]))
 		return [
 			ui.HorizontalSpacer(300),
 			ui.Panel(items = [
 				ui.Segment(items = [
-					ui.Label('Event Log', color="white")
+					ui.Button(self.open_in_view, [
+						ui.Label('Event Log')
+					])
 				]),
-				ui.Table(items = self.lines)
+				ui.Table(items = items)
 			])
 		]
