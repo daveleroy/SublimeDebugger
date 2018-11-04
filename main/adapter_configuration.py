@@ -109,7 +109,7 @@ def _install_adapter_blocking(adapter: AdapterConfiguration):
 	url = install_cfg.url
 	archive_format = install_cfg.format
 
-	if archive_format not in ["zip", "zip.gz"]:
+	if archive_format not in ["zip"]:
 		raise Exception("The archive extension is incorrect")
 
 	adapter_path = os.path.join(adapters_path, adapter_name)
@@ -129,7 +129,7 @@ def _install_adapter_blocking(adapter: AdapterConfiguration):
 	
 	content_encoding = response.headers.get('Content-Encoding')
 	if content_encoding == 'gzip':
-		response = gzip.GzipFile(fileobj=response)
+		response = gzip.GzipFile(fileobj=response) #type: ignore
 
 	archive_name = "%s.%s" % (adapter_path, archive_format)
 	with open(archive_name, "wb") as out_file:
