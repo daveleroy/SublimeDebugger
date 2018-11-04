@@ -72,28 +72,36 @@ class Main (DebuggerComponentListener):
 			new_window.set_status_bar_visible(False)
 		elif mode == 'view':
 			output = self.window.new_file()
-		elif mode == 'output':
+		else:
+			if mode != 'output':
+				print('unexpected mode defaulting to "output"')
 			output = self.window.create_output_panel('debugger')
 			self.window.run_command('show_panel', {
 				'panel': 'output.debugger'
 			})
-		else:
-			core.display('expected setting "mode" to be one of "window", "view" or "output", found "{}"'.format(mode))
-			return
+
 		
+
+		# We need to insert a space at the front otherwise the view scrolls to the end
+		# everyime we draw a phantom that extends past the rhs of the screen
+		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
+		# otherwise they will get reordered when one of them gets redrawn
+		# we use new lines so we don't have extra space on the rhs
 		output.run_command('insert', {
-			'characters': "      "
+			'characters': " \n\n\n\n\n\n\n"
 		})
-		output.set_scratch(True)
+		view_settings = output.settings()
+		# cover up the addition space we added during the insert
+		view_settings.set("margin", -5)
+		# removes some additional padding on the top of the view
+		view_settings.set('line_padding_top', 0)	
+
+		output.sel().clear()
 		output.set_read_only(True)
 		output.set_name('Debugger')
-		view_settings = output.settings()
 		view_settings.set("is_widget", True)
 		view_settings.set("gutter", False)
-		view_settings.set("margin", -5)
-		view_settings.set('line_padding_top', 0)	
-		view_settings.set('line_padding_bottom', 0)	
-
+	
 		self.view = output
 		
 		self.project_name = window.project_file_name() or "user"
