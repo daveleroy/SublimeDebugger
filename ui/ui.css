@@ -112,20 +112,6 @@ a {
 	border-width: 0.75px;
 	border-color: rgba(200, 100, 100, 1.0);
 }
-
-.StackframeSelected {
-	background-color: rgba(102, 204, 255, 0.5);
-}
-.StackframeSelectedError {
-	background-color: rgba(255, 25, 25, 0.25);
-}
-.ThreadSelected {
-	background-color: rgba(25, 255, 25, 0.25);
-}
-.ThreadSelectedError {
-	background-color: rgba(255, 25, 25, 0.25);
-}
-
 .Panel {
 	padding-bottom: 100rem;
 	border-radius: 10px;
