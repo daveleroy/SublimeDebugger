@@ -38,9 +38,10 @@ class  CallStackComponent (ui.Component):
 			item = ThreadComponent(self.debugger, thread)
 			self.thread_components.append(item)
 		return [
+			ui.HorizontalSpacer(250),
 			ui.Panel(items = [
 				ui.Segment(items = [
-					ui.Label('Call Stack', color="white")
+					ui.Label('Call Stack')
 				]),
 				# FIXME?? Table should not take List
 				ui.Table(items = self.thread_components) #type: ignore 

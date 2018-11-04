@@ -1,29 +1,35 @@
 
 html {
 	margin: 0; padding: 0;
-	--text-color: rgba(255, 255, 255, 1.0);
-	--color: rgba(0, 0, 0, 0);
 }
-body {
 
+.dark {
+	--text-color: var(--foreground);
+	--panel-color: color(var(--background) blend(black 90%));
+	--segment-color: color(var(--background) blend(black 70%));
+	--label-color: var(--text-color);
 }
-a {
-	text-decoration: none;
+.light {
+	--text-color: var(--foreground);
+	--panel-color: color(var(--background) blend(black 90%));
+	--segment-color: color(var(--background) blend(black 70%));
+	--label-color: var(--text-color);
 }
+
 
 .secondary {
-	--text-color: color(var(--foreground) alpha(0.7));
+	--label-color: color(var(--text-color) alpha(0.65));
 }
 .primary {
-	--text-color: var(--foreground);
+	--label-color: var(--text-color);
 }
 .white {
-	--text-color: var(--whitish);
+	--label-color: white;
 }
 .red {
-	--text-color: var(--redish);
+	--label-color: var(--redish);
 }
- .medium {
+.medium {
 	line-height: 0.0rem;
 	font-size: 1.1rem;
 	--height: 1.6rem;
@@ -53,29 +59,26 @@ body, .small {
 	height: var(--height);
 }
 .Segment {
-	--background: #000000;
-	background-color: color(var(--background) alpha(0.5));
-	border-radius: 10px;
-	border: 0.5px;
-	border-color: black;
-	border-style: solid;
-	padding-left: 10px;
-	padding-right: 10px
+	background-color: var(--segment-color);
+	border-top-left-radius: 10px;
+	border-top-right-radius: 10px;
+	padding-left: 7px;
+	padding-right: 7px
 }
 .Box {
-	--background: rgb(100, 100, 100);
-	background-color: color(var(--background) alpha(0.5));
+	background-color: var(--segment-color);
 	border-radius: 10px;
 	padding-top: var(--box-padding-top);
 	padding-bottom: var(--box-padding-bottom);
 }
 a {
+	text-decoration: none;
 	padding-top: var(--box-padding-top);
 	padding-bottom: var(--box-padding-bottom);
 }
 
 .Label {
-	color: var(--text-color);
+	color: var(--label-color);
 	position: relative;
 	bottom: var(--label-offset);
 }
@@ -83,7 +86,7 @@ a {
 .Table {
 }
 .Table.inset {
-	padding-left: 2rem;
+	padding-left: 1rem;
 }
 .TableItem {
 
@@ -126,7 +129,7 @@ a {
 .Panel {
 	padding-bottom: 100rem;
 	border-radius: 10px;
-	background-color: rgba(0, 0, 0, 0.2);
+	background-color: var(--panel-color);
 }
 .Panel .Segment {
 	--width: 18rem;

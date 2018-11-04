@@ -70,6 +70,7 @@ class VariablesComponent (ui.Component):
 	def __init__(self) -> None:
 		super().__init__()
 		self.variables = [] #type: List[Variable]
+
 	def clear(self) -> None:
 		self.variables = []
 		self.dirty()
@@ -78,7 +79,7 @@ class VariablesComponent (ui.Component):
 		self.dirty()
 	def render(self) -> ui.components:
 		items = [
-			ui.Segment(items = [ui.Label('Variables', color="white")])
+			ui.Segment(items = [ui.Label('Variables')])
 		] #type: List[ui.Component]
 
 		variables = [] #type: List[ui.Component]
@@ -87,5 +88,6 @@ class VariablesComponent (ui.Component):
 		items.append(ui.Table(items = variables))
 		
 		return [
+			ui.HorizontalSpacer(250),
 			ui.Panel(items = items)
 		]

@@ -30,3 +30,9 @@ class Panel (Component):
 		inner = self.html_inner(layout)
 		return '<{} class="{}" {}><img class="width">{}</{}>'.format(self.html_tag, self.className, self.html_tag_extra, inner, self.html_tag)
 
+class HorizontalSpacer (Component):
+	def __init__(self, width: float) -> None:
+		super().__init__()
+		self.width = width
+	def html (self, layout: Layout) -> str:
+		return '<{} class="{}" {}><img width="{}"></{}>'.format(self.html_tag, self.className, self.html_tag_extra, self.width, self.html_tag)

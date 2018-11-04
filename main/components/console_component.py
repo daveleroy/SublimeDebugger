@@ -62,6 +62,7 @@ class EventLogComponent (ui.Component):
 
 	def render (self) -> ui.components:
 		return [
+			ui.HorizontalSpacer(300),
 			ui.Panel(items = [
 				ui.Segment(items = [
 					ui.Label('Event Log', color="white")

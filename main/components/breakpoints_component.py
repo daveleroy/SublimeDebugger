@@ -144,7 +144,7 @@ class DebuggerComponent(ui.Component):
 		buttons = [] #type: List[ui.Component]
 		if self.state == RUNNING:
 			buttons = [
-				ui.Label("Running", width = 6, color="white"),
+				ui.Label("Running", width = 6),
 				ui.Button(self.listener.OnSettings, items = [
 					ui.Img(ui.Images.shared.settings)
 				]),
@@ -157,7 +157,7 @@ class DebuggerComponent(ui.Component):
 			]
 		if self.state == PAUSED:
 			buttons = [
-				ui.Label("Paused", width = 6, color="white"),
+				ui.Label("Paused", width = 6),
 				ui.Button(self.listener.OnSettings, items = [
 					ui.Img(ui.Images.shared.settings)
 				]),
@@ -179,7 +179,7 @@ class DebuggerComponent(ui.Component):
 			]
 		if self.state == STOPPED:
 			buttons = [
-				ui.Label(self.name, width = 6, color="white"),
+				ui.Label(self.name, width = 6),
 				ui.Button(self.listener.OnSettings, items = [
 					ui.Img(ui.Images.shared.settings)
 				]),
@@ -189,7 +189,7 @@ class DebuggerComponent(ui.Component):
 			]
 		if self.state == LOADING:
 			buttons = [
-				ui.Label(self.name, width = 6, color="white"),
+				ui.Label(self.name, width = 6),
 				ui.Button(self.listener.OnSettings, items = [
 					ui.Img(ui.Images.shared.settings)
 				]),
