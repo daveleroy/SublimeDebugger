@@ -1,16 +1,16 @@
-from sublime_db.core.typecheck import (
-	List, 
-	Optional
-)
+
+from sublime_db.core.typecheck import (List, Callable, Optional)
 from sublime_db import ui
+from sublime_db import core
 
-from sublime_db.main.debug_adapter_client.types import Thread
-from sublime_db.main.debug_adapter_client.client import DebugAdapterClient
+from sublime_db.main.debugger import (
+	Thread,
+	DebugAdapterClient
+)
 
-from sublime_db.main.components.thread_component import ThreadComponent
+from .thread_component import ThreadComponent
 
-
-class  CallStackComponent (ui.Component):
+class CallStackPanel (ui.Component):
 	def __init__(self) -> None:
 		super().__init__()
 		self.threads = [] #type: List[Thread]

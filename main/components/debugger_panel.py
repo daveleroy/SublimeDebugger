@@ -15,6 +15,111 @@ RUNNING = 1
 PAUSED = 2
 LOADING = 3
 
+class DebuggerPanelCallbacks: 
+	def OnPlay(self) -> None:
+		pass
+	def OnResume(self) -> None:
+		pass
+	def OnPause(self) -> None:
+		pass
+	def OnStop(self) -> None:
+		pass
+	def OnSettings(self) -> None:
+		pass
+	def OnStepOver(self) -> None:
+		pass
+	def OnStepIn(self) -> None:
+		pass
+	def OnStepOut(self) -> None:
+		pass
+	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:
+		pass
+
+class DebuggerPanel(ui.Component):
+	def __init__(self, breakpoints: Breakpoints, callbacks: DebuggerPanelCallbacks) -> None:
+		super().__init__()
+		self.breakpoints = breakpoints
+		
+		self.state = STOPPED
+		self.callbacks = callbacks
+		self.name = ''
+
+	def setState(self, state: int) -> None:
+		self.state = state 
+		self.dirty()
+	def _updated_breakpoints(self, data: Any) -> None:
+		self.dirty();
+	def set_name(self, name: str) -> None:
+		self.name = name
+		self.dirty()
+	def render(self) -> ui.components:
+		buttons = [] #type: List[ui.Component]
+		if self.state == RUNNING:
+			buttons = [
+				ui.Label("Running", width = 7, padding_right = 0.5),
+				ui.Button(self.callbacks.OnSettings, items = [
+					ui.Img(ui.Images.shared.settings)
+				]),
+				ui.Button(self.callbacks.OnStop, items = [
+					ui.Img(ui.Images.shared.stop)
+				]),
+				ui.Button(self.callbacks.OnPause, items = [
+					ui.Img(ui.Images.shared.pause)
+				]),
+			]
+		if self.state == PAUSED:
+			buttons = [
+				ui.Label("Paused", width = 7, padding_right = 0.5),
+				ui.Button(self.callbacks.OnSettings, items = [
+					ui.Img(ui.Images.shared.settings)
+				]),
+				ui.Button(self.callbacks.OnStop, items = [
+					ui.Img(ui.Images.shared.stop)
+				]),
+				ui.Button(self.callbacks.OnResume, items = [
+					ui.Img(ui.Images.shared.play)
+				]),
+				ui.Button(self.callbacks.OnStepOver, items = [
+					ui.Img(ui.Images.shared.down)
+				]),
+				ui.Button(self.callbacks.OnStepOut, items = [
+					ui.Img(ui.Images.shared.left)
+				]),
+				ui.Button(self.callbacks.OnStepIn, items = [
+					ui.Img(ui.Images.shared.right)
+				]),
+			]
+		if self.state == STOPPED:
+			buttons = [
+				ui.Label(self.name, width = 7, padding_right = 0.5),
+				ui.Button(self.callbacks.OnSettings, items = [
+					ui.Img(ui.Images.shared.settings)
+				]),
+				ui.Button(self.callbacks.OnPlay, items = [
+					ui.Img(ui.Images.shared.play)
+				]),
+			]
+		if self.state == LOADING:
+			buttons = [
+				ui.Label(self.name, width = 7, padding_right = 0.5),
+				ui.Button(self.callbacks.OnSettings, items = [
+					ui.Img(ui.Images.shared.settings)
+				]),
+				ui.Button(self.callbacks.OnStop, items = [
+					ui.Img(ui.Images.shared.stop)
+				]),
+				LoadingComponent()
+			]
+
+		return [
+			ui.Panel(items = [
+				ui.HorizontalSpacer(150),
+				ui.Segment(items = buttons),
+				FiltersComponent(self.breakpoints),
+				BreakpintsComponent(self.breakpoints, self.callbacks.OnExpandBreakpoint), 
+			]), 
+		]
+
 class BreakpintsComponent(ui.Component):
 	def __init__(self, breakpoints: Breakpoints, on_expand: Callable[[Breakpoint], None]) -> None:
 		super().__init__()
@@ -101,108 +206,4 @@ class FiltersComponent(ui.Component):
 			]))
 		return [
 			ui.Table(table_items = items)
-		]
-
-class DebuggerComponentListener: 
-	def OnPlay(self) -> None:
-		pass
-	def OnResume(self) -> None:
-		pass
-	def OnPause(self) -> None:
-		pass
-	def OnStop(self) -> None:
-		pass
-	def OnSettings(self) -> None:
-		pass
-	def OnStepOver(self) -> None:
-		pass
-	def OnStepIn(self) -> None:
-		pass
-	def OnStepOut(self) -> None:
-		pass
-	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:
-		pass
-
-class DebuggerComponent(ui.Component):
-	def __init__(self, breakpoints: Breakpoints, listener: DebuggerComponentListener) -> None:
-		super().__init__()
-		self.breakpoints = breakpoints
-		
-		self.state = STOPPED
-		self.listener = listener
-		self.name = ''
-
-	def setState(self, state: int) -> None:
-		self.state = state 
-		self.dirty()
-	def _updated_breakpoints(self, data: Any) -> None:
-		self.dirty();
-	def set_name(self, name: str) -> None:
-		self.name = name
-		self.dirty()
-	def render(self) -> ui.components:
-		buttons = [] #type: List[ui.Component]
-		if self.state == RUNNING:
-			buttons = [
-				ui.Label("Running", width = 6),
-				ui.Button(self.listener.OnSettings, items = [
-					ui.Img(ui.Images.shared.settings)
-				]),
-				ui.Button(self.listener.OnStop, items = [
-					ui.Img(ui.Images.shared.stop)
-				]),
-				ui.Button(self.listener.OnPause, items = [
-					ui.Img(ui.Images.shared.pause)
-				]),
-			]
-		if self.state == PAUSED:
-			buttons = [
-				ui.Label("Paused", width = 6),
-				ui.Button(self.listener.OnSettings, items = [
-					ui.Img(ui.Images.shared.settings)
-				]),
-				ui.Button(self.listener.OnStop, items = [
-					ui.Img(ui.Images.shared.stop)
-				]),
-				ui.Button(self.listener.OnResume, items = [
-					ui.Img(ui.Images.shared.play)
-				]),
-				ui.Button(self.listener.OnStepOver, items = [
-					ui.Img(ui.Images.shared.down)
-				]),
-				ui.Button(self.listener.OnStepOut, items = [
-					ui.Img(ui.Images.shared.left)
-				]),
-				ui.Button(self.listener.OnStepIn, items = [
-					ui.Img(ui.Images.shared.right)
-				]),
-			]
-		if self.state == STOPPED:
-			buttons = [
-				ui.Label(self.name, width = 6),
-				ui.Button(self.listener.OnSettings, items = [
-					ui.Img(ui.Images.shared.settings)
-				]),
-				ui.Button(self.listener.OnPlay, items = [
-					ui.Img(ui.Images.shared.play)
-				]),
-			]
-		if self.state == LOADING:
-			buttons = [
-				ui.Label(self.name, width = 6),
-				ui.Button(self.listener.OnSettings, items = [
-					ui.Img(ui.Images.shared.settings)
-				]),
-				ui.Button(self.listener.OnStop, items = [
-					ui.Img(ui.Images.shared.stop)
-				]),
-				LoadingComponent()
-			]
-
-		return [
-			ui.Panel(items = [
-				ui.Segment(items = buttons),
-				FiltersComponent(self.breakpoints),
-				BreakpintsComponent(self.breakpoints, self.listener.OnExpandBreakpoint), 
-			]), 
 		]

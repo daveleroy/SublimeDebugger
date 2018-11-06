@@ -6,7 +6,7 @@
 }
 
 .TableItem .selected {
-	background-color: rgba(102, 153, 255, 0.3);
+	background-color: rgba(102, 153, 255, 0.2);
 }
 
 .StackframeSelectedError {

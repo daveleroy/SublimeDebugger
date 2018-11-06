@@ -16,13 +16,12 @@ import threading
 import json
 
 
-from sublime_db import ui, core
-
 from sublime_db.libs import asyncio
-from sublime_db.main.debug_adapter_client.types import StackFrame, StackFramePresentation, Variable, Thread, EvaluateResponse
-from sublime_db.main.debug_adapter_client.transport import Transport
-
+from sublime_db import ui, core
 from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter
+
+from .types import StackFrame, StackFramePresentation, Variable, Thread, Scope, EvaluateResponse, CompletionItem
+from .transport import Transport
 
 class DebuggerState:
 	exited = 1
@@ -48,7 +47,7 @@ class DebugAdapterClient:
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
 		self.frames = [] #type: List[StackFrame]
-		self.variables = [] #type: List[Variable]
+		self.scopes = [] #type: List[Scope]
 
 		self.threads = [] #type: List[Thread]
 		self.threads_for_id = {} #type: Dict[int, Thread]
@@ -60,7 +59,7 @@ class DebugAdapterClient:
 		self.onStopped = core.Event() #type: core.Event[Any]
 		self.onContinued = core.Event() #type: core.Event[Any]
 		self.onOutput = core.Event() #type: core.Event[Any]
-		self.onVariables = core.Event() #type: core.Event[Any]
+		self.onScopes = core.Event() #type: core.Event[Any]
 		self.onThreads = core.Event() #type: core.Event[Any]
 		self.on_error_event = core.Event() #type: core.Event[str]
 		self.onSelectedStackFrame = core.Event() #type: core.Event[Any]
@@ -138,7 +137,17 @@ class DebugAdapterClient:
 		self.selected_thread = thread
 		self.selected_frame = frame
 		self.onSelectedStackFrame.post(frame)
-		self.scopes(frame.id)
+
+		def response(response: dict) -> None:
+			self.scopes.clear()
+			for scope in response['scopes']:
+				var = Scope.from_json(self, scope)
+				self.scopes.append(var)
+			self.onScopes.post(None)
+
+		core.run(self.send_request_asyc('scopes', {
+			"frameId" : frame.id
+		}), response)
 
 	#FIXME async
 	def getStackTrace(self, thread: Thread, response: Callable[[List[StackFrame]], None]) -> None:
@@ -200,18 +209,7 @@ class DebugAdapterClient:
 		assert self.threads, 'requires at least one thread?'
 		if self.selected_thread:
 			return self.selected_thread.id
-		return self.threads[0].id
-
-	def scopes(self, frameId: int) -> None:
-		def response(response: dict) -> None:
-			self.variables.clear()
-			for scope in response['scopes']:
-				var = Variable(self, scope['name'], '', scope['variablesReference'])
-				self.variables.append(var)
-			self.onVariables.post(None)
-		core.run(self.send_request_asyc('scopes', {
-			"frameId" : frameId
-		}), response)
+		return self.threads[0].id		
 	
 	def _thread_for_id(self, id: int) -> Thread:
 		thread = self.threads_for_id.get(id)
@@ -260,6 +258,18 @@ class DebugAdapterClient:
 			return None
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
 		return EvaluateResponse(response["result"], response.get("variablesReference", 0))
+
+	@core.async
+	def setVariable(self, variable: Variable, value: str) -> core.awaitable[Variable]:
+		response = yield from self.send_request_asyc("setVariable", {
+			"variablesReference" : variable.containerVariablesReference,
+			"name" : variable.name,
+			"value" : value,
+		})
+		
+		variable.value = response['value']
+		variable.variablesReference = response.get('variablesReference', 0)
+		return variable
 
 	@core.async
 	def Initialize(self) -> core.awaitable[dict]:
@@ -345,6 +355,7 @@ class DebugAdapterClient:
 	def _merg_breakpoint(self, breakpoint: Breakpoint, breakpoint_result: dict) -> None:
 		result = BreakpointResult(breakpoint_result['verified'], breakpoint_result.get('line', breakpoint.line), breakpoint_result.get('message'))
 		self.breakpoints.set_breakpoint_result(breakpoint, result)
+
 	@core.async
 	def AddBreakpoints(self, breakpoints: Breakpoints) -> core.awaitable[None]:
 		self.breakpoints = breakpoints
@@ -385,7 +396,8 @@ class DebugAdapterClient:
 		})
 		variables = []
 		for v in response['variables']:
-			var = Variable(self, v['name'], v['value'], v.get('variablesReference', 0))
+			var = Variable.from_json(self, v)
+			var.containerVariablesReference = variablesReference
 			variables.append(var)
 		return variables
 
@@ -467,15 +479,6 @@ class DebugAdapterClient:
 		if not breakpoint:
 			return
 		self._merg_breakpoint(breakpoint, breakpoint_result)
-
-	# @core.async
-	# def send_request_asyc(self, command: str, data: dict) -> core.awaitable[dict]:
-		
-	# 	def response(response: dict) -> None:
-	# 		future.set_result(response)
-	# 	self.send_request(command, data, response)
-	# 	value = yield from future
-	# 	return value
 
 	@core.async
 	def send_request_asyc(self, command: str, args: dict) -> core.awaitable[dict]:

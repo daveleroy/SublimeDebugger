@@ -4,33 +4,14 @@ import os
 import sublime
 
 from sublime_db import ui, core
-from sublime_db.main.components.variable_component import VariableComponent, Variable, VariableComponent
 
-class EventLogVariable (ui.Component):
-	def __init__(self, variable: Variable) -> None:
-		super().__init__()
-		self.variables = [] #type: List[Variable]
-		# We exand this variabble right away. 
-		# It seems that console messages that have a variable reference are an array of variables to display
-		# the names of those variables are their index...
-		@core.async
-		def onVariables() -> core.awaitable[None]:
-			self.variables = yield from variable.adapter.GetVariables(variable.reference)
-			self.dirty()
-		core.run(onVariables())
+from .variable_component import (VariableComponent, 
+	Variable, 
+	VariableState, 
+	VariableComponent
+)
 
-	def render(self) -> ui.components:
-		items = []
-		for v in self.variables:
-			# we replace the name with the value... since the name is a number
-			# this seems to be what vscode does
-			v.name = v.value
-			v.value = ''
-			items.append(VariableComponent(v))
-		return items
-
-
-class EventLogComponent (ui.Component):
+class ConsolePanel (ui.Component):
 	def __init__(self):
 		super().__init__()
 		self.items = [] #type: List[ui.Component]
@@ -91,3 +72,19 @@ class EventLogComponent (ui.Component):
 				ui.Table(items = items)
 			])
 		]
+
+class EventLogVariable (ui.Component):
+	def __init__(self, variable: Variable) -> None:
+		super().__init__()
+		self.variable = VariableState(variable, self.dirty)
+		self.variable.toggle_expand()
+
+	def render(self) -> ui.components:
+		items = []
+		for v in self.variable.variables:
+			# we replace the name with the value... since the name is a number
+			# this seems to be what vscode does
+			v.name = v.value
+			v.value = ''
+			items.append(VariableComponent(v))
+		return items

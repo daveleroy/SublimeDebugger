@@ -1,27 +1,31 @@
+from sublime_db.core.typecheck import (List, Callable)
 
-from sublime_db.core.typecheck import List
-from sublime_db.main.debug_adapter_client.types import Variable
+import sublime
 
-from sublime_db import ui, core
+from sublime_db import ui
+from sublime_db import core
+
+from sublime_db.main.debugger import (
+	Variable, 
+	VariableState,
+	Scope, 
+	ScopeState
+)
 
 class VariableComponent (ui.Component):
 	def __init__(self, variable: Variable) -> None:
 		super().__init__()
-		self.variable = variable
-		self.expanded = False
-		self.fetched = False
-		self.variables = [] #type: List[Variable]
+		self.variable = VariableState(variable, self.dirty)
 
-	def toggle(self) -> None:
-		self.expanded = not self.expanded
-		if self.expanded:
-			@core.async
-			def onVariables() -> core.awaitable[None]:
-				self.variables = yield from self.variable.adapter.GetVariables(self.variable.reference)
-				self.dirty()
-			core.run(onVariables())
-			self.fetched = True
-		self.dirty()
+	@core.async
+	def edit_variable(self) -> core.awaitable[None]:
+		window = sublime.active_window()
+		value = yield from core.sublime_show_input_panel_async(window, self.variable.name, self.variable.value)
+		if not value is None:
+			self.variable.set_value(value)
+
+	def on_edit(self) -> None:
+		core.run(self.edit_variable())
 
 	def render(self) -> ui.components:
 		v = self.variable
@@ -36,58 +40,64 @@ class VariableComponent (ui.Component):
 		if len(value) > MAX_LENGTH:
 			value = value[:MAX_LENGTH-1] + '…'
 
-		if v.reference == 0:
+		if not self.variable.expandable:
 			return [
-				ui.Label(name, padding_left = 0.5, padding_right = 1),
-				ui.Label(value, color = 'secondary'),
+				ui.ButtonDoubleClick(self.on_edit, None, [
+					ui.Label(name, padding_left = 0.5, padding_right = 1),
+					ui.Label(value, color = 'secondary')
+				])
 			]
 
-		if self.expanded:
+		if self.variable.expanded:
+			image = ui.Img(ui.Images.shared.down)
+		else:
+			image = ui.Img(ui.Images.shared.right)
+
+		items = [
+			ui.Button(self.variable.toggle_expand, items = [
+				image
+			]),
+			ui.ButtonDoubleClick(self.on_edit, None, [
+				ui.Label(name, padding_right = 1),
+				ui.Label(value, color = 'secondary'),
+			])
+		] #type: List[ui.Component]
+
+		if self.variable.expanded:
 			inner = [] #type: List[ui.Component]
-			for variable in self.variables:
+			for variable in self.variable.variables:
 				inner.append(VariableComponent(variable))
 			table = ui.Table(items = inner)
 			table.add_class('inset')
-			items = [
-				ui.Button(self.toggle, items = [
-					ui.Img(ui.Images.shared.down)
-				]),
-				ui.Label(name, padding_right = 1),
-				ui.Label(value, color = 'secondary'),
-				table
-			]
-			return items
-		else:
-			return [
-				ui.Button(self.toggle, items = [
-					ui.Img(ui.Images.shared.right)
-				]),
-				ui.Label(name, padding_right = 1),
-				ui.Label(value, color = 'secondary'),
-			]
+			items.append(table)
 
-class VariablesComponent (ui.Component):
-	def __init__(self) -> None:
+		return items
+
+class ScopeComponent (ui.Component):
+	def __init__(self, scope: Scope) -> None:
 		super().__init__()
-		self.variables = [] #type: List[Variable]
+		self.scope = ScopeState(scope, self.dirty)
 
-	def clear(self) -> None:
-		self.variables = []
-		self.dirty()
-	def set_variables(self, locals: List[Variable]) -> None:
-		self.variables = locals
-		self.dirty()
-	def render(self) -> ui.components:
+	def render (self) -> ui.components:
+		if self.scope.expanded:
+			image = ui.Img(ui.Images.shared.down)
+		else:
+			image = ui.Img(ui.Images.shared.right)
+
 		items = [
-			ui.Segment(items = [ui.Label('Variables')])
+			ui.Button(self.scope.toggle_expand, items = [
+				image
+			]),
+			ui.Label(self.scope.name, padding_left = 0.5, padding_right = 1),
 		] #type: List[ui.Component]
 
-		variables = [] #type: List[ui.Component]
-		for v in self.variables:
-			variables.append(VariableComponent(v))
-		items.append(ui.Table(items = variables))
-		
-		return [
-			ui.HorizontalSpacer(250),
-			ui.Panel(items = items)
-		]
+		if self.scope.expanded:
+			variables = [] #type: List[ui.Component]
+			for variable in self.scope.variables:
+				variables.append(VariableComponent(variable))
+			table = ui.Table(items = variables)
+			table.add_class('inset')
+			items.append(table)
+
+		return items
+

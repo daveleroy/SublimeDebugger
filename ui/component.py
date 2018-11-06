@@ -22,7 +22,7 @@ class Component:
 		self.is_focus = False
 	def added (self, layout: Layout) -> None:
 		pass
-	def removed(self):
+	def removed(self) -> None:
 		pass
 	def on_focus(self) -> None:
 		pass

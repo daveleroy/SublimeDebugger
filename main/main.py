@@ -1,9 +1,8 @@
-from sublime_db.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator, Set
+from sublime_db.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Set
 
 import sublime
 import os
 
-from sublime_db.libs import asyncio
 from sublime_db import ui
 from sublime_db import core
 
@@ -13,17 +12,25 @@ from .util import get_setting, register_on_changed_setting
 from .configurations import Configuration, AdapterConfiguration, select_or_add_configuration
 from .config import PersistedData
 
-from .components.variable_component import VariablesComponent, VariableComponent, Variable
+from .components.variable_component import VariableComponent, Variable
 from .components.breakpoint_inline_component import BreakpointInlineComponent
-from .components.call_stack_component import CallStackComponent
-from .components.console_component import EventLogComponent
-from .components.breakpoints_component import DebuggerComponent, STOPPED, PAUSED, RUNNING, LOADING, DebuggerComponentListener
+from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
+from .components.callstack_panel import CallStackPanel
+from .components.console_panel import ConsolePanel
+from .components.variables_panel import VariablesPanel
+from .repl import get_and_run_repl_command
 
-from .debug_adapter_client.client import DebugAdapterClient, StoppedEvent, OutputEvent
-from .debug_adapter_client.transport import start_tcp_transport, Process, TCPTransport, StdioTransport
-from .debug_adapter_client.types import StackFrame, EvaluateResponse
+from .debugger import (
+	DebuggerState,
+	OutputEvent,
+	StackFrame,
+	Scope,
+	Thread,
+	EvaluateResponse,
+	DebugAdapterClient
+)
 
-class Main (DebuggerComponentListener):
+class Main (DebuggerPanelCallbacks):
 	instances = {} #type: Dict[int, Main]
 	@staticmethod
 	def forWindow(window: sublime.Window, create: bool = False) -> 'Optional[Main]':
@@ -34,10 +41,10 @@ class Main (DebuggerComponentListener):
 			return main
 		return instance
 	@staticmethod
-	def debuggerForWindow(window: sublime.Window) -> Optional[DebugAdapterClient]:
+	def debuggerForWindow(window: sublime.Window) -> Optional[DebuggerState]:
 		main = Main.forWindow(window)
 		if main:
-			return main.debugAdapterClient
+			return main.debugger
 		return None
 
 	@core.require_main_thread
@@ -47,40 +54,70 @@ class Main (DebuggerComponentListener):
 		self.disposeables = [] #type: List[Any]
 		self.breakpoints = Breakpoints()
 		self.view = None #type: Optional[sublime.View]
-		self.eventLog = EventLogComponent()
-		self.variablesComponent = VariablesComponent()
-		self.callstackComponent = CallStackComponent()
-		self.debuggerComponent = DebuggerComponent(self.breakpoints, self)
-
-		self.debugAdapterClient = None #type: Optional[DebugAdapterClient]
+		self.console_panel = ConsolePanel()
+		self.variables_panel = VariablesPanel()
+		self.callstack_panel = CallStackPanel()
+		self.debugger_panel = DebuggerPanel(self.breakpoints, self)
 		
 		self.selectedFrameComponent = None #type: Optional[ui.Phantom]
 		self.breakpointInformation = None #type: Optional[ui.Phantom]
-		self.pausedWithError = False
-		self.process = None #type: Optional[Process]
-		self.disconnecting = False
-		
-		mode = get_setting(window.active_view(), 'display')
-		if mode == 'window':
-			sublime.run_command("new_window")
-			new_window = sublime.active_window()
-			output = new_window.new_file()
-			new_window.set_minimap_visible(False)
-			new_window.set_sidebar_visible(False)
-			new_window.set_tabs_visible(False)
-			new_window.set_menu_visible(False)
-			new_window.set_status_bar_visible(False)
-		elif mode == 'view':
-			output = self.window.new_file()
-		else:
-			if mode != 'output':
-				print('unexpected mode defaulting to "output"')
-			output = self.window.create_output_panel('debugger')
-			self.window.run_command('show_panel', {
-				'panel': 'output.debugger'
-			})
 
-		
+		def on_state_changed (state: int) -> None:
+			if state == DebuggerState.stopped:
+				self.breakpoints.clear_breakpoint_results()
+				self.debugger_panel.setState(STOPPED)
+			elif state == DebuggerState.running:
+				self.debugger_panel.setState(RUNNING)
+			elif state == DebuggerState.paused:
+				self.debugger_panel.setState(PAUSED)
+			elif state == DebuggerState.stopping or state == DebuggerState.starting:
+				self.debugger_panel.setState(LOADING)
+
+		def on_threads (threads: List[Thread]) -> None:
+			self.callstack_panel.setThreads(self.debugger.adapter, threads, False)
+
+		def on_scopes (scopes: List[Scope]) -> None:
+			self.variables_panel.set_scopes(scopes)
+
+		def on_selected_frame(frame: Optional[StackFrame]) -> None:
+			if not frame:
+				if self.selectedFrameComponent: 
+					self.selectedFrameComponent.dispose()
+					self.selectedFrameComponent = None
+				return
+			if not frame.internal:
+				line = frame.line - 1
+				def complete(view: sublime.View) -> None:
+					self.add_selected_stack_frame_component(view, line)
+			
+			core.run(core.sublime_open_file_async(self.window, frame.file, line), complete)
+
+		def on_output (event: OutputEvent) -> None:
+			category = event.category
+			msg = event.text
+			variablesReference = event.variablesReference
+
+			if variablesReference and self.debugger.adapter:
+				variable = Variable(self.debugger.adapter, msg, '', variablesReference)
+				self.console_panel.AddVariable(variable)
+			elif category == "stdout":
+				self.console_panel.AddStdout(msg)
+			elif category == "stderr":
+				self.console_panel.AddStderr(msg)
+			elif category == "console":
+				self.console_panel.Add(msg)
+
+		self.debugger = DebuggerState(
+			on_state_changed = on_state_changed, 
+			on_threads = on_threads,
+			on_scopes = on_scopes,
+			on_output = on_output,
+			on_selected_frame = on_selected_frame)
+
+		output = self.window.create_output_panel('debugger')
+		self.window.run_command('show_panel', {
+			'panel': 'output.debugger'
+		})
 
 		# We need to insert a space at the front otherwise the view scrolls to the end
 		# everyime we draw a phantom that extends past the rhs of the screen
@@ -116,9 +153,9 @@ class Main (DebuggerComponentListener):
 		self.path = window.project_file_name()
 		if self.path:
 			self.path = os.path.dirname(self.path)
-			self.eventLog.Add('Opened In Workspace: {}'.format(self.path))
+			self.console_panel.Add('Opened In Workspace: {}'.format(self.path))
 		else:
-			self.eventLog.AddStderr('warning: debugger opened in a window that is not part of a project')
+			self.console_panel.AddStderr('warning: debugger opened in a window that is not part of a project')
 			
 		print('Creating a window: h')
 		
@@ -129,10 +166,10 @@ class Main (DebuggerComponentListener):
 		])
 
 		self.disposeables.extend([
-			ui.Phantom(self.debuggerComponent, output, sublime.Region(1, 1), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.callstackComponent, output, sublime.Region(1, 2), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.variablesComponent, output, sublime.Region(1, 3), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.eventLog, output, sublime.Region(1, 4), sublime.LAYOUT_INLINE)
+			ui.Phantom(self.debugger_panel, output, sublime.Region(1, 1), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.callstack_panel, output, sublime.Region(1, 2), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.variables_panel, output, sublime.Region(1, 3), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.console_panel, output, sublime.Region(1, 4), sublime.LAYOUT_INLINE)
 		])
 
 		self.breakpoints.onRemovedBreakpoint.add(lambda b: self.clearBreakpointInformation())
@@ -140,9 +177,8 @@ class Main (DebuggerComponentListener):
 		self.breakpoints.onChangedFilter.add(self.onChangedFilter)
 		self.breakpoints.onSelectedBreakpoint.add(self.onSelectedBreakpoint)
 		
-		assert not self.view.is_loading()
-
 		active_view = self.window.active_view()
+
 		if active_view:
 			self.disposeables.append(
 				register_on_changed_setting(active_view, self.on_settings_updated)
@@ -168,6 +204,7 @@ class Main (DebuggerComponentListener):
 		configurations = []
 		for index, configuration_json in enumerate(get_setting(self.window.active_view(), 'configurations', [])):
 			configuration = Configuration.from_json(configuration_json)
+			configuration.all = sublime.expand_variables(configuration.all, self.window.extract_variables()) 
 			configuration.index = index
 			configurations.append(configuration)
 
@@ -176,9 +213,9 @@ class Main (DebuggerComponentListener):
 		self.configuration = self.persistance.load_configuration_option(configurations)
 
 		if self.configuration:
-			self.debuggerComponent.set_name(self.configuration.name)
+			self.debugger_panel.set_name(self.configuration.name)
 		else:
-			self.debuggerComponent.set_name('select config')
+			self.debugger_panel.set_name('select config')
 
 		self.view.settings().set('font_size', get_setting(self.view, 'ui_scale', 12))
 
@@ -192,8 +229,8 @@ class Main (DebuggerComponentListener):
 		})
 	
 	@core.async
-	def EditSettings (self) -> Generator[Any, None, None]:
-		selected_index = 0
+	def SelectConfiguration (self) -> core.awaitable[None]:
+		selected_index = None #type: Optional[int]
 		if self.configuration:
 			selected_index = self.configuration.index
 
@@ -202,175 +239,31 @@ class Main (DebuggerComponentListener):
 		if configuration:
 			self.persistance.save_configuration_option(configuration)
 			self.configuration = configuration
-			self.debuggerComponent.set_name(configuration.name)
+			self.debugger_panel.set_name(configuration.name)
 
 	@core.async
-	def LaunchDebugger (self) -> Generator[Any, None, None]:
-		self.KillDebugger()
-		self.eventLog.clear()
-		self.eventLog.Add('Starting debugger...')
-		self.debuggerComponent.setState(LOADING)
+	def LaunchDebugger (self) -> core.awaitable[None]:
+		self.console_panel.clear()
+		self.console_panel.Add('Starting debugger...')
 		try:
 			if not self.configuration:
-				yield from self.EditSettings()
+				yield from self.SelectConfiguration()
 
 			if not self.configuration:
 				return
 
-			config = self.configuration
+			configuration = self.configuration
 
-			adapter = self.adapters.get(config.type)
-			if not adapter:
-				raise Exception('Unable to find debug adapter with the type name "{}"'.format(config.type))
-			if not adapter.installed:
-				raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(config.type))
-
-			#If there is a command to run for this debugger run it now
-			if adapter.tcp_port:
-				print('Starting Process: {}'.format(adapter.command))
-				try:
-					self.process = Process(adapter.command, 
-						on_stdout = lambda msg: self.eventLog.Add(msg), 
-						on_stderr = lambda msg: self.eventLog.Add(msg))
-				except Exception as e:
-					self.eventLog.AddStderr('Failed to start debug adapter process: {}'.format(e))
-					self.eventLog.AddStderr('Command in question: {}'.format(adapter.command))
-					core.display('Failed to start debug adapter process: Check the Event Log for more details')
-
-				tcp_address = adapter.tcp_address or 'localhost'
-				try:
-					transport = yield from start_tcp_transport(tcp_address, adapter.tcp_port)
-				except Exception as e:
-					self.eventLog.AddStderr('Failed to connect to debug adapter: {}'.format(e))
-					self.eventLog.AddStderr('address: {} port: {}'.format(tcp_address, adapter.tcp_port))
-					core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
-					return
-			else:
-				# dont monitor stdout the StdioTransport users it
-				self.process = Process(adapter.command, 
-						on_stdout = None, 
-						on_stderr = lambda msg: self.eventLog.Add(msg))
-				
-				transport = StdioTransport(self.process)
+			adapter_configuration = self.adapters.get(configuration.type)
+			if not adapter_configuration:
+				raise Exception('Unable to find debug adapter with the type name "{}"'.format(configuration.type))
 
 		except Exception as e:
+			core.log_exception()
 			core.display(e)
-			self.debuggerComponent.setState(STOPPED)
 			return
 		
-		debugAdapterClient = DebugAdapterClient(transport)
-		self.debugAdapterClient = debugAdapterClient
-
-		def onOutput(event: OutputEvent) -> None:
-			category = event.category
-			msg = event.text
-			variablesReference = event.variablesReference
-
-			if variablesReference and self.debugAdapterClient:
-				variable = Variable(self.debugAdapterClient, msg, '', variablesReference)
-				self.eventLog.AddVariable(variable)
-			elif category == "stdout":
-				self.eventLog.AddStdout(msg)
-			elif category == "stderr":
-				self.eventLog.AddStderr(msg)
-			elif category == "console":
-				self.eventLog.Add(msg)
-
-		def onStopped(event: StoppedEvent) -> None:
-			self.pausedWithError = debugAdapterClient.stoppedOnError
-			self.debuggerComponent.setState(PAUSED)
-			self.eventLog.Add(event.reason)
-			self.stopped_reason = event.reason
-			if event.text:
-				self.eventLog.Add(event.text)
-		def onContinued(event: Any) -> None:
-			self.debuggerComponent.setState(RUNNING)
-		def onExited(event: Any) -> None:
-			self.KillDebugger()
-		def onThreads(event: Any) -> None:
-			self.callstackComponent.setThreads(debugAdapterClient, debugAdapterClient.threads, self.pausedWithError)
-		def onVariables(event: Any) -> None:
-			self.variablesComponent.set_variables(debugAdapterClient.variables)
-		def onSelectedStackFrame(frame: Optional[StackFrame]) -> None:
-			self.variablesComponent.clear()
-			self.onSelectedStackFrame(frame)
-			self.callstackComponent.dirty_threads()
-		def on_error(error: str) -> None:
-			self.eventLog.AddStderr(error)
-
-		debugAdapterClient.onSelectedStackFrame.add(onSelectedStackFrame)
-		debugAdapterClient.onExited.add(onExited)
-		debugAdapterClient.onOutput.add(onOutput)
-		debugAdapterClient.onStopped.add(onStopped)
-		debugAdapterClient.onContinued.add(onContinued)
-		debugAdapterClient.onThreads.add(onThreads)
-		debugAdapterClient.onVariables.add(onVariables)
-		debugAdapterClient.on_error_event.add(on_error)
-
-		# this is a bit of a weird case. Initialized will happen at some point in time
-		# it depends on when the debug adapter chooses it is ready for configuration information
-		# when it does happen we can then add all the breakpoints and complete the configuration
-		@core.async
-		def Initialized() -> Generator[Any, None, None]:
-			yield from debugAdapterClient.Initialized()
-			yield from debugAdapterClient.AddBreakpoints(self.breakpoints)
-			yield from debugAdapterClient.ConfigurationDone()
-		core.run(Initialized())
-		adapter_config = sublime.expand_variables(config.all, self.window.extract_variables())
-
-		print ('Adapter initialize')
-		body = yield from debugAdapterClient.Initialize()
-		for filter in body.get('exceptionBreakpointFilters', []):
-			id = filter['filter']
-			name = filter['label']
-			default = filter.get('default', False)
-			self.breakpoints.add_filter(id, name, default)
-		print ('Adapter initialized: success!')
-		if config.request == 'launch':
-			yield from debugAdapterClient.Launch(adapter_config)
-		elif config.request == 'attach':
-			yield from debugAdapterClient.Attach(adapter_config)
-		else:
-			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(config.request))
-		
-		print ('Adapter has been launched/attached')
-		# At this point we are running?
-		self.debuggerComponent.setState(RUNNING)
-
-
-	def dispose_adapter(self) -> None:
-		if self.selectedFrameComponent: 
-			self.selectedFrameComponent.dispose()
-			self.selectedFrameComponent = None
-
-		self.variablesComponent.clear()
-		self.callstackComponent.clear()
-
-		if self.debugAdapterClient:
-			self.debugAdapterClient.dispose()
-			self.debugAdapterClient = None
-
-		if self.process:
-			self.process.dispose()
-			self.process = None
-
-		self.debuggerComponent.setState(STOPPED)
-		self.breakpoints.clear_breakpoint_results()
-
-	@core.async
-	def Disconnect(self) -> core.awaitable[None]:
-		print('Disconnect Adapter')
-		self.debuggerComponent.setState(LOADING)
-		assert self.debugAdapterClient
-		self.disconnecting = True
-		yield from self.debugAdapterClient.Disconnect()
-		self.dispose_adapter()
-		self.disconnecting = False
-		
-	def KillDebugger(self) -> None:
-		print('Kill Adapter')
-		self.dispose_adapter()
-		self.disconnecting = False
+		yield from self.debugger.launch(adapter_configuration, configuration, self.breakpoints)
 
 	def clearBreakpointInformation(self) -> None:
 		if self.breakpointInformation:
@@ -381,21 +274,21 @@ class Main (DebuggerComponentListener):
 		self.clearBreakpointInformation()
 
 	def on_text_hovered(self, event: ui.HoverEvent) -> None:
-		if self.debugAdapterClient:
+		if self.debugger.adapter:
 			word = event.view.word(event.point)
 			expr = event.view.substr(word)
 
 			def complete(response: Optional[EvaluateResponse]) -> None:
 				if not response:
 					return
-				if self.debugAdapterClient:
-					variable = Variable(self.debugAdapterClient, response.result, '', response.variablesReference)
+				if self.debugger.adapter:
+					variable = Variable(self.debugger.adapter, response.result, '', response.variablesReference)
 					event.view.add_regions('selected_hover', [word], scope = "comment", flags = sublime.DRAW_NO_OUTLINE)
 					def on_close() -> None:
 						event.view.erase_regions('selected_hover')
 					ui.Popup(VariableComponent(variable), event.view, word.a, on_close = on_close)
 					
-			core.run(self.debugAdapterClient.Evaluate(expr, 'hover'), complete)
+			core.run(self.debugger.adapter.Evaluate(expr, 'hover'), complete)
 
 	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
 		file = event.view.file_name() 
@@ -421,19 +314,17 @@ class Main (DebuggerComponentListener):
 		for d in self.disposeables:
 			d.dispose()
 
-		self.KillDebugger()
 		self.breakpoints.dispose()
 		self.window.destroy_output_panel('debugger')
 		del Main.instances[self.window.id()]
 	
 	def onChangedFilter(self, filter: Filter) -> None:
-		if self.debugAdapterClient:
-			core.run(self.debugAdapterClient.setExceptionBreakpoints(self. breakpoints.filters))
+		self.debugger.update_exception_filters(self.breakpoints.filters)
+
 	def onChangedBreakpoint(self, breakpoint: Breakpoint) -> None:
-		if self.debugAdapterClient:
-			file = breakpoint.file
-			breakpoints = self.breakpoints.breakpoints_for_file(file)
-			core.run(self.debugAdapterClient.SetBreakpointsFile(file, breakpoints))
+		file = breakpoint.file
+		breakpoints = self.breakpoints.breakpoints_for_file(file)
+		self.debugger.update_breakpoints_for_file(file, breakpoints)
 
 	def onSelectedBreakpoint(self, breakpoint: Optional[Breakpoint]) -> None:
 		if breakpoint:
@@ -442,38 +333,29 @@ class Main (DebuggerComponentListener):
 			self.clearBreakpointInformation()
 
 	def OnSettings(self) -> None:
-		core.run(self.EditSettings())
+		core.run(self.SelectConfiguration())
 	def OnPlay(self) -> None:
 		core.run(self.LaunchDebugger())
 	def OnStop(self) -> None:
-		if self.disconnecting or self.debugAdapterClient == None:
-			self.KillDebugger()
-		else:
-			core.run(self.Disconnect())
+		core.run(self.debugger.stop())
 	def OnResume(self) -> None:
-		assert self.debugAdapterClient
-		core.run(self.debugAdapterClient.Resume())
+		core.run(self.debugger.resume())
 	def OnPause(self) -> None:
-		assert self.debugAdapterClient
-		core.run(self.debugAdapterClient.Pause())
+		core.run(self.debugger.pause())
 	def OnStepOver(self) -> None:
-		assert self.debugAdapterClient
-		core.run(self.debugAdapterClient.StepOver())
+		core.run(self.debugger.step_over())
 	def OnStepIn(self) -> None:
-		assert self.debugAdapterClient
-		core.run(self.debugAdapterClient.StepIn())
+		core.run(self.debugger.step_in())
 	def OnStepOut(self) -> None:
-		assert self.debugAdapterClient
-		core.run(self.debugAdapterClient.StepOut())
-
+		core.run(self.debugger.step_out())
 	def add_selected_stack_frame_component(self, view: sublime.View, line: int) -> None:
 		if self.selectedFrameComponent:
 			self.selectedFrameComponent.dispose()
 			self.selectedFrameComponent = None
 
-		if not self.debugAdapterClient:
+		if not self.debugger:
 			return
-		if not self.debugAdapterClient.selected_frame:
+		if not self.debugger.selected_frame:
 			return
 
 		pt = view.text_point(line + 1, 0)
@@ -490,7 +372,8 @@ class Main (DebuggerComponentListener):
 			region =  sublime.Region(pt, pt)
 			layout = sublime.LAYOUT_BELOW
 
-		variables = ui.Segment(items = [
+		variables = ui.Box(items = [
+			ui.Label('', padding_left = 1),
 			ui.Button(self.OnResume, items = [
 				ui.Img(ui.Images.shared.play)
 			]),
@@ -503,22 +386,9 @@ class Main (DebuggerComponentListener):
 			ui.Button(self.OnStepIn, items = [
 				ui.Img(ui.Images.shared.right)
 			]),
-			ui.Label(self.stopped_reason, padding_left = 1,  padding_right = 1, color = 'secondary')
+			ui.Label(self.debugger.stopped_reason, padding_left = 1,  padding_right = 1.5, color = 'secondary')
 		])
 		self.selectedFrameComponent = ui.Phantom(variables, view, region, layout)
-
-	def onSelectedStackFrame(self, frame: Optional[StackFrame]) -> None:
-		if not frame:
-			if self.selectedFrameComponent: 
-				self.selectedFrameComponent.dispose()
-				self.selectedFrameComponent = None
-			return
-		if not frame.internal:
-			line = frame.line - 1
-			def complete(view: sublime.View) -> None:
-				self.add_selected_stack_frame_component(view, line)
-			
-			core.run(core.sublime_open_file_async(self.window, frame.file, line), complete)
 			
 	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:	
 		@core.async
@@ -530,45 +400,3 @@ class Main (DebuggerComponentListener):
 			self.breakpointInformation = ui.Phantom(BreakpointInlineComponent(breakpoints = self.breakpoints, breakpoint = breakpoint), view, sublime.Region(at, at), sublime.LAYOUT_BELOW)
 		core.run(a())
 
-@core.async
-def startup_main_thread() -> None:
-	print('Starting up')
-	ui.startup()
-	ui.import_css('{}/{}'.format(sublime.packages_path(), 'sublime_db/main/components/components.css'))
-	
-	was_opened_at_startup = set() #type: Set[int]
-	
-	def on_view_activated (view: sublime.View) -> None:
-		window = view.window()
-		if window and not window.id() in was_opened_at_startup and get_setting(view, 'open_at_startup', False):
-			was_opened_at_startup.add(window.id())
-			Main.forWindow(window, True)
-
-	ui.view_activated.add(on_view_activated)
-
-def startup() -> None:
-	core.startup()
-	core.run(startup_main_thread())
-
-import threading
-
-@core.async
-def shutdown_main_thread(event: threading.Event) -> None:
-	# we just want to ensure that we still set the event if we had an exception somewhere
-	# otherwise shutdown could lock us up
-	try:
-		print('shutdown')
-		for key, instance in dict(Main.instances).items():
-			instance.dispose()
-		Main.instances = {}
-		ui.shutdown()
-	except Exception as e:
-		raise e
-	finally:
-		event.set()
-
-def shutdown() -> None:
-	event = threading.Event()
-	core.run(shutdown_main_thread(event))
-	event.wait()
-	core.shutdown()

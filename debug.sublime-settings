@@ -1,9 +1,7 @@
 {
 	"open_at_startup" : false,
 	"ui_scale" : 12,
-	"display" : "output",
 	"configurations" : [],
-	"custom_adapters" : {},
 	"adapters" : {
 		"lldb" : {
 			"command" : [

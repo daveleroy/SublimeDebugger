@@ -26,15 +26,6 @@ class Configuration:
 		return Configuration(name, type, request, json)
 
 
-def all_configurations (window: sublime.Window) -> List[Configuration]:
-	configs = get_setting(window.active_view(), 'configurations', [])
-	configurations = []
-	for index, config in enumerate(configs):
-		configuration = Configuration.from_json(config)
-		configuration.index = index
-		configurations.append(configuration)
-	return configurations
-
 @core.async
 def add_configuration (window: sublime.Window, adapters: Dict[str, AdapterConfiguration]) -> core.awaitable[None]:
 	names = []
