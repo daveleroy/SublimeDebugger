@@ -83,7 +83,7 @@ class DebuggerState:
 
 		try:
 			if not adapter_configuration.installed:
-				raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(config.type))
+				raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
 
 			#If there is a command to run for this debugger run it now
 			if adapter_configuration.tcp_port:
@@ -93,16 +93,16 @@ class DebuggerState:
 						on_stdout = self._on_msg, 
 						on_stderr = self._on_msg)
 				except Exception as e:
-					self.eventLog.AddStderr('Failed to start debug adapter process: {}'.format(e))
-					self.eventLog.AddStderr('Command in question: {}'.format(adapter_configuration.command))
+					self.on_error('Failed to start debug adapter process: {}'.format(e))
+					self.on_error('Command in question: {}'.format(adapter_configuration.command))
 					core.display('Failed to start debug adapter process: Check the Event Log for more details')
 
 				tcp_address = adapter_configuration.tcp_address or 'localhost'
 				try:
 					transport = yield from start_tcp_transport(tcp_address, adapter_configuration.tcp_port)
 				except Exception as e:
-					self.eventLog.AddStderr('Failed to connect to debug adapter: {}'.format(e))
-					self.eventLog.AddStderr('address: {} port: {}'.format(tcp_address, adapter_configuration.tcp_port))
+					self.on_error('Failed to connect to debug adapter: {}'.format(e))
+					self.on_error('address: {} port: {}'.format(tcp_address, adapter_configuration.tcp_port))
 					core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
 					return
 			else:
@@ -151,7 +151,7 @@ class DebuggerState:
 		elif configuration.request == 'attach':
 			yield from adapter.Attach(configuration.all)
 		else:
-			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(config.request))
+			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
 		
 		print ('Adapter has been launched/attached')
 		self.adapter = adapter
@@ -217,16 +217,17 @@ class DebuggerState:
 		self.on_scopes([])
 		self.selected_frame = frame
 		self.on_selected_frame(frame)
-	def _on_scopes_event(self, frame: Optional[StackFrame]) -> None:
-		self.on_scopes(self.adapter.scopes)
+	def _on_scopes_event(self, scopes: Optional[List[Scope]]) -> None:
+		self.on_scopes(scopes or [])
+
 	def on_error(self, error: str) -> None:
 		output = OutputEvent("stderr", error, 0)
 		self.on_output(output)
 	def _on_msg(self, message: str) -> None:
 		output = OutputEvent("stdout", message, 0)
 		self.on_output(output)
-	def _on_threads_event(self, event: Any) -> None:
-		self.on_threads(self.adapter.threads)
+	def _on_threads_event(self, threads: Optional[List[Thread]]) -> None:
+		self.on_threads(threads or [])
 	def _on_output_event(self, event: OutputEvent) -> None:
 		self.on_output(event)
 	def _on_stopped_event(self, event: StoppedEvent) -> None:

@@ -9,7 +9,6 @@ from sublime_db import core
 from sublime_db.main.commands import *
 from sublime_db.main.main import *
 from sublime_db.ui import ViewEventsListener
-from sublime_db.main.repl import ReplAutoComplete
 from sublime_db.main.util import get_setting
 from sublime_db.main.output_panel import *
 

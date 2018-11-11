@@ -24,6 +24,35 @@ class StackFrame:
 		self.internal = internal
 		self.presentation = presentation
 
+	@staticmethod
+	def from_json(frame: dict) -> 'StackFrame':
+		internal = False
+		file = '??'
+		source = frame.get('source')
+		if source:
+			path = source.get('path')
+			if path: file = path
+			else: internal = True		
+
+		hint = frame.get('presentationHint', 'normal')
+
+		if hint == 'label':
+			presentation = StackFramePresentation.label
+		elif hint == 'subtle':
+			presentation = StackFramePresentation.subtle
+		else:
+			presentation = StackFramePresentation.normal
+		
+		return StackFrame(
+			frame['id'], 
+			file, 
+			frame['name'], 
+			frame.get('line', 0), 
+			internal, 
+			presentation
+		)
+
+
 class Scope:
 	def __init__(self, client: 'DebugAdapterClient', name: str, variablesReference: int, expensive: bool) -> None:
 		self.client = client
@@ -48,6 +77,7 @@ class Variable:
 		self.containerVariablesReference = 0
 		self.variablesReference = variablesReference
 
+	@staticmethod
 	def from_json(client: 'DebugAdapterClient', json: dict) -> 'Variable':
 		return Variable(
 			client, 
@@ -67,6 +97,7 @@ class CompletionItem:
 		self.label = label
 		self.text = text
 
+	@staticmethod
 	def from_json(json: dict) -> 'CompletionItem':
 		return CompletionItem(
 			json['label'], 

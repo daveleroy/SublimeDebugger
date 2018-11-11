@@ -59,8 +59,8 @@ class DebugAdapterClient:
 		self.onStopped = core.Event() #type: core.Event[Any]
 		self.onContinued = core.Event() #type: core.Event[Any]
 		self.onOutput = core.Event() #type: core.Event[Any]
-		self.onScopes = core.Event() #type: core.Event[Any]
-		self.onThreads = core.Event() #type: core.Event[Any]
+		self.onScopes = core.Event() #type: core.Event[Optional[List[Scope]]]
+		self.onThreads = core.Event() #type: core.Event[Optional[List[Thread]]]
 		self.on_error_event = core.Event() #type: core.Event[str]
 		self.onSelectedStackFrame = core.Event() #type: core.Event[Any]
 		self.state = DebuggerState.exited
@@ -143,7 +143,7 @@ class DebugAdapterClient:
 			for scope in response['scopes']:
 				var = Scope.from_json(self, scope)
 				self.scopes.append(var)
-			self.onScopes.post(None)
+			self.onScopes.post(self.scopes)
 
 		core.run(self.send_request_asyc('scopes', {
 			"frameId" : frame.id
@@ -167,27 +167,13 @@ class DebugAdapterClient:
 			found_selected_frame = False
 
 			for index, frame in enumerate(body['stackFrames']):
-				source = frame.get('source')
-				hint = frame.get('presentationHint', 'normal')
 
-				if hint == 'label':
-					presentation = StackFramePresentation.label
-				elif hint == 'subtle':
-					presentation = StackFramePresentation.subtle
-				else:
-					if default_selected_index < 0:
-						default_selected_index = index
-					presentation = StackFramePresentation.normal
-				internal = False
-
-				file = None
-				if source:
-					file = source.get('path')
-				if not file:
-					file = '??'
-					internal = True
-				frame = StackFrame(frame['id'], file, frame['name'], frame.get('line', 0), internal, presentation)
+				frame = StackFrame.from_json(frame)
 				frames.append(frame)
+
+				if default_selected_index < 0 and frame.presentation == StackFramePresentation.normal:
+					default_selected_index = index
+
 				if frame.id == selected_frame_id:
 					found_selected_frame = True
 
@@ -233,7 +219,7 @@ class DebugAdapterClient:
 				threads.append(thread)
 
 			self.threads = threads
-			self.onThreads.post(None)
+			self.onThreads.post(threads)
 
 		core.run(self.send_request_asyc('threads', {}), response)
 
@@ -439,7 +425,7 @@ class DebugAdapterClient:
 			thread.stopped = False
 			
 		# we have to post that we changed the threads here
-		self.onThreads.post(None)
+		self.onThreads.post(self.threads)
 		self.onContinued.post(None)
 	def _on_continued(self, body: dict) -> None:
 		threadId = body['threadId']
