@@ -1,4 +1,4 @@
-from sublime_db.core.typecheck import List
+from sublime_db.core.typecheck import List, Callable
 
 import os
 import sublime
@@ -12,18 +12,22 @@ from .variable_component import (VariableComponent,
 )
 
 class ConsolePanel (ui.Component):
-	def __init__(self):
+	def __init__(self, on_click: Callable[[], None]):
 		super().__init__()
 		self.items = [] #type: List[ui.Component]
 		self.text = [] #type: List[str]
+		self.on_click = on_click
+
 	def get_text (self) -> str:
 		return ''.join(self.text)
+
 	def open_in_view(self) -> None:
 		file = sublime.active_window().new_file()
 		file.run_command('append', {
 			'characters' : self.get_text(),
 			'scroll_to_end' : True
 		})
+
 	def AddVariable(self, variable: Variable) -> None:
 		self.text.append(variable.name)
 		self.text.append(' = ')
@@ -65,7 +69,7 @@ class ConsolePanel (ui.Component):
 			ui.HorizontalSpacer(300),
 			ui.Panel(items = [
 				ui.Segment(items = [
-					ui.Button(self.open_in_view, [
+					ui.Button(self.on_click, [
 						ui.Label('Event Log')
 					])
 				]),

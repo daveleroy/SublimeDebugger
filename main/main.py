@@ -1,6 +1,7 @@
 from sublime_db.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Set
 
 import sublime
+import sublime_plugin
 import os
 
 from sublime_db import ui
@@ -18,7 +19,7 @@ from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, ST
 from .components.callstack_panel import CallStackPanel
 from .components.console_panel import ConsolePanel
 from .components.variables_panel import VariablesPanel
-from .repl import get_and_run_repl_command
+from .repl import run_repl_command
 
 from .debugger import (
 	DebuggerState,
@@ -29,6 +30,8 @@ from .debugger import (
 	EvaluateResponse,
 	DebugAdapterClient
 )
+
+from .output_panel import OutputPhantomsPanel, PanelInputHandler
 
 class Main (DebuggerPanelCallbacks):
 	instances = {} #type: Dict[int, Main]
@@ -46,15 +49,32 @@ class Main (DebuggerPanelCallbacks):
 		if main:
 			return main.debugger
 		return None
+	
+	def create_input_handler(self, window: sublime.Window, label: str, hint: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> ui.InputHandler:
+		return PanelInputHandler(self.panel, label, hint, on_change, on_done)
+
+	def get_run_command(self) -> None:
+		def on_done(value: Optional[str]) -> None:
+			if value:
+				core.run(run_repl_command(value, self.debugger, self.console_panel))
+		def on_change(value: str) -> None:
+			pass
+		PanelInputHandler(self.panel, label = 'Command', hint = "", on_change = on_change, on_done = on_done)
+
 
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
 		print('new Main for window', window.id())
+		ui.set_create_input_handler(window, self.create_input_handler)
+
+
+		self.input_open = False
+		self.input_handler = None #type: Optional[PanelInputHandler]
 		self.window = window
 		self.disposeables = [] #type: List[Any]
 		self.breakpoints = Breakpoints()
-		self.view = None #type: Optional[sublime.View]
-		self.console_panel = ConsolePanel()
+
+		self.console_panel = ConsolePanel(self.get_run_command)
 		self.variables_panel = VariablesPanel()
 		self.callstack_panel = CallStackPanel()
 		self.debugger_panel = DebuggerPanel(self.breakpoints, self)
@@ -114,33 +134,12 @@ class Main (DebuggerPanelCallbacks):
 			on_output = on_output,
 			on_selected_frame = on_selected_frame)
 
-		output = self.window.create_output_panel('debugger')
-		self.window.run_command('show_panel', {
-			'panel': 'output.debugger'
-		})
-
-		# We need to insert a space at the front otherwise the view scrolls to the end
-		# everyime we draw a phantom that extends past the rhs of the screen
-		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
-		# otherwise they will get reordered when one of them gets redrawn
-		# we use new lines so we don't have extra space on the rhs
-		output.run_command('insert', {
-			'characters': " \n\n\n\n\n\n\n"
-		})
-		view_settings = output.settings()
-		# cover up the addition space we added during the insert
-		view_settings.set("margin", -5)
-		# removes some additional padding on the top of the view
-		view_settings.set('line_padding_top', 0)	
-
-		output.sel().clear()
-		output.set_read_only(True)
-		output.set_name('Debugger')
-		view_settings.set("is_widget", True)
-		view_settings.set("gutter", False)
-	
-		self.view = output
+		self.panel = OutputPhantomsPanel(window, 'Debugger')
+		self.panel.show()
 		
+		output = self.panel.view
+		self.view = output #type: sublime.View
+	
 		self.project_name = window.project_file_name() or "user"
 		self.persistance = PersistedData(self.project_name)
 
@@ -160,16 +159,19 @@ class Main (DebuggerPanelCallbacks):
 		print('Creating a window: h')
 		
 		self.disposeables.extend([
+			self.panel,
 			ui.view_gutter_hovered.add(self.on_gutter_hovered),
 			ui.view_text_hovered.add(self.on_text_hovered),
 			ui.view_drag_select.add(self.on_drag_select),
 		])
 
+		offset = self.panel.phantom_location()
+		
 		self.disposeables.extend([
-			ui.Phantom(self.debugger_panel, output, sublime.Region(1, 1), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.callstack_panel, output, sublime.Region(1, 2), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.variables_panel, output, sublime.Region(1, 3), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.console_panel, output, sublime.Region(1, 4), sublime.LAYOUT_INLINE)
+			ui.Phantom(self.debugger_panel, output, offset, sublime.LAYOUT_INLINE),
+			ui.Phantom(self.callstack_panel, output, offset, sublime.LAYOUT_INLINE),
+			ui.Phantom(self.variables_panel, output, offset, sublime.LAYOUT_INLINE),
+			ui.Phantom(self.console_panel, output, offset, sublime.LAYOUT_INLINE)
 		])
 
 		self.breakpoints.onRemovedBreakpoint.add(lambda b: self.clearBreakpointInformation())
@@ -201,7 +203,7 @@ class Main (DebuggerPanelCallbacks):
 			except Exception as e:
 				core.display('There was an error creating a AdapterConfiguration {}'.format(e))
 
-		configurations = []
+		configurations = [] 
 		for index, configuration_json in enumerate(get_setting(self.window.active_view(), 'configurations', [])):
 			configuration = Configuration.from_json(configuration_json)
 			configuration.all = sublime.expand_variables(configuration.all, self.window.extract_variables()) 
@@ -216,7 +218,8 @@ class Main (DebuggerPanelCallbacks):
 			self.debugger_panel.set_name(self.configuration.name)
 		else:
 			self.debugger_panel.set_name('select config')
-
+			
+		assert self.view
 		self.view.settings().set('font_size', get_setting(self.view, 'ui_scale', 12))
 
 	def on_settings_updated(self) -> None:
@@ -224,9 +227,7 @@ class Main (DebuggerPanelCallbacks):
 		self.load_configurations()
 
 	def show(self) -> None:
-		self.window.run_command('show_panel', {
-			'panel': 'output.debugger'
-		})
+		self.panel.show()
 	
 	@core.async
 	def SelectConfiguration (self) -> core.awaitable[None]:
@@ -271,9 +272,17 @@ class Main (DebuggerPanelCallbacks):
 			self.breakpointInformation = None
 
 	def on_drag_select(self, view: sublime.View) -> None:
-		self.clearBreakpointInformation()
+		if view != self.view:
+			self.clearBreakpointInformation()
+			self.panel.close_input()
+
+	# TODO this could be made better
+	def is_source_file(self, view: sublime.View)-> bool:
+		return bool(view.file_name())
 
 	def on_text_hovered(self, event: ui.HoverEvent) -> None:
+		if not self.is_source_file(event.view): return
+
 		if self.debugger.adapter:
 			word = event.view.word(event.point)
 			expr = event.view.substr(word)
@@ -291,8 +300,10 @@ class Main (DebuggerPanelCallbacks):
 			core.run(self.debugger.adapter.Evaluate(expr, 'hover'), complete)
 
 	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
-		file = event.view.file_name() 
-		if not file:  return #ignore if the view does not have a file
+		if not self.is_source_file(event.view): return
+		file = event.view.file_name()
+		if not file:
+			return
 
 		at = event.view.text_point(event.line, 0)
 
@@ -364,12 +375,11 @@ class Main (DebuggerPanelCallbacks):
 
 		pt_current_line = view.text_point(line, 0)
 		line_current = view.line(pt_current_line)
-		region =  sublime.Region(pt-1, pt-1)
+		at =  pt-1
 
 		layout = sublime.LAYOUT_INLINE
 		if line_current.b - line_current.a > max:
-			pt = view.text_point(line - 1, 0)
-			region =  sublime.Region(pt, pt)
+			at = view.text_point(line - 1, 0)
 			layout = sublime.LAYOUT_BELOW
 
 		variables = ui.Box(items = [
@@ -388,7 +398,7 @@ class Main (DebuggerPanelCallbacks):
 			]),
 			ui.Label(self.debugger.stopped_reason, padding_left = 1,  padding_right = 1.5, color = 'secondary')
 		])
-		self.selectedFrameComponent = ui.Phantom(variables, view, region, layout)
+		self.selectedFrameComponent = ui.Phantom(variables, view, at, layout)
 			
 	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:	
 		@core.async
@@ -397,6 +407,6 @@ class Main (DebuggerPanelCallbacks):
 			at = view.text_point(breakpoint.line - 1, 0)
 			view.sel().clear()
 			self.clearBreakpointInformation()
-			self.breakpointInformation = ui.Phantom(BreakpointInlineComponent(breakpoints = self.breakpoints, breakpoint = breakpoint), view, sublime.Region(at, at), sublime.LAYOUT_BELOW)
+			self.breakpointInformation = ui.Phantom(BreakpointInlineComponent(breakpoints = self.breakpoints, breakpoint = breakpoint), view, at, sublime.LAYOUT_BELOW)
 		core.run(a())
 

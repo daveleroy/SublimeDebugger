@@ -85,23 +85,33 @@ class Renderable:
 		assert False
 
 class Phantom(Layout, Renderable):
-	def __init__(self, component: 'Component', view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
+	id = 0
+	def __init__(self, component: 'Component', view: sublime.View, at: int, layout: int = sublime.LAYOUT_INLINE) -> None:
 		super().__init__(component)
+		self.id = Phantom.id
+		Phantom.id += 1
 		self.cachedPhantom = None #type: Optional[sublime.Phantom]
-		self.region = region
+		self.region = sublime.Region(at, at)
 		self.layout = layout
 		self.view = view
+		view.add_regions('phantom_{}'.format(id), [self.region], "comment", flags = sublime.DRAW_NO_FILL)
 		self.set = sublime.PhantomSet(self.view)
 		_renderables_add.append(self)
 	def render(self) -> bool:
 		if super().render() or not self.cachedPhantom:
 			html = '''<body id="debug"><style>{}</style>{}</body>'''.format(self.css, self.html)
-			self.cachedPhantom = sublime.Phantom(self.region, html, self.layout, self.on_navigate)
+			region = self.region
+			if self.cachedPhantom:
+				region = self.cachedPhantom.region
+			self.cachedPhantom = sublime.Phantom(region, html, self.layout, self.on_navigate)
 			return True
 		return False
 
 	def render_sublime(self) -> None:
 		assert self.cachedPhantom, "??"
+		# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
+		self.cachedPhantom.region = self.view.get_regions('phantom_{}'.format(id))[0]
+		self.cachedPhantom.region.b += self.id # hack to keep the sort of phantoms stable if they are placed in the same location
 		self.set.update([self.cachedPhantom])
 
 	def clear_sublime(self) -> None:

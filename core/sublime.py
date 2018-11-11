@@ -56,12 +56,19 @@ def sublime_show_quick_panel_async(window: sublime.Window, items: List[str], sel
 	return r
 
 @async
-def sublime_show_input_panel_async(window: sublime.Window, caption: str, initial_text: str, on_change: Callable[[str], None]) -> awaitable[Optional[str]]:
+def sublime_show_input_panel_async(window: sublime.Window, caption: str, initial_text: str, on_change: Optional[Callable[[str], None]] = None) -> awaitable[Optional[str]]:
 	result = main_loop.create_future()
+	active_panel = window.active_panel()
+	
 	def on_done(value: str) -> None:
 		result.set_result(value)
 	def on_cancel() -> None:
 		result.set_result(None)
-	window.show_input_panel(caption, initial_text, on_done, on_change, on_cancel)
+
+	view = window.show_input_panel(caption, initial_text, on_done, on_change, on_cancel)
 	r = yield from result
-	return r
+	# restore the previous panel
+	window.run_command('show_panel', {
+		'panel': '{}'.format(active_panel)
+	})
+	return r  

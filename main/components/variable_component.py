@@ -1,4 +1,4 @@
-from sublime_db.core.typecheck import (List, Callable)
+from sublime_db.core.typecheck import (List, Callable, Optional)
 
 import sublime
 
@@ -17,15 +17,18 @@ class VariableComponent (ui.Component):
 		super().__init__()
 		self.variable = VariableState(variable, self.dirty)
 
-	@core.async
-	def edit_variable(self) -> core.awaitable[None]:
-		window = sublime.active_window()
-		value = yield from core.sublime_show_input_panel_async(window, self.variable.name, self.variable.value)
-		if not value is None:
-			self.variable.set_value(value)
-
 	def on_edit(self) -> None:
-		core.run(self.edit_variable())
+		def on_done(value: Optional[str]) -> None:
+			if not value is None:
+				self.variable.set_value(value)
+		def on_change(value: str) -> None:
+			pass	
+
+		window = sublime.active_window()
+		title = self.variable.name
+		value = self.variable.value
+
+		input_handler = ui.create_input_handler_for_window(window, title, value, on_done = on_done, on_change = on_change)
 
 	def render(self) -> ui.components:
 		v = self.variable

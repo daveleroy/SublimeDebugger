@@ -22,7 +22,8 @@ from .debug_adapter_client.types import (
 	EvaluateResponse, 
 	Thread, 
 	Scope,
-	Variable
+	Variable,
+	CompletionItem
 )
 from .configurations import (
 	Configuration, 
@@ -42,7 +43,7 @@ class DebuggerState:
 		on_threads: Callable[[List[Thread]], None],
 		on_scopes: Callable[[List[Scope]], None],
 		on_output: Callable[[OutputEvent], None],
-		on_selected_frame: Callable[Optional[StackFrame], None]
+		on_selected_frame: Callable[[Optional[StackFrame]], None]
 	) -> None:
 		self.on_state_changed = on_state_changed
 		self.on_threads = on_threads

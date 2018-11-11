@@ -16,7 +16,7 @@ class Configuration:
 		self.request = request
 
 	@staticmethod
-	def from_json(json: dict) -> None:
+	def from_json(json: dict) -> 'Configuration':
 		name = json.get('name')
 		assert name, 'expecting name for debug.configuration'
 		type = json.get('type')
@@ -84,10 +84,10 @@ def select_or_add_configuration(window: sublime.Window, index: Optional[int], co
 
 	names.append("-- Add Configuration -- ")
 
-	index = yield from core.sublime_show_quick_panel_async(window, names, index or 0)
-	if index < 0:
+	selected_index = yield from core.sublime_show_quick_panel_async(window, names, index or 0)
+	if selected_index < 0:
 		return None
-	if index >= len(configurations):
+	if selected_index >= len(configurations):
 		yield from add_configuration(window, adapters)
 		return None
-	return configurations[index]
+	return configurations[selected_index]

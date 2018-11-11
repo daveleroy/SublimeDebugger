@@ -7,9 +7,11 @@ from sublime_db import core
 
 # import all the commands so that sublime sees them
 from sublime_db.main.commands import *
+from sublime_db.main.main import *
 from sublime_db.ui import ViewEventsListener
+from sublime_db.main.repl import ReplAutoComplete
 from sublime_db.main.util import get_setting
-
+from sublime_db.main.output_panel import *
 
 @core.async
 def startup_main_thread() -> None:
@@ -20,8 +22,11 @@ def startup_main_thread() -> None:
 	was_opened_at_startup = set() #type: Set[int]
 	
 	def on_view_activated (view: sublime.View) -> None:
+		# there is probabaly a better way to filter out things like output panels and stuff
+		if not view.file_name():
+			return
 		window = view.window()
-		if window and not window.id() in was_opened_at_startup and get_setting(view, 'open_at_startup', False):
+		if window and (not window.id() in was_opened_at_startup) and get_setting(view, 'open_at_startup', False):
 			was_opened_at_startup.add(window.id())
 			Main.forWindow(window, True)
 
