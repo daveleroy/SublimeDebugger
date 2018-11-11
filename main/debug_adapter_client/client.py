@@ -226,7 +226,7 @@ class DebugAdapterClient:
 				thread = self._thread_for_id(id)
 				thread.name = name
 				return thread
-
+			
 			threads = []
 			for thread in response['threads']:
 				thread = get_or_create_thread(thread['id'], thread['name'])
@@ -258,6 +258,23 @@ class DebugAdapterClient:
 			return None
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
 		return EvaluateResponse(response["result"], response.get("variablesReference", 0))
+
+	
+	@core.async
+	def Completions(self, text: str, column: int) -> core.awaitable[List[CompletionItem]]:
+		frameId = None
+		if self.selected_frame:
+			frameId = self.selected_frame.id
+
+		response = yield from self.send_request_asyc("completions", {
+			"frameId" : frameId,
+			"text" : text,
+			"column" : column,
+		})
+		items = [] #type: List[CompletionItem]
+		for item in response['targets']:
+			items.append(CompletionItem.from_json(item))
+		return items
 
 	@core.async
 	def setVariable(self, variable: Variable, value: str) -> core.awaitable[Variable]:

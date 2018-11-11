@@ -62,3 +62,13 @@ class EvaluateResponse:
 		self.variablesReference = variablesReference
 		
 
+class CompletionItem:
+	def __init__(self, label: str, text: str) -> None:
+		self.label = label
+		self.text = text
+
+	def from_json(json: dict) -> 'CompletionItem':
+		return CompletionItem(
+			json['label'], 
+			json.get('text', None), 
+		)
