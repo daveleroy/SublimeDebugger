@@ -18,11 +18,11 @@ from .debugger import CompletionItem
 _phantom_text = " \n\n\n\n\n\n\n"
 
 class PanelInputHandler (ui.InputHandler):
-	def __init__(self, panel: 'OutputPhantomsPanel', label: str, hint: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> None:
+	def __init__(self, panel: 'OutputPhantomsPanel', label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> None:
 		self.on_done = on_done
 		self.on_change = on_change
 		self.label = label
-		self.hint = hint
+		self.text = text
 		self.panel = panel
 		self.panel.run_input_handler(self)
 
@@ -90,10 +90,9 @@ class OutputPhantomsPanel:
 		self.header_text = input_handler.label + ': '
 		self.view.run_command('debug_output_phantoms_panel_reset', { 
 			'header' : self.header_text,
-			'characters' : '',
+			'characters' : input_handler.text,
 		})
 		self.view.settings().set('line_padding_top', 0)
-		self.window.focus_view(self.view)
 		self.view.sel().clear()
 		self.view.sel().add(self.editable_region())
 
@@ -164,7 +163,7 @@ class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 			adapter = m.debugger.adapter
 		if not adapter:
 			return
-		self.completions = yield from adapter.Completions(text, len(text) + 1)
+		self.completions = yield from adapter.Completions(text, len(text) + 1, m.debugger.frame)
 		view.run_command("hide_auto_complete")
 		view.run_command("auto_complete", {
                 'disable_auto_insert': True,
@@ -245,7 +244,7 @@ class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 			text = self.editable_text(panel)
 			core.main_loop.call_soon_threadsafe(panel.on_done_input, text)
 			return ("debug_null", {}) 
-
+	
 	def on_selection_modified(self, view: sublime.View) -> None:
 		panel = OutputPhantomsPanel.for_view(view)
 		if not panel: return

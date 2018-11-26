@@ -60,11 +60,11 @@ class SublimeDebugQuitCommand(RunMainCommand):
 
 class SublimeDebugStartCommand(DebugWindowCommand):
 	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
+		main = Main.forWindow(self.window, True)
 		if main: main.OnPlay()
 		
 	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.stopped)
+		return not Main.forWindow(self.window) or DebuggerInState(self.window, DebuggerState.stopped)
 		
 class SublimeDebugStopCommand(DebugWindowCommand):
 	def run_main(self) -> None:
@@ -107,6 +107,11 @@ class SublimeDebugResumeCommand(DebugWindowCommand):
 		if main: main.OnResume()
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
+
+class SublimeDebugRunCommandCommand(DebugWindowCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window, True)
+		main.open_repl_console()
 
 class SublimeDebugAddConfiguration(RunMainCommand):
 	def run_main(self) -> None:
@@ -154,9 +159,10 @@ class SublimeDebugInstallAdapter(RunMainCommand):
 				yield from install_adapter(adapter)
 				status = 'Installing adapters... Installed {}'.format(adapter.installation.name)
 			except Exception as e:
+				core.log_exception()
 				status = 'Installing adapters... Failed {} {}'.format(adapter.installation.name, e)
 
 			view.set_status('sublime_db_adapter_install', status)
 
-		asyncio.sleep(2)
+		yield from asyncio.sleep(2)
 		view.erase_status('sublime_db_adapter_install')

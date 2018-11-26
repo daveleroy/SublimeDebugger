@@ -59,7 +59,8 @@ class AdapterConfiguration:
 		installation = None
 		if install_json:
 			installation = AdapterConfiguration.Installation.from_json(install_json)
-		r = AdapterConfiguration(
+			
+		return AdapterConfiguration(
 			type, 
 			command,
 			json.get('tcp_port'),
@@ -67,7 +68,6 @@ class AdapterConfiguration:
 			vscode_package_file,
 			installation
 		)
-		return r
 
 @core.async
 def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:

@@ -50,16 +50,21 @@ class Main (DebuggerPanelCallbacks):
 			return main.debugger
 		return None
 	
-	def create_input_handler(self, window: sublime.Window, label: str, hint: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> ui.InputHandler:
-		return PanelInputHandler(self.panel, label, hint, on_change, on_done)
+	def create_input_handler(self, window: sublime.Window, label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> ui.InputHandler:
+		return PanelInputHandler(self.panel, label, text, on_change, on_done)
 
-	def get_run_command(self) -> None:
+	def open_repl_console(self) -> None:
+		prev_view = self.window.active_view()
+		self.window.focus_view(self.view)
 		def on_done(value: Optional[str]) -> None:
 			if value:
 				core.run(run_repl_command(value, self.debugger, self.console_panel))
+			
+			self.window.focus_view(prev_view)
+
 		def on_change(value: str) -> None:
 			pass
-		PanelInputHandler(self.panel, label = 'Command', hint = "", on_change = on_change, on_done = on_done)
+		PanelInputHandler(self.panel, label = 'Command', text = "", on_change = on_change, on_done = on_done)
 
 
 	@core.require_main_thread
@@ -67,20 +72,19 @@ class Main (DebuggerPanelCallbacks):
 		print('new Main for window', window.id())
 		ui.set_create_input_handler(window, self.create_input_handler)
 
-
 		self.input_open = False
 		self.input_handler = None #type: Optional[PanelInputHandler]
 		self.window = window
 		self.disposeables = [] #type: List[Any]
 		self.breakpoints = Breakpoints()
 
-		self.console_panel = ConsolePanel(self.get_run_command)
+		self.console_panel = ConsolePanel(self.open_repl_console)
 		self.variables_panel = VariablesPanel()
 		self.callstack_panel = CallStackPanel()
 		self.debugger_panel = DebuggerPanel(self.breakpoints, self)
 		
 		self.selectedFrameComponent = None #type: Optional[ui.Phantom]
-		self.breakpointInformation = None #type: Optional[ui.Phantom]
+		self.breakpointInformation = None #type: Optional[Any]
 
 		def on_state_changed (state: int) -> None:
 			if state == DebuggerState.stopped:
@@ -94,23 +98,21 @@ class Main (DebuggerPanelCallbacks):
 				self.debugger_panel.setState(LOADING)
 
 		def on_threads (threads: List[Thread]) -> None:
-			self.callstack_panel.setThreads(self.debugger.adapter, threads, False)
+			self.callstack_panel.update(self.debugger, threads)
 
 		def on_scopes (scopes: List[Scope]) -> None:
 			self.variables_panel.set_scopes(scopes)
 
 		def on_selected_frame(frame: Optional[StackFrame]) -> None:
+			self.callstack_panel.dirty_threads()
+
 			if not frame:
 				if self.selectedFrameComponent: 
 					self.selectedFrameComponent.dispose()
 					self.selectedFrameComponent = None
 				return
-			if not frame.internal:
-				line = frame.line - 1
-				def complete(view: sublime.View) -> None:
-					self.add_selected_stack_frame_component(view, line)
-			
-			core.run(core.sublime_open_file_async(self.window, frame.file, line), complete)
+
+			core.run(self.navigate_to_frame(frame))
 
 		def on_output (event: OutputEvent) -> None:
 			category = event.category
@@ -168,10 +170,10 @@ class Main (DebuggerPanelCallbacks):
 		offset = self.panel.phantom_location()
 		
 		self.disposeables.extend([
-			ui.Phantom(self.debugger_panel, output, offset, sublime.LAYOUT_INLINE),
-			ui.Phantom(self.callstack_panel, output, offset, sublime.LAYOUT_INLINE),
-			ui.Phantom(self.variables_panel, output, offset, sublime.LAYOUT_INLINE),
-			ui.Phantom(self.console_panel, output, offset, sublime.LAYOUT_INLINE)
+			ui.Phantom(self.debugger_panel, output, sublime.Region(offset, offset + 0), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.callstack_panel, output, sublime.Region(offset, offset + 1), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.variables_panel, output, sublime.Region(offset, offset + 2), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.console_panel, output, sublime.Region(offset, offset + 3), sublime.LAYOUT_INLINE)
 		])
 
 		self.breakpoints.onRemovedBreakpoint.add(lambda b: self.clearBreakpointInformation())
@@ -359,15 +361,39 @@ class Main (DebuggerPanelCallbacks):
 		core.run(self.debugger.step_in())
 	def OnStepOut(self) -> None:
 		core.run(self.debugger.step_out())
-	def add_selected_stack_frame_component(self, view: sublime.View, line: int) -> None:
+
+	@core.async
+	def navigate_to_frame(self, frame: StackFrame) -> core.awaitable[None]:
+		source = frame.source
+		if not source:
+			return
+
+		line =  frame.line - 1
+
+		if source.sourceReference:
+			if not self.debugger.adapter:
+				return
+
+			content = yield from self.debugger.adapter.GetSource(source)
+			view = self.window.new_file()
+			view.set_name(source.name)
+			view.set_scratch(True)
+			view.run_command('insert', {
+				'characters' : content
+			})
+			view.set_read_only(True)
+		elif source.path:
+			view = yield from core.sublime_open_file_async(self.window, source.path, line)
+		else:
+			return
+
+		# We seem to have already selected a differn't frame in the time we loaded the view
+		if frame != self.debugger.frame:
+			return
+
 		if self.selectedFrameComponent:
 			self.selectedFrameComponent.dispose()
 			self.selectedFrameComponent = None
-
-		if not self.debugger:
-			return
-		if not self.debugger.selected_frame:
-			return
 
 		pt = view.text_point(line + 1, 0)
 
@@ -398,15 +424,20 @@ class Main (DebuggerPanelCallbacks):
 			]),
 			ui.Label(self.debugger.stopped_reason, padding_left = 1,  padding_right = 1.5, color = 'secondary')
 		])
-		self.selectedFrameComponent = ui.Phantom(variables, view, at, layout)
+		self.selectedFrameComponent = ui.Phantom(variables, view, sublime.Region(at, at), layout)
 			
 	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:	
 		@core.async
 		def a() -> core.awaitable[None]:
 			view = yield from core.sublime_open_file_async(sublime.active_window(), breakpoint.file, breakpoint.line)
-			at = view.text_point(breakpoint.line - 1, 0)
+			at = view.text_point(breakpoint.line-2, 0)
 			view.sel().clear()
 			self.clearBreakpointInformation()
-			self.breakpointInformation = ui.Phantom(BreakpointInlineComponent(breakpoints = self.breakpoints, breakpoint = breakpoint), view, at, sublime.LAYOUT_BELOW)
+
+			# we have to focus the input view before showing the popup otherwise focusing the view closes the popup...
+			prev_view = self.window.active_view()
+			self.window.focus_view(self.view)
+			self.breakpointInformation = ui.Popup(BreakpointInlineComponent(breakpoints = self.breakpoints, breakpoint = breakpoint), view, at, on_close = lambda: self.window.focus_view(prev_view))
+
 		core.run(a())
 
