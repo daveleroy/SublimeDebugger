@@ -1,16 +1,8 @@
 
-import sublime
-import sublime_plugin
-
 from sublime_db import core
-from sublime_db import ui
-from sublime_db.libs import asyncio
 
 from .debugger import DebugAdapterClient, DebuggerState, Variable
-from .debug_adapter_client.types import CompletionItem
 from .components.console_panel import ConsolePanel
-
-# FIXME This wont work for multiple windows with multiple repl commands running...
 
 @core.async
 def run_repl_command(command: str, debugger: DebuggerState, console: ConsolePanel) -> core.awaitable[None]:
@@ -23,7 +15,7 @@ def run_repl_command(command: str, debugger: DebuggerState, console: ConsolePane
 		return
 
 	try:
-		response = yield from adapter.Evaluate(command, "repl")
+		response = yield from adapter.Evaluate(command, debugger.frame, "repl")
 	except Exception as e:
 		console.AddStderr(str(e))
 		return
