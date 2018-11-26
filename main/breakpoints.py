@@ -93,16 +93,28 @@ class Breakpoint:
 		return ui.Images.shared.dot
 
 	def update_views(self) -> None:
-		views = self.views
-		self.clear_views()
-		for view in views:
-			self.add_to_view(view)
+		for view in self.views:
+			self.refresh_view(view)
 
-	def add_to_view(self, view: sublime.View) -> None:
-		self.views.append(view)
+	def refresh_view(self, view: sublime.View) -> None:
+		regions = view.get_regions(self.regionName)
 		p = view.text_point(self.line - 1, 0)
+
+		if regions:
+			if regions[0].a == p and regions[0].b == p:
+				return
+
 		image = self.image().file
 		view.add_regions(self.regionName, [sublime.Region(p, p)], scope ='type', icon=image, flags=sublime.HIDDEN)
+
+	def add_to_view(self, view: sublime.View) -> None:
+		for old_view in self.views:
+			if old_view.id == view.id:
+				self.refresh_view(view)
+				return
+				
+		self.views.append(view)
+		self.refresh_view(view)
 
 	def clear_views(self) -> None:
 		for view in self.views:
@@ -259,10 +271,11 @@ class Breakpoints:
 
 	# moves the view regions to match up with the data model
 	def sync_from_breakpoints(self, view: sublime.View) -> None:
-		for b in self.breakpoints:
-			view.erase_regions(b.regionName)
-
-		self.sync(view)
+		file = view.file_name()
+		for breakpoint in self.breakpoints:
+			if breakpoint.file != file:
+				continue
+			breakpoint.add_to_view(view)
 
 	# FIXME this is OLD code that should be updated...
 	def toggle(self, view: sublime.View, line: int) -> None:
