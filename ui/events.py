@@ -82,11 +82,11 @@ class ViewEventsListener(sublime_plugin.EventListener):
 				view.sel().clear()
 				view.sel().add(view.line(view.text_point(self.line, 0)))
 				
-	def on_modified_async(self, view: sublime.View) -> None:
+	def on_modified(self, view: sublime.View) -> None:
 		view_modified.post(view)
-	def on_load_async(self, view: sublime.View) -> None:
+	def on_load(self, view: sublime.View) -> None:
 		view_loaded.post(view)
-	def on_activated_async(self, view: sublime.View) -> None:
+	def on_activated(self, view: sublime.View) -> None:
 		view_activated.post(view)
 		
 def _is_coord_on_gutter_or_empy_line(view: sublime.View, x: int, y: int) -> bool:

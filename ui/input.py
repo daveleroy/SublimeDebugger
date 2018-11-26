@@ -15,7 +15,7 @@ from .label import Label
 
 
 class InputHandler:
-	def __init__(self, window: sublime.Window, label: str, hint: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]):
+	def __init__(self, window: sublime.Window, label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]):
 		assert False, 'unimplemented'
 	def close(self) -> None:
 		assert False, 'unimplemented'
@@ -26,18 +26,18 @@ def set_create_input_handler(window: sublime.Window, create: Callable[[sublime.W
 	global _create_input_handlers_for_window
 	_create_input_handlers_for_window[window.id()] = create
 
-def create_input_handler_for_window(window: sublime.Window, label: str, hint: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> InputHandler:
+def create_input_handler_for_window(window: sublime.Window, label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> InputHandler:
 	create = _create_input_handlers_for_window.get(window.id())
 	if create:
-		return create(window, label, hint, on_change, on_done)
-	return DefaultInputHandler(window, label, hint, on_change, on_done)
+		return create(window, label, text, on_change, on_done)
+	return DefaultInputHandler(window, label, text, on_change, on_done)
 	
 # class InputHandler:
 # 	def get_input(on_change: Callable[[str], None], on_done: Callable[[str], None], on_cancel: Callable[[], None]) -> None
 # 		assert False, 'unimplemented'
 
 class DefaultInputHandler (InputHandler):
-	def __init__(self, window: sublime.Window, label: str, hint: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]):
+	def __init__(self, window: sublime.Window, label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]):
 		def on_cancel() ->None:
 			self.close()
 			on_done(None)
@@ -47,7 +47,7 @@ class DefaultInputHandler (InputHandler):
 
 		self.window = window
 		self.active_panel = window.active_panel()
-		window.show_input_panel(label, hint, on_done = on_done_inner, on_change = on_change, on_cancel = on_cancel)
+		window.show_input_panel(label, text, on_done = on_done_inner, on_change = on_change, on_cancel = on_cancel)
 
 	def close(self) -> None:
 		self.window.run_command('show_panel', {
@@ -68,6 +68,7 @@ class Input(ComponentInline):
 		self.editing = False
 		self.error = False
 		self.input_handler = None #type: Optional[InputHandler]
+		
 	def on_focus(self) -> None:
 		self.editing = True
 		self.dirty()

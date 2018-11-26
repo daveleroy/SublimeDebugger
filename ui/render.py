@@ -86,46 +86,45 @@ class Renderable:
 
 class Phantom(Layout, Renderable):
 	id = 0
-	def __init__(self, component: 'Component', view: sublime.View, at: int, layout: int = sublime.LAYOUT_INLINE) -> None:
+	def __init__(self, component: 'Component', view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
 		super().__init__(component)
-		self.id = Phantom.id
-		Phantom.id += 1
 		self.cachedPhantom = None #type: Optional[sublime.Phantom]
-		self.region = sublime.Region(at, at)
+		self.region = region
 		self.layout = layout
 		self.view = view
-		view.add_regions('phantom_{}'.format(id), [self.region], "comment", flags = sublime.DRAW_NO_FILL)
+
 		self.set = sublime.PhantomSet(self.view)
+		
+		Phantom.id += 1
+		self.region_id = 'phantom_{}'.format(Phantom.id)
+		self.view.add_regions(self.region_id, [self.region], flags = sublime.DRAW_NO_FILL)
+
 		_renderables_add.append(self)
+
 	def render(self) -> bool:
 		if super().render() or not self.cachedPhantom:
 			html = '''<body id="debug"><style>{}</style>{}</body>'''.format(self.css, self.html)
-			region = self.region
-			if self.cachedPhantom:
-				region = self.cachedPhantom.region
+			# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
+			region = self.view.get_regions(self.region_id)[0]
 			self.cachedPhantom = sublime.Phantom(region, html, self.layout, self.on_navigate)
 			return True
 		return False
 
 	def render_sublime(self) -> None:
 		assert self.cachedPhantom, "??"
-		# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
-		self.cachedPhantom.region = self.view.get_regions('phantom_{}'.format(id))[0]
-		self.cachedPhantom.region.b += self.id # hack to keep the sort of phantoms stable if they are placed in the same location
 		self.set.update([self.cachedPhantom])
 
 	def clear_sublime(self) -> None:
 		self.set.update([])
 
 	def em_width(self) -> float:
-		size = self.view.settings().get('font_size')
-		assert size
+		size = self.view.settings().get('font_size') or 12
 		return self.view.em_width() / size
 
 	def dispose(self) -> None:
 		super().dispose()
 		_renderables_remove.append(self)
-
+		self.view.erase_regions(self.region_id)
 
 class Popup(Layout, Renderable):
 	def __init__(self, component: 'Component', view: sublime.View, location: int = -1, layout: int = sublime.LAYOUT_INLINE, on_close: Optional[Callable[[], None]] = None) -> None:
@@ -135,22 +134,23 @@ class Popup(Layout, Renderable):
 		self.layout = layout
 		self.view = view
 		self.max_height = 500
-		self.max_width = 500
+		self.max_width = 1000
 		self.render()
 		view.show_popup(self.html, 
 			location = location,
 			max_width = self.max_width, 
 			max_height = self.max_height, 
 			on_navigate = self.on_navigate,
-			flags = sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+			flags = sublime.COOPERATE_WITH_AUTO_COMPLETE,
 			on_hide = self.on_hide)
 
 		_renderables_add.append(self)
+		self.is_hidden = False
 
 	def on_hide(self) -> None:
+		self.is_hidden = True
 		if self.on_close:
 			self.on_close()
-		self.dispose()
 
 	def render(self) -> bool:
 		if super().render() or not self.html:
@@ -160,6 +160,10 @@ class Popup(Layout, Renderable):
 
 	def render_sublime(self) -> None:
 		self.view.update_popup(self.html)
+
+	def clear_sublime(self) -> None:
+		if not self.is_hidden:
+			self.view.hide_popup()
 
 	def em_width(self) -> float:
 		size = self.view.settings().get('font_size')

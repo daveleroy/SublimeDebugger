@@ -7,12 +7,12 @@ from sublime_db.core.typecheck import (
 from .layout import Layout
 from .component import ComponentInline, components
 
-
 html_escape_table = {
 	"&": "&amp;",
 	">": "&gt;",
 	"<": "&lt;",
 }
+
 def html_escape(text: str) -> str:
     """Produce entities within text."""
     return "".join(html_escape_table.get(c,c) for c in text)
@@ -20,7 +20,11 @@ def html_escape(text: str) -> str:
 class Label(ComponentInline):
 	def __init__(self, text: Optional[str], color: str = "primary", align: float = 0.5, width: Optional[float] = None, padding_left = 0, padding_right = 0) -> None:
 		super().__init__()
-		self.text = text or ""
+		if text:
+			self.text = text.replace("\u0000", "\\u0000")
+		else:
+			self.text = ""
+			
 		self.align = align
 		self.width = width
 		self.padding_left = padding_left

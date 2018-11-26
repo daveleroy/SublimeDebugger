@@ -36,3 +36,11 @@ class HorizontalSpacer (Component):
 		self.width = width
 	def html (self, layout: Layout) -> str:
 		return '<{} class="{}" {}><img width="{}"></{}>'.format(self.html_tag, self.className, self.html_tag_extra, self.width, self.html_tag)
+
+class Items (Component):
+	def __init__(self, items: Sequence[Component]) -> None:
+		super().__init__()
+		self.items = items
+
+	def render (self) -> Sequence[Component]:
+		return self.items

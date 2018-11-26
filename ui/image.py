@@ -49,8 +49,6 @@ def package_file_str(path: str) -> str:
 	f = open(p, 'r')
 	return f.read()
 
-
-
 class Images:
 	shared = None #type: Images
 	def __init__(self) -> None:
@@ -69,3 +67,6 @@ class Images:
 		self.down = Image.named('material/baseline_keyboard_arrow_down_white_48dp.png')
 		self.left = Image.named('material/baseline_keyboard_arrow_left_white_48dp.png')
 		self.thread = Image.named('material/baseline_sort_white_48dp.png')
+		self.dots = Image.named('material/baseline_more_horiz_white_48dp.png')
+		self.not_checked = Image.named('material/baseline_check_box_outline_blank_white_48dp.png')
+		self.checked = Image.named('material/baseline_check_box_white_48dp.png')
