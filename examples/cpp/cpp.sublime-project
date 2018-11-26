@@ -1,0 +1,22 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"settings":
+	{
+		"debug.configurations":
+		[
+			{
+				"args": [], 
+				"type": "lldb",
+				"cwd": "${project_path}", 
+				"request": "launch", 
+				"program": "${project_path}/main", 
+				"name": "Launch"
+			},
+		]
+	},
+}
