@@ -8,6 +8,9 @@
 .TableItem .selected {
 	background-color: rgba(102, 153, 255, 0.2);
 }
+.Items .selected {
+	background-color: rgba(102, 153, 255, 0.2);
+}
 
 .StackframeSelectedError {
 	background-color: rgba(255, 25, 25, 0.25);

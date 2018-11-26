@@ -33,7 +33,7 @@ class ConsolePanel (ui.Component):
 		self.text.append(' = ')
 		self.text.append(variable.value)
 
-		item = EventLogVariable(variable)
+		item = ConsoleVariable(variable)
 		self.items.append(item)
 		self.dirty()
 
@@ -77,7 +77,7 @@ class ConsolePanel (ui.Component):
 			])
 		]
 
-class EventLogVariable (ui.Component):
+class ConsoleVariable (ui.Component):
 	def __init__(self, variable: Variable) -> None:
 		super().__init__()
 		self.variable = VariableState(variable, self.dirty)
