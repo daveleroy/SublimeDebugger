@@ -15,12 +15,11 @@ import socket
 import threading
 import json
 
-
 from sublime_db.libs import asyncio
 from sublime_db import ui, core
 from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter
 
-from .types import StackFrame, StackFramePresentation, Variable, Thread, Scope, EvaluateResponse, CompletionItem
+from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source
 from .transport import Transport
 
 class DebuggerState:
@@ -29,9 +28,16 @@ class DebuggerState:
 	running = 3
 
 class StoppedEvent:
-	def __init__(self, reason: str, text: Optional[str]) -> None:
+	def __init__(self, thread: Thread, allThreadsStopped: bool, reason: str, text: Optional[str]) -> None:
+		self.thread = thread
+		self.allThreadsStopped = allThreadsStopped
 		self.reason = reason
 		self.text = text
+
+class ContinuedEvent:
+	def __init__(self, thread: Thread, allThreadsContinued: bool) -> None:
+		self.thread = thread
+		self.allThreadsContinued = allThreadsContinued
 
 class OutputEvent:
 	def __init__(self, category: str, text: str, variablesReference: int) -> None:
@@ -46,31 +52,26 @@ class DebugAdapterClient:
 		self.transport.start(self.transport_message, self.transport_closed)
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
-		self.frames = [] #type: List[StackFrame]
-		self.scopes = [] #type: List[Scope]
 
 		self.threads = [] #type: List[Thread]
 		self.threads_for_id = {} #type: Dict[int, Thread]
 
-		self.selected_thread = None #type: Optional[Thread]
-		self.selected_frame = None #type: Optional[StackFrame]
+		self.allThreadsStopped = False
 		self.stoppedOnError = False
 		self.onExited = core.Event() #type: core.Event[Any]
 		self.onStopped = core.Event() #type: core.Event[Any]
 		self.onContinued = core.Event() #type: core.Event[Any]
 		self.onOutput = core.Event() #type: core.Event[Any]
-		self.onScopes = core.Event() #type: core.Event[Optional[List[Scope]]]
 		self.onThreads = core.Event() #type: core.Event[Optional[List[Thread]]]
 		self.on_error_event = core.Event() #type: core.Event[str]
-		self.onSelectedStackFrame = core.Event() #type: core.Event[Any]
-		self.state = DebuggerState.exited
+		self.is_running = True
 		self._on_initialized_future = core.main_loop.create_future()
 		self._on_terminated_future = core.main_loop.create_future()
 		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
 
 	def transport_closed(self) -> None:
 		print('Debugger Transport: closed')
-		if self.state != DebuggerState.exited:
+		if self.is_running:
 			self.on_error_event.post('Debug Adapter process was terminated prematurely')
 			self._on_terminated({})
 
@@ -84,125 +85,87 @@ class DebugAdapterClient:
 		self.transport.dispose()
 
 	@core.async
-	def StepIn(self) -> core.awaitable[None]:
+	def StepIn(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepIn', {
-			'threadId' : self._default_thread_id()
+			'threadId' : thread.id
 		})
 	@core.async
-	def StepOut(self) -> core.awaitable[None]:
+	def StepOut(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepOut', {
-			'threadId' : self._default_thread_id()
+			'threadId' : thread.id
 		})
 	@core.async
-	def StepOver(self) -> core.awaitable[None]:
+	def StepOver(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('next', {
-			'threadId' : self._default_thread_id()
+			'threadId' : thread.id
 		})
 	@core.async
-	def Resume(self, thread : Optional[Thread] = None) -> core.awaitable[None]:
-		print('continue!')
-		if thread:
-			thread_id = thread.id
-		else:
-			thread_id = self._default_thread_id()
-		print('continue!')
+	def Resume(self, thread: Thread) -> core.awaitable[None]:
 		body = yield from self.send_request_asyc('continue', {
-			'threadId' : thread_id
+			'threadId' : thread.id
 		})
 		print('continued!')
-		self._continued(thread_id, body.get('allThreadsContinued', True))
+		self._continued(thread.id, body.get('allThreadsContinued', True))
 
 	@core.async
-	def Pause(self) -> core.awaitable[None]:
+	def Pause(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('pause', {
-			'threadId' : self._default_thread_id()
+			'threadId' : thread.id
 		})
 		
 	@core.async
 	def Disconnect(self) -> core.awaitable[None]:
 		yield from self.send_request_asyc('disconnect', {
+			'terminateDebuggee' : True
 		})
 		yield from self._on_terminated_future
 
-	def clear_selection(self) -> None:
-		print('clear_selection')
-		self.selected_thread = None
-		self.selected_frame = None
-		self.onSelectedStackFrame.post(None)
-
-	def set_selected_thread_and_frame(self, thread: Thread, frame: StackFrame) -> None:
-		print('set_selected_thread_and_frame')
-		assert thread
-		assert frame
-		self.selected_thread = thread
-		self.selected_frame = frame
-		self.onSelectedStackFrame.post(frame)
-
-		def response(response: dict) -> None:
-			self.scopes.clear()
-			for scope in response['scopes']:
-				var = Scope.from_json(self, scope)
-				self.scopes.append(var)
-			self.onScopes.post(self.scopes)
-
-		core.run(self.send_request_asyc('scopes', {
+	@core.async
+	def GetScopes(self, frame: StackFrame) -> core.awaitable[List[Scope]]:
+		body = yield from self.send_request_asyc('scopes', {
 			"frameId" : frame.id
-		}), response)
+		})
+		scopes = []
+		for scope_json in body['scopes']:
+			scope = Scope.from_json(self, scope_json)
+			scopes.append(scope)
+		return scopes
 
-	#FIXME async
-	def getStackTrace(self, thread: Thread, response: Callable[[List[StackFrame]], None]) -> None:
-		selection_in_other_thread = False
-		selected_frame_id = -1
-
-		if self.selected_thread:
-			assert self.selected_frame
-			if self.selected_thread.id == thread.id:
-				selected_frame_id = self.selected_frame.id
-			else:
-				selection_in_other_thread = True
-
-		def cb(body: dict) -> None:
-			frames = []
-			default_selected_index = -1
-			found_selected_frame = False
-
-			for index, frame in enumerate(body['stackFrames']):
-
-				frame = StackFrame.from_json(frame)
-				frames.append(frame)
-
-				if default_selected_index < 0 and frame.presentation == StackFramePresentation.normal:
-					default_selected_index = index
-
-				if frame.id == selected_frame_id:
-					found_selected_frame = True
-
-			# we auto select a frame if we don't already have a frame selected in another thread
-			# if the frame selected is in our thread but we didn't find the same frame then we select a new one
-			
-			# ensure this thread is still stopped before we select the frame
-			# it is possible this thread started running again so we don't want to auto select its frame
-			if thread.stopped and not selection_in_other_thread and not found_selected_frame:
-				self.set_selected_thread_and_frame(thread, frames[default_selected_index])
-
-			response(frames)
-
-		core.run(self.send_request_asyc('stackTrace', {
+	@core.async
+	def GetStackTrace(self, thread: Thread) -> core.awaitable[List[StackFrame]]:
+		body = yield from self.send_request_asyc('stackTrace', {
 			"threadId" : thread.id
-		}), cb)
+		})
+		frames = []
+		for frame in body['stackFrames']:
+			frame = StackFrame.from_json(thread, frame)
+			frames.append(frame)
+		return frames
 
-	def _default_thread_id(self) -> int:
-		assert self.threads, 'requires at least one thread?'
-		if self.selected_thread:
-			return self.selected_thread.id
-		return self.threads[0].id		
-	
+	@core.async
+	def GetSource(self, source: Source) -> core.awaitable[str]:
+		body = yield from self.send_request_asyc('source', {
+			'source' : {
+				'path': source.path,
+				'sourceReference': source.sourceReference
+			},
+			'sourceReference' : source.sourceReference
+		})
+		return body['content']
+
 	def _thread_for_id(self, id: int) -> Thread:
 		thread = self.threads_for_id.get(id)
 		if thread:
 			return thread
 
-		thread = Thread(id, '...')
+		thread = Thread(self, id, '...')
+
+		# I think this is the correct thing to do according to the spec. 
+		thread.stopped = self.allThreadsStopped
+		# If we had an allThreadsStopped event any new threads we see should be marked as "stopped" until an allThreadsContinued event occurs.
+		# This is clearly not what vscode does. The first breakpoint hit in the go example has 3 additional runtime threads that are marked as running despite "allThreadsStopped" being present 
+		# When a step occurs they all get marked as stopped. Presumably they only marked the thread for the stopped event and not any threads that are seen after running the threads command.
+
 		self.threads_for_id[id] = thread
 		return thread
 
@@ -228,10 +191,10 @@ class DebugAdapterClient:
 		yield from self._on_initialized_future
 
 	@core.async
-	def Evaluate(self, expression: str, context: Optional[str]) -> core.awaitable[Optional[EvaluateResponse]]:
+	def Evaluate(self, expression: str, frame: Optional[StackFrame], context: Optional[str]) -> core.awaitable[Optional[EvaluateResponse]]:
 		frameId = None #type: Optional[int]
-		if self.selected_frame:
-			frameId = self.selected_frame.id
+		if frame:
+			frameId = frame.id
 
 		response = yield from self.send_request_asyc("evaluate", {
 			"expression" : expression,
@@ -239,7 +202,7 @@ class DebugAdapterClient:
 			"frameId" : frameId,
 		})
 
-		# the spec doesn't say this is optional? does this mean some implementations throw errors and others return a null result?
+		# the spec doesn't say this is optional? But it seems that some implementations throw errors instead of marking things as not verified?
 		if response['result'] is None:
 			return None
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
@@ -247,10 +210,10 @@ class DebugAdapterClient:
 
 	
 	@core.async
-	def Completions(self, text: str, column: int) -> core.awaitable[List[CompletionItem]]:
+	def Completions(self, text: str, column: int, frame: Optional[StackFrame]) -> core.awaitable[List[CompletionItem]]:
 		frameId = None
-		if self.selected_frame:
-			frameId = self.selected_frame.id
+		if frame:
+			frameId = frame.id
 
 		response = yield from self.send_request_asyc("completions", {
 			"frameId" : frameId,
@@ -295,16 +258,14 @@ class DebugAdapterClient:
 		yield from self.send_request_asyc('launch', config)
 		# the spec says to grab the baseline threads here?
 		self.threadsCommandBase()
-		self.state = DebuggerState.running
-		self.onContinued.post(None)
+		self.is_running = True
 
 	@core.async
 	def Attach(self, config: dict) -> core.awaitable[None]:
 		yield from self.send_request_asyc('attach', config)
 		# the spec says to grab the baseline threads here?
 		self.threadsCommandBase()
-		self.state = DebuggerState.running
-		self.onContinued.post(None)
+		self.is_running = True
 
 	@core.async
 	def setExceptionBreakpoints(self, filters: List[Filter]) -> core.awaitable[None]:
@@ -389,7 +350,6 @@ class DebugAdapterClient:
 
 	@core.async
 	def ConfigurationDone(self) -> core.awaitable[None]:
-		print('Configuration done!')
 		yield from self.send_request_asyc('configurationDone', {})
 
 	@core.async
@@ -411,28 +371,25 @@ class DebugAdapterClient:
 	
 	def _continued(self, threadId: int, allThreadsContinued: bool) -> None:
 		if allThreadsContinued:
-			self.state = DebuggerState.running
+
+			self.allThreadsStopped = False
 
 		if allThreadsContinued:
-			self.clear_selection()
 			for thread in self.threads:
 				thread.stopped = False
-
 		else:
 			thread = self._thread_for_id(threadId)
-			if self.selected_thread and threadId == self.selected_thread.id:
-				self.clear_selection()
 			thread.stopped = False
 			
 		# we have to post that we changed the threads here
 		self.onThreads.post(self.threads)
-		self.onContinued.post(None)
+		event = ContinuedEvent(self._thread_for_id(threadId), allThreadsContinued)
+		self.onContinued.post(event)
 	def _on_continued(self, body: dict) -> None:
 		threadId = body['threadId']
 		self._continued(threadId, body.get('allThreadsContinued', True))
 
 	def _on_stopped(self, body: dict) -> None:
-		self.state = DebuggerState.stopped
 		#only ask for threads if there was a reason for the stoppage
 		threadId = body.get('threadId', None)
 		allThreadsStopped = body.get('allThreadsStopped', False)
@@ -442,13 +399,9 @@ class DebugAdapterClient:
 		thread_for_event.expanded = True
 
 		if allThreadsStopped:
+			self.allThreadsStopped = True
 			for thread in self.threads:
 				thread.stopped = True
-			self.clear_selection()
-		else:
-			# clear the selected frame but only if the thread stopped is the one that is already selected
-			if self.selected_thread and thread_for_event.id == self.selected_thread.id:
-				self.clear_selection()
 
 		# we aren't going to post that we changed the threads
 		# we will let the threadsCommandBase to that for us so we don't update the UI twice
@@ -457,14 +410,17 @@ class DebugAdapterClient:
 		if allThreadsStopped and body.get('reason', False):
 			reason = body.get('reason', '')
 			self.stoppedOnError = reason == 'signal' or reason == 'exception'
-			
-		event = StoppedEvent(body.get('description') or body['reason'], body.get('text'))
+
+		# stopped events are required to have a reason but some adapters treat it as optional...
+		description = body.get('description') or body.get('reason') or 'unknown reason' #type: str
+		event = StoppedEvent(self._thread_for_id(threadId), allThreadsStopped, description, body.get('text'))
 		self.onStopped.post(event)
 
 	def _on_terminated(self, body: dict) -> None:
-		self.state = DebuggerState.exited
+		self.is_running = False
 		self.onExited.post(None)
 		self._on_terminated_future.set_result(None)
+
 	def _on_output(self, body: dict) -> None:
 		category = body.get('category', 'console')
 		data = OutputEvent(category, body['output'], body.get('variablesReference', 0))

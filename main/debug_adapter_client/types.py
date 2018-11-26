@@ -1,55 +1,56 @@
-from sublime_db.core.typecheck import TYPE_CHECKING
+from sublime_db.core.typecheck import Optional, List, TYPE_CHECKING
 
 if TYPE_CHECKING: from .client import DebugAdapterClient
 
 class Thread:
-	def __init__(self, id: int, name: str) -> None:
+	def __init__(self, client: 'DebugAdapterClient', id: int, name: str) -> None:
+		self.client = client
 		self.id = id
 		self.name = name
 		self.stopped = False
 		self.selected = False
 		self.expanded = False
 
-class StackFramePresentation:
+class StackFrame:
 	normal = 1
 	label = 2
 	subtle = 3
 
-class StackFrame:
-	def __init__(self, id: int, file: str, name: str, line: int, internal: bool, presentation: int) -> None:
+	def __init__(self, thread: Thread, id: int, file: str, name: str, line: int, presentation: int, source: Optional['Source']) -> None:
+		self.thread = thread
 		self.id = id
 		self.name = name
 		self.file = file
 		self.line = line
-		self.internal = internal
 		self.presentation = presentation
+		self.source = source
 
 	@staticmethod
-	def from_json(frame: dict) -> 'StackFrame':
-		internal = False
+	def from_json(thread: Thread, frame: dict) -> 'StackFrame':
 		file = '??'
-		source = frame.get('source')
-		if source:
-			path = source.get('path')
-			if path: file = path
-			else: internal = True		
+		source_json = frame.get('source')
+		source = None #type: Optional[Source]
+		if source_json:
+			source = Source.from_json(source_json)
+			file = source.name	
 
 		hint = frame.get('presentationHint', 'normal')
 
 		if hint == 'label':
-			presentation = StackFramePresentation.label
+			presentation = StackFrame.label
 		elif hint == 'subtle':
-			presentation = StackFramePresentation.subtle
+			presentation = StackFrame.subtle
 		else:
-			presentation = StackFramePresentation.normal
+			presentation = StackFrame.normal
 		
 		return StackFrame(
+			thread,
 			frame['id'], 
 			file, 
 			frame['name'], 
 			frame.get('line', 0), 
-			internal, 
-			presentation
+			presentation,
+			source
 		)
 
 
@@ -102,4 +103,41 @@ class CompletionItem:
 		return CompletionItem(
 			json['label'], 
 			json.get('text', None), 
+		)
+
+class Source:
+
+	normal = 1
+	emphasize = 2
+	deemphasize = 3
+
+	def __init__(self, name: str, path: Optional[str], sourceReference: int, presentationHint: int, origin: Optional[str], sources: List['Source']) -> None:
+		self.name = name
+		self.path = path
+		self.sourceReference = sourceReference
+		self.presentationHint = presentationHint
+		self.origin = origin
+		self.sources = sources
+
+	@staticmethod
+	def from_json(json: dict) -> 'Source':
+		hint = Source.normal
+		json_hint = json.get('presentationHint')
+		if json_hint:
+			if json_hint == 'emphasize':
+				hint = Source.emphasize
+			elif json_hint == 'deemphasize':
+				hint = Source.deemphasize
+
+		sources = []
+		for source_json in json.get('sources', []):
+			sources.append(Source.from_json(source_json))
+
+		return Source(
+			json.get('name', '??'), 
+			json.get('path'),
+			json.get('sourceReference', 0),
+			hint,
+			json.get('origin'),
+			sources
 		)

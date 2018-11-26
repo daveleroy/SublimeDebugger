@@ -240,7 +240,7 @@ class StdioTransport(Transport):
 				print("Failure reading stdout", err)
 				break
 
-		print("LSP stdout process ended.")
+		print("debug adapter process ended.")
 
 	def send(self, message: str) -> None:
 		self.send_queue.put(message)
