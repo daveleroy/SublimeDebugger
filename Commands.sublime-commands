@@ -43,6 +43,10 @@
         "command" : "sublime_debug_resume"
     },
     {
+        "caption" : "Debugger: Run Command",
+        "command" : "sublime_debug_run_command"
+    },
+    {
         "caption" : "Debugger: Toggle Breakpoint",
         "command" : "sublime_debug_toggle_breakpoint"
     },
