@@ -70,7 +70,7 @@ class ConsolePanel (ui.Component):
 			ui.Panel(items = [
 				ui.Segment(items = [
 					ui.Button(self.on_click, [
-						ui.Label('Event Log')
+						ui.Label('Console')
 					])
 				]),
 				ui.Table(items = items)
