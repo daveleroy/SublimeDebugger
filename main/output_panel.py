@@ -17,6 +17,17 @@ from .debugger import CompletionItem
 
 _phantom_text = " \n\n\n\n\n\n\n"
 
+class CommandPrompComponent (ui.Component):
+	def __init__(self, text: str) -> None:
+		super().__init__()
+		self.text = text
+
+	def render (self) -> ui.components:
+		return [
+			ui.Label(self.text),
+			ui.Img(ui.Images.shared.right)
+		]
+
 class PanelInputHandler (ui.InputHandler):
 	def __init__(self, panel: 'OutputPhantomsPanel', label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> None:
 		self.on_done = on_done
@@ -63,6 +74,7 @@ class OutputPhantomsPanel:
 		self.view.sel().clear()
 
 		self.input_handler = None #type: Optional[PanelInputHandler]
+		self.promptPhantom = None #type: Optional[ui.Phantom]
 		OutputPhantomsPanel.panels[self.view.id()] = self
 
 	def show (self) -> None:
@@ -87,7 +99,7 @@ class OutputPhantomsPanel:
 
 	def run_input_handler(self, input_handler: PanelInputHandler) -> None:
 		self.input_handler = input_handler
-		self.header_text = input_handler.label + ': '
+		self.header_text = '  '
 		self.view.run_command('debug_output_phantoms_panel_reset', { 
 			'header' : self.header_text,
 			'characters' : input_handler.text,
@@ -96,17 +108,30 @@ class OutputPhantomsPanel:
 		self.view.sel().clear()
 		self.view.sel().add(self.editable_region())
 
+		if self.promptPhantom:
+			self.promptPhantom.dispose()
+		self.promptPhantom = ui.Phantom(CommandPrompComponent(input_handler.label), self.view, sublime.Region(1, 1))
+		ui.render()
+		
 	def clear_input_handler(self, input_handler: PanelInputHandler, text: Optional[str]) -> None:
 		if not self.input_handler: 
 			return
 		if self.input_handler != input_handler:
 			return
 
+		if self.promptPhantom:
+			self.promptPhantom.dispose()
+			self.promptPhantom = None
+			ui.render()
+
 		self.header_text = ''
 		self.view.run_command('debug_output_phantoms_panel_reset', { 
 			'header' : '',
 			'characters' : '',
 		})
+
+	
+
 		self.view.settings().set('line_padding_top', -9)
 		self.input_handler.on_done(text)
 		self.input_handler = None
