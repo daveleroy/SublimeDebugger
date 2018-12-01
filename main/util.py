@@ -33,3 +33,10 @@ def get_setting(view: Optional[sublime.View], setting: str, default: Any = None)
 
 	project_setting = view.settings().get("debug." + setting, plugin_setting)
 	return project_setting
+
+def extract_variables(window: sublime.Window) -> dict:
+	variables = window.extract_variables()
+	project = variables.get('project_path')
+	if project:
+		variables['workspaceFolder'] = project
+	return variables

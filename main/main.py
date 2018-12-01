@@ -9,7 +9,7 @@ from sublime_db import core
 
 from .breakpoints import Breakpoints, Breakpoint, Filter
 
-from .util import get_setting, register_on_changed_setting
+from .util import get_setting, register_on_changed_setting, extract_variables
 from .configurations import Configuration, AdapterConfiguration, select_or_add_configuration
 from .config import PersistedData
 
@@ -208,7 +208,7 @@ class Main (DebuggerPanelCallbacks):
 		configurations = [] 
 		for index, configuration_json in enumerate(get_setting(self.window.active_view(), 'configurations', [])):
 			configuration = Configuration.from_json(configuration_json)
-			configuration.all = sublime.expand_variables(configuration.all, self.window.extract_variables()) 
+			configuration.all = sublime.expand_variables(configuration.all, extract_variables(self.window))
 			configuration.index = index
 			configurations.append(configuration)
 
@@ -365,6 +365,7 @@ class Main (DebuggerPanelCallbacks):
 	@core.async
 	def navigate_to_frame(self, frame: StackFrame) -> core.awaitable[None]:
 		source = frame.source
+		
 		if not source:
 			return
 

@@ -8,6 +8,7 @@ import urllib.request
 import sublime
 import json
 from sublime_db import core
+from .util import extract_variables
 
 def _adapters_path() -> str:
 	return os.path.join(sublime.packages_path() ,"sublime_db/debug_adapters")
@@ -48,7 +49,7 @@ class AdapterConfiguration:
 
 	@staticmethod
 	def from_json(type: str, json: dict, window: sublime.Window) -> 'AdapterConfiguration':
-		variables = window.extract_variables()
+		variables = extract_variables(window)
 		command = sublime.expand_variables(json['command'], variables) 
 		vscode_package_file = json.get('vscode-package-file')
 		if vscode_package_file:
