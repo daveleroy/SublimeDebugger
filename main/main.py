@@ -73,7 +73,6 @@ class Main (DebuggerPanelCallbacks):
 		ui.set_create_input_handler(window, self.create_input_handler)
 
 		self.input_open = False
-		self.input_handler = None #type: Optional[PanelInputHandler]
 		self.window = window
 		self.disposeables = [] #type: List[Any]
 		self.breakpoints = Breakpoints()
@@ -348,6 +347,7 @@ class Main (DebuggerPanelCallbacks):
 	def OnSettings(self) -> None:
 		core.run(self.SelectConfiguration())
 	def OnPlay(self) -> None:
+		self.panel.show()
 		core.run(self.LaunchDebugger())
 	def OnStop(self) -> None:
 		core.run(self.debugger.stop())

@@ -55,7 +55,6 @@ class OutputPhantomsPanel:
 		self.view = window.create_output_panel(name)
 		self.show()
 
-
 		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
 		# otherwise they will get reordered when one of them gets redrawn
 		# we use new lines so we don't have extra space on the rhs
@@ -69,13 +68,15 @@ class OutputPhantomsPanel:
 		settings.set('line_padding_top', -9)	
 		settings.set('gutter', False)
 		settings.set('word_wrap', False)	
-		settings.set('caret_extra_width', -5)	
 
 		self.view.sel().clear()
 
 		self.input_handler = None #type: Optional[PanelInputHandler]
 		self.promptPhantom = None #type: Optional[ui.Phantom]
 		OutputPhantomsPanel.panels[self.view.id()] = self
+
+	def isHidden (self) -> bool:
+		return self.window.active_panel() != 'output.{}'.format(self.name)
 
 	def show (self) -> None:
 		self.window.run_command('show_panel', {
@@ -111,7 +112,7 @@ class OutputPhantomsPanel:
 		if self.promptPhantom:
 			self.promptPhantom.dispose()
 		self.promptPhantom = ui.Phantom(CommandPrompComponent(input_handler.label), self.view, sublime.Region(1, 1))
-		ui.render()
+		ui.render() # force render so there is no delay
 		
 	def clear_input_handler(self, input_handler: PanelInputHandler, text: Optional[str]) -> None:
 		if not self.input_handler: 
@@ -122,7 +123,8 @@ class OutputPhantomsPanel:
 		if self.promptPhantom:
 			self.promptPhantom.dispose()
 			self.promptPhantom = None
-			ui.render()
+			ui.render() # force render so there is no delay
+
 
 		self.header_text = ''
 		self.view.run_command('debug_output_phantoms_panel_reset', { 
@@ -130,12 +132,9 @@ class OutputPhantomsPanel:
 			'characters' : '',
 		})
 
-	
-
 		self.view.settings().set('line_padding_top', -9)
 		self.input_handler.on_done(text)
 		self.input_handler = None
-		#self.view.run_command("hide_auto_complete")
 
 	def editable_region(self) -> sublime.Region:
 		min_point = len(self.header_text)
