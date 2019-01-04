@@ -4,17 +4,11 @@ Graphical Debugger for sublime text for languages that support the debug adapter
 
 See [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/)
 
-# Getting started
-![Image of GUI](https://raw.githubusercontent.com/daveleroy/sublime_db/master/docs/images/basic.png)
-
-- Opening the debug panel
-  - from the command palette `Debugger: Open`
-- Add breakpoints by double tapping on the gutter. 
-  - Hover over the breakpoint to edit it or click on it in the breakpoint panel (bottom left)
+![Image of GUI](docs/images/basic.png)
 
 # Installing
 
-1. Clone into your sublime Packages directory
-2. Install a debug adapter by running: ```Debugger: Install adapter``` inside sublime text.
-  - These are just a few of the debug adapters out there
-  - You can add your own to the [settings file](https://github.com/daveleroy/sublime_db/blob/master/debug.sublime-settings)
+Clone into your sublime Packages directory
+
+# Getting Started
+See [Getting Started Guide](docs/setup.md)
