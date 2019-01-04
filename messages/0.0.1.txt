@@ -1,0 +1,6 @@
+Whats new in version 0.0.1
+- Adds package control support
+- Updated documents
+
+For a full list of changes https://github.com/daveleroy/sublime_db/commits/0.0.1
+If you have issues https://github.com/daveleroy/sublime_db

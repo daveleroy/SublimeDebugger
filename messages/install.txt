@@ -1,0 +1,3 @@
+See https://github.com/daveleroy/sublime_db/blob/master/docs/setup.md for getting setup
+
+If you have issues https://github.com/daveleroy/sublime_db
