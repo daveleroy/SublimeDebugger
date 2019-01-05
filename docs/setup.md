@@ -52,7 +52,7 @@ This project comes with some pre-configured debuggers
 * php
 * lldb
 
-## Lanaguege Specific Information
+## Debugger Specific Information
 - python
   - See vscode [https://code.visualstudio.com/docs/python/debugging](https://code.visualstudio.com/docs/python/debugging)
 
