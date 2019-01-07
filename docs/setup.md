@@ -46,11 +46,11 @@ Within a `.sublime_project` file settings object
 
 ## Default Debuggers
 This project comes with some pre-configured debuggers
-* chrome
-* python
-* go
-* php
-* lldb
+* chrome - https://github.com/Microsoft/vscode-chrome-debug
+* python - https://github.com/Microsoft/vscode-python
+* go - https://github.com/Microsoft/vscode-go
+* php - https://github.com/felixfbecker/vscode-php-debug
+* lldb - https://github.com/vadimcn/vscode-lldb
 
 ## Debugger Specific Information
 - python
