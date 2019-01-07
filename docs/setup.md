@@ -59,4 +59,4 @@ This project comes with some pre-configured debuggers
 ## Troubleshooting
 - Look in the debug console for errors (usually red)
 - Look in the sublime console for errors
-
+- Try the same configuration/adapter in Visual Studio Code (There is a good chance your issue is with the adapter so check out the outstanding issues for it)
