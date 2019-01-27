@@ -35,14 +35,11 @@ class Component:
 	def render_dirty(self, layout: Layout) -> None:
 		if self.requires_render:
 			self.requires_render = False
-			for item in self.render_items:
-				assert item.layout
-				item.layout.remove_component(item)
 
+			layout.remove_component_children(self)
 			self.render_items = self.render()
-			for item in self.render_items:
-				layout.add_component(item)
-
+			layout.add_component_children(self)
+			
 		for item in self.render_items:
 			item.render_dirty(layout)
 

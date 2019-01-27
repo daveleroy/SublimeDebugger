@@ -2,6 +2,7 @@ from sublime_db.core.typecheck import (
 	List,
 	Optional,
 	Callable,
+	Dict,
 	TYPE_CHECKING
 )
 
@@ -24,7 +25,8 @@ def import_css(file: str):
 class Layout:
 	def __init__(self, item: 'Component') -> None:
 		assert item.layout == None, 'item is already added to a layout'
-		self.on_click_handlers = [] #type: List[Callable]
+		self.on_click_handlers = {} #type: Dict[int, Callable]
+		self.on_click_handlers_id = 0
 		self.item = item
 		self.add_component(item)
 		self.focused = None #type: Optional['Component']
@@ -34,19 +36,29 @@ class Layout:
 	def dirty(self) -> None:
 		self.requires_render = True
 
+	def remove_component_children(self, item: 'Component') -> None:
+		for inner_item in item.render_items:
+			assert inner_item.layout
+			inner_item.layout.remove_component(inner_item)
+			
+		item.render_items = []
+
 	def remove_component(self, item: 'Component') -> None:
 		if self.focused == item:
 			print('unfocusing removed item')
 			self.unfocus(item)
 			
-		for item in item.render_items:
-			self.remove_component(item)
+		self.remove_component_children(item)
 
 		item.removed()
 		item.layout = None
+		
+	def add_component_children(self, item: 'Component') -> None:
+		for item in item.render_items:
+			self.add_component(item)
 
 	def add_component(self, item: 'Component') -> None:
-		#assert not item.layout, 'This item already has a layout?'
+		assert not item.layout, 'This item already has a layout?'
 		item.layout = self
 		item.added(self)
 
@@ -67,36 +79,33 @@ class Layout:
 		if not self.requires_render:
 			return False
 
-		self.on_click_handlers = [] #type: Callable[[], None]
+		self.on_click_handlers = {}
 		self.item.render_dirty(self)
 		self.html = self.item.html(self)
 		self.requires_render = False
 		return True
 
 	def dispose(self) -> None:
-		for item in self.item.render_items:
-			assert item.layout, 'render items should always have been added?'
-			item.layout.remove_component(item)
-
-		assert self.item.layout, 'disposed twice?'
-		self.item.layout.remove_component(self.item)
+		self.remove_component(self.item)
 
 	def em_width(self) -> float:
 		assert False, 'not implemented'
+
 	# internal functions
-	def on_navigate(self, path: str) -> None:
+	@core.async
+	def on_navigate_main(self, path: str) -> core.awaitable[None]:
 		id = int(path)
-		try:
-			handler = self.on_click_handlers[id]
-		except:
-			assert False, 'You probably called register_on_click_handler outside html generation... TODO: this should be fixed.....'
-		
+		if id in self.on_click_handlers:
+    			self.on_click_handlers[id]()
+
+	def on_navigate(self, path: str) -> None:
 		#ensure this gets dispatched on our main thread not sublime's
-		core.main_loop.call_soon_threadsafe(handler)
+		core.run(self.on_navigate_main(path))
 	
 	def register_on_click_handler(self, callback: 'Callable') -> str:
-		id = len(self.on_click_handlers)
-		self.on_click_handlers.append(callback)
+		self.on_click_handlers_id += 1
+		id = self.on_click_handlers_id
+		self.on_click_handlers[id] = callback
 		return str(id)
 
 
