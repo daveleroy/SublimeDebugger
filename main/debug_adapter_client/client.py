@@ -22,6 +22,15 @@ from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResul
 from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source
 from .transport import Transport
 
+class Error(Exception):
+	def __init__(self, showUser: bool, format: str):
+		super().__init__(format)
+		self.showUser = showUser
+
+	@staticmethod
+	def from_json(json: dict) -> 'Error':
+		return Error(json.get('showUser', True), json.get('format', 'No error reason given'))
+
 class DebuggerState:
 	exited = 1
 	stopped = 2
@@ -57,9 +66,8 @@ class DebugAdapterClient:
 		self.threads_for_id = {} #type: Dict[int, Thread]
 
 		self.allThreadsStopped = False
-		self.stoppedOnError = False
 		self.onExited = core.Event() #type: core.Event[Any]
-		self.onStopped = core.Event() #type: core.Event[Any]
+		self.onStopped = core.Event() #type: core.Event[StoppedEvent]
 		self.onContinued = core.Event() #type: core.Event[Any]
 		self.onOutput = core.Event() #type: core.Event[Any]
 		self.onThreads = core.Event() #type: core.Event[Optional[List[Thread]]]
@@ -104,8 +112,12 @@ class DebugAdapterClient:
 		body = yield from self.send_request_asyc('continue', {
 			'threadId' : thread.id
 		})
-		print('continued!')
-		self._continued(thread.id, body.get('allThreadsContinued', True))
+		
+		# some adapters aren't giving a response here
+		if body:
+			self._continued(thread.id, body.get('allThreadsContinued', True))
+		else:
+			self._continued(thread.id, False)
 
 	@core.async
 	def Pause(self, thread: Thread) -> core.awaitable[None]:
@@ -116,7 +128,6 @@ class DebugAdapterClient:
 	@core.async
 	def Disconnect(self) -> core.awaitable[None]:
 		yield from self.send_request_asyc('disconnect', {
-			'terminateDebuggee' : True
 		})
 		yield from self._on_terminated_future
 
@@ -406,11 +417,7 @@ class DebugAdapterClient:
 		# we aren't going to post that we changed the threads
 		# we will let the threadsCommandBase to that for us so we don't update the UI twice
 		self.threadsCommandBase()
-
-		if allThreadsStopped and body.get('reason', False):
-			reason = body.get('reason', '')
-			self.stoppedOnError = reason == 'signal' or reason == 'exception'
-
+		
 		# stopped events are required to have a reason but some adapters treat it as optional...
 		description = body.get('description') or body.get('reason') or 'unknown reason' #type: str
 		event = StoppedEvent(self._thread_for_id(threadId), allThreadsStopped, description, body.get('text'))
@@ -463,10 +470,17 @@ class DebugAdapterClient:
 
 			success = data['success']
 			if not success:
-				future.set_exception(Exception(data.get('message', 'no error message')))
+				body = data.get('body')
+				if body:
+					error = body.get('error')
+					future.set_exception(Error.from_json(error))
+					return
 
-			body = data.get('body', {})
-			future.set_result(body)
+				future.set_exception(Exception(data.get('message', 'no error message')))
+				return
+			else:
+				body = data.get('body', {})
+				future.set_result(body)
 			return
 		if t == 'event':
 			body = data.get('body', {})
