@@ -15,12 +15,14 @@ This project attemps to match Visual Studio Code's Debugger fairly closely so th
   - If you are running in a sublime project these configuration snippets can be inserted automatically into your settings in your project file.
   - Example configuration
 ```
-"debug.configurations" : {
-	"name" : "Name of your configuration", 
-	"request" : "launch",
-	"type" : "adapter name",
-	...
-}
+"debug.configurations" : [
+	{
+		"name" : "Name of your configuration", 
+		"request" : "launch",
+		"type" : "adapter name",
+		...
+	}
+]
 ```
 
 - Start debugging
@@ -36,12 +38,10 @@ Within a `.sublime_settings` file
 - `open_at_startup` `false` the debug panel will open the first that a window with this setting is activated
 - `display` `output` this chooses where the debug UI is renderer
 - `ui_scale` `12` scales the entire debugger UI
-- `configurations` `[]` an array of debug configurations
 
 Within a `.sublime_project` file settings object
 - `debug.open_at_startup`
 - `debug.display`
-- `debug.configurations`
 - `debug.ui_scale`
 
 ## Default Debuggers
