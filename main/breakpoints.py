@@ -99,12 +99,8 @@ class Breakpoint:
 	def refresh_view(self, view: sublime.View) -> None:
 		regions = view.get_regions(self.regionName)
 		p = view.text_point(self.line - 1, 0)
-
-		if regions:
-			if regions[0].a == p and regions[0].b == p:
-				return
-
 		image = self.image().file
+		view.erase_regions(self.regionName)
 		view.add_regions(self.regionName, [sublime.Region(p, p)], scope ='type', icon=image, flags=sublime.HIDDEN)
 
 	def add_to_view(self, view: sublime.View) -> None:
