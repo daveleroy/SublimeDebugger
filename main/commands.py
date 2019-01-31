@@ -70,7 +70,7 @@ class SublimeDebugStartCommand(DebugWindowCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window, True)
 		if main:
-			main.OnPlay()
+			main.on_play()
 
 	def is_enabled(self) -> bool:
 		return not Main.forWindow(self.window) or DebuggerInState(self.window, DebuggerState.stopped)
@@ -80,7 +80,7 @@ class SublimeDebugStopCommand(DebugWindowCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
-			main.OnStop()
+			main.on_stop()
 
 	def is_enabled(self) -> bool:
 		return not DebuggerInState(self.window, DebuggerState.stopped)
@@ -90,7 +90,7 @@ class SublimeDebugPauseCommand(DebugWindowCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
-			main.OnPause()
+			main.on_pause()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.running)
@@ -100,7 +100,7 @@ class SublimeDebugStepOverCommand(DebugWindowCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
-			main.OnStepOver()
+			main.on_step_over()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
@@ -110,7 +110,7 @@ class SublimeDebugStepInCommand(DebugWindowCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
-			main.OnStepIn()
+			main.on_step_in()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
@@ -120,7 +120,7 @@ class SublimeDebugStepOutCommand(DebugWindowCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
-			main.OnStepOut()
+			main.on_step_out()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
@@ -130,7 +130,7 @@ class SublimeDebugResumeCommand(DebugWindowCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
-			main.OnResume()
+			main.on_resume()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
