@@ -22,14 +22,14 @@ from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResul
 from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source
 from .transport import Transport
 
-class Error(Exception):
+class AdapterError(Exception):
 	def __init__(self, showUser: bool, format: str):
 		super().__init__(format)
 		self.showUser = showUser
 
 	@staticmethod
-	def from_json(json: dict) -> 'Error':
-		return Error(json.get('showUser', True), json.get('format', 'No error reason given'))
+	def from_json(json: dict) -> 'AdapterError':
+		return AdapterError(json.get('showUser', True), json.get('format', 'No error reason given'))
 
 class DebuggerState:
 	exited = 1
@@ -460,8 +460,7 @@ class DebugAdapterClient:
 		msg = json.dumps(request)
 		self.transport.send(msg)
 
-		value = yield from future
-		return value
+		return future
 	
 	def recieved_msg(self, data: dict) -> None:
 		t = data['type']
@@ -473,10 +472,10 @@ class DebugAdapterClient:
 				body = data.get('body')
 				if body:
 					error = body.get('error')
-					future.set_exception(Error.from_json(error))
+					future.set_exception(AdapterError.from_json(error))
 					return
 
-				future.set_exception(Exception(data.get('message', 'no error message')))
+				future.set_exception(AdapterError(True, data.get('message', 'no error message')))
 				return
 			else:
 				body = data.get('body', {})
@@ -486,16 +485,16 @@ class DebugAdapterClient:
 			body = data.get('body', {})
 			event = data['event']
 			if event == 'initialized':
-				return self._on_initialized()
+				return core.main_loop.call_soon(self._on_initialized)
 			if event == 'output':
-				return self._on_output(body)
+				return core.main_loop.call_soon(self._on_output, body)
 			if event == 'continued':
-				return self._on_continued(body)
+				return core.main_loop.call_soon(self._on_continued, body)
 			if event == 'stopped':
-				return self._on_stopped(body)
+				return core.main_loop.call_soon(self._on_stopped, body)
 			if event == 'terminated':
-				return self._on_terminated(body)
+				return core.main_loop.call_soon(self._on_terminated, body)
 			if event == 'thread':
-				return self._on_thread(body)
+				return core.main_loop.call_soon(self._on_thread, body)
 			if event == 'breakpoint':
-				return self._on_breakpoint(body)
+				return core.main_loop.call_soon(self._on_breakpoint, body)
