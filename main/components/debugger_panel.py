@@ -1,7 +1,8 @@
 from sublime_db.core.typecheck import (
 	Callable,
 	Any,
-	List
+	List,
+	Sequence
 )
 import os
 import sublime
@@ -16,23 +17,19 @@ PAUSED = 2
 LOADING = 3
 
 class DebuggerPanelCallbacks: 
-	def OnPlay(self) -> None:
+	def on_play(self) -> None:
 		pass
-	def OnResume(self) -> None:
+	def on_resume(self) -> None:
 		pass
-	def OnPause(self) -> None:
+	def on_pause(self) -> None:
 		pass
-	def OnStop(self) -> None:
+	def on_stop(self) -> None:
 		pass
-	def OnSettings(self) -> None:
+	def on_step_over(self) -> None:
 		pass
-	def OnStepOver(self) -> None:
+	def on_step_in(self) -> None:
 		pass
-	def OnStepIn(self) -> None:
-		pass
-	def OnStepOut(self) -> None:
-		pass
-	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:
+	def on_step_out(self) -> None:
 		pass
 
 class DebuggerPanel(ui.Component):
@@ -54,71 +51,127 @@ class DebuggerPanel(ui.Component):
 		self.dirty()
 	def render(self) -> ui.components:
 		buttons = [] #type: List[ui.Component]
+
+		play = False
+		stop = False
+		pause = False
+		controls = False
+
 		if self.state == RUNNING:
-			buttons = [
-				ui.Label("Running", width = 7, padding_right = 0.5),
-				ui.Button(self.callbacks.OnSettings, items = [
-					ui.Img(ui.Images.shared.settings)
-				]),
-				ui.Button(self.callbacks.OnStop, items = [
-					ui.Img(ui.Images.shared.stop)
-				]),
-				ui.Button(self.callbacks.OnPause, items = [
-					ui.Img(ui.Images.shared.pause)
-				]),
-			]
+			stop = True
+			play = True
+			pause = True
+			controls = True
+
 		if self.state == PAUSED:
-			buttons = [
-				ui.Label("Paused", width = 7, padding_right = 0.5),
-				ui.Button(self.callbacks.OnSettings, items = [
-					ui.Img(ui.Images.shared.settings)
-				]),
-				ui.Button(self.callbacks.OnStop, items = [
-					ui.Img(ui.Images.shared.stop)
-				]),
-				ui.Button(self.callbacks.OnResume, items = [
+			stop = True
+			play = True
+			pause = False
+			controls = True
+
+		if self.state == STOPPED:
+			stop = False
+			play = True
+			controls = False
+
+		if self.state == LOADING:
+			stop = True
+			play = True
+			controls = False
+
+		items = []
+
+		if play:
+			items.append(
+				DebuggerItem(self.callbacks.on_play, items = [
 					ui.Img(ui.Images.shared.play)
-				]),
-				ui.Button(self.callbacks.OnStepOver, items = [
+				])
+			)
+		else:
+			items.append(
+				DebuggerItem(self.callbacks.on_play, items = [
+					ui.Img(ui.Images.shared.play_disable)
+				])
+			)
+		if stop:
+			items.append(
+				DebuggerItem(self.callbacks.on_stop, items = [
+					ui.Img(ui.Images.shared.stop)
+				])
+			)
+		else:
+			items.append(
+				DebuggerItem(self.callbacks.on_stop, items = [
+					ui.Img(ui.Images.shared.stop_disable)
+				])
+			)
+
+		
+		if not controls:
+			items.append(
+				DebuggerItem(self.callbacks.on_pause, items = [
+					ui.Img(ui.Images.shared.pause_disable)
+				])
+			)
+		elif pause:
+			items.append(
+				DebuggerItem(self.callbacks.on_pause, items = [
+					ui.Img(ui.Images.shared.pause)
+				])
+			)
+		else:
+			items.append(
+				DebuggerItem(self.callbacks.on_resume, items = [
+					ui.Img(ui.Images.shared.resume)
+				])
+			)
+
+		if controls:
+			items.extend([
+				DebuggerItem(self.callbacks.on_step_over, items = [
 					ui.Img(ui.Images.shared.down)
 				]),
-				ui.Button(self.callbacks.OnStepOut, items = [
+				DebuggerItem(self.callbacks.on_step_out, items = [
 					ui.Img(ui.Images.shared.left)
 				]),
-				ui.Button(self.callbacks.OnStepIn, items = [
+				DebuggerItem(self.callbacks.on_step_in, items = [
 					ui.Img(ui.Images.shared.right)
 				]),
-			]
-		if self.state == STOPPED:
-			buttons = [
-				ui.Label(self.name, width = 7, padding_right = 0.5),
-				ui.Button(self.callbacks.OnSettings, items = [
-					ui.Img(ui.Images.shared.settings)
+			])
+		else:
+			items.extend([
+				DebuggerItem(self.callbacks.on_step_over, items = [
+					ui.Img(ui.Images.shared.down_disable)
 				]),
-				ui.Button(self.callbacks.OnPlay, items = [
-					ui.Img(ui.Images.shared.play)
+				DebuggerItem(self.callbacks.on_step_out, items = [
+					ui.Img(ui.Images.shared.left_disable)
 				]),
-			]
-		if self.state == LOADING:
-			buttons = [
-				ui.Label(self.name, width = 7, padding_right = 0.5),
-				ui.Button(self.callbacks.OnSettings, items = [
-					ui.Img(ui.Images.shared.settings)
+				DebuggerItem(self.callbacks.on_step_in, items = [
+					ui.Img(ui.Images.shared.right_disable)
 				]),
-				ui.Button(self.callbacks.OnStop, items = [
-					ui.Img(ui.Images.shared.stop)
-				]),
-				LoadingComponent()
-			]
+			])
 
 		return [
-			ui.Panel(items = [
-				ui.HorizontalSpacer(150),
-				ui.Segment(items = buttons),
-				FiltersComponent(self.breakpoints),
-				BreakpintsComponent(self.breakpoints, self.callbacks.OnExpandBreakpoint), 
-			]), 
+			ui.Panel(items = items), 
 		]
+
+class Div (ui.Component):
+	def __init__(self, items: [ui.Component]) -> None:
+		super().__init__()
+		self.items = items
+		
+	def render (self) -> Sequence[ui.Component]:
+		return self.items
+
+class DebuggerItem (ui.Component):
+	def __init__(self, callback: Callable[[], None], items: ui.components) -> None:
+		super().__init__()
+		self.items = items
+		self.callback = callback
+		
+	def render (self) -> ui.components:
+		return ui.Button(self.callback, items = self.items),
+
 
 class BreakpintsComponent(ui.Component):
 	def __init__(self, breakpoints: Breakpoints, on_expand: Callable[[Breakpoint], None]) -> None:
@@ -158,12 +211,13 @@ class BreakpintsComponent(ui.Component):
 				ui.Img(breakpoint.image()),
 			])
 			fileAndLine = ui.Button(on_click = on_click, items = [
-				# filename
-				ui.Label(name, color = color, padding_left = 0.25, width = 15, align = 0),
 				# line number
 				ui.Box(items = [
 					ui.Label(str(breakpoint.line), color = color, width = 3),
 				]),
+				# filename
+				ui.Label(name, color = color, padding_left = 0.25, width = 15, align = 0),
+				
 			])
 			items.append(ui.TableItem(items = [
 				toggle_button, fileAndLine
@@ -206,4 +260,13 @@ class FiltersComponent(ui.Component):
 			]))
 		return [
 			ui.Table(table_items = items)
+		]
+
+
+class UnderlineComponent(ui.Component):
+	def __init__(self) -> None:
+		super().__init__()
+	def render(self) -> ui.components:
+		return [
+			ui.HorizontalSpacer(1000)
 		]

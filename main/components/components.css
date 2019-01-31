@@ -4,7 +4,6 @@
 .StackFrameComponent {
 	padding-left: var(--width);
 }
-
 .TableItem .selected {
 	background-color: rgba(102, 153, 255, 0.2);
 }
@@ -27,12 +26,51 @@
 	--text-color: rgba(255, 50, 50, 1.0);
 }
 
-.EventLogComponent .Table {
+.ConsolePanel .Table {
 	padding-left: 5px;
 	padding-right: 5px;
 }
 
-.DebuggerComponent .Table {
+.DebuggerPanel .Table {
 	padding-left: 3px;
+}
+
+.DebuggerItem {
+	background-color: var(--segment-color);
+	border-radius: 10px;
+	padding-left: 7px;
+	padding-right: 7px;
+	padding-bottom: 3px;
+}
+
+.PageTab {
+	background-color: rgba(0, 0, 0, 0.075);
+	border-top-left-radius: 10px;
+	border-top-right-radius: 10px;
+	padding-top: 7px;
+	padding-left: 7px;
+	padding-right: 7px;
+	padding-bottom: 2.5px;
+	margin-left: 25px;
+}
+
+.PageTab.selected {
+	background-color: var(--panel-color);
+	padding-bottom: 3px;
+}
+.TabbedPanel .Panel {
+	border-top-left-radius: 0px;
+}
+
+.VariablesPanel {
+	margin-top: 1.8rem;
 	padding-right: 3px;
+
+}
+.UnderlineComponent {
+	position: absolute;
+	margin-bottom: 5px;
+	height: 1px;
+	width: 100rem;
+	background-color: rgba(102, 153, 255, 0.2);
 }

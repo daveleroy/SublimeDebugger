@@ -10,6 +10,7 @@ from .variable_component import (VariableComponent,
 	VariableState, 
 	VariableComponent
 )
+from . import constants
 
 class ConsolePanel (ui.Component):
 	def __init__(self, on_click: Callable[[], None]):
@@ -40,21 +41,21 @@ class ConsolePanel (ui.Component):
 	def Add(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, color = 'secondary')
+			item = ui.Label(line, width = constants.PANEL_CONTENT_MAX_WIDTH, align = 0, color = 'secondary')
 			self.items.append(item)
 		self.dirty()
 
 	def AddStdout(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, color = 'primary')
+			item = ui.Label(line, width = constants.PANEL_CONTENT_MAX_WIDTH, align = 0, color = 'primary')
 			self.items.append(item)
 		self.dirty()
 
 	def AddStderr(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, color = 'red')
+			item = ui.Label(line, width = constants.PANEL_CONTENT_MAX_WIDTH, align = 0, color = 'red')
 			self.items.append(item)
 		self.dirty()
 
@@ -64,17 +65,12 @@ class ConsolePanel (ui.Component):
 		self.dirty()
 
 	def render (self) -> ui.components:
-		items = list(reversed(self.items[-25:]))
+		items = list(self.items[-15:])
+		items.append(ui.Button(self.on_click, items = [
+			ui.Img(ui.Images.shared.right),
+		]))
 		return [
-			ui.HorizontalSpacer(300),
-			ui.Panel(items = [
-				ui.Segment(items = [
-					ui.Button(self.on_click, [
-						ui.Label('Console')
-					])
-				]),
-				ui.Table(items = items)
-			])
+			ui.Table(items = items)
 		]
 
 class ConsoleVariable (ui.Component):

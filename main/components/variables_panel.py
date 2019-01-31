@@ -9,6 +9,7 @@ from sublime_db.main.debugger import (
 )
 
 from .variable_component import ScopeComponent
+from . import constants
 
 class VariablesPanel (ui.Component):
 	def __init__(self) -> None:
@@ -25,7 +26,6 @@ class VariablesPanel (ui.Component):
 
 	def render(self) -> ui.components:
 		items = [
-			ui.Segment(items = [ui.Label('Variables')])
 		] #type: List[ui.Component]
 
 		scopes_items = [] #type: List[ui.Component]
@@ -42,6 +42,6 @@ class VariablesPanel (ui.Component):
 		items.append(ui.Table(items = scopes_items))
 		
 		return [
-			ui.HorizontalSpacer(250),
+			ui.HorizontalSpacer(constants.VARIABLE_PANEL_MIN_WIDTH),
 			ui.Panel(items = items)
 		]

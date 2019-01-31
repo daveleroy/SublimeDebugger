@@ -11,6 +11,10 @@
         "command" : "sublime_debug_open"
     },
     {
+        "caption" : "Debugger: Refresh phantoms",
+        "command" : "sublime_debug_refresh_phantoms"
+    },
+    {
         "caption" : "Debugger: Quit",
         "command" : "sublime_debug_quit"
     },

@@ -233,14 +233,10 @@ class DebuggerState:
 		yield from self.adapter.StepOut(thread)
 
 	def set_selected_frame(self, frame: Optional[StackFrame]) -> None:
-		new_frame = self.thread or self.frame != frame
-
+		new_frame = self.frame != frame
 		self.frame = frame
-		self.thread = None
-
-		self.on_selected_frame(frame)
-
 		if new_frame:
+			self.on_selected_frame(frame)
 			self._refresh_state()
 			if self.adapter and frame:
 				core.run(self.adapter.GetScopes(frame), self.on_scopes)
@@ -250,8 +246,6 @@ class DebuggerState:
 	def set_selected_thread(self, thread: Optional[Thread]) -> None:
 		new_thread = self.thread != thread
 		self.thread = thread
-		self.on_selected_frame(self.frame)
-
 		if new_thread:
 			self._refresh_state()
 
@@ -273,11 +267,10 @@ class DebuggerState:
 	def _thread_for_commands(self) -> Optional[Thread]:
 		if self.thread:
 			return self.thread
-		if self.frame:
-			return self.frame.thread
 		if self.threads:
 			return self.threads[0]
-		return None
+		raise Exception("No thread for command")
+
 	def _on_continued_event(self, event: ContinuedEvent) -> None:
 		if not event:
 			return

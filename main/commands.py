@@ -117,7 +117,13 @@ class SublimeDebugAddConfiguration(RunMainCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window, True)
 		core.run(add_configuration(self.window, main.adapters))
+
+class SublimeDebugRefreshPhantoms(RunMainCommand):
+	def run_main(self) -> None:
+		main = Main.forWindow(self.window, True)
+		main.refresh_phantoms()
 		
+
 class SublimeDebugInstallAdapter(RunMainCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window, True)

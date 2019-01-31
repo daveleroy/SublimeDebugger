@@ -15,10 +15,12 @@ from .config import PersistedData
 
 from .components.variable_component import VariableComponent, Variable
 from .components.breakpoint_inline_component import BreakpointInlineComponent
-from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
+from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, BreakpintsComponent, UnderlineComponent, STOPPED, PAUSED, RUNNING, LOADING
 from .components.callstack_panel import CallStackPanel
 from .components.console_panel import ConsolePanel
 from .components.variables_panel import VariablesPanel
+from .components.pages_panel import TabbedPanel
+
 from .repl import run_repl_command
 
 from .debugger import (
@@ -33,8 +35,23 @@ from .debugger import (
 
 from .output_panel import OutputPhantomsPanel, PanelInputHandler
 
+class SelectedLine:
+	def __init__(self, view: sublime.View, line: int):
+		pt_current_line = view.text_point(line, 0)
+		pt_prev_line = view.text_point(line-1, 0)
+		line_prev = view.line(pt_current_line)
+		line_current = view.line(pt_prev_line)
+
+		self.top_line = ui.Phantom(UnderlineComponent(), view, line_current, sublime.LAYOUT_BELOW)
+		self.bottom_line = ui.Phantom(UnderlineComponent(), view, line_prev, sublime.LAYOUT_BELOW)
+
+	def dispose(self):
+		self.top_line.dispose()
+		self.bottom_line.dispose()
+
 class Main (DebuggerPanelCallbacks):
 	instances = {} #type: Dict[int, Main]
+
 	@staticmethod
 	def forWindow(window: sublime.Window, create: bool = False) -> 'Optional[Main]':
 		instance = Main.instances.get(window.id())
@@ -43,13 +60,15 @@ class Main (DebuggerPanelCallbacks):
 			Main.instances[window.id()] = main
 			return main
 		return instance
+
 	@staticmethod
 	def debuggerForWindow(window: sublime.Window) -> Optional[DebuggerState]:
 		main = Main.forWindow(window)
 		if main:
 			return main.debugger
 		return None
-	
+	def refresh_phantoms(self) -> None:
+		ui.reload()
 	def create_input_handler(self, window: sublime.Window, label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> ui.InputHandler:
 		return PanelInputHandler(self.panel, label, text, on_change, on_done)
 
@@ -58,7 +77,7 @@ class Main (DebuggerPanelCallbacks):
 		self.window.focus_view(self.view)
 		def on_done(value: Optional[str]) -> None:
 			if value:
-				core.run(run_repl_command(value, self.debugger, self.console_panel))
+				self.run_async(run_repl_command(value, self.debugger, self.console_panel))
 			
 			self.window.focus_view(prev_view)
 
@@ -91,19 +110,30 @@ class Main (DebuggerPanelCallbacks):
 		self.console_panel = ConsolePanel(self.open_repl_console)
 		self.variables_panel = VariablesPanel()
 		self.callstack_panel = CallStackPanel()
+		self.breakpoints_panel = BreakpintsComponent(self.breakpoints, self.onSelectedBreakpoint)
+
+		self.pages_panel = TabbedPanel([
+			["Breakpoints", self.breakpoints_panel ],
+			["Call Stack", self.callstack_panel],
+			["Console", self.console_panel],
+		], 0)
 		self.debugger_panel = DebuggerPanel(self.breakpoints, self)
 		
-		self.selectedFrameComponent = None #type: Optional[ui.Phantom]
+		self.selected_frame_line = None #type: Optional[SelectedLine]
+		self.selected_frame_generated_view = None #type: Optional[sublime.View]
+
 		self.breakpointInformation = None #type: Optional[Any]
 
 		def on_state_changed (state: int) -> None:
 			if state == DebuggerState.stopped:
 				self.breakpoints.clear_breakpoint_results()
 				self.debugger_panel.setState(STOPPED)
+				self.pages_panel.selected(0)
 			elif state == DebuggerState.running:
 				self.debugger_panel.setState(RUNNING)
 			elif state == DebuggerState.paused:
 				self.debugger_panel.setState(PAUSED)
+				self.pages_panel.selected(1)
 			elif state == DebuggerState.stopping or state == DebuggerState.starting:
 				self.debugger_panel.setState(LOADING)
 
@@ -114,15 +144,9 @@ class Main (DebuggerPanelCallbacks):
 			self.variables_panel.set_scopes(scopes)
 
 		def on_selected_frame(frame: Optional[StackFrame]) -> None:
-			self.callstack_panel.dirty_threads()
-
-			if not frame:
-				if self.selectedFrameComponent: 
-					self.selectedFrameComponent.dispose()
-					self.selectedFrameComponent = None
-				return
-
-			core.run(self.navigate_to_frame(frame))
+			self.dispose_selected_frame()
+			if frame:
+				self.run_async(self.navigate_to_frame(frame))
 
 		def on_output (event: OutputEvent) -> None:
 			category = event.category
@@ -132,11 +156,16 @@ class Main (DebuggerPanelCallbacks):
 			if variablesReference and self.debugger.adapter:
 				variable = Variable(self.debugger.adapter, msg, '', variablesReference)
 				self.console_panel.AddVariable(variable)
+				self.pages_panel.modified(2)
 			elif category == "stdout":
 				self.console_panel.AddStdout(msg)
+				self.pages_panel.modified(2)
 			elif category == "stderr":
 				self.console_panel.AddStderr(msg)
-			elif category == "console":
+				self.pages_panel.modified(2)
+			elif category == "telemetry":
+				pass
+			else:
 				self.console_panel.Add(msg)
 
 		self.debugger = DebuggerState(
@@ -148,12 +177,9 @@ class Main (DebuggerPanelCallbacks):
 
 		self.panel = OutputPhantomsPanel(window, 'Debugger')
 		self.panel.show()
-		
-		output = self.panel.view
-		self.view = output #type: sublime.View
+		self.view = self.panel.view #type: sublime.View
 	
-		self.project_name = window.project_file_name() or "user"
-		self.persistance = PersistedData(self.project_name)
+		self.persistance = PersistedData(project_name)
 
 		for breakpoint in self.persistance.load_breakpoints():
 			self.breakpoints.add(breakpoint)
@@ -178,12 +204,11 @@ class Main (DebuggerPanelCallbacks):
 		])
 
 		offset = self.panel.phantom_location()
-		
+
 		self.disposeables.extend([
-			ui.Phantom(self.debugger_panel, output, sublime.Region(offset, offset + 0), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.callstack_panel, output, sublime.Region(offset, offset + 1), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.variables_panel, output, sublime.Region(offset, offset + 2), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.console_panel, output, sublime.Region(offset, offset + 3), sublime.LAYOUT_INLINE)
+			ui.Phantom(self.debugger_panel, self.view, sublime.Region(offset, offset + 0), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.pages_panel, self.view, sublime.Region(offset, offset + 1), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.variables_panel, self.view, sublime.Region(offset, offset + 2), sublime.LAYOUT_INLINE),
 		])
 
 		self.breakpoints.onRemovedBreakpoint.add(lambda b: self.clearBreakpointInformation())
@@ -209,8 +234,13 @@ class Main (DebuggerPanelCallbacks):
 			except Exception as e:
 				core.display('There was an error creating a AdapterConfiguration {}'.format(e))
 
-		configurations = [] 
-		for index, configuration_json in enumerate(get_setting(self.window.active_view(), 'configurations', [])):
+		configurations = []
+		configurations_json = []
+		data = self.window.project_data()
+		if data:
+			configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
+
+		for index, configuration_json in enumerate(configurations_json):
 			configuration = Configuration.from_json(configuration_json)
 			configuration.all = sublime.expand_variables(configuration.all, extract_variables(self.window))
 			configuration.index = index
@@ -251,7 +281,7 @@ class Main (DebuggerPanelCallbacks):
 	@core.async
 	def LaunchDebugger (self) -> core.awaitable[None]:
 		self.console_panel.clear()
-		self.console_panel.Add('Starting debugger...')
+		self.console_panel.Add('Console cleared...')
 		try:
 			if not self.configuration:
 				yield from self.SelectConfiguration()
@@ -301,9 +331,11 @@ class Main (DebuggerPanelCallbacks):
 					event.view.add_regions('selected_hover', [word], scope = "comment", flags = sublime.DRAW_NO_OUTLINE)
 					def on_close() -> None:
 						event.view.erase_regions('selected_hover')
-					ui.Popup(VariableComponent(variable), event.view, word.a, on_close = on_close)
+					variableComponent = VariableComponent(variable)
+					variableComponent.variable.expand()
+					ui.Popup(variableComponent, event.view, word.a, on_close = on_close)
 					
-			core.run(self.debugger.adapter.Evaluate(expr, 'hover'), complete)
+			core.run(self.debugger.adapter.Evaluate(expr, self.debugger.frame, 'hover'), complete)
 
 	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
 		if not self.is_source_file(event.view): return
@@ -322,9 +354,7 @@ class Main (DebuggerPanelCallbacks):
 		self.persistance.save_breakpoints(self.breakpoints)
 		self.persistance.save_to_file()
 
-		if self.selectedFrameComponent:
-			self.selectedFrameComponent.dispose()
-			self.selectedFrameComponent = None
+		self.dispose_selected_frame()
 
 		self.clearBreakpointInformation()
 
@@ -342,6 +372,7 @@ class Main (DebuggerPanelCallbacks):
 		file = breakpoint.file
 		breakpoints = self.breakpoints.breakpoints_for_file(file)
 		self.debugger.update_breakpoints_for_file(file, breakpoints)
+		self.pages_panel.modified(0)
 
 	def onSelectedBreakpoint(self, breakpoint: Optional[Breakpoint]) -> None:
 		if breakpoint:
@@ -349,23 +380,41 @@ class Main (DebuggerPanelCallbacks):
 		else:
 			self.clearBreakpointInformation()
 
-	def OnSettings(self) -> None:
-		core.run(self.SelectConfiguration())
-	def OnPlay(self) -> None:
+	def on_settings(self) -> None:
+		self.run_async(self.SelectConfiguration())
+	def on_play(self) -> None:
 		self.panel.show()
-		core.run(self.LaunchDebugger())
-	def OnStop(self) -> None:
-		core.run(self.debugger.stop())
-	def OnResume(self) -> None:
-		core.run(self.debugger.resume())
-	def OnPause(self) -> None:
-		core.run(self.debugger.pause())
-	def OnStepOver(self) -> None:
-		core.run(self.debugger.step_over())
-	def OnStepIn(self) -> None:
-		core.run(self.debugger.step_in())
-	def OnStepOut(self) -> None:
-		core.run(self.debugger.step_out())
+		self.pages_panel.selected(1)
+		self.run_async(self.LaunchDebugger())
+	def on_stop(self) -> None:
+		self.run_async(self.debugger.stop())
+	def on_resume(self) -> None:
+		self.run_async(self.debugger.resume())
+	def on_pause(self) -> None:
+		self.run_async(self.debugger.pause())
+	def on_step_over(self) -> None:
+		self.run_async(self.debugger.step_over())
+	def on_step_in(self) -> None:
+		self.run_async(self.debugger.step_in())
+	def on_step_out(self) -> None:
+		self.run_async(self.debugger.step_out())
+	def on_panel_breakpoints(self) -> None:
+		self.pages_panel.selected(0)
+	def on_panel_callstack(self) -> None:
+		self.pages_panel.selected(1)
+	def on_panel_console(self) -> None:
+		self.pages_panel.selected(2)
+
+	def run_async(self, awaitable: core.awaitable[None]):
+		task = core.main_loop.create_task(awaitable)
+		def done(task) -> None:
+			try:
+				task.result()
+			except Exception as e:
+				self.console_panel.AddStderr(str(e))
+				core.log_exception()
+				
+		task.add_done_callback(done)
 
 	@core.async
 	def navigate_to_frame(self, frame: StackFrame) -> core.awaitable[None]:
@@ -374,7 +423,10 @@ class Main (DebuggerPanelCallbacks):
 		if not source:
 			return
 
+		# sublime lines are 0 based
 		line =  frame.line - 1
+
+		selected_frame_generated_view = None #type: Optional[sublime.View]
 
 		if source.sourceReference:
 			if not self.debugger.adapter:
@@ -383,11 +435,12 @@ class Main (DebuggerPanelCallbacks):
 			content = yield from self.debugger.adapter.GetSource(source)
 			view = self.window.new_file()
 			view.set_name(source.name)
-			view.set_scratch(True)
 			view.run_command('insert', {
 				'characters' : content
 			})
 			view.set_read_only(True)
+			view.set_scratch(True)
+			selected_frame_generated_view = view
 		elif source.path:
 			view = yield from core.sublime_open_file_async(self.window, source.path, line)
 		else:
@@ -395,43 +448,24 @@ class Main (DebuggerPanelCallbacks):
 
 		# We seem to have already selected a differn't frame in the time we loaded the view
 		if frame != self.debugger.frame:
+			# if we generated a view close it
+			if selected_frame_generated_view:
+				selected_frame_generated_view.close()
+
 			return
 
-		if self.selectedFrameComponent:
-			self.selectedFrameComponent.dispose()
-			self.selectedFrameComponent = None
+		self.dispose_selected_frame()
+		self.selected_frame_generated_view = selected_frame_generated_view
+		self.selected_frame_line = SelectedLine(view, line)
+	
+	def dispose_selected_frame(self) -> None:
+		if self.selected_frame_generated_view:
+			self.selected_frame_generated_view.close()
+			self.selected_frame_generated_view = None
+		if self.selected_frame_line:
+			self.selected_frame_line.dispose()
+			self.selected_frame_line = None
 
-		pt = view.text_point(line + 1, 0)
-
-		max = view.viewport_extent()[0]/view.em_width() - 3
-
-		pt_current_line = view.text_point(line, 0)
-		line_current = view.line(pt_current_line)
-		at =  pt-1
-
-		layout = sublime.LAYOUT_INLINE
-		if line_current.b - line_current.a > max:
-			at = view.text_point(line - 1, 0)
-			layout = sublime.LAYOUT_BELOW
-
-		variables = ui.Box(items = [
-			ui.Label('', padding_left = 1),
-			ui.Button(self.OnResume, items = [
-				ui.Img(ui.Images.shared.play)
-			]),
-			ui.Button(self.OnStepOver, items = [
-				ui.Img(ui.Images.shared.down)
-			]),
-			ui.Button(self.OnStepOut, items = [
-				ui.Img(ui.Images.shared.left)
-			]),
-			ui.Button(self.OnStepIn, items = [
-				ui.Img(ui.Images.shared.right)
-			]),
-			ui.Label(self.debugger.stopped_reason, padding_left = 1,  padding_right = 1.5, color = 'secondary')
-		])
-		self.selectedFrameComponent = ui.Phantom(variables, view, sublime.Region(at, at), layout)
-			
 	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:	
 		@core.async
 		def a() -> core.awaitable[None]:
@@ -445,5 +479,5 @@ class Main (DebuggerPanelCallbacks):
 			self.window.focus_view(self.view)
 			self.breakpointInformation = ui.Popup(BreakpointInlineComponent(breakpoints = self.breakpoints, breakpoint = breakpoint), view, at, on_close = lambda: self.window.focus_view(prev_view))
 
-		core.run(a())
+		self.run_async(a())
 
