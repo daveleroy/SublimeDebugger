@@ -4,6 +4,16 @@ if TYPE_CHECKING:
 	from .client import DebugAdapterClient
 
 
+class Error(Exception):
+	def __init__(self, showUser: bool, format: str):
+		super().__init__(format)
+		self.showUser = showUser
+
+	@staticmethod
+	def from_json(json: dict) -> 'Error':
+		return Error(json.get('showUser', True), json.get('format', 'No error reason given'))
+
+
 class Thread:
 	def __init__(self, client: 'DebugAdapterClient', id: int, name: str) -> None:
 		self.client = client

@@ -24,7 +24,8 @@ from .debug_adapter_client.types import (
 	Thread,
 	Scope,
 	Variable,
-	CompletionItem
+	CompletionItem,
+	Error
 )
 from .configurations import (
 	Configuration,

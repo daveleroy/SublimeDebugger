@@ -19,18 +19,8 @@ from sublime_db.libs import asyncio
 from sublime_db import ui, core
 from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter
 
-from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source
+from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error
 from .transport import Transport
-
-
-class AdapterError(Exception):
-	def __init__(self, showUser: bool, format: str):
-		super().__init__(format)
-		self.showUser = showUser
-
-	@staticmethod
-	def from_json(json: dict) -> 'AdapterError':
-		return AdapterError(json.get('showUser', True), json.get('format', 'No error reason given'))
 
 
 class DebuggerState:
@@ -482,10 +472,10 @@ class DebugAdapterClient:
 				body = data.get('body')
 				if body:
 					error = body.get('error')
-					future.set_exception(AdapterError.from_json(error))
+					future.set_exception(Error.from_json(error))
 					return
 
-				future.set_exception(AdapterError(True, data.get('message', 'no error message')))
+				future.set_exception(Error(True, data.get('message', 'no error message')))
 				return
 			else:
 				body = data.get('body', {})

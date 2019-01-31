@@ -30,7 +30,8 @@ from .debugger import (
 	Scope,
 	Thread,
 	EvaluateResponse,
-	DebugAdapterClient
+	DebugAdapterClient,
+	Error
 )
 
 from .output_panel import OutputPhantomsPanel, PanelInputHandler
@@ -319,29 +320,34 @@ class Main (DebuggerPanelCallbacks):
 	def is_source_file(self, view: sublime.View) -> bool:
 		return bool(view.file_name())
 
-	def on_text_hovered(self, event: ui.HoverEvent) -> None:
+	@core.async
+	def async_on_text_hovered(self, event: ui.HoverEvent) -> core.awaitable[None]:
 		if not self.is_source_file(event.view):
 			return
 
-		if self.debugger.adapter:
-			word = event.view.word(event.point)
-			expr = event.view.substr(word)
+		if not self.debugger.adapter:
+			return
 
-			def complete(response: Optional[EvaluateResponse]) -> None:
-				if not response:
-					return
-				if self.debugger.adapter:
-					variable = Variable(self.debugger.adapter, response.result, '', response.variablesReference)
-					event.view.add_regions('selected_hover', [word], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
+		word = event.view.word(event.point)
+		expr = event.view.substr(word)
+			
+		try:
+			response = yield from self.debugger.adapter.Evaluate(expr, self.debugger.frame, 'hover')
+			variable = Variable(self.debugger.adapter, response.result, '', response.variablesReference)
+			event.view.add_regions('selected_hover', [word], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
+			def on_close() -> None:
+				event.view.erase_regions('selected_hover')
 
-					def on_close() -> None:
-						event.view.erase_regions('selected_hover')
-					variableComponent = VariableComponent(variable)
-					variableComponent.variable.expand()
-					ui.Popup(variableComponent, event.view, word.a, on_close=on_close)
+			variableComponent = VariableComponent(variable)
+			variableComponent.variable.expand()
+			ui.Popup(variableComponent, event.view, word.a, on_close=on_close)
 
-			core.run(self.debugger.adapter.Evaluate(expr, self.debugger.frame, 'hover'), complete)
+		except Error as e:
+			pass # errors trying to evaluate a hover expression should be ignored
 
+	def on_text_hovered(self, event: ui.HoverEvent) -> None:
+		core.run(self.async_on_text_hovered(event))
+		
 	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
 		if not self.is_source_file(event.view):
 			return
