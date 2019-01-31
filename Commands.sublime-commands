@@ -7,7 +7,7 @@
         }
     },
     {
-        "caption" : "Debugger: Open",
+        "caption" : "Debugger: Open in project",
         "command" : "sublime_debug_open"
     },
     {

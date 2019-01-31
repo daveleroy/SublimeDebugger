@@ -65,12 +65,7 @@ def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None
 		})
 	else:	
 		sublime.set_clipboard(content)
-		core.display('Snippet copied to clipboard')
-
-def show_settings(window: sublime.Window) -> None:
-	sublime.active_window().run_command('edit_settings', {
-		"base_file" : "${packages}/sublime_db/debug.sublime-settings"
-	})
+		core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
 
 @core.async
 def select_or_add_configuration(window: sublime.Window, index: Optional[int], configurations: List[Configuration], adapters: List[AdapterConfiguration]) -> core.awaitable[Optional[Configuration]]:

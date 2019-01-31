@@ -69,7 +69,18 @@ class Main (DebuggerPanelCallbacks):
 
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
-		print('new Main for window', window.id())
+
+		data = window.project_data()
+		project_name = window.project_file_name()
+		if not data or not project_name:
+			sublime.error_message("Debugger must be run inside a sublime project")
+			return
+
+
+		# ensure we have debug configurations added to the project file
+		data.setdefault('settings', {}).setdefault('debug.configurations', [])
+		window.set_project_data(data)
+
 		ui.set_create_input_handler(window, self.create_input_handler)
 
 		self.input_open = False
@@ -190,13 +201,7 @@ class Main (DebuggerPanelCallbacks):
 			print('Failed to find active view to listen for settings changes')
 
 	def load_configurations (self) -> None:
-		data = self.window.project_data()
-		if data:
-			data.setdefault('settings', {}).setdefault('debug.configurations', [])
-			self.window.set_project_data(data)
-
 		adapters = {}
-		
 		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters', {}).items():
 			try:
 				adapter = AdapterConfiguration.from_json(adapter_name, adapter_json, self.window)
