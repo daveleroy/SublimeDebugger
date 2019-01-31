@@ -12,15 +12,24 @@ import sublime
 import os
 
 from sublime_db import core
+from . import size
 
+_all_css = size.css()
+_css_files = [] #type: List[str]
+def import_css(file: str) -> None:
+	_css_files.append(file)
+	_add_css_from_file(file)
 
-_all_css = ''
-
-def import_css(file: str):
+def _add_css_from_file(file: str) -> None:
 	f = open(file, 'r')
 	global _all_css
 	_all_css += f.read()
 	f.close()
+
+def reload_css() -> None:
+	_all_css = size.css()
+	for file in _css_files:
+		_add_css_from_file(file)
 
 class Layout:
 	def __init__(self, item: 'Component') -> None:
