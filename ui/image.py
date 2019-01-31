@@ -17,6 +17,7 @@ def _b64_data_from_image_data(png_data: bytes):
 	import base64
 	return "data:image/png;base64,{}".format(base64.b64encode(png_data).decode('ascii'))
 
+
 class Image:
 	cached = {} #type: Dict[str, str]
 
@@ -32,6 +33,7 @@ class Image:
 			self.data = _b64_data_from_image_data(_image_to_data(file))
 			Image.cached[file] = self.data
 
+
 class Img (Component):
 	def __init__(self, image: Image) -> None:
 		super().__init__()
@@ -39,24 +41,22 @@ class Img (Component):
 
 	def html(self, layout: Layout) -> str:
 		return '''<span class="img_span"><img class="{}" src="{}"></span>'''.format(self.className, self.image.data)
-	
+
 
 def _path_for_image(name): #type: (str) -> str
 	return 'Packages/sublime_db/images/{}'.format(name)
 
-def package_file_str(path: str) -> str:
-	p = '{}/sublime_db/{}'.format(sublime.packages_path(), path)
-	f = open(p, 'r')
-	return f.read()
 
 class Images:
 	shared = None #type: Images
+
 	def __init__(self) -> None:
 		self.dot = Image.named('breakpoint.png')
 		self.dot_emtpy = Image.named('breakpoint-broken.png')
 		self.dot_expr = Image.named('breakpoint-expr.png')
 		self.dot_log = Image.named('breakpoint-log.png')
 		self.dot_disabled = Image.named('breakpoint-disabled.png')
+		self.resume = Image.named('material/baseline_resume_arrow_white_48dp.png')
 		self.play = Image.named('material/baseline_play_arrow_white_48dp.png')
 		self.stop = Image.named('material/baseline_stop_white_48dp.png')
 		self.settings = Image.named('material/baseline_settings_white_48dp.png')
@@ -66,6 +66,13 @@ class Images:
 		self.right = Image.named('material/baseline_keyboard_arrow_right_white_48dp.png')
 		self.down = Image.named('material/baseline_keyboard_arrow_down_white_48dp.png')
 		self.left = Image.named('material/baseline_keyboard_arrow_left_white_48dp.png')
+
+		self.stop_disable = Image.named('material/baseline_stop_white_disable_48dp.png')
+		self.pause_disable = Image.named('material/baseline_pause_white_disable_48dp.png')
+		self.right_disable = Image.named('material/baseline_keyboard_arrow_right_white_disable_48dp.png')
+		self.down_disable = Image.named('material/baseline_keyboard_arrow_down_white_disable_48dp.png')
+		self.left_disable = Image.named('material/baseline_keyboard_arrow_left_white_disable_48dp.png')
+
 		self.thread = Image.named('material/baseline_sort_white_48dp.png')
 		self.dots = Image.named('material/baseline_more_horiz_white_48dp.png')
 		self.not_checked = Image.named('material/baseline_check_box_outline_blank_white_48dp.png')
