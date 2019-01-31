@@ -13,18 +13,20 @@ html_escape_table = {
 	"<": "&lt;",
 }
 
+
 def html_escape(text: str) -> str:
     """Produce entities within text."""
-    return "".join(html_escape_table.get(c,c) for c in text)
+    return "".join(html_escape_table.get(c, c) for c in text)
+
 
 class Label(ComponentInline):
-	def __init__(self, text: Optional[str], color: str = "primary", align: float = 0.5, width: Optional[float] = None, padding_left = 0, padding_right = 0) -> None:
+	def __init__(self, text: Optional[str], color: str = "primary", align: float = 0.5, width: Optional[float] = None, padding_left=0, padding_right=0) -> None:
 		super().__init__()
 		if text:
 			self.text = text.replace("\u0000", "\\u0000")
 		else:
 			self.text = ""
-			
+
 		self.align = align
 		self.width = width
 		self.padding_left = padding_left
@@ -46,7 +48,7 @@ class Label(ComponentInline):
 		if self.width:
 			length = len(self.render_text)
 			emWidth = layout.em_width()
-	
+
 			leftover = self.width - (length) * emWidth
 			self.paddingleft = leftover * align
 			self.paddingright = leftover * (1.0 - align)
@@ -54,7 +56,7 @@ class Label(ComponentInline):
 		else:
 			self.paddingright = 0
 			self.paddingleft = 0
-		
+
 		self.paddingleft += self.padding_left
 		self.paddingright += self.padding_right
 		self.render_text = html_escape(self.render_text) or ""

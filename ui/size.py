@@ -7,6 +7,7 @@ INLINE_PADDING_TOP = 0.5
 INLINE_PADDING_BOTTOM = 0.1
 IMG_OFFSET = 0.1
 
+
 def css() -> str:
 	return '''
 	body {

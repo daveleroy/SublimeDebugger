@@ -1,6 +1,8 @@
 from sublime_db.core.typecheck import Optional, List, TYPE_CHECKING
 
-if TYPE_CHECKING: from .client import DebugAdapterClient
+if TYPE_CHECKING:
+	from .client import DebugAdapterClient
+
 
 class Thread:
 	def __init__(self, client: 'DebugAdapterClient', id: int, name: str) -> None:
@@ -10,6 +12,7 @@ class Thread:
 		self.stopped = False
 		self.selected = False
 		self.expanded = False
+
 
 class StackFrame:
 	normal = 1
@@ -32,7 +35,7 @@ class StackFrame:
 		source = None #type: Optional[Source]
 		if source_json:
 			source = Source.from_json(source_json)
-			file = source.name	
+			file = source.name
 
 		hint = frame.get('presentationHint', 'normal')
 
@@ -42,13 +45,13 @@ class StackFrame:
 			presentation = StackFrame.subtle
 		else:
 			presentation = StackFrame.normal
-		
+
 		return StackFrame(
 			thread,
-			frame['id'], 
-			file, 
-			frame['name'], 
-			frame.get('line', 0), 
+			frame['id'],
+			file,
+			frame['name'],
+			frame.get('line', 0),
 			presentation,
 			source
 		)
@@ -64,11 +67,12 @@ class Scope:
 	@staticmethod
 	def from_json(client: 'DebugAdapterClient', json: dict) -> 'Scope':
 		return Scope(
-			client, 
-			json['name'], 
-			json['variablesReference'], 
+			client,
+			json['name'],
+			json['variablesReference'],
 			json['expensive']
 		)
+
 
 class Variable:
 	def __init__(self, client: 'DebugAdapterClient', name: str, value: str, variablesReference: int, containerVariablesReference: int = 0) -> None:
@@ -81,17 +85,18 @@ class Variable:
 	@staticmethod
 	def from_json(client: 'DebugAdapterClient', json: dict) -> 'Variable':
 		return Variable(
-			client, 
-			json['name'], 
-			json['value'], 
-			json.get('variablesReference', 0) 
+			client,
+			json['name'],
+			json['value'],
+			json.get('variablesReference', 0)
 		)
+
 
 class EvaluateResponse:
 	def __init__(self, result: str, variablesReference: int) -> None:
 		self.result = result
 		self.variablesReference = variablesReference
-		
+
 
 class CompletionItem:
 	def __init__(self, label: str, text: str) -> None:
@@ -101,9 +106,10 @@ class CompletionItem:
 	@staticmethod
 	def from_json(json: dict) -> 'CompletionItem':
 		return CompletionItem(
-			json['label'], 
-			json.get('text', None), 
+			json['label'],
+			json.get('text', None),
 		)
+
 
 class Source:
 
@@ -134,7 +140,7 @@ class Source:
 			sources.append(Source.from_json(source_json))
 
 		return Source(
-			json.get('name', '??'), 
+			json.get('name', '??'),
 			json.get('path'),
 			json.get('sourceReference', 0),
 			hint,

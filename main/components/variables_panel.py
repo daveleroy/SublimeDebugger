@@ -11,6 +11,7 @@ from sublime_db.main.debugger import (
 from .variable_component import ScopeComponent
 from . import constants
 
+
 class VariablesPanel (ui.Component):
 	def __init__(self) -> None:
 		super().__init__()
@@ -38,10 +39,10 @@ class VariablesPanel (ui.Component):
 				first = False
 				scopes_item.scope.toggle_expand()
 			scopes_items.append(scopes_item)
-		
-		items.append(ui.Table(items = scopes_items))
-		
+
+		items.append(ui.Table(items=scopes_items))
+
 		return [
 			ui.HorizontalSpacer(constants.VARIABLE_PANEL_MIN_WIDTH),
-			ui.Panel(items = items)
+			ui.Panel(items=items)
 		]

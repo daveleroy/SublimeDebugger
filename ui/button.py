@@ -9,6 +9,7 @@ from .component import Component, ComponentInline
 from .layout import Layout
 from .render import Timer, add_timer
 
+
 class OnClick (ComponentInline):
 	def __init__(self, on_click: Callable[[], None], items: List[Component]) -> None:
 		super().__init__()
@@ -16,9 +17,9 @@ class OnClick (ComponentInline):
 		self.on_click = on_click
 		self.html_tag = 'a'
 
-	def render (self) -> Sequence[Component]:
+	def render(self) -> Sequence[Component]:
 		return self.items
-		
+
 	def html(self, layout: Layout) -> str:
 		self.html_tag_extra = 'href = "{}"'.format(layout.register_on_click_handler(self.on_click))
 		return super().html(layout)
@@ -33,8 +34,9 @@ class Button (OnClick):
 	def on_clicked(self) -> None:
 		self.on_click_callback()
 
-	def render (self) -> Sequence[Component]:
+	def render(self) -> Sequence[Component]:
 		return self.items
+
 
 class ButtonDoubleClick (OnClick):
 	def __init__(self, on_double_click: Callable[[], None], on_click: Optional[Callable[[], None]], items: List[Component]) -> None:
@@ -67,5 +69,5 @@ class ButtonDoubleClick (OnClick):
 		if self.on_click_callback:
 			self.on_click_callback()
 
-	def render (self) -> Sequence[Component]:
+	def render(self) -> Sequence[Component]:
 		return self.items

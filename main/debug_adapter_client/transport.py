@@ -34,22 +34,23 @@ import time
 
 from sublime_db import core
 
+
 class Process:
 	def __init__(self, command: List[str], on_stdout: Optional[Callable[[str], None]], on_stderr: Optional[Callable[[str], None]]) -> None:
 		print('Starting process: {}'.format(command))
-		self.process = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, stdin = subprocess.PIPE)
+		self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
 		self.on_stdout = on_stdout
 		self.on_stderr = on_stderr
 
 		if on_stdout:
-			thread = threading.Thread(target=self._read, args= (self.process.stdout, on_stdout))
+			thread = threading.Thread(target=self._read, args=(self.process.stdout, on_stdout))
 			thread.start()
 
 		if on_stderr:
-			thread = threading.Thread(target=self._read, args= (self.process.stderr, on_stderr))
+			thread = threading.Thread(target=self._read, args=(self.process.stderr, on_stderr))
 			thread.start()
 
-	def _read (self, file: Any, callback: Callable[[str], None]) -> None:
+	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
 		while True:
 			try:
 				line = file.readline().decode('UTF-8')
@@ -60,7 +61,7 @@ class Process:
 			except Exception as err:
 				print("Failure reading from process", err)
 				break
-				
+
 	def dispose(self) -> None:
 		print('Ending process')
 		try:
@@ -72,15 +73,19 @@ class Process:
 class Transport:
 	def send(self, message: str) -> None:
 		assert False
+
 	def start(self, on_receive: 'Callable[[str], None]', on_closed: 'Callable[[], None]') -> None:
 		assert False
+
 	def dispose(self) -> None:
 		assert False
+
 
 STATE_HEADERS = 0
 STATE_CONTENT = 1
 TCP_CONNECT_TIMEOUT = 5
 CONTENT_HEADER = b"Content-Length: "
+
 
 class TCPTransport(Transport):
 	def __init__(self, s: socket.socket) -> None:
@@ -96,11 +101,12 @@ class TCPTransport(Transport):
 		self.write_thread.start()
 
 	def close(self) -> None:
-		if self.socket == None: return
+		if self.socket == None:
+			return
 		self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
 		self.socket = None
 		core.main_loop.call_soon_threadsafe(self.on_closed)
-		
+
 	def dispose(self) -> None:
 		self.close()
 
@@ -169,7 +175,7 @@ class TCPTransport(Transport):
 					self.close()
 
 
-# starts the tcp connection in a none blocking fashion 
+# starts the tcp connection in a none blocking fashion
 @core.async
 def start_tcp_transport(host: str, port: int) -> core.awaitable[TCPTransport]:
 	def start_tcp_transport_inner() -> TCPTransport:
@@ -188,6 +194,7 @@ def start_tcp_transport(host: str, port: int) -> core.awaitable[TCPTransport]:
 	transport = yield from core.main_loop.run_in_executor(core.main_executor, start_tcp_transport_inner)
 	return transport
 
+
 class StdioTransport(Transport):
 	def __init__(self, process: Process) -> None:
 		assert process.on_stdout == None, 'expected process to not read stdout'
@@ -203,7 +210,8 @@ class StdioTransport(Transport):
 		self.read_thread.start()
 
 	def close(self) -> None:
-		if self.process == None: return
+		if self.process == None:
+			return
 		self.process = None
 		self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
 		core.main_loop.call_soon_threadsafe(self.on_closed)

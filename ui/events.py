@@ -1,26 +1,29 @@
 
 from sublime_db.core.typecheck import (
-	TypeVar, 
-	Generic, 
-	Callable, 
+	TypeVar,
+	Generic,
+	Callable,
 	List,
 	Optional
 )
 
-import sublime 
+import sublime
 import sublime_plugin
 
 from sublime_db import core
+
 
 class GutterEvent:
 	def __init__(self, view: sublime.View, line: int) -> None:
 		self.view = view
 		self.line = line
 
+
 class HoverEvent:
 	def __init__(self, view: sublime.View, point: int) -> None:
 		self.view = view
 		self.point = point
+
 
 # all these events are dispatched from sublime's main thread to our own main loop
 view_loaded = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
@@ -31,6 +34,7 @@ view_gutter_double_clicked = core.EventDispatchMain() #type: core.EventDispatchM
 view_selection_modified = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
 view_modified = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
 view_drag_select = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
+
 
 class ViewEventsListener(sublime_plugin.EventListener):
 	def __init__(self) -> None:
@@ -50,7 +54,7 @@ class ViewEventsListener(sublime_plugin.EventListener):
 
 			x = event['x']
 			y = event['y']
-			
+
 			pt = view.window_to_text((x, y))
 			on_gutter = _is_coord_on_gutter_or_empy_line(view, x, y)
 			if not on_gutter:
@@ -66,11 +70,12 @@ class ViewEventsListener(sublime_plugin.EventListener):
 			view_gutter_hovered.post(GutterEvent(view, line))
 		elif hover_zone == sublime.HOVER_TEXT:
 			view_text_hovered.post(HoverEvent(view, point))
+
 	def on_selection_modified(self, view: sublime.View) -> None:
 		view_selection_modified.post(view)
 		if self.was_drag_select:
 			self.was_drag_select = False
-			
+
 			# if the selection is empty then they did not click on the gutter
 			# a click on the gutter selects the full line
 			# where as a click on an empty line puts the caret on that line
@@ -81,14 +86,17 @@ class ViewEventsListener(sublime_plugin.EventListener):
 				view_gutter_double_clicked.post(GutterEvent(view, self.line))
 				view.sel().clear()
 				view.sel().add(view.line(view.text_point(self.line, 0)))
-				
+
 	def on_modified(self, view: sublime.View) -> None:
 		view_modified.post(view)
+
 	def on_load(self, view: sublime.View) -> None:
 		view_loaded.post(view)
+
 	def on_activated(self, view: sublime.View) -> None:
 		view_activated.post(view)
-		
+
+
 def _is_coord_on_gutter_or_empy_line(view: sublime.View, x: int, y: int) -> bool:
 	original_pt = view.window_to_text((x, y))
 	if view.rowcol(original_pt)[1] != 0:

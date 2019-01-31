@@ -5,12 +5,13 @@ import sublime
 
 from sublime_db import ui, core
 
-from .variable_component import (VariableComponent, 
-	Variable, 
-	VariableState, 
-	VariableComponent
-)
+from .variable_component import (VariableComponent,
+                                 Variable,
+                                 VariableState,
+                                 VariableComponent
+                                 )
 from . import constants
+
 
 class ConsolePanel (ui.Component):
 	def __init__(self, on_click: Callable[[], None]):
@@ -19,14 +20,14 @@ class ConsolePanel (ui.Component):
 		self.text = [] #type: List[str]
 		self.on_click = on_click
 
-	def get_text (self) -> str:
+	def get_text(self) -> str:
 		return ''.join(self.text)
 
 	def open_in_view(self) -> None:
 		file = sublime.active_window().new_file()
 		file.run_command('append', {
-			'characters' : self.get_text(),
-			'scroll_to_end' : True
+                    'characters': self.get_text(),
+                 			'scroll_to_end': True
 		})
 
 	def AddVariable(self, variable: Variable) -> None:
@@ -41,21 +42,21 @@ class ConsolePanel (ui.Component):
 	def Add(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, width = constants.PANEL_CONTENT_MAX_WIDTH, align = 0, color = 'secondary')
+			item = ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='secondary')
 			self.items.append(item)
 		self.dirty()
 
 	def AddStdout(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, width = constants.PANEL_CONTENT_MAX_WIDTH, align = 0, color = 'primary')
+			item = ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='primary')
 			self.items.append(item)
 		self.dirty()
 
 	def AddStderr(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, width = constants.PANEL_CONTENT_MAX_WIDTH, align = 0, color = 'red')
+			item = ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='red')
 			self.items.append(item)
 		self.dirty()
 
@@ -64,14 +65,15 @@ class ConsolePanel (ui.Component):
 		self.text.clear()
 		self.dirty()
 
-	def render (self) -> ui.components:
+	def render(self) -> ui.components:
 		items = list(self.items[-15:])
-		items.append(ui.Button(self.on_click, items = [
-			ui.Img(ui.Images.shared.right),
+		items.append(ui.Button(self.on_click, items=[
+                    ui.Img(ui.Images.shared.right),
 		]))
 		return [
-			ui.Table(items = items)
+                    ui.Table(items=items)
 		]
+
 
 class ConsoleVariable (ui.Component):
 	def __init__(self, variable: Variable) -> None:

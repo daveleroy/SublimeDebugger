@@ -4,6 +4,7 @@ from sublime_db.core.typecheck import Tuple, List, Optional, Any
 import sublime
 from sublime_db import ui, core
 
+
 class Filter:
 	def __init__(self, id: str, name: str, enabled: bool) -> None:
 		self.id = id
@@ -11,6 +12,8 @@ class Filter:
 		self.enabled = enabled
 
 # additonal information about this breakpoint from the debug adapter
+
+
 class BreakpointResult:
 	def __init__(self, verified: bool, line: int, message: Optional[str]) -> None:
 		self.verified = verified
@@ -18,6 +21,8 @@ class BreakpointResult:
 		self.message = message
 
 # note: Breakpoint lines are 1 based
+
+
 class Breakpoint:
 	_next_id = 0
 
@@ -38,18 +43,23 @@ class Breakpoint:
 	@property
 	def file(self):
 		return self._file
+
 	@property
 	def enabled(self):
 		return self._enabled
+
 	@property
 	def condition(self):
 		return self._condition
+
 	@property
 	def log(self):
 		return self._log
+
 	@property
 	def count(self):
 		return self._count
+
 	@property
 	def line(self) -> int:
 		return self._line
@@ -60,21 +70,21 @@ class Breakpoint:
 			return self._result.verified
 		return True
 
-	def into_json (self) -> dict:
+	def into_json(self) -> dict:
 		return {
 			'file': self.file,
 			'line': self.line,
 			'enabled': self.enabled,
 			'condition': self.condition,
 			'log': self.log,
-			'count' : self.count
+			'count': self.count
 		}
 
 	@staticmethod
 	def from_json(json: dict) -> 'Breakpoint':
 		file = json['file']
 		line = json['line']
-		enabled = json['enabled']	
+		enabled = json['enabled']
 		breakpoint = Breakpoint(file, line, enabled)
 		breakpoint._condition = json['condition']
 		breakpoint._log = json['log']
@@ -101,14 +111,14 @@ class Breakpoint:
 		p = view.text_point(self.line - 1, 0)
 		image = self.image().file
 		view.erase_regions(self.regionName)
-		view.add_regions(self.regionName, [sublime.Region(p, p)], scope ='type', icon=image, flags=sublime.HIDDEN)
+		view.add_regions(self.regionName, [sublime.Region(p, p)], scope='type', icon=image, flags=sublime.HIDDEN)
 
 	def add_to_view(self, view: sublime.View) -> None:
 		for old_view in self.views:
 			if old_view.id == view.id:
 				self.refresh_view(view)
 				return
-				
+
 		self.views.append(view)
 		self.refresh_view(view)
 
@@ -121,6 +131,7 @@ class Breakpoint:
 		if self.file.__lt__(other.file):
 			return True
 		return self.line.__lt__(other.line)
+
 
 class Breakpoints:
 	def __init__(self) -> None:
@@ -143,7 +154,7 @@ class Breakpoints:
 
 		self.onChangedBreakpoint.add(update_views)
 		self.onResultBreakpoint.add(update_views)
-		
+
 		self.disposeables = [
 			ui.view_gutter_double_clicked.add(self.on_gutter_double_clicked),
 			ui.view_activated.add(self.on_view_activated),
@@ -155,10 +166,11 @@ class Breakpoints:
 			d.dispose()
 		for bp in self.breakpoints:
 			bp.clear_views()
-		
+
 	def toggle_filter(self, filter: Filter) -> None:
 		filter.enabled = not filter.enabled
 		self.onChangedFilter.post(filter)
+
 	def add_filter(self, id: str, name: str, initial: bool) -> None:
 		for filter in self.filters:
 			if filter.id == id:
@@ -172,7 +184,7 @@ class Breakpoints:
 	def select_breakpoint(self, breakpoint: Breakpoint) -> None:
 		self.selected_breakpoint = breakpoint
 		self.onSelectedBreakpoint.post(breakpoint)
-		 		
+
 	def remove_breakpoint(self, b: Breakpoint) -> None:
 		b.clear_views()
 		self.breakpoints.remove(b)
@@ -183,7 +195,7 @@ class Breakpoints:
 		r = []
 		for b in self.breakpoints:
 			if b.file == file:
-				r.append (b)
+				r.append(b)
 		return r
 
 	def get_breakpoint(self, file: str, line: int) -> Optional[Breakpoint]:
@@ -205,7 +217,7 @@ class Breakpoints:
 		self.onAddedBreakpoint.post(breakpoint)
 		view = sublime.active_window().active_view()
 		if view:
-			self.sync_from_breakpoints(view) 
+			self.sync_from_breakpoints(view)
 
 	def toggle_enabled(self, breakpoint: Breakpoint) -> None:
 		breakpoint._enabled = not breakpoint.enabled
@@ -234,15 +246,19 @@ class Breakpoints:
 
 	def add_breakpoint_to_view(self, view: sublime.View, b: Breakpoint) -> None:
 		b.add_to_view(view)
+
 	def view_modified(self, view: sublime.View):
-		self.sync(view) 
+		self.sync(view)
+
 	def on_view_activated(self, view: sublime.View):
-		self.sync_from_breakpoints(view) 
+		self.sync_from_breakpoints(view)
+
 	def on_gutter_double_clicked(self, event: ui.GutterEvent) -> None:
 		print('toggle: breakpoint {}'.format(event))
 		self.toggle(event.view, event.line + 1)
 	# changes the data model to match up with the view regions
 	# adds any breakpoints found in the data model that are not found on the view
+
 	def sync(self, view: sublime.View) -> None:
 		file = view.file_name()
 		print('Breakpoints: sync view ', file)
@@ -252,7 +268,7 @@ class Breakpoints:
 				continue
 			identifier = b.regionName
 			regions = view.get_regions(identifier)
-			if len(regions) == 0: 
+			if len(regions) == 0:
 				print('Error: Failed to find breakpoint that should be set, re-adding')
 				self.add_breakpoint_to_view(view, b)
 				dirty = True
@@ -288,11 +304,11 @@ class Breakpoints:
 				continue
 			identifier = b.regionName
 
-			#FIXME this only removes from the view it was clicked on from
+			# FIXME this only removes from the view it was clicked on from
 			# it could be visible in multiple views...
 			view.erase_regions(identifier)
 			self.remove_breakpoint(b)
 			return
-		#add the breakpoint
+		# add the breakpoint
 		self.add_breakpoint(file, line)
 		self.sync(view)

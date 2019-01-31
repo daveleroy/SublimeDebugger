@@ -4,6 +4,7 @@ from sublime_db import core
 from .debugger import DebugAdapterClient, DebuggerState, Variable
 from .components.console_panel import ConsolePanel
 
+
 @core.async
 def run_repl_command(command: str, debugger: DebuggerState, console: ConsolePanel) -> core.awaitable[None]:
 	console.Add(command)
@@ -25,4 +26,3 @@ def run_repl_command(command: str, debugger: DebuggerState, console: ConsolePane
 		console.AddVariable(variable)
 	else:
 		console.AddStdout(response.result)
-

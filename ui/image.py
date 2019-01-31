@@ -5,6 +5,7 @@ import sublime
 from .component import Component
 from .layout import Layout
 
+
 def _image_to_data(path: str) -> bytes:
 	p = '{}/../{}'.format(sublime.packages_path(), path)
 	f = open(p, 'rb')

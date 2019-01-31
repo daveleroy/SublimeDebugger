@@ -2,7 +2,7 @@
 from sublime_db.core.typecheck import (
 	Callable,
 	Optional,
-	Dict, 
+	Dict,
 	List,
 	Any
 )
@@ -17,19 +17,21 @@ from .debugger import CompletionItem
 
 _phantom_text = " \n\n\n\n\n\n\n"
 
+
 class CommandPrompComponent (ui.Component):
 	def __init__(self, text: str) -> None:
 		super().__init__()
 		self.text = text
 
-	def render (self) -> ui.components:
+	def render(self) -> ui.components:
 		return [
 			ui.Label(self.text),
 			ui.Img(ui.Images.shared.right)
 		]
 
+
 class PanelInputHandler (ui.InputHandler):
-	def __init__(self, panel: 'OutputPhantomsPanel', label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> None:
+	def __init__(self, panel: 'OutputPhantomsPanel', label: str, text: str, on_change: Callable[[str], None], on_done: Callable[[Optional[str]], None]) -> None:
 		self.on_done = on_done
 		self.on_change = on_change
 		self.label = label
@@ -39,6 +41,7 @@ class PanelInputHandler (ui.InputHandler):
 
 	def close(self) -> None:
 		self.panel.clear_input_handler(self, None)
+
 
 class OutputPhantomsPanel:
 	panels = {} #type: Dict[int, OutputPhantomsPanel]
@@ -65,9 +68,9 @@ class OutputPhantomsPanel:
 		# the additional space is so we can have an input bar at the top of the debugger
 		# removes some additional padding on the top of the view
 		settings.set("margin", 0)
-		settings.set('line_padding_top', -9)	
+		settings.set('line_padding_top', -9)
 		settings.set('gutter', False)
-		settings.set('word_wrap', False)	
+		settings.set('word_wrap', False)
 
 		self.view.sel().clear()
 
@@ -75,15 +78,15 @@ class OutputPhantomsPanel:
 		self.promptPhantom = None #type: Optional[ui.Phantom]
 		OutputPhantomsPanel.panels[self.view.id()] = self
 
-	def isHidden (self) -> bool:
+	def isHidden(self) -> bool:
 		return self.window.active_panel() != 'output.{}'.format(self.name)
 
-	def show (self) -> None:
+	def show(self) -> None:
 		self.window.run_command('show_panel', {
 			'panel': 'output.{}'.format(self.name)
 		})
 
-	def hide (self) -> None:
+	def hide(self) -> None:
 		if self.window.active_panel() != self.name:
 			return
 
@@ -94,16 +97,16 @@ class OutputPhantomsPanel:
 	def phantom_location(self) -> int:
 		return self.view.size() - len(_phantom_text) + 2
 
-	def dispose (self) -> None:
+	def dispose(self) -> None:
 		self.window.destroy_output_panel(self.name)
-		del OutputPhantomsPanel.panels [self.view.id()]
+		del OutputPhantomsPanel.panels[self.view.id()]
 
 	def run_input_handler(self, input_handler: PanelInputHandler) -> None:
 		self.input_handler = input_handler
 		self.header_text = '  '
-		self.view.run_command('debug_output_phantoms_panel_reset', { 
-			'header' : self.header_text,
-			'characters' : input_handler.text,
+		self.view.run_command('debug_output_phantoms_panel_reset', {
+			'header': self.header_text,
+			'characters': input_handler.text,
 		})
 		self.view.settings().set('line_padding_top', 0)
 		self.view.sel().clear()
@@ -113,9 +116,9 @@ class OutputPhantomsPanel:
 			self.promptPhantom.dispose()
 		self.promptPhantom = ui.Phantom(CommandPrompComponent(input_handler.label), self.view, sublime.Region(1, 1))
 		ui.render() # force render so there is no delay
-		
+
 	def clear_input_handler(self, input_handler: PanelInputHandler, text: Optional[str]) -> None:
-		if not self.input_handler: 
+		if not self.input_handler:
 			return
 		if self.input_handler != input_handler:
 			return
@@ -125,11 +128,10 @@ class OutputPhantomsPanel:
 			self.promptPhantom = None
 			ui.render() # force render so there is no delay
 
-
 		self.header_text = ''
-		self.view.run_command('debug_output_phantoms_panel_reset', { 
-			'header' : '',
-			'characters' : '',
+		self.view.run_command('debug_output_phantoms_panel_reset', {
+			'header': '',
+			'characters': '',
 		})
 
 		self.view.settings().set('line_padding_top', -9)
@@ -148,26 +150,30 @@ class OutputPhantomsPanel:
 	def on_updated_input(self, text: str) -> None:
 		if self.input_handler:
 			self.input_handler.on_change(text)
-		
+
 	def on_done_input(self, text: str) -> None:
 		print('on_done_input')
 		if not self.input_handler:
 			return
 		self.clear_input_handler(self.input_handler, text)
 
+
 class DebugNullCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		pass
 
+
 class DebugOutputPhantomsPanelSetupCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		self.view.insert(edit, 0, _phantom_text)
+
 
 class DebugOutputPhantomsPanelResetCommand(sublime_plugin.TextCommand):
 	def run(self, edit, header, characters):
 		region = sublime.Region(0, self.view.size() - len(_phantom_text) + 1)
 		self.view.erase(edit, region)
 		self.view.insert(edit, 0, header + characters)
+
 
 class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 	def __init__(self) -> None:
@@ -180,7 +186,7 @@ class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 	@core.async
 	def get_completions(self, view: sublime.View, text: str) -> core.awaitable[None]:
 		from sublime_db.main.main import Main
-		
+
 		window = view.window()
 		m = Main.forWindow(window)
 		if m:
@@ -190,13 +196,14 @@ class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 		self.completions = yield from adapter.Completions(text, len(text) + 1, m.debugger.frame)
 		view.run_command("hide_auto_complete")
 		view.run_command("auto_complete", {
-                'disable_auto_insert': True,
-                'next_completion_if_showing': False
-            })
+                    'disable_auto_insert': True,
+                    'next_completion_if_showing': False
+                })
 
 	def on_query_completions(self, view, prefix, locations) -> Any:
 		panel = OutputPhantomsPanel.for_view(view)
-		if not panel: return
+		if not panel:
+			return
 
 		text = self.editable_text(panel)
 		if text != self.getting_completions_text:
@@ -214,17 +221,18 @@ class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 			return
 
 		panel = OutputPhantomsPanel.for_view(view)
-		if not panel: return
+		if not panel:
+			return
 
 		text = self.editable_text(panel)
 		core.main_loop.call_soon_threadsafe(panel.on_updated_input, text)
 		if text and text != self.getting_completions_text:
 			self.getting_completions_text = text
 			core.run(self.get_completions(view, text))
-	
+
 	def editable_text(self, panel: OutputPhantomsPanel) -> str:
 		return panel.view.substr(self.editable_region(panel)).strip()
-	
+
 	def editable_region(self, panel: OutputPhantomsPanel) -> sublime.Region:
 		min_point = len(panel.header_text)
 		max_point = panel.view.size() - len(_phantom_text) + 1
@@ -246,7 +254,8 @@ class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 
 	def on_text_command(self, view, command_name: str, args) -> Any:
 		panel = OutputPhantomsPanel.for_view(view)
-		if not panel: return
+		if not panel:
+			return
 
 		if command_name == "commit_completion":
 			self.ignore_next_modification = True
@@ -256,22 +265,23 @@ class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 			if self.can_left_delete(panel):
 				return None
 			else:
-				return ("debug_null", {}) 
+				return ("debug_null", {})
 
 		if command_name == "right_delete":
 			if self.can_right_delete(panel):
 				return None
 			else:
-				return ("debug_null", {}) 
+				return ("debug_null", {})
 
 		if command_name == 'insert' and args['characters'] == '\n':
 			text = self.editable_text(panel)
 			core.main_loop.call_soon_threadsafe(panel.on_done_input, text)
-			return ("debug_null", {}) 
-	
+			return ("debug_null", {})
+
 	def on_selection_modified(self, view: sublime.View) -> None:
 		panel = OutputPhantomsPanel.for_view(view)
-		if not panel: return
+		if not panel:
+			return
 
 		sel = panel.view.sel()
 

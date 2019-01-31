@@ -35,10 +35,11 @@ from .debugger import (
 
 from .output_panel import OutputPhantomsPanel, PanelInputHandler
 
+
 class SelectedLine:
 	def __init__(self, view: sublime.View, line: int):
 		pt_current_line = view.text_point(line, 0)
-		pt_prev_line = view.text_point(line-1, 0)
+		pt_prev_line = view.text_point(line - 1, 0)
 		line_prev = view.line(pt_current_line)
 		line_current = view.line(pt_prev_line)
 
@@ -48,6 +49,7 @@ class SelectedLine:
 	def dispose(self):
 		self.top_line.dispose()
 		self.bottom_line.dispose()
+
 
 class Main (DebuggerPanelCallbacks):
 	instances = {} #type: Dict[int, Main]
@@ -67,24 +69,26 @@ class Main (DebuggerPanelCallbacks):
 		if main:
 			return main.debugger
 		return None
+
 	def refresh_phantoms(self) -> None:
 		ui.reload()
-	def create_input_handler(self, window: sublime.Window, label: str, text: str, on_change: Callable[[str], None],  on_done: Callable[[Optional[str]], None]) -> ui.InputHandler:
+
+	def create_input_handler(self, window: sublime.Window, label: str, text: str, on_change: Callable[[str], None], on_done: Callable[[Optional[str]], None]) -> ui.InputHandler:
 		return PanelInputHandler(self.panel, label, text, on_change, on_done)
 
 	def open_repl_console(self) -> None:
 		prev_view = self.window.active_view()
 		self.window.focus_view(self.view)
+
 		def on_done(value: Optional[str]) -> None:
 			if value:
 				self.run_async(run_repl_command(value, self.debugger, self.console_panel))
-			
+
 			self.window.focus_view(prev_view)
 
 		def on_change(value: str) -> None:
 			pass
-		PanelInputHandler(self.panel, label = 'Command', text = "", on_change = on_change, on_done = on_done)
-
+		PanelInputHandler(self.panel, label='Command', text="", on_change=on_change, on_done=on_done)
 
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
@@ -94,7 +98,6 @@ class Main (DebuggerPanelCallbacks):
 		if not data or not project_name:
 			sublime.error_message("Debugger must be run inside a sublime project")
 			return
-
 
 		# ensure we have debug configurations added to the project file
 		data.setdefault('settings', {}).setdefault('debug.configurations', [])
@@ -113,18 +116,18 @@ class Main (DebuggerPanelCallbacks):
 		self.breakpoints_panel = BreakpintsComponent(self.breakpoints, self.onSelectedBreakpoint)
 
 		self.pages_panel = TabbedPanel([
-			["Breakpoints", self.breakpoints_panel ],
+			["Breakpoints", self.breakpoints_panel],
 			["Call Stack", self.callstack_panel],
 			["Console", self.console_panel],
 		], 0)
 		self.debugger_panel = DebuggerPanel(self.breakpoints, self)
-		
+
 		self.selected_frame_line = None #type: Optional[SelectedLine]
 		self.selected_frame_generated_view = None #type: Optional[sublime.View]
 
 		self.breakpointInformation = None #type: Optional[Any]
 
-		def on_state_changed (state: int) -> None:
+		def on_state_changed(state: int) -> None:
 			if state == DebuggerState.stopped:
 				self.breakpoints.clear_breakpoint_results()
 				self.debugger_panel.setState(STOPPED)
@@ -137,10 +140,10 @@ class Main (DebuggerPanelCallbacks):
 			elif state == DebuggerState.stopping or state == DebuggerState.starting:
 				self.debugger_panel.setState(LOADING)
 
-		def on_threads (threads: List[Thread]) -> None:
+		def on_threads(threads: List[Thread]) -> None:
 			self.callstack_panel.update(self.debugger, threads)
 
-		def on_scopes (scopes: List[Scope]) -> None:
+		def on_scopes(scopes: List[Scope]) -> None:
 			self.variables_panel.set_scopes(scopes)
 
 		def on_selected_frame(frame: Optional[StackFrame]) -> None:
@@ -148,7 +151,7 @@ class Main (DebuggerPanelCallbacks):
 			if frame:
 				self.run_async(self.navigate_to_frame(frame))
 
-		def on_output (event: OutputEvent) -> None:
+		def on_output(event: OutputEvent) -> None:
 			category = event.category
 			msg = event.text
 			variablesReference = event.variablesReference
@@ -169,16 +172,16 @@ class Main (DebuggerPanelCallbacks):
 				self.console_panel.Add(msg)
 
 		self.debugger = DebuggerState(
-			on_state_changed = on_state_changed, 
-			on_threads = on_threads,
-			on_scopes = on_scopes,
-			on_output = on_output,
-			on_selected_frame = on_selected_frame)
+			on_state_changed=on_state_changed,
+			on_threads=on_threads,
+			on_scopes=on_scopes,
+			on_output=on_output,
+			on_selected_frame=on_selected_frame)
 
 		self.panel = OutputPhantomsPanel(window, 'Debugger')
 		self.panel.show()
 		self.view = self.panel.view #type: sublime.View
-	
+
 		self.persistance = PersistedData(project_name)
 
 		for breakpoint in self.persistance.load_breakpoints():
@@ -193,9 +196,9 @@ class Main (DebuggerPanelCallbacks):
 			self.console_panel.Add('Opened In Workspace: {}'.format(self.path))
 		else:
 			self.console_panel.AddStderr('warning: debugger opened in a window that is not part of a project')
-			
+
 		print('Creating a window: h')
-		
+
 		self.disposeables.extend([
 			self.panel,
 			ui.view_gutter_hovered.add(self.on_gutter_hovered),
@@ -215,7 +218,7 @@ class Main (DebuggerPanelCallbacks):
 		self.breakpoints.onChangedBreakpoint.add(self.onChangedBreakpoint)
 		self.breakpoints.onChangedFilter.add(self.onChangedFilter)
 		self.breakpoints.onSelectedBreakpoint.add(self.onSelectedBreakpoint)
-		
+
 		active_view = self.window.active_view()
 
 		if active_view:
@@ -225,7 +228,7 @@ class Main (DebuggerPanelCallbacks):
 		else:
 			print('Failed to find active view to listen for settings changes')
 
-	def load_configurations (self) -> None:
+	def load_configurations(self) -> None:
 		adapters = {}
 		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters', {}).items():
 			try:
@@ -254,7 +257,7 @@ class Main (DebuggerPanelCallbacks):
 			self.debugger_panel.set_name(self.configuration.name)
 		else:
 			self.debugger_panel.set_name('select config')
-			
+
 		assert self.view
 		self.view.settings().set('font_size', get_setting(self.view, 'ui_scale', 12))
 
@@ -264,9 +267,9 @@ class Main (DebuggerPanelCallbacks):
 
 	def show(self) -> None:
 		self.panel.show()
-	
+
 	@core.async
-	def SelectConfiguration (self) -> core.awaitable[None]:
+	def SelectConfiguration(self) -> core.awaitable[None]:
 		selected_index = None #type: Optional[int]
 		if self.configuration:
 			selected_index = self.configuration.index
@@ -279,7 +282,7 @@ class Main (DebuggerPanelCallbacks):
 			self.debugger_panel.set_name(configuration.name)
 
 	@core.async
-	def LaunchDebugger (self) -> core.awaitable[None]:
+	def LaunchDebugger(self) -> core.awaitable[None]:
 		self.console_panel.clear()
 		self.console_panel.Add('Console cleared...')
 		try:
@@ -299,7 +302,7 @@ class Main (DebuggerPanelCallbacks):
 			core.log_exception()
 			core.display(e)
 			return
-		
+
 		yield from self.debugger.launch(adapter_configuration, configuration, self.breakpoints)
 
 	def clearBreakpointInformation(self) -> None:
@@ -313,11 +316,12 @@ class Main (DebuggerPanelCallbacks):
 			self.panel.close_input()
 
 	# TODO this could be made better
-	def is_source_file(self, view: sublime.View)-> bool:
+	def is_source_file(self, view: sublime.View) -> bool:
 		return bool(view.file_name())
 
 	def on_text_hovered(self, event: ui.HoverEvent) -> None:
-		if not self.is_source_file(event.view): return
+		if not self.is_source_file(event.view):
+			return
 
 		if self.debugger.adapter:
 			word = event.view.word(event.point)
@@ -328,24 +332,26 @@ class Main (DebuggerPanelCallbacks):
 					return
 				if self.debugger.adapter:
 					variable = Variable(self.debugger.adapter, response.result, '', response.variablesReference)
-					event.view.add_regions('selected_hover', [word], scope = "comment", flags = sublime.DRAW_NO_OUTLINE)
+					event.view.add_regions('selected_hover', [word], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
+
 					def on_close() -> None:
 						event.view.erase_regions('selected_hover')
 					variableComponent = VariableComponent(variable)
 					variableComponent.variable.expand()
-					ui.Popup(variableComponent, event.view, word.a, on_close = on_close)
-					
+					ui.Popup(variableComponent, event.view, word.a, on_close=on_close)
+
 			core.run(self.debugger.adapter.Evaluate(expr, self.debugger.frame, 'hover'), complete)
 
 	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
-		if not self.is_source_file(event.view): return
+		if not self.is_source_file(event.view):
+			return
 		file = event.view.file_name()
 		if not file:
 			return
 
 		at = event.view.text_point(event.line, 0)
 
-		breakpoint =  self.breakpoints.get_breakpoint(file, event.line + 1)
+		breakpoint = self.breakpoints.get_breakpoint(file, event.line + 1)
 		if not breakpoint:
 			return
 		self.breakpoints.select_breakpoint(breakpoint)
@@ -364,7 +370,7 @@ class Main (DebuggerPanelCallbacks):
 		self.breakpoints.dispose()
 		self.window.destroy_output_panel('debugger')
 		del Main.instances[self.window.id()]
-	
+
 	def onChangedFilter(self, filter: Filter) -> None:
 		self.debugger.update_exception_filters(self.breakpoints.filters)
 
@@ -382,49 +388,60 @@ class Main (DebuggerPanelCallbacks):
 
 	def on_settings(self) -> None:
 		self.run_async(self.SelectConfiguration())
+
 	def on_play(self) -> None:
 		self.panel.show()
 		self.pages_panel.selected(1)
 		self.run_async(self.LaunchDebugger())
+
 	def on_stop(self) -> None:
 		self.run_async(self.debugger.stop())
+
 	def on_resume(self) -> None:
 		self.run_async(self.debugger.resume())
+
 	def on_pause(self) -> None:
 		self.run_async(self.debugger.pause())
+
 	def on_step_over(self) -> None:
 		self.run_async(self.debugger.step_over())
+
 	def on_step_in(self) -> None:
 		self.run_async(self.debugger.step_in())
+
 	def on_step_out(self) -> None:
 		self.run_async(self.debugger.step_out())
+
 	def on_panel_breakpoints(self) -> None:
 		self.pages_panel.selected(0)
+
 	def on_panel_callstack(self) -> None:
 		self.pages_panel.selected(1)
+
 	def on_panel_console(self) -> None:
 		self.pages_panel.selected(2)
 
 	def run_async(self, awaitable: core.awaitable[None]):
 		task = core.main_loop.create_task(awaitable)
+
 		def done(task) -> None:
 			try:
 				task.result()
 			except Exception as e:
 				self.console_panel.AddStderr(str(e))
 				core.log_exception()
-				
+
 		task.add_done_callback(done)
 
 	@core.async
 	def navigate_to_frame(self, frame: StackFrame) -> core.awaitable[None]:
 		source = frame.source
-		
+
 		if not source:
 			return
 
 		# sublime lines are 0 based
-		line =  frame.line - 1
+		line = frame.line - 1
 
 		selected_frame_generated_view = None #type: Optional[sublime.View]
 
@@ -436,7 +453,7 @@ class Main (DebuggerPanelCallbacks):
 			view = self.window.new_file()
 			view.set_name(source.name)
 			view.run_command('insert', {
-				'characters' : content
+				'characters': content
 			})
 			view.set_read_only(True)
 			view.set_scratch(True)
@@ -457,7 +474,7 @@ class Main (DebuggerPanelCallbacks):
 		self.dispose_selected_frame()
 		self.selected_frame_generated_view = selected_frame_generated_view
 		self.selected_frame_line = SelectedLine(view, line)
-	
+
 	def dispose_selected_frame(self) -> None:
 		if self.selected_frame_generated_view:
 			self.selected_frame_generated_view.close()
@@ -466,18 +483,17 @@ class Main (DebuggerPanelCallbacks):
 			self.selected_frame_line.dispose()
 			self.selected_frame_line = None
 
-	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:	
+	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:
 		@core.async
 		def a() -> core.awaitable[None]:
 			view = yield from core.sublime_open_file_async(sublime.active_window(), breakpoint.file, breakpoint.line)
-			at = view.text_point(breakpoint.line-2, 0)
+			at = view.text_point(breakpoint.line - 2, 0)
 			view.sel().clear()
 			self.clearBreakpointInformation()
 
 			# we have to focus the input view before showing the popup otherwise focusing the view closes the popup...
 			prev_view = self.window.active_view()
 			self.window.focus_view(self.view)
-			self.breakpointInformation = ui.Popup(BreakpointInlineComponent(breakpoints = self.breakpoints, breakpoint = breakpoint), view, at, on_close = lambda: self.window.focus_view(prev_view))
+			self.breakpointInformation = ui.Popup(BreakpointInlineComponent(breakpoints=self.breakpoints, breakpoint=breakpoint), view, at, on_close=lambda: self.window.focus_view(prev_view))
 
 		self.run_async(a())
-

@@ -1,4 +1,6 @@
 
+import sublime
+from .layout import Layout, reload_css
 from sublime_db.core.typecheck import (
 	List,
 	Optional,
@@ -7,14 +9,13 @@ from sublime_db.core.typecheck import (
 	TYPE_CHECKING
 )
 
-#for mypy
-if TYPE_CHECKING: from .component import Component
+# for mypy
+if TYPE_CHECKING:
+	from .component import Component
 
-from .layout import Layout, reload_css
-
-import sublime
 
 _timers = set() #type: Set[Timer]
+
 
 class Timer:
 	def __init__(self, interval: float, callback: Callable[[], None]) -> None:
@@ -28,31 +29,37 @@ class Timer:
 			self.callback()
 			self.current_time -= self.interval
 
-	def dispose (self) -> None:
+	def dispose(self) -> None:
 		remove_timer(self)
 
-def add_timer (timer: Timer) -> None:
+
+def add_timer(timer: Timer) -> None:
 	_timers.add(timer)
 
-def remove_timer (timer: Timer) -> None:
+
+def remove_timer(timer: Timer) -> None:
 	_timers.discard(timer)
 
-def update (delta: float) -> None:
+
+def update(delta: float) -> None:
 	for timer in _timers:
 		timer.update(delta)
+
 
 _renderables = [] #type: List[Renderable]
 _renderables_remove = [] #type: List[Renderable]
 _renderables_add = [] #type: List[Renderable]
+
 
 def reload() -> None:
 	reload_css()
 	for renderable in _renderables:
 		renderable.force_dirty()
 
-def render () -> None:
+
+def render() -> None:
 	_renderables.extend(_renderables_add)
-	
+
 	renderables_to_update = [] #type: List[Renderable]
 	renderables_to_clear = [] #type: List[Renderable]
 
@@ -63,14 +70,13 @@ def render () -> None:
 	_renderables_add.clear()
 	_renderables_remove.clear()
 
-	
 	for r in _renderables:
 		if r.render():
 			renderables_to_update.append(r)
 
 	if not renderables_to_update and not renderables_to_clear:
 		return
-		
+
 	# after we generated the html we need to to update the sublime phantoms
 	# if we don't do this on the sublime main thread we will get flickering
 	def on_sublime_thread() -> None:
@@ -81,18 +87,24 @@ def render () -> None:
 
 	sublime.set_timeout(on_sublime_thread, 0)
 
+
 class Renderable:
 	def force_dirty(self) -> None:
 		assert False
+
 	def render(self) -> bool:
 		assert False
+
 	def render_sublime(self) -> None:
 		assert False
+
 	def clear_sublime(self) -> None:
 		assert False
 
+
 class Phantom(Layout, Renderable):
 	id = 0
+
 	def __init__(self, component: 'Component', view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
 		super().__init__(component)
 		self.cachedPhantom = None #type: Optional[sublime.Phantom]
@@ -101,10 +113,10 @@ class Phantom(Layout, Renderable):
 		self.view = view
 
 		self.set = sublime.PhantomSet(self.view)
-		
+
 		Phantom.id += 1
 		self.region_id = 'phantom_{}'.format(Phantom.id)
-		self.view.add_regions(self.region_id, [self.region], flags = sublime.DRAW_NO_FILL)
+		self.view.add_regions(self.region_id, [self.region], flags=sublime.DRAW_NO_FILL)
 		self._width = 0
 		_renderables_add.append(self)
 
@@ -135,13 +147,16 @@ class Phantom(Layout, Renderable):
 	def em_width(self) -> float:
 		size = self.view.settings().get('font_size') or 12
 		return self.view.em_width() / size
+
 	def width(self) -> float:
 		size = self.view.settings().get('font_size') or 12
-		return self._width/size
+		return self._width / size
+
 	def dispose(self) -> None:
 		super().dispose()
 		_renderables_remove.append(self)
 		self.view.erase_regions(self.region_id)
+
 
 class Popup(Layout, Renderable):
 	def __init__(self, component: 'Component', view: sublime.View, location: int = -1, layout: int = sublime.LAYOUT_INLINE, on_close: Optional[Callable[[], None]] = None) -> None:
@@ -153,13 +168,13 @@ class Popup(Layout, Renderable):
 		self.max_height = 500
 		self.max_width = 1000
 		self.render()
-		view.show_popup(self.html, 
-			location = location,
-			max_width = self.max_width, 
-			max_height = self.max_height, 
-			on_navigate = self.on_navigate,
-			flags = sublime.COOPERATE_WITH_AUTO_COMPLETE,
-			on_hide = self.on_hide)
+		view.show_popup(self.html,
+                  location=location,
+                  max_width=self.max_width,
+                  max_height=self.max_height,
+                  on_navigate=self.on_navigate,
+                  flags=sublime.COOPERATE_WITH_AUTO_COMPLETE,
+                  on_hide=self.on_hide)
 
 		_renderables_add.append(self)
 		self.is_hidden = False
@@ -193,5 +208,3 @@ class Popup(Layout, Renderable):
 	def dispose(self) -> None:
 		super().dispose()
 		_renderables_remove.append(self)
-
-

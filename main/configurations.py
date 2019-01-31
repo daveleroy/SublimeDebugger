@@ -7,6 +7,7 @@ from sublime_db import core
 from .adapter_configuration import AdapterConfiguration
 from .util import get_setting
 
+
 class Configuration:
 	def __init__(self, name: str, type: str, request: str, all: dict) -> None:
 		self.name = name
@@ -27,10 +28,10 @@ class Configuration:
 
 
 @core.async
-def add_configuration (window: sublime.Window, adapters: Dict[str, AdapterConfiguration]) -> core.awaitable[None]:
+def add_configuration(window: sublime.Window, adapters: Dict[str, AdapterConfiguration]) -> core.awaitable[None]:
 	names = []
 	content = []
-	for name, adapter in adapters.items():	
+	for name, adapter in adapters.items():
 		snippets = adapter.snippets
 		for snippet in adapter.snippets:
 			names.append(snippet.get('label', 'label'))
@@ -43,11 +44,11 @@ def add_configuration (window: sublime.Window, adapters: Dict[str, AdapterConfig
 		return
 
 	if index >= len(content):
-		yield from insert_snippet(window, {'name': 'NAME', 'type' : 'CUSTOM', 'request' : 'attach'})
+		yield from insert_snippet(window, {'name': 'NAME', 'type': 'CUSTOM', 'request': 'attach'})
 	else:
 		yield from insert_snippet(window, content[index])
 
-	
+
 def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None]:
 	content = json.dumps(snippet, indent="\t")
 	content = content.replace('\\\\', '\\') # remove json encoded \ ...
@@ -58,14 +59,15 @@ def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None
 		view.sel().clear()
 		view.sel().add(sublime.Region(region.b, region.b))
 		view.run_command('insert', {
-			'characters' : '\n'
+			'characters': '\n'
 		})
 		view.run_command('insert_snippet', {
-			'contents' : content + ','
+			'contents': content + ','
 		})
-	else:	
+	else:
 		sublime.set_clipboard(content)
 		core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
+
 
 @core.async
 def select_or_add_configuration(window: sublime.Window, index: Optional[int], configurations: List[Configuration], adapters: List[AdapterConfiguration]) -> core.awaitable[Optional[Configuration]]:

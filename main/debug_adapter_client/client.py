@@ -22,6 +22,7 @@ from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResul
 from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source
 from .transport import Transport
 
+
 class AdapterError(Exception):
 	def __init__(self, showUser: bool, format: str):
 		super().__init__(format)
@@ -31,10 +32,12 @@ class AdapterError(Exception):
 	def from_json(json: dict) -> 'AdapterError':
 		return AdapterError(json.get('showUser', True), json.get('format', 'No error reason given'))
 
+
 class DebuggerState:
 	exited = 1
 	stopped = 2
 	running = 3
+
 
 class StoppedEvent:
 	def __init__(self, thread: Thread, allThreadsStopped: bool, reason: str, text: Optional[str]) -> None:
@@ -43,16 +46,19 @@ class StoppedEvent:
 		self.reason = reason
 		self.text = text
 
+
 class ContinuedEvent:
 	def __init__(self, thread: Thread, allThreadsContinued: bool) -> None:
 		self.thread = thread
 		self.allThreadsContinued = allThreadsContinued
+
 
 class OutputEvent:
 	def __init__(self, category: str, text: str, variablesReference: int) -> None:
 		self.category = category
 		self.text = text
 		self.variablesReference = variablesReference
+
 
 @core.all_methods(core.require_main_thread)
 class DebugAdapterClient:
@@ -95,24 +101,27 @@ class DebugAdapterClient:
 	@core.async
 	def StepIn(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepIn', {
-			'threadId' : thread.id
+			'threadId': thread.id
 		})
+
 	@core.async
 	def StepOut(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepOut', {
-			'threadId' : thread.id
+			'threadId': thread.id
 		})
+
 	@core.async
 	def StepOver(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('next', {
-			'threadId' : thread.id
+			'threadId': thread.id
 		})
+
 	@core.async
 	def Resume(self, thread: Thread) -> core.awaitable[None]:
 		body = yield from self.send_request_asyc('continue', {
-			'threadId' : thread.id
+			'threadId': thread.id
 		})
-		
+
 		# some adapters aren't giving a response here
 		if body:
 			self._continued(thread.id, body.get('allThreadsContinued', True))
@@ -122,9 +131,9 @@ class DebugAdapterClient:
 	@core.async
 	def Pause(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('pause', {
-			'threadId' : thread.id
+			'threadId': thread.id
 		})
-		
+
 	@core.async
 	def Disconnect(self) -> core.awaitable[None]:
 		yield from self.send_request_asyc('disconnect', {
@@ -134,7 +143,7 @@ class DebugAdapterClient:
 	@core.async
 	def GetScopes(self, frame: StackFrame) -> core.awaitable[List[Scope]]:
 		body = yield from self.send_request_asyc('scopes', {
-			"frameId" : frame.id
+			"frameId": frame.id
 		})
 		scopes = []
 		for scope_json in body['scopes']:
@@ -145,7 +154,7 @@ class DebugAdapterClient:
 	@core.async
 	def GetStackTrace(self, thread: Thread) -> core.awaitable[List[StackFrame]]:
 		body = yield from self.send_request_asyc('stackTrace', {
-			"threadId" : thread.id
+			"threadId": thread.id
 		})
 		frames = []
 		for frame in body['stackFrames']:
@@ -156,11 +165,11 @@ class DebugAdapterClient:
 	@core.async
 	def GetSource(self, source: Source) -> core.awaitable[str]:
 		body = yield from self.send_request_asyc('source', {
-			'source' : {
+			'source': {
 				'path': source.path,
 				'sourceReference': source.sourceReference
 			},
-			'sourceReference' : source.sourceReference
+			'sourceReference': source.sourceReference
 		})
 		return body['content']
 
@@ -171,10 +180,10 @@ class DebugAdapterClient:
 
 		thread = Thread(self, id, '...')
 
-		# I think this is the correct thing to do according to the spec. 
+		# I think this is the correct thing to do according to the spec.
 		thread.stopped = self.allThreadsStopped
 		# If we had an allThreadsStopped event any new threads we see should be marked as "stopped" until an allThreadsContinued event occurs.
-		# This is clearly not what vscode does. The first breakpoint hit in the go example has 3 additional runtime threads that are marked as running despite "allThreadsStopped" being present 
+		# This is clearly not what vscode does. The first breakpoint hit in the go example has 3 additional runtime threads that are marked as running despite "allThreadsStopped" being present
 		# When a step occurs they all get marked as stopped. Presumably they only marked the thread for the stopped event and not any threads that are seen after running the threads command.
 
 		self.threads_for_id[id] = thread
@@ -186,7 +195,7 @@ class DebugAdapterClient:
 				thread = self._thread_for_id(id)
 				thread.name = name
 				return thread
-			
+
 			threads = []
 			for thread in response['threads']:
 				thread = get_or_create_thread(thread['id'], thread['name'])
@@ -208,9 +217,9 @@ class DebugAdapterClient:
 			frameId = frame.id
 
 		response = yield from self.send_request_asyc("evaluate", {
-			"expression" : expression,
-			"context" : context,
-			"frameId" : frameId,
+			"expression": expression,
+			"context": context,
+			"frameId": frameId,
 		})
 
 		# the spec doesn't say this is optional? But it seems that some implementations throw errors instead of marking things as not verified?
@@ -219,7 +228,6 @@ class DebugAdapterClient:
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
 		return EvaluateResponse(response["result"], response.get("variablesReference", 0))
 
-	
 	@core.async
 	def Completions(self, text: str, column: int, frame: Optional[StackFrame]) -> core.awaitable[List[CompletionItem]]:
 		frameId = None
@@ -227,9 +235,9 @@ class DebugAdapterClient:
 			frameId = frame.id
 
 		response = yield from self.send_request_asyc("completions", {
-			"frameId" : frameId,
-			"text" : text,
-			"column" : column,
+			"frameId": frameId,
+			"text": text,
+			"column": column,
 		})
 		items = [] #type: List[CompletionItem]
 		for item in response['targets']:
@@ -239,11 +247,11 @@ class DebugAdapterClient:
 	@core.async
 	def setVariable(self, variable: Variable, value: str) -> core.awaitable[Variable]:
 		response = yield from self.send_request_asyc("setVariable", {
-			"variablesReference" : variable.containerVariablesReference,
-			"name" : variable.name,
-			"value" : value,
+			"variablesReference": variable.containerVariablesReference,
+			"name": variable.name,
+			"value": value,
 		})
-		
+
 		variable.value = response['value']
 		variable.variablesReference = response.get('variablesReference', 0)
 		return variable
@@ -251,16 +259,16 @@ class DebugAdapterClient:
 	@core.async
 	def Initialize(self) -> core.awaitable[dict]:
 		response = yield from self.send_request_asyc("initialize", {
-			"clientID":"sublime",
-			"clientName":"Sublime Text",
-			"adapterID":"python",
-			"pathFormat":"path",
-			"linesStartAt1":True,
-			"columnsStartAt1":True,
+			"clientID": "sublime",
+			"clientName": "Sublime Text",
+			"adapterID": "python",
+			"pathFormat": "path",
+			"linesStartAt1": True,
+			"columnsStartAt1": True,
 			"supportsVariableType": True,
 			"supportsVariablePaging": False,
 			"supportsRunInTerminalRequest": False,
-			"locale":"en-us"}
+			"locale": "en-us"}
 		)
 		return response
 
@@ -287,15 +295,16 @@ class DebugAdapterClient:
 			ids.append(f.id)
 
 		yield from self.send_request_asyc('setExceptionBreakpoints', {
-			'filters' : ids
+			'filters': ids
 		})
+
 	@core.async
 	def SetBreakpointsFile(self, file: str, breakpoints: List[Breakpoint]) -> core.awaitable[None]:
 		sourceBreakpoints = [] #type: List[dict]
 		breakpoints = list(filter(lambda b: b.enabled, breakpoints))
 		for breakpoint in breakpoints:
 			sourceBreakpoint = {
-				"line" : breakpoint.line
+				"line": breakpoint.line
 			} #type: dict
 			if breakpoint.log:
 				sourceBreakpoint["logMessage"] = breakpoint.log
@@ -304,13 +313,13 @@ class DebugAdapterClient:
 			if breakpoint.count:
 				sourceBreakpoint["hitCondition"] = str(breakpoint.count)
 			sourceBreakpoints.append(sourceBreakpoint)
-		
+
 		try:
 			result = yield from self.send_request_asyc('setBreakpoints', {
-				"source" : {
-					"path" : file
+				"source": {
+					"path": file
 				},
-				"breakpoints" : sourceBreakpoints
+				"breakpoints": sourceBreakpoints
 			})
 			breakpoints_result = result['breakpoints']
 			assert len(breakpoints_result) == len(breakpoints), 'expected #breakpoints to match results'
@@ -324,7 +333,7 @@ class DebugAdapterClient:
 			for breakpoint in breakpoints:
 				result = BreakpointResult(False, breakpoint.line, str(e))
 				self.breakpoints.set_breakpoint_result(breakpoint, result)
-				
+
 			raise e #re raise the exception
 
 	def _merg_breakpoint(self, breakpoint: Breakpoint, breakpoint_result: dict) -> None:
@@ -341,7 +350,7 @@ class DebugAdapterClient:
 				bps[breakpoint.file].append(breakpoint)
 			else:
 				bps[breakpoint.file] = [breakpoint]
-			
+
 			print(breakpoint, breakpoint.file)
 
 		print('breakpoints:', bps)
@@ -354,7 +363,7 @@ class DebugAdapterClient:
 				filters.append(filter.id)
 
 		requests.append(self.send_request_asyc('setExceptionBreakpoints', {
-			'filters' : filters
+			'filters': filters
 		}))
 		if requests:
 			yield from asyncio.wait(requests)
@@ -366,7 +375,7 @@ class DebugAdapterClient:
 	@core.async
 	def GetVariables(self, variablesReference: int) -> core.awaitable[List[Variable]]:
 		response = yield from self.send_request_asyc('variables', {
-			"variablesReference" : variablesReference
+			"variablesReference": variablesReference
 		})
 		variables = []
 		for v in response['variables']:
@@ -379,7 +388,7 @@ class DebugAdapterClient:
 		def response(response: dict) -> None:
 			pass
 		self._on_initialized_future.set_result(None)
-	
+
 	def _continued(self, threadId: int, allThreadsContinued: bool) -> None:
 		if allThreadsContinued:
 
@@ -391,17 +400,18 @@ class DebugAdapterClient:
 		else:
 			thread = self._thread_for_id(threadId)
 			thread.stopped = False
-			
+
 		# we have to post that we changed the threads here
 		self.onThreads.post(self.threads)
 		event = ContinuedEvent(self._thread_for_id(threadId), allThreadsContinued)
 		self.onContinued.post(event)
+
 	def _on_continued(self, body: dict) -> None:
 		threadId = body['threadId']
 		self._continued(threadId, body.get('allThreadsContinued', True))
 
 	def _on_stopped(self, body: dict) -> None:
-		#only ask for threads if there was a reason for the stoppage
+		# only ask for threads if there was a reason for the stoppage
 		threadId = body.get('threadId', None)
 		allThreadsStopped = body.get('allThreadsStopped', False)
 
@@ -417,7 +427,7 @@ class DebugAdapterClient:
 		# we aren't going to post that we changed the threads
 		# we will let the threadsCommandBase to that for us so we don't update the UI twice
 		self.threadsCommandBase()
-		
+
 		# stopped events are required to have a reason but some adapters treat it as optional...
 		description = body.get('description') or body.get('reason') or 'unknown reason' #type: str
 		event = StoppedEvent(self._thread_for_id(threadId), allThreadsStopped, description, body.get('text'))
@@ -451,17 +461,17 @@ class DebugAdapterClient:
 		future = core.main_loop.create_future()
 		self.seq += 1
 		request = {
-			"seq" : self.seq,
-			"type" : "request",
+			"seq": self.seq,
+			"type": "request",
 			"command": command,
-			"arguments" : args
+			"arguments": args
 		}
 		self.pending_requests[self.seq] = future
 		msg = json.dumps(request)
 		self.transport.send(msg)
 
 		return future
-	
+
 	def recieved_msg(self, data: dict) -> None:
 		t = data['type']
 		if t == 'response':

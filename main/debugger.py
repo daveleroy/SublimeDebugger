@@ -2,34 +2,35 @@ from sublime_db.core.typecheck import (Tuple, List, Optional, Callable, Union, D
 from sublime_db import core
 
 from .breakpoints import (
-	Breakpoints,  
-	Breakpoint,  
+	Breakpoints,
+	Breakpoint,
 	Filter
 )
 from .debug_adapter_client.client import (
-	DebugAdapterClient, 
+	DebugAdapterClient,
 	StoppedEvent,
 	ContinuedEvent,
 	OutputEvent
 )
 from .debug_adapter_client.transport import (
-	start_tcp_transport, 
-	Process, 
-	TCPTransport, 
+	start_tcp_transport,
+	Process,
+	TCPTransport,
 	StdioTransport
 )
 from .debug_adapter_client.types import (
-	StackFrame, 
-	EvaluateResponse, 
-	Thread, 
+	StackFrame,
+	EvaluateResponse,
+	Thread,
 	Scope,
 	Variable,
 	CompletionItem
 )
 from .configurations import (
-	Configuration, 
+	Configuration,
 	AdapterConfiguration
 )
+
 
 class DebuggerState:
 	stopped = 0
@@ -39,13 +40,13 @@ class DebuggerState:
 	starting = 3
 	stopping = 4
 
-	def __init__(self, 
-		on_state_changed: Callable[[int], None], 
-		on_threads: Callable[[List[Thread]], None],
-		on_scopes: Callable[[List[Scope]], None],
-		on_output: Callable[[OutputEvent], None],
-		on_selected_frame: Callable[[Optional[StackFrame]], None]
-	) -> None:
+	def __init__(self,
+              on_state_changed: Callable[[int], None],
+              on_threads: Callable[[List[Thread]], None],
+              on_scopes: Callable[[List[Scope]], None],
+              on_output: Callable[[OutputEvent], None],
+              on_selected_frame: Callable[[Optional[StackFrame]], None]
+              ) -> None:
 		self.on_state_changed = on_state_changed
 		self.on_threads = on_threads
 		self.on_scopes = on_scopes
@@ -95,13 +96,13 @@ class DebuggerState:
 			if not adapter_configuration.installed:
 				raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
 
-			#If there is a command to run for this debugger run it now
+			# If there is a command to run for this debugger run it now
 			if adapter_configuration.tcp_port:
 				print('Starting Process: {}'.format(adapter_configuration.command))
 				try:
-					self.process = Process(adapter_configuration.command, 
-						on_stdout = self._on_msg, 
-						on_stderr = self._on_msg)
+					self.process = Process(adapter_configuration.command,
+                                            on_stdout=self._on_msg,
+                                            on_stderr=self._on_msg)
 				except Exception as e:
 					self.on_error('Failed to start debug adapter process: {}'.format(e))
 					self.on_error('Command in question: {}'.format(adapter_configuration.command))
@@ -119,10 +120,10 @@ class DebuggerState:
 					return
 			else:
 				# dont monitor stdout the StdioTransport users it
-				self.process = Process(adapter_configuration.command, 
-						on_stdout = None, 
-						on_stderr = self._on_msg)
-				
+				self.process = Process(adapter_configuration.command,
+                                    on_stdout=None,
+                                    on_stderr=self._on_msg)
+
 				transport = StdioTransport(self.process)
 
 		except Exception as e:
@@ -130,7 +131,7 @@ class DebuggerState:
 			core.display(e)
 			self.state = DebuggerState.stopped
 			return
-		
+
 		adapter = DebugAdapterClient(transport)
 		adapter.onThreads.add(self._on_threads_event)
 		adapter.onOutput.add(self._on_output_event)
@@ -148,7 +149,7 @@ class DebuggerState:
 			yield from adapter.ConfigurationDone()
 		core.run(Initialized())
 
-		print ('Adapter initialize')
+		print('Adapter initialize')
 		body = yield from adapter.Initialize()
 		for filter in body.get('exceptionBreakpointFilters', []):
 			id = filter['filter']
@@ -162,8 +163,8 @@ class DebuggerState:
 			yield from adapter.Attach(configuration.all)
 		else:
 			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
-		
-		print ('Adapter has been launched/attached')
+
+		print('Adapter has been launched/attached')
 		self.adapter = adapter
 		# At this point we are running?
 		self.state = DebuggerState.running
@@ -206,26 +207,31 @@ class DebuggerState:
 		self.state = DebuggerState.stopping
 		yield from self.adapter.Disconnect()
 		self.force_stop_adapter()
+
 	def resume(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
 		thread = self._thread_for_commands()
 		assert thread, 'no thread for command'
 		yield from self.adapter.Resume(thread)
+
 	def pause(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
 		thread = self._thread_for_commands()
 		assert thread, 'no thread for command'
 		yield from self.adapter.Pause(thread)
+
 	def step_over(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
 		thread = self._thread_for_commands()
 		assert thread, 'no thread for command'
 		yield from self.adapter.StepOver(thread)
+
 	def step_in(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
 		thread = self._thread_for_commands()
 		assert thread, 'no thread for command'
 		yield from self.adapter.StepIn(thread)
+
 	def step_out(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
 		thread = self._thread_for_commands()
@@ -252,18 +258,22 @@ class DebuggerState:
 	def on_error(self, error: str) -> None:
 		output = OutputEvent("stderr", error, 0)
 		self.on_output(output)
+
 	def _on_msg(self, message: str) -> None:
 		output = OutputEvent("stdout", message, 0)
 		self.on_output(output)
+
 	def _on_threads_event(self, threads: Optional[List[Thread]]) -> None:
 		self.threads = threads or []
 		self.on_threads(threads or [])
 
 	def _on_output_event(self, event: OutputEvent) -> None:
 		self.on_output(event)
+
 	def _on_stopped_event(self, event: StoppedEvent) -> None:
 		self._refresh_state()
 		self.stopped_reason = event.reason
+
 	def _thread_for_commands(self) -> Optional[Thread]:
 		if self.thread:
 			return self.thread
@@ -303,12 +313,15 @@ class VariableState:
 	@property
 	def name(self) -> str:
 		return self.variable.name
+
 	@property
 	def value(self) -> str:
 		return self.variable.value
+
 	@property
 	def expanded(self) -> bool:
 		return self._expanded
+
 	@property
 	def expandable(self) -> bool:
 		return self.variable.variablesReference != 0
@@ -328,12 +341,14 @@ class VariableState:
 	def collapse(self) -> None:
 		if self._expanded:
 			self.toggle_expand()
+
 	@core.async
 	def _set_value(self, value: str) -> core.awaitable[None]:
 		try:
 			variable = yield from self.variable.client.setVariable(self.variable, value)
 			self.variable = variable
-			if self.fetched: self._fetch_if_needed(True)
+			if self.fetched:
+				self._fetch_if_needed(True)
 			self.on_updated()
 		except Exception as e:
 			core.log_exception()
@@ -353,7 +368,8 @@ class VariableState:
 		self.variables = variables
 		self.on_updated()
 
-class ScopeState: 
+
+class ScopeState:
 	def __init__(self, scope: Scope, on_updated: Callable[[], None]) -> None:
 		self.scope = scope
 		self.on_updated = on_updated
@@ -402,6 +418,7 @@ class ScopeState:
 		self.variables = variables
 		self.on_updated()
 
+
 class ThreadState:
 	def __init__(self, thread: Thread, on_updated: Callable[[], None]) -> None:
 		self.thread = thread
@@ -415,12 +432,15 @@ class ThreadState:
 	@property
 	def name(self) -> str:
 		return self.thread.name
+
 	@property
 	def stopped(self) -> bool:
 		return self.thread.stopped
+
 	@property
 	def expanded(self) -> bool:
 		return self._expanded
+
 	@property
 	def expandable(self) -> bool:
 		return self.thread.stopped
@@ -440,7 +460,6 @@ class ThreadState:
 	def collapse(self) -> None:
 		if self._expanded:
 			self.toggle_expand()
-
 
 	def _fetch_if_needed(self, force_refetch: bool = False) -> None:
 		if (not self.fetched or force_refetch) and self.thread.stopped:

@@ -1,4 +1,6 @@
 
+from .breakpoints import Breakpoints, Breakpoint
+from .configurations import Configuration
 from sublime_db.core.typecheck import (
 	Optional,
 	List
@@ -13,11 +15,10 @@ FILE_BREAKPOINTS = 'breakpoints_data.json'
 FILE_SETTINGS = 'debug.sublime-settings'
 FILE_PERSISTANCE = 'persistance.json'
 
+
 def package_path(path: str) -> str:
 	return "{}/sublime_db/{}".format(sublime.packages_path(), path)
 
-from .breakpoints import Breakpoints, Breakpoint
-from .configurations import Configuration
 
 class PersistedData:
 	def __init__(self, project_name: str) -> None:
@@ -56,13 +57,15 @@ class PersistedData:
 		for configuration in configurations:
 			if configuration.name == config_name:
 				return configuration
-				
+
 		return None
 
 	def save_to_file(self) -> None:
 		_save_all_data()
 
+
 _all_data = None #type: Optional[dict]
+
 
 def _save_all_data() -> None:
 	assert not _all_data is None
@@ -70,6 +73,7 @@ def _save_all_data() -> None:
 	file = open(package_path(FILE_PERSISTANCE), 'w+')
 	contents = file.write(data)
 	file.close()
+
 
 def _persisted_for_project(project_name: str) -> dict:
 	global _all_data
@@ -83,4 +87,3 @@ def _persisted_for_project(project_name: str) -> dict:
 	assert not _all_data is None
 	project_data = _all_data.setdefault(project_name, {})
 	return project_data
-

@@ -13,15 +13,17 @@ from .core import main_loop
 
 T = TypeVar('T')
 
-class Handle (Generic[T]): 
+
+class Handle (Generic[T]):
 	def __init__(self, event: 'Event[T]', callback: Callable[[T], None]) -> None:
 		self.callback = callback
 		self.event = event
 
-	def dispose (self) -> None:
+	def dispose(self) -> None:
 		self.event.handlers.remove(self)
 
-class Event (Generic[T]): 
+
+class Event (Generic[T]):
 	def __init__(self) -> None:
 		self.handlers = [] # type: List[Handle[T]]
 
@@ -29,18 +31,25 @@ class Event (Generic[T]):
 		handle = Handle(self, callback)
 		self.handlers.append(handle)
 		return handle
+
 	def add_handle(self, handle: Handle[T]) -> None:
 		self.handlers.append(handle)
+
 	def post(self, data: T) -> None:
 		for h in self.handlers:
 			h.callback(data)
+
+
 '''
 	will dispatch events on the main thread if called from a background thread
 	in our case we used it to make sublime events dispatch on our main thread
 '''
+
+
 class EventDispatchMain(Event[T], Generic[T]):
-	def _post (self, data: T) -> None:
+	def _post(self, data: T) -> None:
 		for h in self.handlers:
 			h.callback(data)
+
 	def post(self, data: T) -> None:
 		main_loop.call_soon_threadsafe(self._post, data)

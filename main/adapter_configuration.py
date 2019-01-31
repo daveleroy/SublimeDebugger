@@ -10,8 +10,10 @@ import json
 from sublime_db import core
 from .util import extract_variables
 
+
 def _adapters_path() -> str:
-	return os.path.join(sublime.packages_path() ,"sublime_db/debug_adapters")
+	return os.path.join(sublime.packages_path(), "sublime_db/debug_adapters")
+
 
 class AdapterConfiguration:
 	class Installation:
@@ -32,10 +34,10 @@ class AdapterConfiguration:
 		self.vscode_package_file = vscode_package_file
 		self.snippets = [] #type: List[dict]
 		self.installation = installation
-		self.installed = True			
+		self.installed = True
 		self.load_installation_if_needed()
-		
-	def load_installation_if_needed (self) -> None:
+
+	def load_installation_if_needed(self) -> None:
 		if not self.installation:
 			return
 
@@ -50,7 +52,7 @@ class AdapterConfiguration:
 	@staticmethod
 	def from_json(type: str, json: dict, window: sublime.Window) -> 'AdapterConfiguration':
 		variables = extract_variables(window)
-		command = sublime.expand_variables(json['command'], variables) 
+		command = sublime.expand_variables(json['command'], variables)
 		vscode_package_file = json.get('vscode-package-file')
 		if vscode_package_file:
 			vscode_package_file = sublime.expand_variables(vscode_package_file, variables)
@@ -60,15 +62,16 @@ class AdapterConfiguration:
 		installation = None
 		if install_json:
 			installation = AdapterConfiguration.Installation.from_json(install_json)
-			
+
 		return AdapterConfiguration(
-			type, 
+			type,
 			command,
 			json.get('tcp_port'),
 			json.get('tcp_address'),
 			vscode_package_file,
 			installation
 		)
+
 
 @core.async
 def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:
@@ -84,7 +87,7 @@ def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:
 			j = json.load(file)
 			for debugger in j['contributes']['debuggers']:
 				snippets.extend(debugger.get('configurationSnippets', []))
-					
+
 		with open(snippets_output_file, 'w') as file:
 			content = json.dumps(snippets)
 
@@ -94,11 +97,12 @@ def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:
 			content = content.replace('\\\"', '')
 			file.write(content)
 
-		print ('snippets found: ', snippets)
+		print('snippets found: ', snippets)
 	except Exception as e:
 		print('Failed to find debug configuration snippets in vscode package.json file, ', str(e))
 
 	adapter.load_installation_if_needed()
+
 
 def _install_adapter_blocking(adapter: AdapterConfiguration):
 	install_cfg = adapter.installation
@@ -119,7 +123,7 @@ def _install_adapter_blocking(adapter: AdapterConfiguration):
 		print("Adapter %s already exists, deleting folder" % (adapter_path,))
 		shutil.rmtree(adapter_path, ignore_errors=True)
 
-	request = urllib.request.Request(url, headers =  {
+	request = urllib.request.Request(url, headers={
 		"Accept-Encoding": "gzip"
 	})
 
@@ -127,7 +131,7 @@ def _install_adapter_blocking(adapter: AdapterConfiguration):
 	if response.getcode() != 200:
 		raise Exception("Bad response from server, got code %d" % (response.getcode(),))
 	os.mkdir(adapter_path)
-	
+
 	content_encoding = response.headers.get('Content-Encoding')
 	if content_encoding == 'gzip':
 		response = gzip.GzipFile(fileobj=response) #type: ignore
