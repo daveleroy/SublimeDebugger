@@ -4,7 +4,7 @@ html {
 }
 .dark {
 	--text-color: var(--foreground);
-	--panel-color: color(var(--background) blend(black 90%));
+	--panel-color: color(var(--background) blend(black 80%));
 	--input-color: color(var(--background) blend(black 80%));
 	--segment-color: color(var(--background) blend(black 70%));
 	--label-color: var(--text-color);

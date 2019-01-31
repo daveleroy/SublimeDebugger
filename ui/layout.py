@@ -40,36 +40,9 @@ class Layout:
 		self.add_component(item)
 		self.focused = None #type: Optional['Component']
 		self.requires_render = True
-		self.css = _all_css
 		
 	def dirty(self) -> None:
 		self.requires_render = True
-
-	def remove_component_children(self, item: 'Component') -> None:
-		for inner_item in item.render_items:
-			assert inner_item.layout
-			inner_item.layout.remove_component(inner_item)
-			
-		item.render_items = []
-
-	def remove_component(self, item: 'Component') -> None:
-		if self.focused == item:
-			print('unfocusing removed item')
-			self.unfocus(item)
-			
-		self.remove_component_children(item)
-
-		item.removed()
-		item.layout = None
-		
-	def add_component_children(self, item: 'Component') -> None:
-		for item in item.render_items:
-			self.add_component(item)
-
-	def add_component(self, item: 'Component') -> None:
-		assert not item.layout, 'This item already has a layout?'
-		item.layout = self
-		item.added(self)
 
 	def focus(self, item: 'Component') -> None:
 		if self.focused == item: return #already focused
@@ -84,13 +57,57 @@ class Layout:
 		self.focused.on_unfocus()
 		self.focused = None
 
+	
+	def remove_component_children(self, item: 'Component') -> None:
+		for child in item.children:
+			assert child.layout
+			child.layout.remove_component(child)
+			
+		item.children = []
+
+	def remove_component(self, item: 'Component') -> None:
+		if self.focused == item:
+			print('unfocusing removed item')
+			self.unfocus(item)
+			
+		self.remove_component_children(item)
+
+		item.removed()
+		item.layout = None
+		
+	def add_component_children(self, item: 'Component') -> None:
+		for item in item.children:
+			self.add_component(item)
+
+	def add_component(self, item: 'Component') -> None:
+		assert not item.layout, 'This item already has a layout?'
+		item.layout = self
+		item.added(self)
+
+	def render_component_tree(self, item: 'Component') -> None:
+		item.requires_render = False
+		self.remove_component_children(item)
+		item.children = item.render()
+		self.add_component_children(item)
+
+		for child in item.children:
+			self.render_component_tree(child)
+
+	def render_component(self, item: 'Component') -> None:
+		if item.requires_render:
+			self.render_component_tree(item)
+		else:
+			for child in item.children:
+				self.render_component(child)
+
 	def render(self) -> bool:
 		if not self.requires_render:
 			return False
 
 		self.on_click_handlers = {}
-		self.item.render_dirty(self)
+		self.render_component(self.item)
 		self.html = self.item.html(self)
+		self.css = _all_css
 		self.requires_render = False
 		return True
 
@@ -98,6 +115,8 @@ class Layout:
 		self.remove_component(self.item)
 
 	def em_width(self) -> float:
+		assert False, 'not implemented'
+	def width(self) -> float:
 		assert False, 'not implemented'
 
 	# internal functions

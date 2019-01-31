@@ -10,7 +10,7 @@ from sublime_db.core.typecheck import (
 #for mypy
 if TYPE_CHECKING: from .component import Component
 
-from .layout import Layout
+from .layout import Layout, reload_css
 
 import sublime
 
@@ -45,6 +45,11 @@ _renderables = [] #type: List[Renderable]
 _renderables_remove = [] #type: List[Renderable]
 _renderables_add = [] #type: List[Renderable]
 
+def reload() -> None:
+	reload_css()
+	for renderable in _renderables:
+		renderable.force_dirty()
+
 def render () -> None:
 	_renderables.extend(_renderables_add)
 	
@@ -77,6 +82,8 @@ def render () -> None:
 	sublime.set_timeout(on_sublime_thread, 0)
 
 class Renderable:
+	def force_dirty(self) -> None:
+		assert False
 	def render(self) -> bool:
 		assert False
 	def render_sublime(self) -> None:
@@ -98,10 +105,18 @@ class Phantom(Layout, Renderable):
 		Phantom.id += 1
 		self.region_id = 'phantom_{}'.format(Phantom.id)
 		self.view.add_regions(self.region_id, [self.region], flags = sublime.DRAW_NO_FILL)
-
+		self._width = 0
 		_renderables_add.append(self)
 
+	def force_dirty(self) -> None:
+		self.item.dirty()
+
 	def render(self) -> bool:
+		width = self.view.viewport_extent()[0]
+		if self._width != width:
+			self.item.dirty()
+			self._width = width
+
 		if super().render() or not self.cachedPhantom:
 			html = '''<body id="debug"><style>{}</style>{}</body>'''.format(self.css, self.html)
 			# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
@@ -120,7 +135,9 @@ class Phantom(Layout, Renderable):
 	def em_width(self) -> float:
 		size = self.view.settings().get('font_size') or 12
 		return self.view.em_width() / size
-
+	def width(self) -> float:
+		size = self.view.settings().get('font_size') or 12
+		return self._width/size
 	def dispose(self) -> None:
 		super().dispose()
 		_renderables_remove.append(self)
@@ -146,6 +163,9 @@ class Popup(Layout, Renderable):
 
 		_renderables_add.append(self)
 		self.is_hidden = False
+
+	def force_dirty(self) -> None:
+		self.item.dirty()
 
 	def on_hide(self) -> None:
 		self.is_hidden = True
