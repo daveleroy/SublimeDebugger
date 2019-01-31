@@ -10,12 +10,12 @@ This project attemps to match Visual Studio Code's Debugger fairly closely so th
   - You can add your own to the [settings file](https://github.com/daveleroy/sublime_db/blob/master/debug.sublime-settings)
 
 - Add a configuration ```Debugger: Add Configuration``` from the command palette (or add one manually, see below).
-  - Configurations are added to `configurations` in user settings or `debug.configurations` in project settings and use the same configuration format as Visual Studio Code. Most adapters come with some configuration snippets. 
+  - Configurations are added to `debug.configurations` in project settings and use the same configuration format as Visual Studio Code. Most adapters come with some configuration snippets. 
   - Add configuration can also be accessed by clicking the gear icon and selecting `-- Add Configuration --`.
   - If you are running in a sublime project these configuration snippets can be inserted automatically into your settings in your project file.
   - Example configuration
 ```
-{
+"debug.configurations" : {
 	"name" : "Name of your configuration", 
 	"request" : "launch",
 	"type" : "adapter name",
