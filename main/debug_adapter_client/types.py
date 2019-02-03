@@ -20,9 +20,8 @@ class Thread:
 		self.id = id
 		self.name = name
 		self.stopped = False
-		self.selected = False
+		self.stopped_text = ""
 		self.expanded = False
-
 
 class StackFrame:
 	normal = 1

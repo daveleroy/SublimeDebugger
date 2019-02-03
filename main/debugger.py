@@ -56,6 +56,7 @@ class DebuggerState:
 
 		self.adapter = None #type: Optional[DebugAdapterClient]
 		self.process = None #type: Optional[Process]
+		self.launch_request = True
 
 		self.selected_frame = None #type: Optional[StackFrame]
 		self.selected_thread = None #type: Optional[Thread]
@@ -159,8 +160,10 @@ class DebuggerState:
 			breakpoints.add_filter(id, name, default)
 
 		if configuration.request == 'launch':
+			self.launch_request = True
 			yield from adapter.Launch(configuration.all)
 		elif configuration.request == 'attach':
+			self.launch_request = False
 			yield from adapter.Attach(configuration.all)
 		else:
 			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
@@ -199,15 +202,26 @@ class DebuggerState:
 	def update_breakpoints_for_file(self, file: str, breakpoints: List[Breakpoint]) -> None:
 		if self.adapter:
 			core.run(self.adapter.SetBreakpointsFile(file, breakpoints))
-
+			
 	def stop(self) -> core.awaitable[None]:
+		# the adapter isn't stopping and stop is called again we force stop it
 		if not self.adapter or self.state == DebuggerState.stopping:
 			self.force_stop_adapter()
 			return
 
 		self.state = DebuggerState.stopping
-		yield from self.adapter.Disconnect()
-		self.force_stop_adapter()
+
+		# this seems to be what the spec says to do in the overview
+		# https://microsoft.github.io/debug-adapter-protocol/overview
+		if self.launch_request:
+			try:
+				yield from self.adapter.Terminate()
+			except Error as e:
+				yield from self.adapter.Disconnect()
+				self.force_stop_adapter()
+		else:
+			yield from self.adapter.Disconnect()
+			self.force_stop_adapter()
 
 	def resume(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'

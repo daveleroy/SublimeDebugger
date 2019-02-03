@@ -23,12 +23,6 @@ from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, Comple
 from .transport import Transport
 
 
-class DebuggerState:
-	exited = 1
-	stopped = 2
-	running = 3
-
-
 class StoppedEvent:
 	def __init__(self, thread: Thread, allThreadsStopped: bool, reason: str, text: Optional[str]) -> None:
 		self.thread = thread
@@ -70,7 +64,6 @@ class DebugAdapterClient:
 		self.on_error_event = core.Event() #type: core.Event[str]
 		self.is_running = True
 		self._on_initialized_future = core.main_loop.create_future()
-		self._on_terminated_future = core.main_loop.create_future()
 		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
 
 	def transport_closed(self) -> None:
@@ -125,10 +118,14 @@ class DebugAdapterClient:
 		})
 
 	@core.async
+	def Terminate(self) -> core.awaitable[None]:
+		yield from self.send_request_asyc('terminate', {
+		})
+
+	@core.async
 	def Disconnect(self) -> core.awaitable[None]:
 		yield from self.send_request_asyc('disconnect', {
 		})
-		yield from self._on_terminated_future
 
 	@core.async
 	def GetScopes(self, frame: StackFrame) -> core.awaitable[List[Scope]]:
@@ -316,7 +313,7 @@ class DebugAdapterClient:
 			for breakpoint, breakpoint_result in zip(breakpoints, breakpoints_result):
 				self._merg_breakpoint(breakpoint, breakpoint_result)
 				id = breakpoint_result.get('id')
-				if not id is None:
+				if id is not None:
 					self.breakpoints_for_id[id] = breakpoint
 
 		except Exception as e:
@@ -405,28 +402,39 @@ class DebugAdapterClient:
 		threadId = body.get('threadId', None)
 		allThreadsStopped = body.get('allThreadsStopped', False)
 
+		# stopped events are required to have a reason but some adapters treat it as optional...
+		description = body.get('description')
+		text = body.get('text')
+		reason = body.get('reason')
+
+		if description and text:
+			stopped_text = "Stopped: {}: {}".format(description, text)
+		elif text or description or reason:
+			stopped_text = "Stopped: {}".format(text or description or reason)
+		else:
+			stopped_text = "Stopped"
+
 		thread_for_event = self._thread_for_id(threadId)
 		thread_for_event.stopped = True
+		thread_for_event.stopped_text = stopped_text
 		thread_for_event.expanded = True
 
 		if allThreadsStopped:
 			self.allThreadsStopped = True
 			for thread in self.threads:
 				thread.stopped = True
+				thread.stopped_text = stopped_text
 
 		# we aren't going to post that we changed the threads
 		# we will let the threadsCommandBase to that for us so we don't update the UI twice
 		self.threadsCommandBase()
 
-		# stopped events are required to have a reason but some adapters treat it as optional...
-		description = body.get('description') or body.get('reason') or 'unknown reason' #type: str
-		event = StoppedEvent(self._thread_for_id(threadId), allThreadsStopped, description, body.get('text'))
+		event = StoppedEvent(self._thread_for_id(threadId), allThreadsStopped, description, text)
 		self.onStopped.post(event)
 
 	def _on_terminated(self, body: dict) -> None:
 		self.is_running = False
 		self.onExited.post(None)
-		self._on_terminated_future.set_result(None)
 
 	def _on_output(self, body: dict) -> None:
 		category = body.get('category', 'console')
