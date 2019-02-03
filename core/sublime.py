@@ -28,14 +28,18 @@ def sublime_open_file_async(window: sublime.Window, file: str, line: Optional[in
 		if view.is_loading():
 			# FIXME this is terrible
 			handle = Handle(ui.view_loaded, None) #type: ignore
+
+			# this is called on our main thread
 			def loaded_view(v: sublime.View) -> None:
 				if view.id() == v.id():
 					future_view.set_result(view)
 					handle.dispose()
+
 			handle.callback = loaded_view
 			ui.view_loaded.add_handle(handle)
 		else:
-			future_view.set_result(view)
+			# still on sublimes main thread so we need to set the result on our main thread
+			main_loop.call_soon_threadsafe(future_view.set_result, view)
 
 	sublime.set_timeout(on_sublime_main, 0)
 
@@ -51,7 +55,7 @@ def sublime_open_file_async(window: sublime.Window, file: str, line: Optional[in
 @async
 def sublime_show_quick_panel_async(window: sublime.Window, items: List[str], selected_index: int) -> awaitable[int]:
 	done = main_loop.create_future()
-	window.show_quick_panel(items, lambda index: done.set_result(index), selected_index = selected_index)
+	window.show_quick_panel(items, lambda index: main_loop.call_soon_threadsafe(done.set_result, index), selected_index = selected_index)
 	r = yield from done
 	return r
 
@@ -61,9 +65,10 @@ def sublime_show_input_panel_async(window: sublime.Window, caption: str, initial
 	active_panel = window.active_panel()
 	
 	def on_done(value: str) -> None:
-		result.set_result(value)
+		main_loop.call_soon_threadsafe(result.set_result, value)
+		
 	def on_cancel() -> None:
-		result.set_result(None)
+		main_loop.call_soon_threadsafe(result.set_result, None)
 
 	view = window.show_input_panel(caption, initial_text, on_done, on_change, on_cancel)
 	r = yield from result

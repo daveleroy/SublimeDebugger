@@ -53,3 +53,4 @@ class EventDispatchMain(Event[T], Generic[T]):
 
 	def post(self, data: T) -> None:
 		main_loop.call_soon_threadsafe(self._post, data)
+

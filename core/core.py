@@ -72,10 +72,16 @@ def require_main_thread(function):
     return wrapper
 
 
-def run(awaitable: awaitable[T], on_done: Optional[Callable[[T], None]] = None) -> None:
-	task = main_loop.create_task(awaitable)
+def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: Callable[[Exception], None] = None) -> None:
+	task = asyncio.ensure_future(awaitable, loop=main_loop)
 
 	def done(task) -> None:
+		exception = task.exception()
+
+		if on_error and exception:
+			on_error(exception)
+			return
+
 		result = task.result()
 		if on_done:
 			on_done(result)
@@ -84,7 +90,11 @@ def run(awaitable: awaitable[T], on_done: Optional[Callable[[T], None]] = None) 
 
 
 def assert_main_thread() -> None:
-	assert threading.current_thread() == _main_thread, 'expecting main thread'
+	assert is_main_thred(), 'expecting main thread'
+
+
+def is_main_thred() -> bool:
+	return threading.current_thread() == _main_thread
 
 
 def display(msg: 'Any') -> None:

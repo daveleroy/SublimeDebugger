@@ -127,17 +127,15 @@ class Layout:
 	def width(self) -> float:
 		assert False, 'not implemented'
 
-	# internal functions
-	@core.async
-	def on_navigate_main(self, path: str) -> core.awaitable[None]:
+	def on_navigate_main(self, path: str):
 		id = int(path)
 		if id in self.on_click_handlers:
-    			self.on_click_handlers[id]()
+			self.on_click_handlers[id]()
 
 	def on_navigate(self, path: str) -> None:
 		# ensure this gets dispatched on our main thread not sublime's
-		core.run(self.on_navigate_main(path))
-
+		core.main_loop.call_soon_threadsafe(self.on_navigate_main, path)
+		
 	def register_on_click_handler(self, callback: 'Callable') -> str:
 		self.on_click_handlers_id += 1
 		id = self.on_click_handlers_id
