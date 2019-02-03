@@ -35,7 +35,6 @@ def reload_css() -> None:
 	for file in _css_files:
 		_add_css_from_file(file)
 
-
 class Layout:
 	def __init__(self, item: 'Component') -> None:
 		assert item.layout == None, 'item is already added to a layout'
@@ -45,9 +44,12 @@ class Layout:
 		self.add_component(item)
 		self.focused = None #type: Optional['Component']
 		self.requires_render = True
+		self.dirty()
 
 	def dirty(self) -> None:
+		from .render import schedule_render
 		self.requires_render = True
+		schedule_render()
 
 	def focus(self, item: 'Component') -> None:
 		if self.focused == item:

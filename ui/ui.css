@@ -6,14 +6,14 @@ html {
 	--text-color: var(--foreground);
 	--panel-color: color(var(--background) blend(black 80%));
 	--input-color: color(var(--background) blend(black 80%));
-	--segment-color: color(var(--background) blend(black 70%));
+	--segment-color: color(var(--background) blend(black 60%));
 	--label-color: var(--text-color);
 }
 .light {
 	--text-color: var(--foreground);
-	--panel-color: color(var(--background) blend(black 90%));
-	--input-color: color(var(--background) blend(black 95%));
-	--segment-color: color(var(--background) blend(black 85%));
+	--panel-color: color(var(--background) blend(black 80%));
+	--input-color: color(var(--background) blend(black 70%));
+	--segment-color: color(var(--background) blend(black 60%));
 	--label-color: var(--text-color);
 }
 .secondary {

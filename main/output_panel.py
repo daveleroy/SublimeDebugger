@@ -115,7 +115,6 @@ class OutputPhantomsPanel:
 		if self.promptPhantom:
 			self.promptPhantom.dispose()
 		self.promptPhantom = ui.Phantom(CommandPrompComponent(input_handler.label), self.view, sublime.Region(1, 1))
-		ui.render() # force render so there is no delay
 
 	def clear_input_handler(self, input_handler: PanelInputHandler, text: Optional[str]) -> None:
 		if not self.input_handler:
@@ -126,7 +125,6 @@ class OutputPhantomsPanel:
 		if self.promptPhantom:
 			self.promptPhantom.dispose()
 			self.promptPhantom = None
-			ui.render() # force render so there is no delay
 
 		self.header_text = ''
 		self.view.run_command('debug_output_phantoms_panel_reset', {

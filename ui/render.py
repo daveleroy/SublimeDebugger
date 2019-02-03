@@ -9,41 +9,30 @@ from sublime_db.core.typecheck import (
 	TYPE_CHECKING
 )
 
+from sublime_db import core
+
 # for mypy
 if TYPE_CHECKING:
 	from .component import Component
 
 
-_timers = set() #type: Set[Timer]
-
-
 class Timer:
-	def __init__(self, interval: float, callback: Callable[[], None]) -> None:
+	def __init__(self, callback: Callable[[], None], interval: float, repeat: bool) -> None:
 		self.interval = interval
-		self.current_time = 0.0
 		self.callback = callback
+		self.cancelable = core.main_loop.call_later(interval, self.on_complete)
+		self.repeat = repeat
 
-	def update(self, delta: float) -> None:
-		self.current_time += delta
-		while self.current_time > self.interval:
-			self.callback()
-			self.current_time -= self.interval
+	def schedule(self) -> None:
+		self.cancelable = core.main_loop.call_later(self.interval, self.on_complete)
+
+	def on_complete(self) -> None:
+		self.callback()
+		if self.repeat:
+			self.schedule()
 
 	def dispose(self) -> None:
-		remove_timer(self)
-
-
-def add_timer(timer: Timer) -> None:
-	_timers.add(timer)
-
-
-def remove_timer(timer: Timer) -> None:
-	_timers.discard(timer)
-
-
-def update(delta: float) -> None:
-	for timer in _timers:
-		timer.update(delta)
+		self.cancelable.cancel()
 
 
 _renderables = [] #type: List[Renderable]
@@ -52,9 +41,29 @@ _renderables_add = [] #type: List[Renderable]
 
 
 def reload() -> None:
+	schedule_render()
 	reload_css()
 	for renderable in _renderables:
 		renderable.force_dirty()
+
+
+_render_scheduled = False
+
+
+def schedule_render() -> None:
+	global _render_scheduled
+	if _render_scheduled:
+		return
+
+	_render_scheduled = True
+	core.run(render_scheduled())
+
+
+@core.async
+def render_scheduled() -> core.awaitable[None]:
+	global _render_scheduled
+	render()
+	_render_scheduled = False
 
 
 def render() -> None:
@@ -132,8 +141,9 @@ class Phantom(Layout, Renderable):
 		if super().render() or not self.cachedPhantom:
 			html = '''<body id="debug"><style>{}</style>{}</body>'''.format(self.css, self.html)
 			# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
-			region = self.view.get_regions(self.region_id)[0]
-			self.cachedPhantom = sublime.Phantom(region, html, self.layout, self.on_navigate)
+			regions = self.view.get_regions(self.region_id)
+			if regions:
+				self.cachedPhantom = sublime.Phantom(regions[0], html, self.layout, self.on_navigate)
 			return True
 		return False
 

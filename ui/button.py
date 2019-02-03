@@ -7,8 +7,8 @@ from sublime_db.core.typecheck import (
 )
 from .component import Component, ComponentInline
 from .layout import Layout
-from .render import Timer, add_timer
-
+from .render import Timer
+from time import time
 
 class OnClick (ComponentInline):
 	def __init__(self, on_click: Callable[[], None], items: List[Component]) -> None:
@@ -44,27 +44,15 @@ class ButtonDoubleClick (OnClick):
 		self.items = items
 		self.on_click_callback = on_click
 		self.on_double_click = on_double_click
-		self.is_double_click = False
-		self.is_double_click_timer = None #type: Optional[Timer]
-
-	def removed(self) -> None:
-		if self.is_double_click_timer:
-			self.is_double_click_timer.dispose()
-
-	def on_is_double_click_timer(self) -> None:
-		self.is_double_click = False
+		self.last_single_click_time = 0.0
 
 	def on_clicked(self) -> None:
-		if self.is_double_click:
-			self.is_double_click = False
+		now = time()
+		if now - self.last_single_click_time < 0.5:
 			self.on_double_click()
-
-		self.is_double_click = True
-		if self.is_double_click_timer:
-			self.is_double_click_timer.dispose()
-
-		self.is_double_click_timer = Timer(0.5, self.on_is_double_click_timer)
-		add_timer(self.is_double_click_timer)
+			self.last_single_click_time = 0.0
+		else:
+			self.last_single_click_time = now
 
 		if self.on_click_callback:
 			self.on_click_callback()
