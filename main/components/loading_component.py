@@ -6,7 +6,7 @@ from sublime_db import ui
 class LoadingComponent (ui.ComponentInline):
 	def __init__(self) -> None:
 		super().__init__()
-		self.timer = ui.Timer(0.3, self.on_timer)
+		self.timer = None #type: ui.Timer
 		self.tick = 0
 		self.images = [] #type: List[ui.Component]
 
@@ -22,10 +22,13 @@ class LoadingComponent (ui.ComponentInline):
 		self.dirty()
 
 	def added(self, layout: ui.Layout) -> None:
-		ui.add_timer(self.timer)
+		if timer:
+			self.timer.dispose()
+		self.timer = ui.Timer(self.on_timer, 0.3, repeats=True)
 
 	def removed(self) -> None:
-		ui.remove_timer(self.timer)
+		if timer:
+			self.timer.dispose()
 
 	def render(self) -> ui.components:
 		return self.images
