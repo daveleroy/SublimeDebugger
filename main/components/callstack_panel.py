@@ -32,7 +32,7 @@ class CallStackPanel (ui.Component):
 		self.dirty_threads()
 
 	def has_selection(self) -> bool:
-		return self.selected_thread is not None
+		return self.debugger.thread is not None
 
 	def has_selection_frame(self) -> bool:
 		return self.selected_frame_index is not None
@@ -41,17 +41,10 @@ class CallStackPanel (ui.Component):
 		for thread_component in self.thread_components:
 			thread_component.dirty()
 
-	def dirty(self) -> None:
-		super().dirty()
-		print('DIRTY')
-
 	def update(self, debugger: DebuggerState, threads: List[Thread]) -> None:
 		self.threads = threads
 		self.debugger = debugger
 		self.dirty()
-		self.dirty_threads()
-		for thread in threads:
-			print(str(thread.stopped))
 
 	def render(self) -> ui.components:
 		self.thread_components = []
@@ -133,8 +126,19 @@ class ThreadComponent (ui.Component):
 			print('fetching thread frames')
 
 			def response(frames: List[StackFrame]) -> None:
-				if frames and self.panel.selected_thread == self.thread and not self.panel.has_selection_frame():
-					self.panel.set_selected(self.thread, frames[0], 0)
+				if not frames:
+					self.frames = frames
+					self.dirty()
+					return
+
+				if self.panel.selected_thread == self.thread and not self.panel.has_selection_frame():
+					for i, frame in enumerate(frames):
+						if frame.presentation != StackFrame.subtle:
+							self.panel.set_selected(self.thread, frame, i)
+							break
+					else:
+						self.panel.set_selected(self.thread, frame[0], 0)
+
 				self.frames = frames
 				self.dirty()
 

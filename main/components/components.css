@@ -5,10 +5,10 @@
 	padding-left: var(--width);
 }
 .TableItem .selected {
-	background-color: rgba(102, 153, 255, 0.2);
+	background-color: rgba(50, 225, 175, 0.2);
 }
 .Items .selected {
-	background-color: rgba(102, 153, 255, 0.2);
+	background-color: rgba(50, 225, 175, 0.2);
 }
 
 .StackframeSelectedError {
@@ -35,12 +35,18 @@
 	padding-left: 3px;
 }
 
+.BreakpintsComponent .Table {
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
 .DebuggerItem {
 	background-color: var(--segment-color);
 	border-radius: 10px;
 	padding-left: 7px;
 	padding-right: 7px;
 	padding-bottom: 3px;
+	margin-bottom: 2px;
 }
 
 .PageTab {
@@ -60,17 +66,26 @@
 }
 .TabbedPanel .Panel {
 	border-top-left-radius: 0px;
+	padding-top: 2px;
 }
-
 .VariablesPanel {
 	margin-top: 1.8rem;
-	padding-right: 3px;
-
 }
 .UnderlineComponent {
 	position: absolute;
 	margin-bottom: 5px;
 	height: 1px;
 	width: 100rem;
-	background-color: rgba(102, 153, 255, 0.2);
+	background-color: rgba(50, 225, 175, 0.25);
+}
+
+.SelectedLineText {
+	height: 1.9rem;
+	padding-left: 2rem;
+	padding-top: -0.15rem;
+	--text-color: rgba(50, 225, 175, 0.5);
+}
+
+.CommandPrompComponent {
+	padding-left: 3rem;
 }

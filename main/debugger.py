@@ -46,7 +46,7 @@ class DebuggerState:
               on_threads: Callable[[List[Thread]], None],
               on_scopes: Callable[[List[Scope]], None],
               on_output: Callable[[OutputEvent], None],
-              on_selected_frame: Callable[[Optional[StackFrame]], None]
+              on_selected_frame: Callable[[Optional[Thread], Optional[StackFrame]], None]
               ) -> None:
 		self.on_state_changed = on_state_changed
 		self.on_threads = on_threads
@@ -178,7 +178,7 @@ class DebuggerState:
 
 		self.on_threads([])
 		self.on_scopes([])
-		self.on_selected_frame(None)
+		self.on_selected_frame(None, None)
 
 		self.state = DebuggerState.stopped
 		if self.adapter:
@@ -189,7 +189,7 @@ class DebuggerState:
 			self.process = None
 
 	def _refresh_state(self) -> None:
-		thread = self._thread_for_commands()
+		thread = self._selected_or_first_thread()
 		if thread and thread.stopped:
 			self.state = DebuggerState.paused
 		else:
@@ -225,39 +225,29 @@ class DebuggerState:
 
 	def resume(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
-		thread = self._thread_for_commands()
-		assert thread, 'no thread for command'
-		yield from self.adapter.Resume(thread)
+		yield from self.adapter.Resume(self._thread_for_command())
 
 	def pause(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
-		thread = self._thread_for_commands()
-		assert thread, 'no thread for command'
-		yield from self.adapter.Pause(thread)
+		yield from self.adapter.Pause(self._thread_for_command())
 
 	def step_over(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
-		thread = self._thread_for_commands()
-		assert thread, 'no thread for command'
-		yield from self.adapter.StepOver(thread)
+		yield from self.adapter.StepOver(self._thread_for_command())
 
 	def step_in(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
-		thread = self._thread_for_commands()
-		assert thread, 'no thread for command'
-		yield from self.adapter.StepIn(thread)
+		yield from self.adapter.StepIn(self._thread_for_command())
 
 	def step_out(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
-		thread = self._thread_for_commands()
-		assert thread, 'no thread for command'
-		yield from self.adapter.StepOut(thread)
+		yield from self.adapter.StepOut(self._thread_for_command())
 
 	def set_selected_frame(self, frame: Optional[StackFrame]) -> None:
 		new_frame = self.frame != frame
 		self.frame = frame
 		if new_frame:
-			self.on_selected_frame(frame)
+			self.on_selected_frame(self.thread, frame)
 			self._refresh_state()
 			if self.adapter and frame:
 				core.run(self.adapter.GetScopes(frame), self.on_scopes)
@@ -278,8 +268,16 @@ class DebuggerState:
 		output = OutputEvent("stdout", message, 0)
 		self.on_output(output)
 
+	def _unselect_thread_if_not_found(self) -> None:
+		for thread in self.threads:
+			if thread == self.thread:
+				return
+		self.set_selected_thread(None)
+		self.set_selected_frame(None)
+
 	def _on_threads_event(self, threads: Optional[List[Thread]]) -> None:
 		self.threads = threads or []
+		self._unselect_thread_if_not_found()
 		self.on_threads(threads or [])
 
 	def _on_output_event(self, event: OutputEvent) -> None:
@@ -289,12 +287,17 @@ class DebuggerState:
 		self._refresh_state()
 		self.stopped_reason = event.reason
 
-	def _thread_for_commands(self) -> Optional[Thread]:
+	def _thread_for_command(self) -> Thread:
+		thread = self._selected_or_first_thread()
+		if not thread:
+			raise Exception('No thread to run command')
+		return thread
+	def _selected_or_first_thread(self) -> Optional[Thread]:
 		if self.thread:
 			return self.thread
 		if self.threads:
 			return self.threads[0]
-		raise Exception("No thread for command")
+		return None
 
 	def _on_continued_event(self, event: ContinuedEvent) -> None:
 		if not event:

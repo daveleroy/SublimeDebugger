@@ -168,6 +168,11 @@ class DebugOutputPhantomsPanelSetupCommand(sublime_plugin.TextCommand):
 		self.view.insert(edit, 0, _phantom_text)
 
 
+class DebugSetContentsCommand(sublime_plugin.TextCommand):
+	def run(self, edit, characters):
+		self.view.erase(edit, sublime.Region(0, self.view.size()))
+		self.view.insert(edit, 0, characters)
+
 class DebugOutputPhantomsPanelResetCommand(sublime_plugin.TextCommand):
 	def run(self, edit, header, characters):
 		region = sublime.Region(0, self.view.size() - len(_phantom_text) + 1)

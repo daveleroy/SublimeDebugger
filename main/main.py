@@ -36,21 +36,32 @@ from .debugger import (
 
 from .output_panel import OutputPhantomsPanel, PanelInputHandler
 
+class SelectedLineText(ui.Component):
+	def __init__(self, text: str) -> None:
+		super().__init__()
+		self.text = text
+	def render(self) -> ui.components:
+		return [
+			ui.Label(self.text)
+		]
 
 class SelectedLine:
-	def __init__(self, view: sublime.View, line: int):
+	def __init__(self, view: sublime.View, line: int, text: str):
 		pt_current_line = view.text_point(line, 0)
 		pt_prev_line = view.text_point(line - 1, 0)
+		pt_next_line = view.text_point(line +1, 0)
 		line_prev = view.line(pt_current_line)
 		line_current = view.line(pt_prev_line)
 
 		self.top_line = ui.Phantom(UnderlineComponent(), view, line_current, sublime.LAYOUT_BELOW)
+		self.text = ui.Phantom(SelectedLineText(text), view, sublime.Region(pt_next_line-1, pt_next_line-1), sublime.LAYOUT_INLINE)
 		self.bottom_line = ui.Phantom(UnderlineComponent(), view, line_prev, sublime.LAYOUT_BELOW)
-
+		
 	def dispose(self):
 		self.top_line.dispose()
+		self.text.dispose()
 		self.bottom_line.dispose()
-
+		
 
 class Main (DebuggerPanelCallbacks):
 	instances = {} #type: Dict[int, Main]
@@ -80,7 +91,6 @@ class Main (DebuggerPanelCallbacks):
 	def open_repl_console(self) -> None:
 		prev_view = self.window.active_view()
 		self.window.focus_view(self.view)
-
 		def on_done(value: Optional[str]) -> None:
 			if value:
 				self.run_async(run_repl_command(value, self.debugger, self.console_panel))
@@ -93,7 +103,7 @@ class Main (DebuggerPanelCallbacks):
 
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
-
+		
 		data = window.project_data()
 		project_name = window.project_file_name()
 		if not data or not project_name:
@@ -105,7 +115,6 @@ class Main (DebuggerPanelCallbacks):
 		window.set_project_data(data)
 
 		ui.set_create_input_handler(window, self.create_input_handler)
-
 		self.input_open = False
 		self.window = window
 		self.disposeables = [] #type: List[Any]
@@ -117,9 +126,9 @@ class Main (DebuggerPanelCallbacks):
 		self.breakpoints_panel = BreakpintsComponent(self.breakpoints, self.onSelectedBreakpoint)
 
 		self.pages_panel = TabbedPanel([
-			["Breakpoints", self.breakpoints_panel],
-			["Call Stack", self.callstack_panel],
-			["Console", self.console_panel],
+			("Breakpoints", self.breakpoints_panel),
+			("Call Stack", self.callstack_panel),
+			("Console", self.console_panel),
 		], 0)
 		self.debugger_panel = DebuggerPanel(self.breakpoints, self)
 
@@ -147,10 +156,11 @@ class Main (DebuggerPanelCallbacks):
 		def on_scopes(scopes: List[Scope]) -> None:
 			self.variables_panel.set_scopes(scopes)
 
-		def on_selected_frame(frame: Optional[StackFrame]) -> None:
-			self.dispose_selected_frame()
-			if frame:
-				self.run_async(self.navigate_to_frame(frame))
+		def on_selected_frame(thread: Optional[Thread], frame: Optional[StackFrame]) -> None:
+			if frame and thread:
+				self.run_async(self.navigate_to_frame(thread, frame))
+			else:
+				self.dispose_selected_frame()
 
 		def on_output(event: OutputEvent) -> None:
 			category = event.category
@@ -269,6 +279,7 @@ class Main (DebuggerPanelCallbacks):
 	def show(self) -> None:
 		self.panel.show()
 
+
 	@core.async
 	def SelectConfiguration(self) -> core.awaitable[None]:
 		selected_index = None #type: Optional[int]
@@ -354,7 +365,7 @@ class Main (DebuggerPanelCallbacks):
 		file = event.view.file_name()
 		if not file:
 			return
-
+	
 		at = event.view.text_point(event.line, 0)
 
 		breakpoint = self.breakpoints.get_breakpoint(file, event.line + 1)
@@ -428,22 +439,16 @@ class Main (DebuggerPanelCallbacks):
 		self.pages_panel.selected(2)
 
 	def run_async(self, awaitable: core.awaitable[None]):
-		task = core.main_loop.create_task(awaitable)
-
-		def done(task) -> None:
-			try:
-				task.result()
-			except Exception as e:
-				self.console_panel.AddStderr(str(e))
-				core.log_exception()
-
-		task.add_done_callback(done)
+		def on_error(e: Exception) -> None:
+			self.console_panel.AddStderr(str(e))
+		core.run(awaitable, on_error = on_error)
 
 	@core.async
-	def navigate_to_frame(self, frame: StackFrame) -> core.awaitable[None]:
+	def navigate_to_frame(self, thread: Thread, frame: StackFrame) -> core.awaitable[None]:
 		source = frame.source
 
 		if not source:
+			self.dispose_selected_frame()
 			return
 
 		# sublime lines are 0 based
@@ -456,19 +461,21 @@ class Main (DebuggerPanelCallbacks):
 				return
 
 			content = yield from self.debugger.adapter.GetSource(source)
-			view = self.window.new_file()
+			view = self.selected_frame_generated_view or self.window.new_file()
+			self.selected_frame_generated_view = None
 			view.set_name(source.name)
-			view.run_command('insert', {
+			view.set_read_only(False)
+			view.run_command('debug_set_contents', {
 				'characters': content
 			})
 			view.set_read_only(True)
 			view.set_scratch(True)
 			selected_frame_generated_view = view
 		elif source.path:
-			view = yield from core.sublime_open_file_async(self.window, source.path, line)
+			view = yield from core.sublime_open_file_async(self.window, source.path)
 		else:
 			return
-
+		view.show(view.text_point(line, 0), True)
 		# We seem to have already selected a differn't frame in the time we loaded the view
 		if frame != self.debugger.frame:
 			# if we generated a view close it
@@ -479,7 +486,7 @@ class Main (DebuggerPanelCallbacks):
 
 		self.dispose_selected_frame()
 		self.selected_frame_generated_view = selected_frame_generated_view
-		self.selected_frame_line = SelectedLine(view, line)
+		self.selected_frame_line = SelectedLine(view, line, thread.stopped_text)
 
 	def dispose_selected_frame(self) -> None:
 		if self.selected_frame_generated_view:
@@ -490,6 +497,7 @@ class Main (DebuggerPanelCallbacks):
 			self.selected_frame_line = None
 
 	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:
+		
 		@core.async
 		def a() -> core.awaitable[None]:
 			view = yield from core.sublime_open_file_async(sublime.active_window(), breakpoint.file, breakpoint.line)
