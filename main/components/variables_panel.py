@@ -12,7 +12,7 @@ from .variable_component import ScopeComponent
 from . import constants
 
 
-class VariablesPanel (ui.Component):
+class VariablesPanel (ui.Block):
 	def __init__(self) -> None:
 		super().__init__()
 		self.scopes = [] #type: List[Scope]
@@ -25,11 +25,11 @@ class VariablesPanel (ui.Component):
 		self.scopes = scopes
 		self.dirty()
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		items = [
-		] #type: List[ui.Component]
+		] #type: List[ui.Block]
 
-		scopes_items = [] #type: List[ui.Component]
+		scopes_items = [] #type: List[ui.Block]
 
 		# expand the first scope only
 		first = True

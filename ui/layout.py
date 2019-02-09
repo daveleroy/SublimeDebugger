@@ -35,9 +35,10 @@ def reload_css() -> None:
 	for file in _css_files:
 		_add_css_from_file(file)
 
+
 class Layout:
 	def __init__(self, item: 'Component') -> None:
-		assert item.layout == None, 'item is already added to a layout'
+		assert item.layout is None, 'item is already added to a layout'
 		self.on_click_handlers = {} #type: Dict[int, Callable]
 		self.on_click_handlers_id = 0
 		self.item = item
@@ -129,6 +130,9 @@ class Layout:
 	def width(self) -> float:
 		assert False, 'not implemented'
 
+	def luminocity(self) -> float:
+		return 0
+
 	def on_navigate_main(self, path: str):
 		id = int(path)
 		if id in self.on_click_handlers:
@@ -137,7 +141,7 @@ class Layout:
 	def on_navigate(self, path: str) -> None:
 		# ensure this gets dispatched on our main thread not sublime's
 		core.main_loop.call_soon_threadsafe(self.on_navigate_main, path)
-		
+
 	def register_on_click_handler(self, callback: 'Callable') -> str:
 		self.on_click_handlers_id += 1
 		id = self.on_click_handlers_id

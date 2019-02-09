@@ -1,6 +1,4 @@
-
 html {
-	margin: 0; padding: 0;
 }
 .dark {
 	--text-color: var(--foreground);
@@ -11,9 +9,9 @@ html {
 }
 .light {
 	--text-color: var(--foreground);
-	--panel-color: color(var(--background) blend(black 80%));
-	--input-color: color(var(--background) blend(black 70%));
-	--segment-color: color(var(--background) blend(black 60%));
+	--panel-color: color(var(--background) blend(black 92%));
+	--input-color: color(var(--background) blend(black 90%));
+	--segment-color: color(var(--background) blend(black 80%));
 	--label-color: var(--text-color);
 }
 .secondary {
@@ -43,18 +41,18 @@ html {
 	border-top-left-radius: 10px;
 	border-top-right-radius: 10px;
 	padding-left: 7px;
-	padding-right: 7px
+	padding-right: 7px;
+	height: var(--height);
 }
 .Box {
 	background-color: var(--segment-color);
 	border-radius: 10px;
 	padding-top: var(--box-padding-top);
 	padding-bottom: var(--box-padding-bottom);
+	border: 1px solid rgba(0,0,0,0.05);
 }
 a {
 	text-decoration: none;
-	padding-top: var(--box-padding-top);
-	padding-bottom: var(--box-padding-bottom);
 }
 .Label {
 	color: var(--label-color);
@@ -67,14 +65,9 @@ a {
 	padding-left: 1rem;
 }
 .TableItem {
-
 }
 .Input {
 	padding-left: 4px;
-}
-.img_span {
-	position: relative;
-	top: var(--img-offset);
 }
 .Input .Box {
 	background-color: var(--input-color);

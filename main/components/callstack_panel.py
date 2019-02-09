@@ -15,7 +15,7 @@ from sublime_db.main.debugger import (
 from . import constants
 
 
-class CallStackPanel (ui.Component):
+class CallStackPanel (ui.Block):
 	def __init__(self) -> None:
 		super().__init__()
 		self.threads = [] #type: List[Thread]
@@ -23,7 +23,7 @@ class CallStackPanel (ui.Component):
 		self.selected_frame_index = None #type: Optional[int]
 		self.thread_components = [] #type: List[ThreadComponent]
 
-	def set_selected(self, thread: Thread, frame: Optional[StackFrame], index: int) -> None:
+	def set_selected(self, thread: Thread, frame: Optional[StackFrame], index: Optional[int]) -> None:
 		self.debugger.set_selected_thread(thread)
 		if frame:
 			self.debugger.set_selected_frame(frame)
@@ -46,7 +46,7 @@ class CallStackPanel (ui.Component):
 		self.debugger = debugger
 		self.dirty()
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		self.thread_components = []
 		for thread in self.threads:
 			item = ThreadComponent(self, thread)
@@ -56,14 +56,14 @@ class CallStackPanel (ui.Component):
 		]
 
 
-class StackFrameComponent (ui.Component):
+class StackFrameComponent (ui.Block):
 	def __init__(self, debugger: DebuggerState, frame: StackFrame, on_click: Callable[[], None]) -> None:
 		super().__init__()
 		self.frame = frame
 		self.debugger = debugger
 		self.on_click = on_click
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		frame = self.frame
 		name = os.path.basename(frame.file)
 		if frame.presentation == StackFrame.subtle:
@@ -85,19 +85,16 @@ class StackFrameComponent (ui.Component):
 		frame_length = max_length
 
 		fileAndLine = ui.Button(on_click=self.on_click, items=[
-			ui.Box(items=[
+			ui.Box(
 				ui.Label(str(frame.line), width=3, color=color),
-			]),
+			),
 			ui.Label(name, width=name_length, padding_left=padding_left, padding_right=padding_right, color=color, align=0),
 			ui.Label(frame.name, width=frame_length, color="secondary", align=0),
 		])
-
-		return [
-			fileAndLine
-		]
+		return [ui.block(fileAndLine)]
 
 
-class ThreadComponent (ui.Component):
+class ThreadComponent (ui.Block):
 	def __init__(self, panel: CallStackPanel, thread: Thread) -> None:
 		super().__init__()
 		self.panel = panel
@@ -137,7 +134,7 @@ class ThreadComponent (ui.Component):
 							self.panel.set_selected(self.thread, frame, i)
 							break
 					else:
-						self.panel.set_selected(self.thread, frame[0], 0)
+						self.panel.set_selected(self.thread, frames[0], 0)
 
 				self.frames = frames
 				self.dirty()
@@ -147,53 +144,51 @@ class ThreadComponent (ui.Component):
 	def onClicked(self, index: int) -> None:
 		self.panel.set_selected(self.thread, self.frames[index], index)
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		max_length = constants.PANEL_CONTENT_MAX_WIDTH - 5
 		if self.thread.stopped:
-			item = ui.Items([
+			item = ui.block(
 				ui.Button(self.toggle, items=[
 					ui.Img((ui.Images.shared.right, ui.Images.shared.down)[self.thread.expanded]),
 				]),
 				ui.Button(self.on_select_thread, items=[
-					ui.Box(items=[
-						ui.Label("", padding_left=0.8),
-						ui.Img(ui.Images.shared.thread),
-						ui.Label("", padding_left=0.8),
-					]),
+					ui.Box(
+						ui.Padding(ui.Img(ui.Images.shared.thread), left=0.8, right=0.8)
+					),
 					ui.Label(self.thread.name, padding_left=0.8, width=max_length, align=0),
 				])
-			])
+			)
 		else:
-			item = ui.Items([
+			item = ui.block(
 				ui.Button(self.on_select_thread, items=[
 					ui.Img(ui.Images.shared.thread_running),
-					ui.Box(items=[
+					ui.Box(
 						ui.Label("", padding_left=0.8),
 						ui.Img(ui.Images.shared.thread),
 						ui.Label("", padding_left=0.8),
-					]),
+					),
 					ui.Label(self.thread.name, padding_left=0.8, width=max_length, align=0),
-
 				]),
-			])
+			)
 
-		items = [item] #type: List[ui.Component]
+		item = ui.Padding(item, top=0.1, bottom=0.1)
+		items = [item] #type: List[ui.Block]
 
 		if self.thread.expanded and self.thread.stopped:
-			frames = [] #type: List[ui.Component]
+			frames = [] #type: List[ui.Block]
 			selected_index = -1
 			if self.panel.selected_thread == self.thread and self.panel.has_selection_frame():
 				selected_index = self.panel.selected_frame_index
 
 			for index, frame in enumerate(self.frames):
 				def on_click(index=index): return self.onClicked(index) #type: ignore
-				component = StackFrameComponent(self.debugger, frame, on_click)
+				component = ui.Padding(StackFrameComponent(self.debugger, frame, on_click), top=0.1, bottom=0.2)
 				frames.append(component)
 
 			table = ui.Table(items=frames, selected_index=selected_index)
 			items.append(table)
 
 		if self.panel.selected_thread == self.thread and not self.panel.has_selection_frame():
-			item.add_class('selected')
+			item.add_class('selected_stack_frame')
 
 		return items

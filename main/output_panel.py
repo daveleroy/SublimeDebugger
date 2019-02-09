@@ -18,15 +18,14 @@ from .debugger import CompletionItem
 _phantom_text = " \n\n\n\n\n\n\n"
 
 
-class CommandPrompComponent (ui.Component):
+class CommandPrompComponent (ui.Block):
 	def __init__(self, text: str) -> None:
 		super().__init__()
 		self.text = text
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		return [
-			ui.Label(self.text),
-			ui.Img(ui.Images.shared.right)
+			ui.block(ui.Label(self.text),ui.Img(ui.Images.shared.right))
 		]
 
 

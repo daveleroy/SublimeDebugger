@@ -1,54 +1,44 @@
 from sublime_db.core.typecheck import (
 	Sequence
 )
-from .component import Component, ComponentInline
+from .component import Component, Inline, Block
 from .layout import Layout
 
 
-class Segment (Component):
-	def __init__(self, items: Sequence[Component]) -> None:
+class Segment (Block):
+	def __init__(self, items: Block.Children) -> None:
 		super().__init__()
 		self.items = items
 
-	def render(self) -> Sequence[Component]:
+	def render(self) -> Block.Children:
 		return self.items
 
 
-class Box (ComponentInline):
-	def __init__(self, items: Sequence[Component]) -> None:
+class Box (Inline):
+	def __init__(self, *items: Inline) -> None:
 		super().__init__()
 		self.items = items
 
-	def render(self) -> Sequence[Component]:
+	def render(self) -> Inline.Children:
 		return self.items
 
 
-class Panel (Component):
-	def __init__(self, items: Sequence[Component]) -> None:
+class Panel (Block):
+	def __init__(self, items: Block.Children) -> None:
 		super().__init__()
 		self.items = items
 
-	def render(self) -> Sequence[Component]:
+	def render(self) -> Block.Children:
 		return self.items
 
-	def html(self, layout: Layout) -> str:
-		inner = self.html_inner(layout)
-		return '<{} class="{}" {}><img class="width">{}</{}>'.format(self.html_tag, self.className, self.html_tag_extra, inner, self.html_tag)
+	def height(self, layout: Layout) -> float:
+		return max(super().height(layout), 100)
 
 
-class HorizontalSpacer (Component):
+class HorizontalSpacer (Block):
 	def __init__(self, width: float) -> None:
 		super().__init__()
 		self.width = width
 
 	def html(self, layout: Layout) -> str:
 		return '<img style="width:{}rem">'.format(self.width)
-
-
-class Items (Component):
-	def __init__(self, items: Sequence[Component]) -> None:
-		super().__init__()
-		self.items = items
-
-	def render(self) -> Sequence[Component]:
-		return self.items

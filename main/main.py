@@ -15,7 +15,7 @@ from .config import PersistedData
 
 from .components.variable_component import VariableComponent, Variable
 from .components.breakpoint_inline_component import BreakpointInlineComponent
-from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, BreakpintsComponent, UnderlineComponent, STOPPED, PAUSED, RUNNING, LOADING
+from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, BreakpointsComponent, STOPPED, PAUSED, RUNNING, LOADING
 from .components.callstack_panel import CallStackPanel
 from .components.console_panel import ConsolePanel
 from .components.variables_panel import VariablesPanel
@@ -36,32 +36,48 @@ from .debugger import (
 
 from .output_panel import OutputPhantomsPanel, PanelInputHandler
 
-class SelectedLineText(ui.Component):
+
+class UnderlineComponent(ui.Block):
+	def __init__(self) -> None:
+		super().__init__()
+
+	def height(self, layout: ui.Layout) -> float:
+		return 0.05
+
+	def render(self) -> ui.Block.Children:
+		return [
+			ui.HorizontalSpacer(1000)
+		]
+
+
+class SelectedLineText(ui.Block):
 	def __init__(self, text: str) -> None:
 		super().__init__()
 		self.text = text
-	def render(self) -> ui.components:
+
+	def render(self) -> ui.Block.Children:
 		return [
-			ui.Label(self.text)
+			ui.Padding(ui.block(ui.Label(self.text)), left=1, top=-0.125)
 		]
+
 
 class SelectedLine:
 	def __init__(self, view: sublime.View, line: int, text: str):
 		pt_current_line = view.text_point(line, 0)
 		pt_prev_line = view.text_point(line - 1, 0)
-		pt_next_line = view.text_point(line +1, 0)
+		pt_next_line = view.text_point(line + 1, 0)
 		line_prev = view.line(pt_current_line)
 		line_current = view.line(pt_prev_line)
 
 		self.top_line = ui.Phantom(UnderlineComponent(), view, line_current, sublime.LAYOUT_BELOW)
-		self.text = ui.Phantom(SelectedLineText(text), view, sublime.Region(pt_next_line-1, pt_next_line-1), sublime.LAYOUT_INLINE)
+		self.text = ui.Phantom(SelectedLineText(text), view, sublime.Region(pt_next_line - 1, pt_next_line - 1), sublime.LAYOUT_INLINE)
 		self.bottom_line = ui.Phantom(UnderlineComponent(), view, line_prev, sublime.LAYOUT_BELOW)
-		
+
 	def dispose(self):
 		self.top_line.dispose()
 		self.text.dispose()
 		self.bottom_line.dispose()
-		
+
 
 class Main (DebuggerPanelCallbacks):
 	instances = {} #type: Dict[int, Main]

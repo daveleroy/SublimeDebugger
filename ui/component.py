@@ -4,7 +4,8 @@ from sublime_db.core.typecheck import (
 	List,
 	Optional,
 	Callable,
-	Sequence
+	Sequence,
+	TypeVar
 )
 
 from .layout import Layout
@@ -37,6 +38,14 @@ class Component:
 	def render(self) -> components:
 		return []
 
+	def height(self, layout: Layout) -> float:
+		max = 0.0
+		for item in self.children:
+			h = item.height(layout)
+			if h > max:
+				max = h
+		return max
+
 	def add_class(self, name: str) -> None:
 		self.className += ' '
 		self.className += name
@@ -54,6 +63,9 @@ class Component:
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
+		height = self.height(layout)
+		if height != 0:
+			return '<{} class="{}" style="height:{}rem;"{}>{}</{}>'.format(self.html_tag, self.className, self.height(layout), self.html_tag_extra, inner, self.html_tag)
 		return '<{} class="{}" {}>{}</{}>'.format(self.html_tag, self.className, self.html_tag_extra, inner, self.html_tag)
 
 
@@ -65,3 +77,91 @@ class ComponentInline (Component):
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
 		return '<{} class="{}" {}><img class="height">{}</{}>'.format(self.html_tag, self.className, self.html_tag_extra, inner, self.html_tag)
+
+
+class Inline (Component):
+	Children = Sequence['Inline']
+
+	def __init__(self) -> None:
+		super().__init__()
+		self.html_tag = 'span'
+
+	def render(self) -> Sequence['Inline']:
+		return []
+
+	def height(self, layout: Layout) -> float:
+		from .size import HEIGHT
+		max = HEIGHT
+		for item in self.children:
+			h = item.height(layout)
+			if h > max:
+				max = h
+		return max
+
+	def html(self, layout: Layout) -> str:
+		inner = self.html_inner(layout)
+		return '<{} class="{}" {}>{}</{}>'.format(self.html_tag, self.className, self.html_tag_extra, inner, self.html_tag)
+
+
+class Block (Component):
+	Children = Sequence['Block']
+
+	def render(self) -> Sequence['Block']:
+		return []
+
+	def height(self, layout: Layout) -> float:
+		total = 0.0
+		for item in self.children:
+			h = item.height(layout)
+			total += h
+		return total
+
+	def html(self, layout: Layout) -> str:
+		inner = self.html_inner(layout)
+		return '<{} class="{}" style="height:{}rem;"{}>{}</{}>'.format(self.html_tag, self.className, self.height(layout), self.html_tag_extra, inner, self.html_tag)
+
+
+class BlockInline (Block):
+	Children = Sequence['Inline']
+
+	def __init__(self) -> None:
+		super().__init__()
+		self.html_tag = 'div'
+
+	def render(self) -> Sequence['Inline']:  #type: ignore
+		return []
+
+	def height(self, layout: Layout) -> float:
+		from .size import HEIGHT
+		max = HEIGHT
+		for item in self.children:
+			h = item.height(layout)
+			if h > max:
+				max = h
+		return max
+
+	def html(self, layout: Layout) -> str:
+		inner = self.html_inner(layout)
+		return '<{} class="{}" style="height:{}rem;"{}><img class="height">{}</{}>'.format(self.html_tag, self.className, self.height(layout), self.html_tag_extra, inner, self.html_tag)
+
+
+class BlockItemsInline (BlockInline):
+	def __init__(self, items: Sequence['Inline']) -> None:
+		super().__init__()
+		self.items = items
+
+	def render(self) -> Sequence['Inline']:  #type: ignore
+		return self.items
+
+
+class BlockItems (Block):
+	def __init__(self, items: Sequence['Block']) -> None:
+		super().__init__()
+		self.items = items
+
+	def render(self) -> Sequence['Block']:
+		return self.items
+
+
+def block(*items: Inline) -> Block:
+	return BlockItemsInline(items)

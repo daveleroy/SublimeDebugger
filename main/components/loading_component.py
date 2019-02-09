@@ -1,12 +1,12 @@
 
-from sublime_db.core.typecheck import List
+from sublime_db.core.typecheck import List, Optional
 from sublime_db import ui
 
 
 class LoadingComponent (ui.ComponentInline):
 	def __init__(self) -> None:
 		super().__init__()
-		self.timer = None #type: ui.Timer
+		self.timer = None #type: Optional[ui.Timer]
 		self.tick = 0
 		self.images = [] #type: List[ui.Component]
 
@@ -22,12 +22,12 @@ class LoadingComponent (ui.ComponentInline):
 		self.dirty()
 
 	def added(self, layout: ui.Layout) -> None:
-		if timer:
+		if self.timer:
 			self.timer.dispose()
-		self.timer = ui.Timer(self.on_timer, 0.3, repeats=True)
+		self.timer = ui.Timer(self.on_timer, 0.3, repeat=True)
 
 	def removed(self) -> None:
-		if timer:
+		if self.timer:
 			self.timer.dispose()
 
 	def render(self) -> ui.components:

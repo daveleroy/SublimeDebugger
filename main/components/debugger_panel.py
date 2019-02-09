@@ -40,7 +40,7 @@ class DebuggerPanelCallbacks:
 		pass
 
 
-class DebuggerPanel(ui.Component):
+class DebuggerPanel(ui.Block):
 	def __init__(self, breakpoints: Breakpoints, callbacks: DebuggerPanelCallbacks) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
@@ -60,8 +60,8 @@ class DebuggerPanel(ui.Component):
 		self.name = name
 		self.dirty()
 
-	def render(self) -> ui.components:
-		buttons = [] #type: List[ui.Component]
+	def render(self) -> ui.Block.Children:
+		buttons = [] #type: List[ui.Block]
 
 		play = False
 		stop = False
@@ -94,98 +94,70 @@ class DebuggerPanel(ui.Component):
 
 		if play:
 			items.append(
-				DebuggerItem(self.callbacks.on_play, items=[
-					ui.Img(ui.Images.shared.play)
-				])
+				DebuggerItem(self.callbacks.on_play, ui.Img(ui.Images.shared.play))
 			)
 		else:
 			items.append(
-				DebuggerItem(self.callbacks.on_play, items=[
-					ui.Img(ui.Images.shared.play_disable)
-				])
+				DebuggerItem(self.callbacks.on_play, ui.Img(ui.Images.shared.play))
 			)
 		if stop:
 			items.append(
-				DebuggerItem(self.callbacks.on_stop, items=[
-					ui.Img(ui.Images.shared.stop)
-				])
+				DebuggerItem(self.callbacks.on_stop, ui.Img(ui.Images.shared.stop))
 			)
 		else:
 			items.append(
-				DebuggerItem(self.callbacks.on_stop, items=[
-					ui.Img(ui.Images.shared.stop_disable)
-				])
+				DebuggerItem(self.callbacks.on_stop, ui.Img(ui.Images.shared.stop_disable))
 			)
 
 		if not controls:
 			items.append(
-				DebuggerItem(self.callbacks.on_pause, items=[
-					ui.Img(ui.Images.shared.pause_disable)
-				])
+				DebuggerItem(self.callbacks.on_pause, ui.Img(ui.Images.shared.pause_disable))
 			)
 		elif pause:
 			items.append(
-				DebuggerItem(self.callbacks.on_pause, items=[
-					ui.Img(ui.Images.shared.pause)
-				])
+				DebuggerItem(self.callbacks.on_pause, ui.Img(ui.Images.shared.pause))
 			)
 		else:
 			items.append(
-				DebuggerItem(self.callbacks.on_resume, items=[
-					ui.Img(ui.Images.shared.resume)
-				])
+				DebuggerItem(self.callbacks.on_resume, ui.Img(ui.Images.shared.resume))
 			)
 
 		if controls:
 			items.extend([
-				DebuggerItem(self.callbacks.on_step_over, items=[
-					ui.Img(ui.Images.shared.down)
-				]),
-				DebuggerItem(self.callbacks.on_step_out, items=[
-					ui.Img(ui.Images.shared.left)
-				]),
-				DebuggerItem(self.callbacks.on_step_in, items=[
-					ui.Img(ui.Images.shared.right)
-				]),
+				DebuggerItem(self.callbacks.on_step_over, ui.Img(ui.Images.shared.down)),
+				DebuggerItem(self.callbacks.on_step_out, ui.Img(ui.Images.shared.left)),
+				DebuggerItem(self.callbacks.on_step_in, ui.Img(ui.Images.shared.right)),
 			])
 		else:
 			items.extend([
-				DebuggerItem(self.callbacks.on_step_over, items=[
-					ui.Img(ui.Images.shared.down_disable)
-				]),
-				DebuggerItem(self.callbacks.on_step_out, items=[
-					ui.Img(ui.Images.shared.left_disable)
-				]),
-				DebuggerItem(self.callbacks.on_step_in, items=[
-					ui.Img(ui.Images.shared.right_disable)
-				]),
+				DebuggerItem(self.callbacks.on_step_over, ui.Img(ui.Images.shared.down_disable)),
+				DebuggerItem(self.callbacks.on_step_out, ui.Img(ui.Images.shared.left_disable)),
+				DebuggerItem(self.callbacks.on_step_in, ui.Img(ui.Images.shared.right_disable)),
 			])
 
+		items_new = []
+		for item in items:
+			items_new.append(ui.Padding(item, bottom=0.2))
 		return [
-			ui.Panel(items=items),
+			ui.Panel(items=items_new),
 		]
 
 
-class Div (ui.Component):
-	def __init__(self, items: [ui.Component]) -> None:
+class DebuggerItem (ui.Block):
+	def __init__(self, callback: Callable[[], None], image: ui.Img) -> None:
 		super().__init__()
-		self.items = items
-
-	def render(self) -> Sequence[ui.Component]:
-		return self.items
-
-
-class DebuggerItem (ui.Component):
-	def __init__(self, callback: Callable[[], None], items: ui.components) -> None:
-		super().__init__()
-		self.items = items
+		self.image = image
 		self.callback = callback
 
-	def render(self) -> ui.components:
-		return ui.Button(self.callback, items=self.items),
+	def render(self) -> ui.Block.Children:
+		return [
+			ui.block(
+				ui.Padding(ui.Button(self.callback, items=[self.image]), left=0.6, right=0.6)
+			)
+		]
 
 
-class BreakpintsComponent(ui.Component):
+class BreakpointsComponent(ui.Block):
 	def __init__(self, breakpoints: Breakpoints, on_expand: Callable[[Breakpoint], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
@@ -195,6 +167,7 @@ class BreakpintsComponent(ui.Component):
 		self.breakpoints.onMovedBreakpoints.add(self._updated)
 		self.breakpoints.onResultBreakpoint.add(self._updated)
 		self.breakpoints.onSelectedBreakpoint.add(self._updated)
+		self.breakpoints.onChangedFilter.add(self._updated)
 		self.on_expand = on_expand
 
 	def _updated(self, data: Any) -> None:
@@ -206,8 +179,18 @@ class BreakpintsComponent(ui.Component):
 	def on_toggle(self, breakpoint: Breakpoint) -> None:
 		self.breakpoints.toggle_enabled(breakpoint)
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		items = [] #type: List[ui.TableItem]
+		for filter in self.breakpoints.filters:
+			def on_click(filter=filter):
+				self.breakpoints.toggle_filter(filter) #type: ignore
+
+			items.append(ui.block(
+				ui.Button(on_click=on_click, items=[
+					ui.Img((ui.Images.shared.dot, ui.Images.shared.dot_disabled)[not filter.enabled]),
+				]),
+				ui.Label(filter.name, color='secondary', padding_left=0.25, width=15, align=0)
+			))
 		for breakpoint in self.breakpoints.breakpoints:
 			base, name = os.path.split(breakpoint.file)
 
@@ -216,70 +199,23 @@ class BreakpintsComponent(ui.Component):
 			else:
 				color = 'secondary'
 
-			def on_toggle(bp=breakpoint): return self.on_toggle(bp) #type: ignore
-			def on_click(bp=breakpoint): return self.onClicked(bp) #type: ignore
+			def on_toggle(bp=breakpoint):
+				return self.on_toggle(bp) #type: ignore
+
+			def on_click(bp=breakpoint):
+				return self.onClicked(bp) #type: ignore
 
 			toggle_button = ui.Button(on_click=on_toggle, items=[
 				ui.Img(breakpoint.image()),
 			])
 			fileAndLine = ui.Button(on_click=on_click, items=[
 				# line number
-				ui.Box(items=[
-					ui.Label(str(breakpoint.line), color=color, width=3),
-				]),
+				ui.Padding(ui.Box(ui.Label(str(breakpoint.line), color=color, width=3)), left=0.5, right=0.5),
 				# filename
 				ui.Label(name, color=color, padding_left=0.25, width=15, align=0),
 
 			])
-			items.append(ui.TableItem(items=[
-				toggle_button, fileAndLine
-			]))
+			items.append(ui.Padding(ui.block(toggle_button, fileAndLine), top=0.1, bottom=0.1))
 		return [
-			ui.Table(table_items=items)
-		]
-
-
-class FiltersComponent(ui.Component):
-	def __init__(self, breakpoints: Breakpoints) -> None:
-		super().__init__()
-		self.breakpoints = breakpoints
-
-		# FIXME put in on activate/deactivate
-		self.breakpoints.onChangedFilter.add(self._updated)
-
-	def _updated(self, data: Any) -> None:
-		self.dirty()
-
-	def onClicked(self, filter: Filter) -> None:
-		self.breakpoints.toggle_filter(filter)
-		# view = sublime.active_window().open_file("{}:{}".format(breakpoint.file, breakpoint.line), sublime.ENCODED_POSITION)
-		# sel = view.sel()
-		# line = view.line(view.text_point(breakpoint.line - 1, 0))
-		# sel.add(line)
-		# view.run_command('select', {"selection" : [[line.a, line.b]]})
-		# print('Navigating to breakpoint:', breakpoint)
-
-	def render(self) -> ui.components:
-		items = [] #type: List[ui.TableItem]
-		for filter in self.breakpoints.filters:
-			def on_click(filter=filter): return self.onClicked(filter) #type: ignore
-
-			items.append(ui.TableItem(items=[
-				ui.Button(on_click=on_click, items=[
-					ui.Img((ui.Images.shared.dot, ui.Images.shared.dot_disabled)[not filter.enabled]),
-				]),
-				ui.Label(filter.name, color='secondary', padding_left=0.25, width=15, align=0)
-			]))
-		return [
-			ui.Table(table_items=items)
-		]
-
-
-class UnderlineComponent(ui.Component):
-	def __init__(self) -> None:
-		super().__init__()
-
-	def render(self) -> ui.components:
-		return [
-			ui.HorizontalSpacer(1000)
+			ui.Table(items)
 		]

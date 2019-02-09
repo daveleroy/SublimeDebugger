@@ -1,5 +1,5 @@
 
-from .render import *
+from .render import * #type: ignore
 from .events import (
 	GutterEvent,
 	HoverEvent,
@@ -21,6 +21,7 @@ from .table import *
 from .button import *
 from .label import *
 from .input import *
+from .padding import *
 
 import os
 
@@ -36,12 +37,11 @@ def startup() -> None:
 	dir_path = os.path.dirname(os.path.abspath(__file__))
 	import_css(dir_path + '/ui.css')
 
-	# This really is only to catch the cases where the window is resized which invalidaes our layouts
-	# It should probably be a seperate operation
 	global _rendering_timer
-	_rendering_timer = Timer(render, 1, True)
+	_rendering_timer = Timer(update, 2, True)
 
 
 def shutdown() -> None:
-	_rendering_timer.dispose()
-	render()
+	if _rendering_timer:
+		_rendering_timer.dispose()
+	render() #type: ignore

@@ -4,11 +4,11 @@
 .StackFrameComponent {
 	padding-left: var(--width);
 }
-.TableItem .selected {
-	background-color: rgba(50, 225, 175, 0.2);
+.table-item-selected {
+	background-color: color(var(--bluish) alpha(0.3));
 }
-.Items .selected {
-	background-color: rgba(50, 225, 175, 0.2);
+.selected_stack_frame {
+	background-color: color(var(--bluish) alpha(0.3));
 }
 
 .StackframeSelectedError {
@@ -35,7 +35,7 @@
 	padding-left: 3px;
 }
 
-.BreakpintsComponent .Table {
+.BreakpointsComponent .Table {
 	padding-left: 3px;
 	padding-right: 3px;
 }
@@ -43,10 +43,7 @@
 .DebuggerItem {
 	background-color: var(--segment-color);
 	border-radius: 10px;
-	padding-left: 7px;
-	padding-right: 7px;
-	padding-bottom: 3px;
-	margin-bottom: 2px;
+	border: 1px solid rgba(0,0,0,0.05);
 }
 
 .PageTab {
@@ -57,12 +54,14 @@
 	padding-left: 7px;
 	padding-right: 7px;
 	padding-bottom: 2.5px;
-	margin-left: 25px;
+	border: 1px solid rgba(0, 0, 0, 0);
+	position: relative;
+	left: 1px;
 }
 
 .PageTab.selected {
 	background-color: var(--panel-color);
-	padding-bottom: 3px;
+	border: 1px solid rgba(0, 0, 0, 0.05);
 }
 .TabbedPanel .Panel {
 	border-top-left-radius: 0px;
@@ -74,16 +73,13 @@
 .UnderlineComponent {
 	position: absolute;
 	margin-bottom: 5px;
-	height: 1px;
+	height: 5px;
 	width: 100rem;
-	background-color: rgba(50, 225, 175, 0.25);
+	background-color: color(var(--bluish) alpha(0.5));
 }
 
 .SelectedLineText {
-	height: 1.9rem;
-	padding-left: 2rem;
-	padding-top: -0.15rem;
-	--text-color: rgba(50, 225, 175, 0.5);
+	--text-color: color(var(--bluish) alpha(0.75));
 }
 
 .CommandPrompComponent {

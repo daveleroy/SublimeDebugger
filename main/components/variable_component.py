@@ -13,7 +13,7 @@ from sublime_db.main.debugger import (
 )
 
 
-class VariableComponent (ui.Component):
+class VariableComponent (ui.Block):
 	def __init__(self, variable: Variable) -> None:
 		super().__init__()
 		self.variable = VariableState(variable, self.dirty)
@@ -32,7 +32,7 @@ class VariableComponent (ui.Component):
 
 		input_handler = ui.create_input_handler_for_window(window, title, value, on_done=on_done, on_change=on_change)
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		v = self.variable
 		name = v.name
 
@@ -47,10 +47,10 @@ class VariableComponent (ui.Component):
 
 		if not self.variable.expandable:
 			return [
-				ui.ButtonDoubleClick(self.on_edit, None, [
+				ui.block(ui.ButtonDoubleClick(self.on_edit, None, [
 					ui.Label(name, padding_left=0.5, padding_right=1),
 					ui.Label(value, color='secondary')
-				])
+				]))
 			]
 
 		if self.variable.expanded:
@@ -59,17 +59,19 @@ class VariableComponent (ui.Component):
 			image = ui.Img(ui.Images.shared.right)
 
 		items = [
-			ui.Button(self.variable.toggle_expand, items=[
-				image
-			]),
-			ui.ButtonDoubleClick(self.on_edit, None, [
-				ui.Label(name, padding_right=1),
-				ui.Label(value, color='secondary'),
-			])
-		] #type: List[ui.Component]
+			ui.block(
+				ui.Button(self.variable.toggle_expand, [
+					image
+				]),
+				ui.ButtonDoubleClick(self.on_edit, None, [
+					ui.Label(name, padding_right=1),
+					ui.Label(value, color='secondary'),
+				])
+			)
+		] #type: List[ui.Block]
 
 		if self.variable.expanded:
-			inner = [] #type: List[ui.Component]
+			inner = [] #type: List[ui.Block]
 			for variable in self.variable.variables:
 				inner.append(VariableComponent(variable))
 			table = ui.Table(items=inner)
@@ -79,30 +81,30 @@ class VariableComponent (ui.Component):
 		return items
 
 
-class ScopeComponent (ui.Component):
+class ScopeComponent (ui.Block):
 	def __init__(self, scope: Scope) -> None:
 		super().__init__()
 		self.scope = ScopeState(scope, self.dirty)
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		if self.scope.expanded:
 			image = ui.Img(ui.Images.shared.down)
 		else:
 			image = ui.Img(ui.Images.shared.right)
 
-		items = [
+		scope_item = ui.block(
 			ui.Button(self.scope.toggle_expand, items=[
 				image
 			]),
 			ui.Label(self.scope.name, padding_left=0.5, padding_right=1),
-		] #type: List[ui.Component]
+		)
 
 		if self.scope.expanded:
-			variables = [] #type: List[ui.Component]
+			variables = [] #type: List[ui.Block]
 			for variable in self.scope.variables:
 				variables.append(VariableComponent(variable))
 			table = ui.Table(items=variables)
 			table.add_class('inset')
-			items.append(table)
+			return [scope_item, table]
 
-		return items
+		return [scope_item]

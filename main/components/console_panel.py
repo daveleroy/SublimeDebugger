@@ -13,10 +13,10 @@ from .variable_component import (VariableComponent,
 from . import constants
 
 
-class ConsolePanel (ui.Component):
+class ConsolePanel (ui.Block):
 	def __init__(self, on_click: Callable[[], None]):
 		super().__init__()
-		self.items = [] #type: List[ui.Component]
+		self.items = [] #type: List[ui.Block]
 		self.text = [] #type: List[str]
 		self.on_click = on_click
 
@@ -42,21 +42,27 @@ class ConsolePanel (ui.Component):
 	def Add(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='secondary')
+			item = ui.block(
+				ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='secondary')
+			)
 			self.items.append(item)
 		self.dirty()
 
 	def AddStdout(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='primary')
+			item = ui.block(
+				ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='primary')
+			)
 			self.items.append(item)
 		self.dirty()
 
 	def AddStderr(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='red')
+			item = ui.block(
+				ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='red')
+			)
 			self.items.append(item)
 		self.dirty()
 
@@ -65,7 +71,7 @@ class ConsolePanel (ui.Component):
 		self.text.clear()
 		self.dirty()
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		items = list(self.items[-15:])
 		items.append(ui.Button(self.on_click, items=[
                     ui.Img(ui.Images.shared.right),
@@ -75,13 +81,13 @@ class ConsolePanel (ui.Component):
 		]
 
 
-class ConsoleVariable (ui.Component):
+class ConsoleVariable (ui.Block):
 	def __init__(self, variable: Variable) -> None:
 		super().__init__()
 		self.variable = VariableState(variable, self.dirty)
 		self.variable.toggle_expand()
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Block.Children:
 		items = []
 		for v in self.variable.variables:
 			# we replace the name with the value... since the name is a number

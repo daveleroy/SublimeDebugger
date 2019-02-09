@@ -1,6 +1,8 @@
 
-import sublime
+from .image import view_background_lightness
 from .layout import Layout, reload_css
+from sublime_db import core
+import sublime
 from sublime_db.core.typecheck import (
 	List,
 	Optional,
@@ -8,9 +10,6 @@ from sublime_db.core.typecheck import (
 	Set,
 	TYPE_CHECKING
 )
-
-from sublime_db import core
-
 # for mypy
 if TYPE_CHECKING:
 	from .component import Component
@@ -41,10 +40,11 @@ _renderables_add = [] #type: List[Renderable]
 
 
 def reload() -> None:
-	schedule_render()
+	update()
 	reload_css()
 	for renderable in _renderables:
 		renderable.force_dirty()
+	schedule_render()
 
 
 _render_scheduled = False
@@ -60,7 +60,7 @@ def schedule_render() -> None:
 
 
 @core.async
-def render_scheduled() -> core.awaitable[None]:
+def render_scheduled() -> None:
 	global _render_scheduled
 	render()
 	_render_scheduled = False
@@ -97,8 +97,16 @@ def render() -> None:
 	sublime.set_timeout(on_sublime_thread, 0)
 
 
+def update() -> None:
+	for item in _renderables:
+		item.update()
+
+
 class Renderable:
 	def force_dirty(self) -> None:
+		assert False
+
+	def update(self) -> None:
 		assert False
 
 	def render(self) -> bool:
@@ -111,11 +119,43 @@ class Renderable:
 		assert False
 
 
-class Phantom(Layout, Renderable):
+class LayoutView (Layout):
+	def __init__(self, item: 'Component', view: sublime.View) -> None:
+		super().__init__(item)
+		self.view = view
+		self._width = 0
+		self._lightness = 0.0
+		self.update()
+
+	def em_width(self) -> float:
+		size = self.view.settings().get('font_size') or 12
+		return self.view.em_width() / size
+
+	def width(self) -> float:
+		size = self.view.settings().get('font_size') or 12
+		return self._width / size
+
+	def luminocity(self) -> float:
+		return self._lightness
+
+	def update(self) -> None:
+		width = self.view.viewport_extent()[0]
+		lightness = view_background_lightness(self.view)
+
+		if self._width != width or self._lightness != lightness:
+			self._width = width
+			self._lightness = lightness
+			self.item.dirty()
+
+	def force_dirty(self) -> None:
+		self.item.dirty()
+
+
+class Phantom(LayoutView, Renderable):
 	id = 0
 
 	def __init__(self, component: 'Component', view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
-		super().__init__(component)
+		super().__init__(component, view)
 		self.cachedPhantom = None #type: Optional[sublime.Phantom]
 		self.region = region
 		self.layout = layout
@@ -126,18 +166,10 @@ class Phantom(Layout, Renderable):
 		Phantom.id += 1
 		self.region_id = 'phantom_{}'.format(Phantom.id)
 		self.view.add_regions(self.region_id, [self.region], flags=sublime.DRAW_NO_FILL)
-		self._width = 0
+		self.update()
 		_renderables_add.append(self)
 
-	def force_dirty(self) -> None:
-		self.item.dirty()
-
 	def render(self) -> bool:
-		width = self.view.viewport_extent()[0]
-		if self._width != width:
-			self.item.dirty()
-			self._width = width
-
 		if super().render() or not self.cachedPhantom:
 			html = '''<body id="debug"><style>{}</style>{}</body>'''.format(self.css, self.html)
 			# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
@@ -154,27 +186,19 @@ class Phantom(Layout, Renderable):
 	def clear_sublime(self) -> None:
 		self.set.update([])
 
-	def em_width(self) -> float:
-		size = self.view.settings().get('font_size') or 12
-		return self.view.em_width() / size
-
-	def width(self) -> float:
-		size = self.view.settings().get('font_size') or 12
-		return self._width / size
-
 	def dispose(self) -> None:
 		super().dispose()
 		_renderables_remove.append(self)
 		self.view.erase_regions(self.region_id)
+		schedule_render()
 
 
-class Popup(Layout, Renderable):
+class Popup(LayoutView, Renderable):
 	def __init__(self, component: 'Component', view: sublime.View, location: int = -1, layout: int = sublime.LAYOUT_INLINE, on_close: Optional[Callable[[], None]] = None) -> None:
-		super().__init__(component)
+		super().__init__(component, view)
 		self.on_close = on_close
 		self.location = location
 		self.layout = layout
-		self.view = view
 		self.max_height = 500
 		self.max_width = 1000
 		self.render()
@@ -183,14 +207,11 @@ class Popup(Layout, Renderable):
                   max_width=self.max_width,
                   max_height=self.max_height,
                   on_navigate=self.on_navigate,
-                  flags=sublime.COOPERATE_WITH_AUTO_COMPLETE,
+                  flags=sublime.COOPERATE_WITH_AUTO_COMPLETE | sublime.HIDE_ON_MOUSE_MOVE_AWAY,
                   on_hide=self.on_hide)
 
 		_renderables_add.append(self)
 		self.is_hidden = False
-
-	def force_dirty(self) -> None:
-		self.item.dirty()
 
 	def on_hide(self) -> None:
 		self.is_hidden = True
@@ -209,11 +230,6 @@ class Popup(Layout, Renderable):
 	def clear_sublime(self) -> None:
 		if not self.is_hidden:
 			self.view.hide_popup()
-
-	def em_width(self) -> float:
-		size = self.view.settings().get('font_size')
-		assert size
-		return self.view.em_width() / size
 
 	def dispose(self) -> None:
 		super().dispose()

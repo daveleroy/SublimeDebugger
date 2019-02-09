@@ -5,7 +5,7 @@ from sublime_db.core.typecheck import (
 )
 
 from .layout import Layout
-from .component import ComponentInline, components
+from .component import Inline, components
 
 html_escape_table = {
 	"&": "&amp;",
@@ -20,7 +20,7 @@ def html_escape(text: str) -> str:
     return "".join(html_escape_table.get(c, c) for c in text)
 
 
-class Label(ComponentInline):
+class Label(Inline):
 	def __init__(self, text: Optional[str], color: str = "primary", align: float = 0.5, width: Optional[float] = None, padding_left=0, padding_right=0) -> None:
 		super().__init__()
 		if text:
@@ -36,7 +36,7 @@ class Label(ComponentInline):
 			self.add_class(color)
 		self.render_text = ""
 
-	def render(self) -> components:
+	def render(self) -> Inline.Children:
 		layout = self.layout
 		assert layout, '??'
 		align = self.align

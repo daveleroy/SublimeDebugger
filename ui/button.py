@@ -5,19 +5,20 @@ from sublime_db.core.typecheck import (
 	Callable,
 	Optional
 )
-from .component import Component, ComponentInline
+from .component import Component, Inline
 from .layout import Layout
 from .render import Timer
 from time import time
 
-class OnClick (ComponentInline):
-	def __init__(self, on_click: Callable[[], None], items: List[Component]) -> None:
+
+class OnClick (Inline):
+	def __init__(self, on_click: Callable[[], None], items: Inline.Children) -> None:
 		super().__init__()
 		self.items = items
 		self.on_click = on_click
 		self.html_tag = 'a'
 
-	def render(self) -> Sequence[Component]:
+	def render(self) -> Inline.Children:
 		return self.items
 
 	def html(self, layout: Layout) -> str:
@@ -26,7 +27,7 @@ class OnClick (ComponentInline):
 
 
 class Button (OnClick):
-	def __init__(self, on_click: Callable[[], None], items: List[Component]) -> None:
+	def __init__(self, on_click: Callable[[], None], items: Inline.Children) -> None:
 		super().__init__(self.on_clicked, items)
 		self.items = items
 		self.on_click_callback = on_click
@@ -34,12 +35,12 @@ class Button (OnClick):
 	def on_clicked(self) -> None:
 		self.on_click_callback()
 
-	def render(self) -> Sequence[Component]:
+	def render(self) -> Inline.Children:
 		return self.items
 
 
 class ButtonDoubleClick (OnClick):
-	def __init__(self, on_double_click: Callable[[], None], on_click: Optional[Callable[[], None]], items: List[Component]) -> None:
+	def __init__(self, on_double_click: Callable[[], None], on_click: Optional[Callable[[], None]], items: Inline.Children) -> None:
 		super().__init__(self.on_clicked, items)
 		self.items = items
 		self.on_click_callback = on_click
@@ -57,5 +58,5 @@ class ButtonDoubleClick (OnClick):
 		if self.on_click_callback:
 			self.on_click_callback()
 
-	def render(self) -> Sequence[Component]:
+	def render(self) -> Inline.Children:
 		return self.items

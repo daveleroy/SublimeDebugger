@@ -7,7 +7,7 @@ from sublime_db.core.typecheck import (
 
 import sublime
 
-from .component import Component, ComponentInline, components
+from .component import Component, Inline, components
 from .layout import Layout
 from .button import Button
 from .segment import Box
@@ -64,7 +64,7 @@ class DefaultInputHandler (InputHandler):
 # 	_input_handlers_for_window[window.id()] = input_handler
 
 
-class Input(ComponentInline):
+class Input(Inline):
 
 	def __init__(self, text: str, hint: str, on_done: Callable[[str], bool], width: int = 20) -> None:
 		super().__init__()
@@ -111,7 +111,7 @@ class Input(ComponentInline):
 		assert self.layout
 		self.layout.focus(self)
 
-	def render(self) -> components:
+	def render(self) -> Inline.Children:
 		className = ''
 		if self.editing:
 			className = ('editing')
@@ -125,9 +125,7 @@ class Input(ComponentInline):
 			color = 'secondary'
 			text = self.hint
 
-		box = Box(items=[
-			Label(text, padding_left=0.75, padding_right=0.75, width=self.width, align=0, color=color),
-		])
+		box = Box(Label(text, padding_left=0.75, padding_right=0.75, width=self.width, align=0, color=color))
 		box.add_class(className)
 		return [
 			Button(self.on_click, items=[
