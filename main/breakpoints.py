@@ -11,18 +11,17 @@ class Filter:
 		self.name = name
 		self.enabled = enabled
 
+
+
 # additonal information about this breakpoint from the debug adapter
-
-
 class BreakpointResult:
 	def __init__(self, verified: bool, line: int, message: Optional[str]) -> None:
 		self.verified = verified
 		self.line = line
 		self.message = message
 
+
 # note: Breakpoint lines are 1 based
-
-
 class Breakpoint:
 	_next_id = 0
 
@@ -102,6 +101,13 @@ class Breakpoint:
 			return ui.Images.shared.dot_expr
 		return ui.Images.shared.dot
 
+	def scope(self) -> str:
+		if not self.enabled:
+			return 'markup.ignored.debug'
+		if not self.verified:
+			return 'markup.ignored.debug'
+		return 'markup.deleted.debug'
+
 	def update_views(self) -> None:
 		for view in self.views:
 			self.refresh_view(view)
@@ -109,9 +115,8 @@ class Breakpoint:
 	def refresh_view(self, view: sublime.View) -> None:
 		regions = view.get_regions(self.regionName)
 		p = view.text_point(self.line - 1, 0)
-		image = self.image().file
 		view.erase_regions(self.regionName)
-		view.add_regions(self.regionName, [sublime.Region(p, p)], scope='type', icon=image, flags=sublime.HIDDEN)
+		view.add_regions(self.regionName, [sublime.Region(p, p)], scope=self.scope(), icon=self.image().file, flags=sublime.HIDDEN)
 
 	def add_to_view(self, view: sublime.View) -> None:
 		for old_view in self.views:
