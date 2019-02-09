@@ -15,7 +15,7 @@ from sublime_db import ui
 
 from .debugger import CompletionItem
 
-_phantom_text = " \n\n\n\n\n\n\n"
+_phantom_text = " \n\u200b\u200b\u200b\u200b\u200b"
 
 
 class CommandPrompComponent (ui.Block):
@@ -169,6 +169,7 @@ class DebugSetContentsCommand(sublime_plugin.TextCommand):
 	def run(self, edit, characters):
 		self.view.erase(edit, sublime.Region(0, self.view.size()))
 		self.view.insert(edit, 0, characters)
+
 
 class DebugOutputPhantomsPanelResetCommand(sublime_plugin.TextCommand):
 	def run(self, edit, header, characters):

@@ -202,7 +202,7 @@ class DebuggerState:
 	def update_breakpoints_for_file(self, file: str, breakpoints: List[Breakpoint]) -> None:
 		if self.adapter:
 			core.run(self.adapter.SetBreakpointsFile(file, breakpoints))
-			
+
 	def stop(self) -> core.awaitable[None]:
 		# the adapter isn't stopping and stop is called again we force stop it
 		if not self.adapter or self.state == DebuggerState.stopping:
@@ -292,6 +292,7 @@ class DebuggerState:
 		if not thread:
 			raise Exception('No thread to run command')
 		return thread
+
 	def _selected_or_first_thread(self) -> Optional[Thread]:
 		if self.thread:
 			return self.thread

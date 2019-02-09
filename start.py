@@ -26,7 +26,7 @@ def startup() -> None:
 		if not view.file_name():
 			return
 		window = view.window()
-		if window and (not window.id() in was_opened_at_startup) and get_setting(view, 'open_at_startup', False):
+		if get_setting(view, 'open_at_startup', False) and (not window.id() in was_opened_at_startup) and Main.should_auto_open_in_window(window):
 			was_opened_at_startup.add(window.id())
 			Main.forWindow(window, True)
 
