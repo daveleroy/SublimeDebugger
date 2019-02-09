@@ -2,7 +2,24 @@
 	"folders":
 	[
 		{
+			"folder_exclude_patterns":
+			[
+				"debug_adapters"
+			],
 			"path": "."
 		}
-	]
+	],
+	"build_systems":
+	[
+		{
+			"cmd":
+			[
+				"mypy",
+				"start.py"
+			],
+			"working_dir":"${project_path}",
+			"file_regex": "(.*):([0-9]+): error:(.*)",
+			"name": "mypy"
+		}
+	],
 }
