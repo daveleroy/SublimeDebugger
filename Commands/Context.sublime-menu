@@ -1,0 +1,8 @@
+[
+	{ "caption": "-", "id": "sublime_debug_start" },
+	{
+		"caption": "Toggle breakpoint",
+		"command": "sublime_debug_toggle_breakpoint"
+	},
+	{ "caption": "-", "id": "sublime_debug_end" }
+]

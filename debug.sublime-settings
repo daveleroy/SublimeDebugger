@@ -1,7 +1,17 @@
-{
+{	
+	// Open the debugger automatically when a project that is set up for debugging has been opened 
+	// In otherwords it configurations in the .sublime-project defined
+	// "settings" : {
+	//	"debug.configurations" : [...]
+	// }
 	"open_at_startup" : false,
+
+	// Sets the entire scale of the UI
 	"ui_scale" : 11,
-	"configurations" : [],
+
+	// This is the list of debug adapters.
+	// If you are having issues running one ensure you have the required dependencies to run them the command
+	// Look in the docs for more info: https://github.com/daveleroy/sublime_db/blob/master/docs/setup.md 
 	"adapters" : {
 		"lldb" : {
 			"command" : [

@@ -1,0 +1,65 @@
+[
+	{
+		"caption": "Preferences: Debugger Settings",
+		"command": "edit_settings",
+		"args": {
+		  "base_file": "${packages}/sublime_db/debug.sublime-settings"
+		}
+	},
+	{
+		"caption" : "Debugger: Open in project",
+		"command" : "sublime_debug_open"
+	},
+	{
+		"caption" : "Debugger: Refresh phantoms",
+		"command" : "sublime_debug_refresh_phantoms"
+	},
+	{
+		"caption" : "Debugger: Quit",
+		"command" : "sublime_debug_quit"
+	},
+	{
+		"caption" : "Debugger: Start",
+		"command" : "sublime_debug_start"
+	},
+	{
+		"caption" : "Debugger: Stop",
+		"command" : "sublime_debug_stop"
+	},
+	{
+		"caption" : "Debugger: Step Over",
+		"command" : "sublime_debug_step_over"
+	},
+	{
+		"caption" : "Debugger: Step Out",
+		"command" : "sublime_debug_step_out"
+	},
+	{
+		"caption" : "Debugger: Step In",
+		"command" : "sublime_debug_step_in"
+	},
+	{
+		"caption" : "Debugger: Pause",
+		"command" : "sublime_debug_pause"
+	},
+	{
+		"caption" : "Debugger: Resume",
+		"command" : "sublime_debug_resume"
+	},
+	{
+		"caption" : "Debugger: Run Command",
+		"command" : "sublime_debug_run_command"
+	},
+	{
+		"caption" : "Debugger: Toggle Breakpoint",
+		"command" : "sublime_debug_toggle_breakpoint"
+	},
+	{
+		"caption" : "Debugger: Configurations",
+		"command" : "sublime_debug_change_configuration"
+	},
+	{
+		"caption" : "Debugger: Install Adapters",
+		"command" : "sublime_debug_install_adapter"
+	},
+]

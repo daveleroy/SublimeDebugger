@@ -29,9 +29,9 @@ class RunMainCommand(sublime_plugin.WindowCommand):
 		pass
 
 
-class DebugWindowCommand(RunMainCommand):
+class DebuggerCommand(RunMainCommand):
 	def is_visible(self) -> bool:
-		return Main.forWindow(self.window) != None
+		return Main.forWindow(self.window) is not None
 
 
 class SublimeDebugOpenCommand(RunMainCommand):
@@ -41,7 +41,7 @@ class SublimeDebugOpenCommand(RunMainCommand):
 		main.show()
 
 
-class SublimeDebugToggleBreakpointCommand(RunMainCommand):
+class SublimeDebugToggleBreakpointCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window, True)
 		assert main
@@ -55,9 +55,6 @@ class SublimeDebugToggleBreakpointCommand(RunMainCommand):
 		else:
 			main.breakpoints.add_breakpoint(file, line)
 
-	def is_enabled(self) -> bool:
-		return Main.forWindow(self.window) != None
-
 
 class SublimeDebugQuitCommand(RunMainCommand):
 	def run_main(self) -> None:
@@ -66,7 +63,7 @@ class SublimeDebugQuitCommand(RunMainCommand):
 			main.dispose()
 
 
-class SublimeDebugStartCommand(DebugWindowCommand):
+class SublimeDebugStartCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window, True)
 		if main:
@@ -76,7 +73,7 @@ class SublimeDebugStartCommand(DebugWindowCommand):
 		return not Main.forWindow(self.window) or DebuggerInState(self.window, DebuggerState.stopped)
 
 
-class SublimeDebugStopCommand(DebugWindowCommand):
+class SublimeDebugStopCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
@@ -86,7 +83,7 @@ class SublimeDebugStopCommand(DebugWindowCommand):
 		return not DebuggerInState(self.window, DebuggerState.stopped)
 
 
-class SublimeDebugPauseCommand(DebugWindowCommand):
+class SublimeDebugPauseCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
@@ -96,7 +93,7 @@ class SublimeDebugPauseCommand(DebugWindowCommand):
 		return DebuggerInState(self.window, DebuggerState.running)
 
 
-class SublimeDebugStepOverCommand(DebugWindowCommand):
+class SublimeDebugStepOverCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
@@ -106,7 +103,7 @@ class SublimeDebugStepOverCommand(DebugWindowCommand):
 		return DebuggerInState(self.window, DebuggerState.paused)
 
 
-class SublimeDebugStepInCommand(DebugWindowCommand):
+class SublimeDebugStepInCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
@@ -116,7 +113,7 @@ class SublimeDebugStepInCommand(DebugWindowCommand):
 		return DebuggerInState(self.window, DebuggerState.paused)
 
 
-class SublimeDebugStepOutCommand(DebugWindowCommand):
+class SublimeDebugStepOutCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
@@ -126,7 +123,7 @@ class SublimeDebugStepOutCommand(DebugWindowCommand):
 		return DebuggerInState(self.window, DebuggerState.paused)
 
 
-class SublimeDebugResumeCommand(DebugWindowCommand):
+class SublimeDebugResumeCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window)
 		if main:
@@ -136,16 +133,16 @@ class SublimeDebugResumeCommand(DebugWindowCommand):
 		return DebuggerInState(self.window, DebuggerState.paused)
 
 
-class SublimeDebugRunCommandCommand(DebugWindowCommand):
+class SublimeDebugRunCommandCommand(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window, True)
 		main.open_repl_console()
 
 
-class SublimeDebugAddConfiguration(RunMainCommand):
+class SublimeDebugChangeConfiguration(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window, True)
-		core.run(add_configuration(self.window, main.adapters))
+		core.run(main.SelectConfiguration())
 
 
 class SublimeDebugRefreshPhantoms(RunMainCommand):
@@ -154,7 +151,7 @@ class SublimeDebugRefreshPhantoms(RunMainCommand):
 		main.refresh_phantoms()
 
 
-class SublimeDebugInstallAdapter(RunMainCommand):
+class SublimeDebugInstallAdapter(DebuggerCommand):
 	def run_main(self) -> None:
 		main = Main.forWindow(self.window, True)
 		self.adapters = main.adapters
