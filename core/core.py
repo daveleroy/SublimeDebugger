@@ -80,6 +80,12 @@ def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: 
 
 		if on_error and exception:
 			on_error(exception)
+
+			try:
+				raise exception
+			except Exception as e:
+				log_exception()
+
 			return
 
 		result = task.result()
