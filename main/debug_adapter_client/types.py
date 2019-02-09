@@ -23,6 +23,7 @@ class Thread:
 		self.stopped_text = ""
 		self.expanded = False
 
+
 class StackFrame:
 	normal = 1
 	label = 2
@@ -79,7 +80,7 @@ class Scope:
 			client,
 			json['name'],
 			json['variablesReference'],
-			json['expensive']
+			json.get('expensive', False) # some adapters treat this as optional
 		)
 
 
