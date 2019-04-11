@@ -26,6 +26,14 @@ class RunMainCommand(sublime_plugin.WindowCommand):
 		core.main_loop.call_soon_threadsafe(self.run_main)
 
 	def run_main(self) -> None:
+		main = Main.forWindow(self.window)
+		if main:
+			main.show()
+			self.on_main(main)
+		else:
+			print('No debugger open for window, ignoring command')
+
+	def on_main(self, main: Main) -> None:
 		pass
 
 
@@ -42,9 +50,7 @@ class SublimeDebugOpenCommand(RunMainCommand):
 
 
 class SublimeDebugToggleBreakpointCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window, True)
-		assert main
+	def on_main(self, main: Main) -> None:
 		view = self.window.active_view()
 		x, y = view.rowcol(view.sel()[0].begin())
 		line = x + 1
@@ -57,112 +63,91 @@ class SublimeDebugToggleBreakpointCommand(DebuggerCommand):
 
 
 class SublimeDebugQuitCommand(RunMainCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
-		if main:
-			main.dispose()
+	def on_main(self, main: Main) -> None:
+		main.dispose()
 
 
 class SublimeDebugStartCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window, True)
-		if main:
-			main.on_play()
+	def on_main(self, main: Main) -> None:
+		main.on_play()
 
 	def is_enabled(self) -> bool:
 		return not Main.forWindow(self.window) or DebuggerInState(self.window, DebuggerState.stopped)
 
 
 class SublimeDebugStopCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
-		if main:
-			main.on_stop()
+	def on_main(self, main: Main) -> None:
+		main.on_stop()
 
 	def is_enabled(self) -> bool:
 		return not DebuggerInState(self.window, DebuggerState.stopped)
 
 
 class SublimeDebugPauseCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
-		if main:
-			main.on_pause()
+	def on_main(self, main: Main) -> None:
+		main.on_pause()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.running)
 
 
 class SublimeDebugStepOverCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
-		if main:
-			main.on_step_over()
+	def on_main(self, main: Main) -> None:
+		main.on_step_over()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
 
 
 class SublimeDebugStepInCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
-		if main:
-			main.on_step_in()
+	def on_main(self, main: Main) -> None:
+		main.on_step_in()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
 
 
 class SublimeDebugStepOutCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
-		if main:
-			main.on_step_out()
+	def on_main(self, main: Main) -> None:
+		main.on_step_out()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
 
 
 class SublimeDebugResumeCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
-		if main:
-			main.on_resume()
+	def on_main(self, main: Main) -> None:
+		main.on_resume()
 
 	def is_enabled(self) -> bool:
 		return DebuggerInState(self.window, DebuggerState.paused)
 
 
 class SublimeDebugRunCommandCommand(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window, True)
+	def on_main(self, main: Main) -> None:
 		main.open_repl_console()
 
 
 class SublimeDebugChangeConfiguration(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window, True)
+	def on_main(self, main: Main) -> None:
 		core.run(main.SelectConfiguration())
 
 
 class SublimeDebugRefreshPhantoms(RunMainCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window, True)
+	def on_main(self, main: Main) -> None:
 		main.refresh_phantoms()
 
 
 class SublimeDebugInstallAdapter(DebuggerCommand):
-	def run_main(self) -> None:
-		main = Main.forWindow(self.window, True)
-		self.adapters = main.adapters
-		core.run(self.install())
+	def on_main(self, main: Main) -> None:
+		core.run(self.install(main))
 
 	@core.async
-	def install(self) -> core.awaitable[None]:
+	def install(self, main: Main) -> core.awaitable[None]:
 		names = []
 		adapters = []
 
-		for adapter in self.adapters.values():
+		for adapter in main.adapters.values():
 			if not adapter.installation:
 				continue
 			if adapter.installed:
