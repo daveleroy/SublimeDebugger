@@ -66,3 +66,16 @@ class Label(Inline):
 
 	def html_inner(self, layout: Layout) -> str:
 		return self.render_text
+
+
+class CodeBlock(Inline):
+	def __init__(self, text: str, language: str = 'python') -> None:
+		super().__init__()
+		self.text = text
+		self.language = language
+
+	def added(self, layout: Layout) -> str:
+		self.highlight = layout.syntax_highlight(self.text, self.language)
+
+	def html_inner(self, layout: Layout) -> str:
+		return self.highlight.html or self.highlight.text

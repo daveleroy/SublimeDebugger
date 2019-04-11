@@ -14,13 +14,14 @@ from sublime_db.main.debugger import (
 
 
 class VariableComponent (ui.Block):
-	def __init__(self, variable: Variable) -> None:
+	def __init__(self, variable: Variable, syntax_highlight=True) -> None:
 		super().__init__()
+		self.syntax_highlight = syntax_highlight
 		self.variable = VariableState(variable, self.dirty)
 
 	def on_edit(self) -> None:
 		def on_done(value: Optional[str]) -> None:
-			if not value is None:
+			if value is not None:
 				self.variable.set_value(value)
 
 		def on_change(value: str) -> None:
@@ -35,21 +36,18 @@ class VariableComponent (ui.Block):
 	def render(self) -> ui.Block.Children:
 		v = self.variable
 		name = v.name
-
-		MAX_LENGTH = 40
-		if len(name) > MAX_LENGTH:
-			name = name[:MAX_LENGTH - 1] + '…'
-
-		MAX_LENGTH -= len(name)
 		value = v.value
-		if len(value) > MAX_LENGTH:
-			value = value[:MAX_LENGTH - 1] + '…'
+
+		if self.syntax_highlight:
+			value_item = ui.CodeBlock(value)
+		else:
+			value_item = ui.Label(value)
 
 		if not self.variable.expandable:
 			return [
 				ui.block(ui.ButtonDoubleClick(self.on_edit, None, [
 					ui.Label(name, padding_left=0.5, padding_right=1),
-					ui.Label(value, color='secondary')
+					value_item
 				]))
 			]
 
@@ -65,15 +63,16 @@ class VariableComponent (ui.Block):
 				]),
 				ui.ButtonDoubleClick(self.on_edit, None, [
 					ui.Label(name, padding_right=1),
-					ui.Label(value, color='secondary'),
+					value_item,
 				])
 			)
 		] #type: List[ui.Block]
 
 		if self.variable.expanded:
 			inner = [] #type: List[ui.Block]
+			syntax_highlight = len(self.variable.variables) < 100
 			for variable in self.variable.variables:
-				inner.append(VariableComponent(variable))
+				inner.append(VariableComponent(variable, syntax_highlight))
 			table = ui.Table(items=inner)
 			table.add_class('inset')
 			items.append(table)
@@ -101,8 +100,9 @@ class ScopeComponent (ui.Block):
 
 		if self.scope.expanded:
 			variables = [] #type: List[ui.Block]
+			syntax_highlight = len(self.scope.variables) < 100
 			for variable in self.scope.variables:
-				variables.append(VariableComponent(variable))
+				variables.append(VariableComponent(variable, syntax_highlight))
 			table = ui.Table(items=variables)
 			table.add_class('inset')
 			return [scope_item, table]
