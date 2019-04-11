@@ -110,16 +110,23 @@ class Layout:
 			for child in item.children:
 				self.render_component(child)
 
+	def run_syntax_highlight(self) -> None:
+		pass
+
 	def render(self) -> bool:
 		if not self.requires_render:
 			return False
 
 		self.on_click_handlers = {}
 		self.render_component(self.item)
+		self.run_syntax_highlight()
 		self.html = self.item.html(self)
 		self.css = _all_css
 		self.requires_render = False
 		return True
+
+	def syntax_highlight(self, text: str, language: str) -> str:
+		return self.text
 
 	def dispose(self) -> None:
 		self.remove_component(self.item)

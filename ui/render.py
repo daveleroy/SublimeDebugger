@@ -2,12 +2,16 @@
 from .image import view_background_lightness
 from .layout import Layout, reload_css
 from sublime_db import core
+
 import sublime
+import threading
+
 from sublime_db.core.typecheck import (
 	List,
 	Optional,
 	Callable,
 	Set,
+	Dict,
 	TYPE_CHECKING
 )
 # for mypy
@@ -119,30 +123,75 @@ class Renderable:
 		assert False
 
 
+class SyntaxHighlightedText:
+	def __init__(self, text: str, language: str) -> None:
+		self.html = None #type: Optional[str]
+		self.text = text
+		self.language = language
+
+
 class LayoutView (Layout):
 	def __init__(self, item: 'Component', view: sublime.View) -> None:
 		super().__init__(item)
 		self.view = view
 		self._width = 0
 		self._lightness = 0.0
+		self._em_width = 1.0
 		self.update()
+		self._highlighter = None
+		self._unhighlightedSyntaxHighlightedTexts = []
+		self._syntaxHighlightCache = {} #type: Dict[]
+		try:
+			import mdpopups
+			scheme = view.settings().get('color_scheme')
+			self._highlighter = mdpopups.SublimeHighlight(scheme)
+		except ImportError as e:
+			core.log('syntax highlighting disabled no mdpopups')
 
 	def em_width(self) -> float:
-		size = self.view.settings().get('font_size') or 12
-		return self.view.em_width() / size
+		return self._em_width
 
 	def width(self) -> float:
-		size = self.view.settings().get('font_size') or 12
-		return self._width / size
+		return self._width
 
 	def luminocity(self) -> float:
 		return self._lightness
 
-	def update(self) -> None:
-		width = self.view.viewport_extent()[0]
-		lightness = view_background_lightness(self.view)
+	def syntax_highlight(self, text: str, language: str) -> SyntaxHighlightedText:
+		item = SyntaxHighlightedText(text, language)
+		self._unhighlightedSyntaxHighlightedTexts.append(item)
+		return item
 
-		if self._width != width or self._lightness != lightness:
+	# we run syntax highlighting in the main thread all at once before html is generated
+	# This speeds it up a ton since its interacting with sublime's views which seems
+	# we cache all the results because it is really really slow still...
+	def run_syntax_highlight(self) -> None:
+		if not self._highlighter:
+			return
+		event = threading.Event()
+
+		def run():
+			for item in self._unhighlightedSyntaxHighlightedTexts:
+				cache = self._syntaxHighlightCache.setdefault(item.language, {})
+				if item.text in cache:
+					item.html = cache[item.text]
+				else:
+					item.html = self._highlighter.syntax_highlight(item.text, item.language)
+					cache[item.text] = item.html
+			self._unhighlightedSyntaxHighlightedTexts = []
+			event.set()
+
+		sublime.set_timeout(run)
+		event.wait()
+
+	def update(self) -> None:
+		font_size = self.view.settings().get('font_size') or 12
+		lightness = view_background_lightness(self.view)
+		width = self.view.viewport_extent()[0] / font_size
+		em_width = (self.view.em_width() or 12) / font_size
+
+		if em_width != self._em_width or self._width != width or self._lightness != lightness:
+			self._em_width = em_width
 			self._width = width
 			self._lightness = lightness
 			self.item.dirty()

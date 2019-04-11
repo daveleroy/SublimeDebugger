@@ -91,3 +91,8 @@ a {
 .Panel .Segment {
 	--width: 18rem;
 }
+.highlight {
+	display: inline;
+	position: relative;
+	bottom: var(--label-offset);
+}
