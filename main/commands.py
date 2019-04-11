@@ -6,8 +6,7 @@ from sublime_db.core.typecheck import List
 from sublime_db import core
 from sublime_db.libs import asyncio
 
-from sublime_db.main.main import Main
-from sublime_db.main.debug_adapter_client.client import DebugAdapterClient
+from sublime_db.main.debugger_interface import DebuggerInterface
 from sublime_db.main.adapter_configuration import AdapterConfiguration, install_adapter
 from .configurations import add_configuration
 
@@ -15,42 +14,42 @@ from sublime_db.main.debugger import DebuggerState
 
 
 def DebuggerInState(window: sublime.Window, state: int) -> bool:
-	debugger = Main.debuggerForWindow(window)
+	debugger = DebuggerInterface.debuggerForWindow(window)
 	if debugger and debugger.state == state:
 		return True
 	return False
 
 
-class RunMainCommand(sublime_plugin.WindowCommand):
+class RunDebuggerInterfaceCommand(sublime_plugin.WindowCommand):
 	def run(self) -> None:
 		core.main_loop.call_soon_threadsafe(self.run_main)
 
 	def run_main(self) -> None:
-		main = Main.forWindow(self.window)
+		main = DebuggerInterface.forWindow(self.window)
 		if main:
 			main.show()
 			self.on_main(main)
 		else:
 			print('No debugger open for window, ignoring command')
 
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		pass
 
 
-class DebuggerCommand(RunMainCommand):
+class DebuggerCommand(RunDebuggerInterfaceCommand):
 	def is_visible(self) -> bool:
-		return Main.forWindow(self.window) is not None
+		return DebuggerInterface.forWindow(self.window) is not None
 
 
-class SublimeDebugOpenCommand(RunMainCommand):
+class SublimeDebugOpenCommand(RunDebuggerInterfaceCommand):
 	def run_main(self) -> None:
-		main = Main.forWindow(self.window, True)
+		main = DebuggerInterface.forWindow(self.window, True)
 		assert main
 		main.show()
 
 
 class SublimeDebugToggleBreakpointCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		view = self.window.active_view()
 		x, y = view.rowcol(view.sel()[0].begin())
 		line = x + 1
@@ -62,21 +61,21 @@ class SublimeDebugToggleBreakpointCommand(DebuggerCommand):
 			main.breakpoints.add_breakpoint(file, line)
 
 
-class SublimeDebugQuitCommand(RunMainCommand):
-	def on_main(self, main: Main) -> None:
+class SublimeDebugQuitCommand(RunDebuggerInterfaceCommand):
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.dispose()
 
 
 class SublimeDebugStartCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_play()
 
 	def is_enabled(self) -> bool:
-		return not Main.forWindow(self.window) or DebuggerInState(self.window, DebuggerState.stopped)
+		return not DebuggerInterface.forWindow(self.window) or DebuggerInState(self.window, DebuggerState.stopped)
 
 
 class SublimeDebugStopCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_stop()
 
 	def is_enabled(self) -> bool:
@@ -84,7 +83,7 @@ class SublimeDebugStopCommand(DebuggerCommand):
 
 
 class SublimeDebugPauseCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_pause()
 
 	def is_enabled(self) -> bool:
@@ -92,7 +91,7 @@ class SublimeDebugPauseCommand(DebuggerCommand):
 
 
 class SublimeDebugStepOverCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_step_over()
 
 	def is_enabled(self) -> bool:
@@ -100,7 +99,7 @@ class SublimeDebugStepOverCommand(DebuggerCommand):
 
 
 class SublimeDebugStepInCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_step_in()
 
 	def is_enabled(self) -> bool:
@@ -108,7 +107,7 @@ class SublimeDebugStepInCommand(DebuggerCommand):
 
 
 class SublimeDebugStepOutCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_step_out()
 
 	def is_enabled(self) -> bool:
@@ -116,7 +115,7 @@ class SublimeDebugStepOutCommand(DebuggerCommand):
 
 
 class SublimeDebugResumeCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_resume()
 
 	def is_enabled(self) -> bool:
@@ -124,26 +123,26 @@ class SublimeDebugResumeCommand(DebuggerCommand):
 
 
 class SublimeDebugRunCommandCommand(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.open_repl_console()
 
 
 class SublimeDebugChangeConfiguration(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		core.run(main.SelectConfiguration())
 
 
-class SublimeDebugRefreshPhantoms(RunMainCommand):
-	def on_main(self, main: Main) -> None:
+class SublimeDebugRefreshPhantoms(RunDebuggerInterfaceCommand):
+	def on_main(self, main: DebuggerInterface) -> None:
 		main.refresh_phantoms()
 
 
 class SublimeDebugInstallAdapter(DebuggerCommand):
-	def on_main(self, main: Main) -> None:
+	def on_main(self, main: DebuggerInterface) -> None:
 		core.run(self.install(main))
 
 	@core.async
-	def install(self, main: Main) -> core.awaitable[None]:
+	def install(self, main: DebuggerInterface) -> core.awaitable[None]:
 		names = []
 		adapters = []
 

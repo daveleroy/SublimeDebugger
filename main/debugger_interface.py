@@ -79,8 +79,8 @@ class SelectedLine:
 		self.bottom_line.dispose()
 
 
-class Main (DebuggerPanelCallbacks):
-	instances = {} #type: Dict[int, Main]
+class DebuggerInterface (DebuggerPanelCallbacks):
+	instances = {} #type: Dict[int, DebuggerInterface]
 
 	@staticmethod
 	def should_auto_open_in_window(window: sublime.Window) -> bool:
@@ -94,17 +94,17 @@ class Main (DebuggerPanelCallbacks):
 		return True
 
 	@staticmethod
-	def forWindow(window: sublime.Window, create: bool = False) -> 'Optional[Main]':
-		instance = Main.instances.get(window.id())
+	def forWindow(window: sublime.Window, create: bool = False) -> 'Optional[DebuggerInterface]':
+		instance = DebuggerInterface.instances.get(window.id())
 		if not instance and create:
-			main = Main(window)
-			Main.instances[window.id()] = main
+			main = DebuggerInterface(window)
+			DebuggerInterface.instances[window.id()] = main
 			return main
 		return instance
 
 	@staticmethod
 	def debuggerForWindow(window: sublime.Window) -> Optional[DebuggerState]:
-		main = Main.forWindow(window)
+		main = DebuggerInterface.forWindow(window)
 		if main:
 			return main.debugger
 		return None
@@ -372,7 +372,7 @@ class Main (DebuggerPanelCallbacks):
 
 		try:
 			response = yield from self.debugger.adapter.Evaluate(expr, self.debugger.frame, 'hover')
-			variable = Variable(self.debugger.adapter, response.result, '', response.variablesReference)
+			variable = Variable(self.debugger.adapter, "", response.result, response.variablesReference)
 			event.view.add_regions('selected_hover', [word], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
 
 			def on_close() -> None:
@@ -415,7 +415,7 @@ class Main (DebuggerPanelCallbacks):
 
 		self.breakpoints.dispose()
 		self.window.destroy_output_panel('debugger')
-		del Main.instances[self.window.id()]
+		del DebuggerInterface.instances[self.window.id()]
 
 	def onChangedFilter(self, filter: Filter) -> None:
 		self.debugger.update_exception_filters(self.breakpoints.filters)

@@ -8,10 +8,11 @@ from sublime_db import core
 
 # import all the commands so that sublime sees them
 from sublime_db.main.commands import *
-from sublime_db.main.main import *
-from sublime_db.ui import ViewEventsListener
-from sublime_db.main.util import get_setting
 from sublime_db.main.output_panel import *
+from sublime_db.ui import ViewEventsListener
+
+from sublime_db.main.debugger_interface import *
+from sublime_db.main.util import get_setting
 
 
 def startup() -> None:
@@ -26,9 +27,9 @@ def startup() -> None:
 		if not view.file_name():
 			return
 		window = view.window()
-		if get_setting(view, 'open_at_startup', False) and (not window.id() in was_opened_at_startup) and Main.should_auto_open_in_window(window):
+		if get_setting(view, 'open_at_startup', False) and (not window.id() in was_opened_at_startup) and DebuggerInterface.should_auto_open_in_window(window):
 			was_opened_at_startup.add(window.id())
-			Main.forWindow(window, True)
+			DebuggerInterface.forWindow(window, True)
 
 	ui.view_activated.add(on_view_activated)
 
@@ -37,9 +38,9 @@ def shutdown() -> None:
 	# we just want to ensure that we still set the event if we had an exception somewhere
 	# otherwise shutdown could lock us up
 	print('shutdown')
-	for key, instance in dict(Main.instances).items():
+	for key, instance in dict(DebuggerInterface.instances).items():
 		instance.dispose()
-	Main.instances = {}
+	DebuggerInterface.instances = {}
 	ui.shutdown()
 
 
