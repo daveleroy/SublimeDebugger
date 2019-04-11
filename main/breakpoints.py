@@ -11,6 +11,16 @@ class Filter:
 		self.name = name
 		self.enabled = enabled
 
+	def into_json(self) -> dict:
+		return {
+			'id': self.id,
+			'name': self.name,
+			'enabled': self.enabled
+		}
+
+	@staticmethod
+	def from_json(json: dict) -> 'Filter':
+		return Filter(json['id'], json['name'], json['enabled'])
 
 
 # additonal information about this breakpoint from the debug adapter
@@ -166,6 +176,9 @@ class Breakpoints:
 			ui.view_modified.add(self.view_modified)
 		] #type: List[Any]
 
+		self.sync_dirty_scheduled = False
+		self.dirty_views = {} #type: Dict[int, sublime.View]
+
 	def dispose(self) -> None:
 		for d in self.disposeables:
 			d.dispose()
@@ -253,7 +266,14 @@ class Breakpoints:
 		b.add_to_view(view)
 
 	def view_modified(self, view: sublime.View):
-		self.sync(view)
+		if view.file_name() is None:
+			return
+
+		if not self.sync_dirty_scheduled:
+			ui.Timer(self.sync_dirty, 1, False)
+			self.sync_dirty_scheduled = True
+
+		self.dirty_views[view.id()] = view
 
 	def on_view_activated(self, view: sublime.View):
 		self.sync_from_breakpoints(view)
@@ -263,6 +283,11 @@ class Breakpoints:
 		self.toggle(event.view, event.line + 1)
 	# changes the data model to match up with the view regions
 	# adds any breakpoints found in the data model that are not found on the view
+
+	def sync_dirty(self) -> None:
+		self.sync_dirty_scheduled = False
+		for view in self.dirty_views.values():
+			self.sync(view)
 
 	def sync(self, view: sublime.View) -> None:
 		file = view.file_name()
