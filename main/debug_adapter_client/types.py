@@ -1,7 +1,17 @@
-from sublime_db.core.typecheck import Optional, List, TYPE_CHECKING
+from sublime_db.core.typecheck import TYPE_CHECKING, Optional, List, Callable, TypeVar
 
 if TYPE_CHECKING:
 	from .client import DebugAdapterClient
+
+
+T = TypeVar('T')
+
+
+def array_from_json(from_json: Callable[[], T], json_array: list) -> T:
+	items = []
+	for json in json_array:
+		items.append(from_json(json))
+	return items
 
 
 class Error(Exception):
@@ -127,8 +137,8 @@ class Source:
 	emphasize = 2
 	deemphasize = 3
 
-	def __init__(self, name: str, path: Optional[str], sourceReference: int, presentationHint: int, origin: Optional[str], sources: List['Source']) -> None:
-		self.name = name
+	def __init__(self, name: Optional[str], path: Optional[str], sourceReference: int, presentationHint: int, origin: Optional[str], sources: List['Source']) -> None:
+		self.name = name or path
 		self.path = path
 		self.sourceReference = sourceReference
 		self.presentationHint = presentationHint
@@ -145,15 +155,62 @@ class Source:
 			elif json_hint == 'deemphasize':
 				hint = Source.deemphasize
 
-		sources = []
-		for source_json in json.get('sources', []):
-			sources.append(Source.from_json(source_json))
+		sources = array_from_json(Source.from_json, json.get('sources', []))
 
 		return Source(
-			json.get('name', '??'),
+			json.get('name'),
 			json.get('path'),
 			json.get('sourceReference', 0),
 			hint,
 			json.get('origin'),
 			sources
 		)
+
+
+class ExceptionBreakpointsFilter:
+	def __init__(self, id: str, label: str, default: bool) -> None:
+		self.id = id
+		self.label = label
+		self.default = default
+
+	@staticmethod
+	def from_json(json: dict) -> 'Filter':
+		return ExceptionBreakpointsFilter(
+			json['filter'],
+			json['label'],
+			json.get('default', False),
+		)
+
+
+class Capabilities:
+	def __init__(self, json: dict):
+		self.supportsConfigurationDoneRequest = json.get('supportsConfigurationDoneRequest', False)
+		self.supportsFunctionBreakpoints = json.get('supportsFunctionBreakpoints', False)
+		self.supportsConditionalBreakpoints = json.get('supportsConditionalBreakpoints', False)
+		self.supportsHitConditionalBreakpoints = json.get('supportsHitConditionalBreakpoints', False)
+		self.supportsEvaluateForHovers = json.get('supportsEvaluateForHovers', False)
+		self.exceptionBreakpointFilters = array_from_json(ExceptionBreakpointsFilter.from_json, json.get('exceptionBreakpointFilters', []))
+		self.supportsStepBack = json.get('supportsStepBack', False)
+		self.supportsSetVariable = json.get('supportsSetVariable', False)
+		self.supportsRestartFrame = json.get('supportsRestartFrame', False)
+		self.supportsGotoTargetsRequest = json.get('supportsGotoTargetsRequest', False)
+		self.supportsStepInTargetsRequest = json.get('supportsStepInTargetsRequest', False)
+		self.supportsCompletionsRequest = json.get('supportsCompletionsRequest', False)
+		self.supportsModulesRequest = json.get('supportsModulesRequest', False)
+		# additionalModuleColumns = json['additionalModuleColumns']?: ColumnDescriptor[];
+		# supportedChecksumAlgorithms = json['supportedChecksumAlgorithms']?: ChecksumAlgorithm[];
+		self.supportsRestartRequest = json.get('supportsRestartRequest', False)
+		self.supportsExceptionOptions = json.get('supportsExceptionOptions', False)
+		self.supportsValueFormattingOptions = json.get('supportsValueFormattingOptions', False)
+		self.supportsExceptionInfoRequest = json.get('supportsExceptionInfoRequest', False)
+		self.supportTerminateDebuggee = json.get('supportTerminateDebuggee', False)
+		self.supportsDelayedStackTraceLoading = json.get('supportsDelayedStackTraceLoading', False)
+		self.supportsLoadedSourcesRequest = json.get('supportsLoadedSourcesRequest', False)
+		self.supportsLogPoints = json.get('supportsLogPoints', False)
+		self.supportsTerminateThreadsRequest = json.get('supportsTerminateThreadsRequest', False)
+		self.supportsSetExpression = json.get('supportsSetExpression', False)
+		self.supportsTerminateRequest = json.get('supportsTerminateRequest', False)
+
+	@staticmethod
+	def from_json(json: dict) -> 'Capabilities':
+		return Capabilities(json)

@@ -19,7 +19,7 @@ from sublime_db.libs import asyncio
 from sublime_db import ui, core
 from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter
 
-from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error
+from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities
 from .transport import Transport
 
 
@@ -65,17 +65,6 @@ class DebugAdapterClient:
 		self.is_running = True
 		self._on_initialized_future = core.main_loop.create_future()
 		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
-
-	def transport_closed(self) -> None:
-		print('Debugger Transport: closed')
-		if self.is_running:
-			self.on_error_event.post('Debug Adapter process was terminated prematurely')
-			self._on_terminated({})
-
-	def transport_message(self, message: str) -> None:
-		print('>> ', message)
-		msg = json.loads(message)
-		self.recieved_msg(msg)
 
 	def dispose(self) -> None:
 		print('disposing Debugger')
@@ -141,7 +130,7 @@ class DebugAdapterClient:
 	@core.async
 	def GetStackTrace(self, thread: Thread) -> core.awaitable[List[StackFrame]]:
 		body = yield from self.send_request_asyc('stackTrace', {
-			"threadId": thread.id
+			"threadId": thread.id,
 		})
 		frames = []
 		for frame in body['stackFrames']:
@@ -244,7 +233,7 @@ class DebugAdapterClient:
 		return variable
 
 	@core.async
-	def Initialize(self) -> core.awaitable[dict]:
+	def Initialize(self) -> Capabilities:
 		response = yield from self.send_request_asyc("initialize", {
 			"clientID": "sublime",
 			"clientName": "Sublime Text",
@@ -257,7 +246,7 @@ class DebugAdapterClient:
 			"supportsRunInTerminalRequest": False,
 			"locale": "en-us"}
 		)
-		return response
+		return Capabilities.from_json(response)
 
 	@core.async
 	def Launch(self, config: dict) -> core.awaitable[None]:
@@ -338,9 +327,6 @@ class DebugAdapterClient:
 			else:
 				bps[breakpoint.file] = [breakpoint]
 
-			print(breakpoint, breakpoint.file)
-
-		print('breakpoints:', bps)
 		for file, filebreaks in bps.items():
 			requests.append(self.SetBreakpointsFile(file, filebreaks))
 
@@ -453,6 +439,17 @@ class DebugAdapterClient:
 		if not breakpoint:
 			return
 		self._merg_breakpoint(breakpoint, breakpoint_result)
+
+	def transport_closed(self) -> None:
+		print('Debugger Transport: closed')
+		if self.is_running:
+			self.on_error_event.post('Debug Adapter process was terminated prematurely')
+			self._on_terminated({})
+
+	def transport_message(self, message: str) -> None:
+		print('>> ', message)
+		msg = json.loads(message)
+		self.recieved_msg(msg)
 
 	@core.async
 	def send_request_asyc(self, command: str, args: dict) -> core.awaitable[dict]:

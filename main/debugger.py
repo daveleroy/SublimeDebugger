@@ -25,7 +25,9 @@ from .debug_adapter_client.types import (
 	Scope,
 	Variable,
 	CompletionItem,
-	Error
+	Error,
+	Capabilities,
+	ExceptionBreakpointsFilter
 )
 from .configurations import (
 	Configuration,
@@ -89,9 +91,10 @@ class DebuggerState:
 
 	def launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration, breakpoints: Breakpoints) -> core.awaitable[None]:
 		if self.state != DebuggerState.stopped:
-			print('ignoring launch, not stopped')
-			return
+			print('stopping debug adapter')
+			yield from self.stop()
 
+		assert(self.state == DebuggerState.stopped)
 		self.state = DebuggerState.starting
 
 		try:
@@ -152,21 +155,24 @@ class DebuggerState:
 		core.run(Initialized())
 
 		print('Adapter initialize')
-		body = yield from adapter.Initialize()
-		for filter in body.get('exceptionBreakpointFilters', []):
-			id = filter['filter']
-			name = filter['label']
-			default = filter.get('default', False)
-			breakpoints.add_filter(id, name, default)
+		capabilities = yield from adapter.Initialize()
+		for filter in capabilities.exceptionBreakpointFilters:
+			breakpoints.add_filter(filter.id, filter.label, filter.default)
 
-		if configuration.request == 'launch':
-			self.launch_request = True
-			yield from adapter.Launch(configuration.all)
-		elif configuration.request == 'attach':
-			self.launch_request = False
-			yield from adapter.Attach(configuration.all)
-		else:
-			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
+		try:
+			if configuration.request == 'launch':
+				self.launch_request = True
+				yield from adapter.Launch(configuration.all)
+			elif configuration.request == 'attach':
+				self.launch_request = False
+				yield from adapter.Attach(configuration.all)
+			else:
+				raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
+
+		except Exception as e:
+			core.log_exception()
+			self.state = DebuggerState.stopped
+			return
 
 		print('Adapter has been launched/attached')
 		self.adapter = adapter
