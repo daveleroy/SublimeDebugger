@@ -5,13 +5,14 @@ from sublime_db.core.typecheck import (
 )
 
 from .layout import Layout
-from .component import Inline, components
+from .component import Inline, Block
+
 
 html_escape_table = {
 	"&": "&amp;",
 	">": "&gt;",
 	"<": "&lt;",
-	" ":"\u2003" # HACK spaces inside <a> tags are not clickable. We replaces spaces with em spaces
+	" ": "\u2003" # HACK spaces inside <a> tags are not clickable. We replaces spaces with em spaces
 }
 
 
@@ -44,13 +45,12 @@ class Label(Inline):
 		self.render_text = self.text
 		if max_size:
 			emWidth = layout.em_width()
-			count = max_size / emWidth
-			self.render_text = self.render_text[0:int(count)]
-		if self.width:
-			length = len(self.render_text)
-			emWidth = layout.em_width()
+			# give a bit of fuzz here otherwise setting width to em_width*chars might cut off a character
+			max_characters = int((max_size + 0.001) / emWidth)
+			self.render_text = self.render_text[0:max_characters]
 
-			leftover = self.width - (length) * emWidth
+			# calculate the padding we will need to add to align correctly
+			leftover = self.width - (len(self.render_text) * emWidth)
 			self.paddingleft = leftover * align
 			self.paddingright = leftover * (1.0 - align)
 

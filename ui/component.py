@@ -69,16 +69,6 @@ class Component:
 		return '<{} class="{}" {}>{}</{}>'.format(self.html_tag, self.className, self.html_tag_extra, inner, self.html_tag)
 
 
-class ComponentInline (Component):
-	def __init__(self) -> None:
-		super().__init__()
-		self.html_tag = 'span'
-
-	def html(self, layout: Layout) -> str:
-		inner = self.html_inner(layout)
-		return '<{} class="{}" {}><img class="height">{}</{}>'.format(self.html_tag, self.className, self.html_tag_extra, inner, self.html_tag)
-
-
 class Inline (Component):
 	Children = Sequence['Inline']
 
