@@ -1,10 +1,10 @@
 {	
 	// Open the debugger automatically when a project that is set up for debugging has been opened 
-	// In otherwords it configurations in the .sublime-project defined
+	// In otherwords it has configurations in the .sublime-project defined
 	// "settings" : {
 	//	"debug.configurations" : [...]
 	// }
-	"open_at_startup" : false,
+	"open_at_startup" : true,
 
 	// Sets the entire scale of the UI
 	"ui_scale" : 11,

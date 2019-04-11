@@ -18,16 +18,21 @@
 			},
 			{ "caption": "-"},
 			{
+				"caption" : "Configurations",
+				"command" : "sublime_debug_change_configuration"
+			},
+			{
+				"caption" : "Install Adapters",
+				"command" : "sublime_debug_install_adapter",
+			},
+			{ "caption": "-"},
+			{
 				"caption" : "Start",
 				"command" : "sublime_debug_start",
 			},
 			{
 				"caption" : "Stop",
 				"command" : "sublime_debug_stop"
-			},
-			{
-				"caption" : "Configurations",
-				"command" : "sublime_debug_change_configuration"
 			},
 			{ "caption": "-"},
 			{

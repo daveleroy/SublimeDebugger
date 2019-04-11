@@ -35,7 +35,7 @@ Settings can either be set at the project level or globally.
 Project settings can be changed by appending `debug.` to the setting name 
 
 Within a `.sublime_settings` file
-- `open_at_startup` `false` the debug panel will open the first that a window with this setting is activated
+- `open_at_startup` `true` Open the debugger automatically when a project that is set up for debugging has been opened
 - `display` `output` this chooses where the debug UI is renderer
 - `ui_scale` `12` scales the entire debugger UI
 
