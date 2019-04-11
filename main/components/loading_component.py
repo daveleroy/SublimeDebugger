@@ -3,12 +3,12 @@ from sublime_db.core.typecheck import List, Optional
 from sublime_db import ui
 
 
-class LoadingComponent (ui.ComponentInline):
+class LoadingComponent (ui.Inline):
 	def __init__(self) -> None:
 		super().__init__()
 		self.timer = None #type: Optional[ui.Timer]
 		self.tick = 0
-		self.images = [] #type: List[ui.Component]
+		self.images = [] #type: List[ui.Img]
 
 		image = ui.Image.named('dot0.png')
 		self.images.append(ui.Img(image))
@@ -30,5 +30,5 @@ class LoadingComponent (ui.ComponentInline):
 		if self.timer:
 			self.timer.dispose()
 
-	def render(self) -> ui.components:
+	def render(self) -> ui.Inline.Children:
 		return self.images

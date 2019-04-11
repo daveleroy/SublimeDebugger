@@ -74,10 +74,10 @@ class ConsolePanel (ui.Block):
 	def render(self) -> ui.Block.Children:
 		items = list(self.items[-15:])
 		items.append(ui.Button(self.on_click, items=[
-                    ui.Img(ui.Images.shared.right),
+			ui.Img(ui.Images.shared.right),
 		]))
 		return [
-                    ui.Table(items=items)
+			ui.Table(items=items)
 		]
 
 
@@ -90,9 +90,7 @@ class ConsoleVariable (ui.Block):
 	def render(self) -> ui.Block.Children:
 		items = []
 		for v in self.variable.variables:
-			# we replace the name with the value... since the name is a number
-			# this seems to be what vscode does
-			v.name = v.value
-			v.value = ''
+			v.name = ''
+			v.value = v.value
 			items.append(VariableComponent(v))
 		return items
