@@ -26,11 +26,26 @@ class AdapterConfiguration:
 		def from_json(json: dict) -> 'AdapterConfiguration.Installation':
 			return AdapterConfiguration.Installation(json['name'], json['url'], json['format'])
 
-	def __init__(self, type: str, command: List[str], tcp_port: Optional[int], tcp_address: Optional[str], vscode_package_file: Optional[str], installation: Optional['AdapterConfiguration.Installation']) -> None:
+	def __init__(self, type: str, json: dict, window: str) -> None:
+
+		variables = extract_variables(window)
+		self.command = sublime.expand_variables(json['command'], variables)
+
+		vscode_package_file = json.get('vscode-package-file')
+		if vscode_package_file:
+			vscode_package_file = sublime.expand_variables(vscode_package_file, variables)
+
+		sublime.expand_variables(json['command'], variables)
+		install_json = json.get('installation')
+		installation = None
+		if install_json:
+			installation = AdapterConfiguration.Installation.from_json(install_json)
+
 		self.type = type
-		self.command = command
-		self.tcp_port = tcp_port
-		self.tcp_address = tcp_address
+		self.hover_word_seperators = json.get('hover_word_seperators')
+		self.hover_word_regex_match = json.get('hover_word_regex_match')
+		self.tcp_port = json.get('tcp_port')
+		self.tcp_address = json.get('tcp_address')
 		self.vscode_package_file = vscode_package_file
 		self.snippets = [] #type: List[dict]
 		self.installation = installation
@@ -51,25 +66,10 @@ class AdapterConfiguration:
 
 	@staticmethod
 	def from_json(type: str, json: dict, window: sublime.Window) -> 'AdapterConfiguration':
-		variables = extract_variables(window)
-		command = sublime.expand_variables(json['command'], variables)
-		vscode_package_file = json.get('vscode-package-file')
-		if vscode_package_file:
-			vscode_package_file = sublime.expand_variables(vscode_package_file, variables)
-
-		sublime.expand_variables(json['command'], variables)
-		install_json = json.get('installation')
-		installation = None
-		if install_json:
-			installation = AdapterConfiguration.Installation.from_json(install_json)
-
 		return AdapterConfiguration(
 			type,
-			command,
-			json.get('tcp_port'),
-			json.get('tcp_address'),
-			vscode_package_file,
-			installation
+			json,
+			window
 		)
 
 

@@ -386,11 +386,27 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		if not self.debugger.adapter:
 			return
 
-		word = event.view.word(event.point)
-		expr = event.view.substr(word)
+		hover_word_seperators = self.debugger.adapter_configuration.hover_word_seperators
+		hover_word_regex_match = self.debugger.adapter_configuration.hover_word_regex_match
+
+		if hover_word_seperators:
+			word = event.view.expand_by_class(event.point, sublime.CLASS_WORD_START | sublime.CLASS_WORD_END, separators=hover_word_seperators)
+		else:
+			word = event.view.word(event.point)
+
+		word_string = event.view.substr(word)
+		if not word_string:
+			return
+
+		if hover_word_regex_match:
+			x = re.search(hover_word_regex_match, word_string)
+			if not x:
+				print("hover match discarded because it failed matching the hover pattern, ", word_string)
+				return
+			word_string = x.group()
 
 		try:
-			response = yield from self.debugger.adapter.Evaluate(expr, self.debugger.frame, 'hover')
+			response = yield from self.debugger.adapter.Evaluate(word_string, self.debugger.frame, 'hover')
 			variable = Variable(self.debugger.adapter, "", response.result, response.variablesReference)
 			event.view.add_regions('selected_hover', [word], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
 
