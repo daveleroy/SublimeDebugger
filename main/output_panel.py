@@ -12,10 +12,11 @@ import sublime_plugin
 
 from sublime_db import core
 from sublime_db import ui
+from sublime_db.libs import asyncio
 
 from .debugger import CompletionItem
 
-_phantom_text = " \n\u200b\u200b\u200b\u200b\u200b"
+_phantom_text = " \n \u200b\u200b\u200b\u200b\u200b"
 
 
 class CommandPrompComponent (ui.Block):
@@ -25,7 +26,7 @@ class CommandPrompComponent (ui.Block):
 
 	def render(self) -> ui.Block.Children:
 		return [
-			ui.block(ui.Label(self.text),ui.Img(ui.Images.shared.right))
+			ui.block(ui.Label("  "), ui.Img(ui.Images.shared.right))
 		]
 
 
@@ -40,6 +41,10 @@ class PanelInputHandler (ui.InputHandler):
 
 	def close(self) -> None:
 		self.panel.clear_input_handler(self, None)
+
+
+PADDING_TOP_COMMAND_HIDE = -18
+PADDING_TOP_COMMAND_SHOW = -3
 
 
 class OutputPhantomsPanel:
@@ -62,23 +67,33 @@ class OutputPhantomsPanel:
 		# we use new lines so we don't have extra space on the rhs
 		self.view.run_command('debug_output_phantoms_panel_setup')
 		settings = self.view.settings()
-
 		# cover up the addition space we added during the insert
 		# the additional space is so we can have an input bar at the top of the debugger
 		# removes some additional padding on the top of the view
 		settings.set("margin", 0)
-		settings.set('line_padding_top', -9)
+		settings.set('line_padding_top', PADDING_TOP_COMMAND_HIDE)
+		settings.set('line_padding_bottom', -3)
 		settings.set('gutter', False)
 		settings.set('word_wrap', False)
-
+		settings.set('line_spacing', 0)
+		settings.set('context_menu', 'Widget Debug.sublime-menu')
 		self.view.sel().clear()
+		self.hack_to_get_view_to_not_freak_out_when_you_click_on_the_edge()
 
 		self.input_handler = None #type: Optional[PanelInputHandler]
-		self.promptPhantom = None #type: Optional[ui.Phantom]
 		OutputPhantomsPanel.panels[self.view.id()] = self
+		self.promptPhantom = ui.Phantom(CommandPrompComponent(""), self.view, sublime.Region(1, 1))
 
 	def isHidden(self) -> bool:
 		return self.window.active_panel() != 'output.{}'.format(self.name)
+
+	def hack_to_get_view_to_not_freak_out_when_you_click_on_the_edge(self):
+		self.view.set_viewport_position([7, 0], animate=False)
+		@core.async
+		def async():
+			yield from asyncio.sleep(0)
+			self.view.set_viewport_position([7, 0], animate=False)
+		core.run(async())
 
 	def show(self) -> None:
 		self.window.run_command('show_panel', {
@@ -94,9 +109,10 @@ class OutputPhantomsPanel:
 		})
 
 	def phantom_location(self) -> int:
-		return self.view.size() - len(_phantom_text) + 2
+		return self.view.size() - len(_phantom_text) + 3
 
 	def dispose(self) -> None:
+		self.promptPhantom.dispose()
 		self.window.destroy_output_panel(self.name)
 		del OutputPhantomsPanel.panels[self.view.id()]
 
@@ -107,13 +123,11 @@ class OutputPhantomsPanel:
 			'header': self.header_text,
 			'characters': input_handler.text,
 		})
-		self.view.settings().set('line_padding_top', 0)
+		self.view.settings().set('line_padding_top', PADDING_TOP_COMMAND_SHOW)
 		self.view.sel().clear()
 		self.view.sel().add(self.editable_region())
 
-		if self.promptPhantom:
-			self.promptPhantom.dispose()
-		self.promptPhantom = ui.Phantom(CommandPrompComponent(input_handler.label), self.view, sublime.Region(1, 1))
+		self.hack_to_get_view_to_not_freak_out_when_you_click_on_the_edge()
 
 	def clear_input_handler(self, input_handler: PanelInputHandler, text: Optional[str]) -> None:
 		if not self.input_handler:
@@ -121,19 +135,16 @@ class OutputPhantomsPanel:
 		if self.input_handler != input_handler:
 			return
 
-		if self.promptPhantom:
-			self.promptPhantom.dispose()
-			self.promptPhantom = None
-
 		self.header_text = ''
 		self.view.run_command('debug_output_phantoms_panel_reset', {
 			'header': '',
 			'characters': '',
 		})
 
-		self.view.settings().set('line_padding_top', -9)
+		self.view.settings().set('line_padding_top', PADDING_TOP_COMMAND_HIDE)
 		self.input_handler.on_done(text)
 		self.input_handler = None
+		self.hack_to_get_view_to_not_freak_out_when_you_click_on_the_edge()
 
 	def editable_region(self) -> sublime.Region:
 		min_point = len(self.header_text)
@@ -188,10 +199,10 @@ class DebugOutputPhantomsPanelEventListener(sublime_plugin.EventListener):
 
 	@core.async
 	def get_completions(self, view: sublime.View, text: str) -> core.awaitable[None]:
-		from sublime_db.main.main import Main
+		from sublime_db.main.debugger_interface import DebuggerInterface
 
 		window = view.window()
-		m = Main.forWindow(window)
+		m = DebuggerInterface.forWindow(window)
 		if m:
 			adapter = m.debugger.adapter
 		if not adapter:
