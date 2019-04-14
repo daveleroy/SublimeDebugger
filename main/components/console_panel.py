@@ -52,6 +52,34 @@ class ConsolePanel (ui.Block):
 		self.on_click = on_click
 		self.filter = ERROR | OUTPUT | TEXT | NONE
 
+	def change_filter(self, index: int = 0) -> None:
+		core.run(self.change_filter_async(sublime.active_window(), index))
+
+	@core.async
+	def change_filter_async(self, window, index) -> core.awaitable[None]:
+		names = ["-- All -- ", "output: debugger", "output: program", "output: other"]
+		masks = [
+			(ERROR | OUTPUT | TEXT | NONE),
+			(TEXT),
+			(ERROR | OUTPUT),
+			(NONE)
+		]
+		for i in range(0, 4):
+			if self.filter & masks[i]:
+				names[i] += "  ✓"
+
+		selected_index = yield from core.sublime_show_quick_panel_async(window, names, index)
+		if selected_index < 0:
+			return
+
+		if selected_index == 0:
+			self.filter = masks[0]
+		else:
+			self.filter ^= masks[selected_index]
+
+		self.change_filter(selected_index)
+		self.dirty()
+
 	def get_text(self) -> str:
 		return ''.join(self.text)
 

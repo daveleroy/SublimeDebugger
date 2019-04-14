@@ -154,9 +154,9 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.breakpoints_panel = BreakpointsComponent(self.breakpoints, self.onSelectedBreakpoint)
 
 		self.pages_panel = TabbedPanel([
-			("Breakpoints", self.breakpoints_panel),
-			("Call Stack", self.callstack_panel),
-			("Console", self.console_panel),
+			("Breakpoints", self.breakpoints_panel, None),
+			("Call Stack", self.callstack_panel, None),
+			("Console", self.console_panel, self.console_panel.change_filter),
 		], 0)
 		self.debugger_panel = DebuggerPanel(self.breakpoints, self)
 

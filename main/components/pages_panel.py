@@ -11,7 +11,7 @@ from .layout import pages_panel_width
 
 
 class TabbedPanel(ui.Block):
-	def __init__(self, items: List[Tuple[str, ui.Block]], selected_index: int) -> None:
+	def __init__(self, items: List[Tuple[str, ui.Block, None]], selected_index: int) -> None:
 		super().__init__()
 		self.items = items
 		self.selected_index = selected_index
@@ -36,7 +36,7 @@ class TabbedPanel(ui.Block):
 			def on_click(index: int = index):
 				self.selected(index)
 			tabs.append(ui.Button(on_click, items=[
-				PageTab(item[0], index == self.selected_index, self._modified[index])
+				PageTab(item[0], index == self.selected_index, self._modified[index], item[2])
 			]))
 			tabs.append(ui.HorizontalSpacer(0.25)) #type: ignore
 		return [
@@ -49,8 +49,9 @@ class TabbedPanel(ui.Block):
 
 
 class PageTab (ui.Inline):
-	def __init__(self, name: str, selected: bool, modified: bool) -> None:
+	def __init__(self, name: str, selected: bool, modified: bool, on_more_callback) -> None:
 		super().__init__()
+		self.on_more_callback = on_more_callback
 		if selected:
 			self.add_class('selected')
 			self.items = [
@@ -70,7 +71,8 @@ class PageTab (ui.Inline):
 			]
 
 	def on_more(self) -> None:
-		pass
+		if self.on_more_callback:
+			self.on_more_callback()
 
 	def render(self) -> ui.Inline.Children:
 		return self.items
