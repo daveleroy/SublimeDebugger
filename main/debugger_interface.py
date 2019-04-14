@@ -3,6 +3,7 @@ from sublime_db.core.typecheck import Tuple, List, Optional, Callable, Union, Di
 import sublime
 import sublime_plugin
 import os
+import re
 
 from sublime_db import ui
 from sublime_db import core
@@ -450,6 +451,8 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		self.breakpoints.dispose()
 		self.window.destroy_output_panel('debugger')
+		if self.debugger:
+			self.debugger.dispose()
 		del DebuggerInterface.instances[self.window.id()]
 
 	def onChangedFilter(self, filter: Filter) -> None:
