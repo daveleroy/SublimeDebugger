@@ -1,0 +1,17 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Launch",
+			"request": "launch",
+			"type": "php",
+			"program": "${workspaceFolder}/test.php",
+			"cwd": "${workspaceFolder}",
+			"externalConsole": false,
+			"xdebugSettings": {
+				"max_children": 50,
+				"max_depth": 5
+			}
+		}
+	]
+}

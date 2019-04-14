@@ -1,0 +1,26 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"settings":
+	{
+		"debug.configurations":
+		[
+			{
+				"name": "Launch",
+				"request": "launch",
+				"type": "php",
+				"program": "${project_path}/test.php",
+				"cwd": "${project_path}",
+				"externalConsole": false,
+				"xdebugSettings": {
+					"max_children": 50,
+					"max_depth": 5
+				}
+			}
+		]
+	}
+}
