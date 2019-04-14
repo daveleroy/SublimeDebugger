@@ -10,6 +10,7 @@ from sublime_db import ui
 
 from sublime_db.main.breakpoints import Breakpoints, Breakpoint, Filter
 from .loading_component import LoadingComponent
+from .layout import breakpoints_panel_width
 
 STOPPED = 0
 RUNNING = 1

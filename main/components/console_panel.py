@@ -10,7 +10,7 @@ from .variable_component import (VariableComponent,
                                  VariableState,
                                  VariableComponent
                                  )
-from . import constants
+from .layout import console_panel_width
 
 ERROR = 1
 OUTPUT = 1 << 1
@@ -26,19 +26,20 @@ class ConsoleItem (ui.Block):
 		self.variable = variable
 
 	def render(self) -> ui.Block.Children:
+		width = console_panel_width(self.layout)
 		if self.variable:
 			return [VariableComponent(self.variable)]
 		if self.kind == TEXT:
 			return [
-				ui.block(ui.Label(self.text, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='secondary'))
+				ui.block(ui.Label(self.text, width=width, align=0, color='secondary'))
 			]
 		if (self.kind == OUTPUT) or (self.kind == NONE):
 			return [
-				ui.block(ui.Label(self.text, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='primary'))
+				ui.block(ui.Label(self.text, width=width, align=0, color='primary'))
 			]
 		if self.kind == ERROR:
 			return [
-				ui.block(ui.Label(self.text, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='red'))
+				ui.block(ui.Label(self.text, width=width, align=0, color='red'))
 			]
 		assert None, "expected type..."
 
@@ -49,6 +50,7 @@ class ConsolePanel (ui.Block):
 		self.items = [] #type: List[ui.Block]
 		self.text = [] #type: List[str]
 		self.on_click = on_click
+		self.filter = ERROR | OUTPUT | TEXT | NONE
 
 	def get_text(self) -> str:
 		return ''.join(self.text)
@@ -103,7 +105,15 @@ class ConsolePanel (ui.Block):
 		self.dirty()
 
 	def render(self) -> ui.Block.Children:
-		items = list(self.items[-15:])
+		count = int(self.layout.height() / 1.65)
+		items = []
+
+		for item in reversed(self.items):
+			if len(items) >= count:
+				break
+			if item.kind & self.filter:
+				items.append(item)
+		items.reverse()
 		items.append(ui.Button(self.on_click, items=[
 			ui.Img(ui.Images.shared.right),
 		]))

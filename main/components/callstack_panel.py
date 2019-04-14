@@ -12,7 +12,7 @@ from sublime_db.main.debugger import (
 	DebuggerState
 )
 
-from . import constants
+from .layout import callstack_panel_width
 
 
 class CallStackPanel (ui.Block):
@@ -75,7 +75,7 @@ class StackFrameComponent (ui.Block):
 		emWidth = self.layout.em_width()
 		padding_left = 0.8
 		padding_right = 0.8
-		max_length = constants.PANEL_CONTENT_MAX_WIDTH - padding_left - padding_right - 5
+		max_length = callstack_panel_width(self.layout) - padding_left - padding_right - 5
 		name_length = len(name) * emWidth
 
 		if name_length > max_length:
@@ -145,7 +145,7 @@ class ThreadComponent (ui.Block):
 		self.panel.set_selected(self.thread, self.frames[index], index)
 
 	def render(self) -> ui.Block.Children:
-		max_length = constants.PANEL_CONTENT_MAX_WIDTH - 5
+		max_length = callstack_panel_width(self.layout) - 5
 		if self.thread.stopped:
 			item = ui.block(
 				ui.Button(self.toggle, items=[
@@ -181,7 +181,8 @@ class ThreadComponent (ui.Block):
 				selected_index = self.panel.selected_frame_index
 
 			for index, frame in enumerate(self.frames):
-				def on_click(index=index): return self.onClicked(index) #type: ignore
+				def on_click(index=index):
+					self.onClicked(index)
 				component = ui.Padding(StackFrameComponent(self.debugger, frame, on_click), top=0.1, bottom=0.2)
 				frames.append(component)
 

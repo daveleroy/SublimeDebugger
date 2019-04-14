@@ -7,7 +7,7 @@ from sublime_db.core.typecheck import (
 )
 
 from sublime_db import ui
-from .constants import VARIABLE_PANEL_MIN_WIDTH
+from .layout import pages_panel_width
 
 
 class TabbedPanel(ui.Block):
@@ -41,7 +41,7 @@ class TabbedPanel(ui.Block):
 			tabs.append(ui.HorizontalSpacer(0.25)) #type: ignore
 		return [
 			ui.block(*tabs),
-			ui.HorizontalSpacer(self.layout.width() - VARIABLE_PANEL_MIN_WIDTH - 6.75),
+			ui.HorizontalSpacer(pages_panel_width(self.layout)),
 			ui.Panel(items=[
 				self.items[self.selected_index][1]
 			]),

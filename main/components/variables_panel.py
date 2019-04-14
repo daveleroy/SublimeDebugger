@@ -9,7 +9,7 @@ from sublime_db.main.debugger import (
 )
 
 from .variable_component import ScopeComponent
-from . import constants
+from .layout import variables_panel_width
 
 
 class VariablesPanel (ui.Block):
@@ -43,6 +43,6 @@ class VariablesPanel (ui.Block):
 		items.append(ui.Table(items=scopes_items))
 
 		return [
-			ui.HorizontalSpacer(constants.VARIABLE_PANEL_MIN_WIDTH),
+			ui.HorizontalSpacer(variables_panel_width(self.layout)),
 			ui.Panel(items=items)
 		]
