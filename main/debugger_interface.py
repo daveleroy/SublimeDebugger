@@ -3,6 +3,7 @@ from sublime_db.core.typecheck import Tuple, List, Optional, Callable, Union, Di
 import sublime
 import sublime_plugin
 import os
+import subprocess
 import re
 
 from sublime_db import ui
@@ -181,7 +182,11 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 					# this probably doesn't work for most people. subl needs to be in PATH
 					file = self.window.active_view().file_name()
 					if file:
-						os.system("subl " + file)
+						# ignore any errors
+						try:
+							subprocess.call(["subl", file])
+						except Exception:
+							pass
 
 				self.show_call_stack_panel()
 			elif state == DebuggerState.stopping or state == DebuggerState.starting:
