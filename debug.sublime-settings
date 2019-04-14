@@ -9,6 +9,10 @@
 	// Sets the entire scale of the UI
 	"ui_scale" : 11,
 
+	// when the debugger hits a breakpoint bring the sublime window to the foreground
+	// NOTE: this runs the "subl" command to occomplish this so it must be in your PATH
+	"bring_window_to_front_on_pause" : true,
+
 	// This is the list of debug adapters.
 	// If you are having issues running one ensure you have the required dependencies to run them the command
 	// Look in the docs for more info: https://github.com/daveleroy/sublime_db/blob/master/docs/setup.md 

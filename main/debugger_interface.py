@@ -175,6 +175,14 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 				self.debugger_panel.setState(RUNNING)
 			elif state == DebuggerState.paused:
 				self.debugger_panel.setState(PAUSED)
+
+				if get_setting(self.view, 'bring_window_to_front_on_pause', False):
+					# is there a better way to bring sublime to the front??
+					# this probably doesn't work for most people. subl needs to be in PATH
+					file = self.window.active_view().file_name()
+					if file:
+						os.system("subl " + file)
+
 				self.show_call_stack_panel()
 			elif state == DebuggerState.stopping or state == DebuggerState.starting:
 				self.debugger_panel.setState(LOADING)
