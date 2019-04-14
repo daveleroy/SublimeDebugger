@@ -137,6 +137,9 @@ class Layout:
 	def width(self) -> float:
 		assert False, 'not implemented'
 
+	def height(self) -> float:
+		assert False, 'not implemented'
+
 	def luminocity(self) -> float:
 		return 0
 

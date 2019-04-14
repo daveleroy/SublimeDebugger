@@ -95,6 +95,7 @@ def render() -> None:
 	def on_sublime_thread() -> None:
 		for r in renderables_to_update:
 			r.render_sublime()
+
 		for r in renderables_to_clear:
 			r.clear_sublime()
 
@@ -135,6 +136,7 @@ class LayoutView (Layout):
 		super().__init__(item)
 		self.view = view
 		self._width = 0
+		self._height = 0
 		self._lightness = 0.0
 		self._em_width = 1.0
 		self.update()
@@ -153,6 +155,9 @@ class LayoutView (Layout):
 
 	def width(self) -> float:
 		return self._width
+
+	def height(self) -> float:
+		return self._height
 
 	def luminocity(self) -> float:
 		return self._lightness
@@ -187,12 +192,15 @@ class LayoutView (Layout):
 	def update(self) -> None:
 		font_size = self.view.settings().get('font_size') or 12
 		lightness = view_background_lightness(self.view)
-		width = self.view.viewport_extent()[0] / font_size
+		size = self.view.viewport_extent()
+		width = size[0] / font_size
+		height = size[1] / font_size
 		em_width = (self.view.em_width() or 12) / font_size
 
-		if em_width != self._em_width or self._width != width or self._lightness != lightness:
+		if em_width != self._em_width or self._width != width or self._height != height or self._lightness != lightness:
 			self._em_width = em_width
 			self._width = width
+			self._height = height
 			self._lightness = lightness
 			self.item.dirty()
 

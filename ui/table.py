@@ -22,7 +22,7 @@ class TableItem (Block):
 class Table (Block):
 	def __init__(self, items: Block.Children, selected_index=-1) -> None:
 		super().__init__()
-		self.selected_index = selected_index		
+		self.selected_index = selected_index
 		for index, item in enumerate(items):
 			if selected_index == index:
 				item.add_class('table-item-selected')
