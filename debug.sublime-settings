@@ -88,6 +88,9 @@
 				"node",
 				"${packages}/sublime_db/debug_adapters/vscode-php/extension/out/phpDebug.js"
 			],
+
+			"hover_word_regex_match" : "\\$[a-zA-Z0-9_]*",
+			"hover_word_seperators" : "./\\()\"'-:,.;<>~!@#%^&*|+=[]{}`~?.",
 			"installation": {
 				"name": "vscode-php",
 				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/felixfbecker/vsextensions/php-debug/latest/vspackage",
