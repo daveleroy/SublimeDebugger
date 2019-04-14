@@ -4,5 +4,6 @@ debug_adapters/vscode-lldb
 debug_adapters/vscode-python
 debug_adapters/vscode-go
 debug_adapters/vscode-php
+debug_adapters/native-debug
 persistance.json
 .mypy_cache
