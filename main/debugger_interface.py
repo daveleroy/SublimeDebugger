@@ -196,9 +196,19 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			variablesReference = event.variablesReference
 
 			if variablesReference and self.debugger.adapter:
-				variable = Variable(self.debugger.adapter, msg, '', variablesReference)
-				self.console_panel.AddVariable(variable)
-				self.pages_panel.modified(2)
+				# this seems to be what vscode does it ignores the actual message here.
+				# Some of the messages are junk like "output" that we probably don't want to display
+				@core.async
+				def appendVariabble() -> core.awaitable[None]:
+					variables = yield from self.debugger.adapter.GetVariables(variablesReference)
+					for variable in variables:
+						variable.name = "" # this is what vs code does?
+						self.console_panel.AddVariable(variable)
+					self.pages_panel.modified(2)
+
+				# this could make variable messages appear out of order. Do we care??
+				self.run_async(appendVariabble())
+
 			elif category == "stdout":
 				self.console_panel.AddStdout(msg)
 				self.pages_panel.modified(2)
@@ -207,8 +217,17 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 				self.pages_panel.modified(2)
 			elif category == "telemetry":
 				pass
-			else:
+			elif category == "output":
+				self.console_panel.AddStdout(msg)
+				self.pages_panel.modified(2)
+			elif category == "error":
+				self.console_panel.AddStderr(msg)
+				self.pages_panel.modified(2)
+			elif category == "info":
 				self.console_panel.Add(msg)
+				self.pages_panel.modified(2)
+			else:
+				self.console_panel.AddOutputOther(msg)
 				self.pages_panel.modified(2)
 
 		self.debugger = DebuggerState(

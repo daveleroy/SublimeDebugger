@@ -1,4 +1,4 @@
-from sublime_db.core.typecheck import List, Callable
+from sublime_db.core.typecheck import List, Callable, Optional
 
 import os
 import sublime
@@ -11,6 +11,36 @@ from .variable_component import (VariableComponent,
                                  VariableComponent
                                  )
 from . import constants
+
+ERROR = 1
+OUTPUT = 1 << 1
+TEXT = 1 << 2
+NONE = 1 << 3
+
+
+class ConsoleItem (ui.Block):
+	def __init__(self, kind: int, text: str, variable: Optional[Variable]):
+		super().__init__()
+		self.kind = kind
+		self.text = text
+		self.variable = variable
+
+	def render(self) -> ui.Block.Children:
+		if self.variable:
+			return [VariableComponent(self.variable)]
+		if self.kind == TEXT:
+			return [
+				ui.block(ui.Label(self.text, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='secondary'))
+			]
+		if (self.kind == OUTPUT) or (self.kind == NONE):
+			return [
+				ui.block(ui.Label(self.text, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='primary'))
+			]
+		if self.kind == ERROR:
+			return [
+				ui.block(ui.Label(self.text, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='red'))
+			]
+		assert None, "expected type..."
 
 
 class ConsolePanel (ui.Block):
@@ -35,34 +65,35 @@ class ConsolePanel (ui.Block):
 		self.text.append(' = ')
 		self.text.append(variable.value)
 
-		item = ConsoleVariable(variable)
+		item = ConsoleItem(OUTPUT, "", variable)
 		self.items.append(item)
 		self.dirty()
 
 	def Add(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.block(
-				ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='secondary')
-			)
+			item = ConsoleItem(TEXT, line, None)
+			self.items.append(item)
+		self.dirty()
+
+	def AddOutputOther(self, text: str) -> None:
+		self.text.append(text)
+		for line in reversed(text.rstrip('\n').split('\n')):
+			item = ConsoleItem(NONE, line, None)
 			self.items.append(item)
 		self.dirty()
 
 	def AddStdout(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.block(
-				ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='primary')
-			)
+			item = ConsoleItem(OUTPUT, line, None)
 			self.items.append(item)
 		self.dirty()
 
 	def AddStderr(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\n').split('\n')):
-			item = ui.block(
-				ui.Label(line, width=constants.PANEL_CONTENT_MAX_WIDTH, align=0, color='red')
-			)
+			item = ConsoleItem(ERROR, line, None)
 			self.items.append(item)
 		self.dirty()
 
@@ -84,13 +115,9 @@ class ConsolePanel (ui.Block):
 class ConsoleVariable (ui.Block):
 	def __init__(self, variable: Variable) -> None:
 		super().__init__()
-		self.variable = VariableState(variable, self.dirty)
-		self.variable.toggle_expand()
+		self.variable = variable
 
 	def render(self) -> ui.Block.Children:
-		items = []
-		for v in self.variable.variables:
-			v.name = ''
-			v.value = v.value
-			items.append(VariableComponent(v))
-		return items
+		return [
+			VariableComponent(self.variable)
+		]
