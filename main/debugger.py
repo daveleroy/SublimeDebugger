@@ -1,3 +1,4 @@
+import sublime
 from sublime_db.core.typecheck import (Tuple, List, Optional, Callable, Union, Dict, Any, Set)
 from sublime_db import core
 
@@ -58,6 +59,8 @@ class DebuggerState:
 
 		self.adapter = None #type: Optional[DebugAdapterClient]
 		self.process = None #type: Optional[Process]
+		self.launching_async = None
+
 		self.launch_request = True
 
 		self.selected_frame = None #type: Optional[StackFrame]
@@ -90,52 +93,61 @@ class DebuggerState:
 		self.on_state_changed(state)
 
 	def launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration, breakpoints: Breakpoints) -> core.awaitable[None]:
+		if self.launching_async:
+			self.launching_async.cancel()
+
+		self.launching_async = core.run(self._launch(adapter_configuration, configuration, breakpoints))
+		try:
+			yield from self.launching_async
+		except Exception as e:
+			self.launching_async = None
+			core.log_exception(e)
+			if isinstance(e, core.CancelledError):
+				self.log_info("... canceled")
+			else:
+				self.log_error("... an error occured, " + str(e))
+			self.force_stop_adapter()
+
+		self.launching_async = None
+
+	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration, breakpoints: Breakpoints) -> core.awaitable[None]:
 		if self.state != DebuggerState.stopped:
 			print('stopping debug adapter')
 			yield from self.stop()
 
-		assert(self.state == DebuggerState.stopped)
+		assert(self.state == DebuggerState.stopped, "debugger not in stopped state?")
 		self.state = DebuggerState.starting
+		self.adapter_configuration = adapter_configuration
+		self.configuration = configuration
 
-		try:
-			if not adapter_configuration.installed:
-				raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
+		if not adapter_configuration.installed:
+			raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
 
-			# If there is a command to run for this debugger run it now
-			if adapter_configuration.tcp_port:
-				print('Starting Process: {}'.format(adapter_configuration.command))
-				try:
-					self.process = Process(adapter_configuration.command,
-                                            on_stdout=self._on_msg,
-                                            on_stderr=self._on_msg)
-				except Exception as e:
-					self.on_error('Failed to start debug adapter process: {}'.format(e))
-					self.on_error('Command in question: {}'.format(adapter_configuration.command))
-					core.display('Failed to start debug adapter process: Check the Event Log for more details')
-					self.state = DebuggerState.stopped
-					return
-				tcp_address = adapter_configuration.tcp_address or 'localhost'
-				try:
-					transport = yield from start_tcp_transport(tcp_address, adapter_configuration.tcp_port)
-				except Exception as e:
-					self.on_error('Failed to connect to debug adapter: {}'.format(e))
-					self.on_error('address: {} port: {}'.format(tcp_address, adapter_configuration.tcp_port))
-					core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
-					self.state = DebuggerState.stopped
-					return
-			else:
-				# dont monitor stdout the StdioTransport users it
-				self.process = Process(adapter_configuration.command,
-                                    on_stdout=None,
-                                    on_stderr=self._on_msg)
 
-				transport = StdioTransport(self.process)
+		# If there is a command to run for this debugger run it now
+		if adapter_configuration.tcp_port:
+			self.log_info('starting debug adapter...')
+			try:
+				self.process = Process(adapter_configuration.command, on_stdout=self.log_info, on_stderr=self.log_info)
+			except Exception as e:
+				self.log_error('Failed to start debug adapter process: {}'.format(e))
+				self.log_error('Command in question: {}'.format(adapter_configuration.command))
+				core.display('Failed to start debug adapter process: Check the Event Log for more details')
+				raise Exception("failed to start debug adapter process")
+			tcp_address = adapter_configuration.tcp_address or 'localhost'
+			try:
+				transport = yield from start_tcp_transport(tcp_address, adapter_configuration.tcp_port)
+			except Exception as e:
+				self.log_error('Failed to connect to debug adapter: {}'.format(e))
+				self.log_error('address: {} port: {}'.format(tcp_address, adapter_configuration.tcp_port))
+				core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
+				raise Exception("failed to start debug adapter process")
 
-		except Exception as e:
-			core.log_exception()
-			core.display(e)
-			self.state = DebuggerState.stopped
-			return
+			self.log_info('... debug adapter started')
+		else:
+			# dont monitor stdout the StdioTransport users it
+			self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.log_info)
+			transport = StdioTransport(self.process)
 
 		adapter = DebugAdapterClient(transport)
 		adapter.onThreads.add(self._on_threads_event)
@@ -143,6 +155,8 @@ class DebuggerState:
 		adapter.onStopped.add(self._on_stopped_event)
 		adapter.onContinued.add(self._on_continued_event)
 		adapter.onExited.add(self._on_exited_event)
+
+		self.log_info("starting debugger... ")
 
 		# this is a bit of a weird case. Initialized will happen at some point in time
 		# it depends on when the debug adapter chooses it is ready for configuration information
@@ -154,45 +168,38 @@ class DebuggerState:
 			yield from adapter.ConfigurationDone()
 		core.run(Initialized())
 
-		print('Adapter initialize')
 		capabilities = yield from adapter.Initialize()
 		for filter in capabilities.exceptionBreakpointFilters:
 			breakpoints.add_filter(filter.id, filter.label, filter.default)
 
-		try:
-			if configuration.request == 'launch':
-				self.launch_request = True
-				yield from adapter.Launch(configuration.all)
-			elif configuration.request == 'attach':
-				self.launch_request = False
-				yield from adapter.Attach(configuration.all)
-			else:
-				raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
+		if configuration.request == 'launch':
+			self.launch_request = True
+			yield from adapter.Launch(configuration.all)
+		elif configuration.request == 'attach':
+			self.launch_request = False
+			yield from adapter.Attach(configuration.all)
+		else:
+			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
 
-		except Exception as e:
-			core.log_exception()
-			self.state = DebuggerState.stopped
-			return
-
-		print('Adapter has been launched/attached')
 		self.adapter = adapter
 		# At this point we are running?
 		self.state = DebuggerState.running
 
 	def force_stop_adapter(self) -> None:
-		self.selected_frame = None
+		if self.launching_async:
+			self.launching_async.cancel()
 
+		self.selected_frame = None
 		self.on_threads([])
 		self.on_scopes([])
 		self.on_selected_frame(None, None)
-
-		self.state = DebuggerState.stopped
 		if self.adapter:
 			self.adapter.dispose()
 			self.adapter = None
 		if self.process:
 			self.process.dispose()
 			self.process = None
+		self.state = DebuggerState.stopped
 
 	def _refresh_state(self) -> None:
 		thread = self._selected_or_first_thread()
@@ -224,10 +231,10 @@ class DebuggerState:
 				yield from self.adapter.Terminate()
 			except Error as e:
 				yield from self.adapter.Disconnect()
-				self.force_stop_adapter()
 		else:
 			yield from self.adapter.Disconnect()
-			self.force_stop_adapter()
+
+		self.force_stop_adapter()
 
 	def resume(self) -> core.awaitable[None]:
 		assert self.adapter, 'no adapter for command'
@@ -266,12 +273,16 @@ class DebuggerState:
 		if new_thread:
 			self._refresh_state()
 
-	def on_error(self, error: str) -> None:
-		output = OutputEvent("stderr", error, 0)
+	def log_info(self, string: str) -> None:
+		output = OutputEvent("info", string, 0)
 		self.on_output(output)
 
-	def _on_msg(self, message: str) -> None:
-		output = OutputEvent("stdout", message, 0)
+	def log_output(self, string: str) -> None:
+		output = OutputEvent("output", string, 0)
+		self.on_output(output)
+
+	def log_error(self, string: str) -> None:
+		output = OutputEvent("error", string, 0)
 		self.on_output(output)
 
 	def _unselect_thread_if_not_found(self) -> None:

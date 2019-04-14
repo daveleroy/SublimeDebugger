@@ -21,7 +21,7 @@ T = TypeVar('T')
 awaitable = Generator[Any, Any, T]
 async = asyncio.coroutine
 future = asyncio.Future
-
+CancelledError = asyncio.CancelledError
 main_loop = asyncio.new_event_loop()
 
 
@@ -93,7 +93,7 @@ def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: 
 			on_done(result)
 
 	task.add_done_callback(done)
-
+	return task
 
 def assert_main_thread() -> None:
 	assert is_main_thred(), 'expecting main thread'
