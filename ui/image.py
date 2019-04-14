@@ -22,6 +22,9 @@ def _b64_data_from_image_data(png_data: bytes) -> str:
 
 def view_background_lightness(view: sublime.View) -> float:
 	style = view.style()
+	if "background" not in style:
+		return 0
+
 	color = style["background"].lstrip('#')
 	rgb = tuple(int(color[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
 	lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
