@@ -111,6 +111,9 @@ def _install_adapter_blocking(adapter: AdapterConfiguration):
 	adapters_path = _adapters_path()
 	adapter_name = install_cfg.name
 
+	if not os.path.isdir(adapters_path):
+		os.mkdir(adapters_path)
+
 	url = install_cfg.url
 	archive_format = install_cfg.format
 
