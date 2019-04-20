@@ -16,8 +16,8 @@ from .configurations import Configuration, AdapterConfiguration, select_or_add_c
 from .config import PersistedData
 
 from .components.variable_component import VariableComponent, Variable
-from .components.breakpoint_inline_component import BreakpointInlineComponent
-from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, BreakpointsComponent, STOPPED, PAUSED, RUNNING, LOADING
+from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
+from .components.breakpoints_panel import BreakpointsPanel, show_breakpoint_options
 from .components.callstack_panel import CallStackPanel
 from .components.console_panel import ConsolePanel
 from .components.variables_panel import VariablesPanel
@@ -153,14 +153,17 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.console_panel = ConsolePanel(self.open_repl_console)
 		self.variables_panel = VariablesPanel()
 		self.callstack_panel = CallStackPanel()
-		self.breakpoints_panel = BreakpointsComponent(self.breakpoints, self.onSelectedBreakpoint)
+		self.breakpoints_panel = BreakpointsPanel(self.breakpoints, self.onSelectedBreakpoint)
+
+		def on_breakpoint_more():
+			show_breakpoint_options(self.breakpoints)
 
 		self.pages_panel = TabbedPanel([
-			("Breakpoints", self.breakpoints_panel, None),
+			("Breakpoints", self.breakpoints_panel, on_breakpoint_more),
 			("Call Stack", self.callstack_panel, None),
-			("Console", self.console_panel, self.console_panel.change_filter),
+			("Console", self.console_panel, self.console_panel.open_console_menu),
 		], 0)
-		self.debugger_panel = DebuggerPanel(self.breakpoints, self)
+		self.debugger_panel = DebuggerPanel(self)
 
 		self.selected_frame_line = None #type: Optional[SelectedLine]
 		self.selected_frame_generated_view = None #type: Optional[sublime.View]
@@ -245,6 +248,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 				self.pages_panel.modified(2)
 
 		self.debugger = DebuggerState(
+			self.breakpoints,
 			on_state_changed=on_state_changed,
 			on_threads=on_threads,
 			on_scopes=on_scopes,
@@ -287,9 +291,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			ui.Phantom(self.variables_panel, self.view, sublime.Region(offset, offset + 2), sublime.LAYOUT_INLINE),
 		])
 
-		self.breakpoints.onRemovedBreakpoint.add(lambda b: self.clearBreakpointInformation())
-		self.breakpoints.onChangedBreakpoint.add(self.onChangedBreakpoint)
-		self.breakpoints.onChangedFilter.add(self.onChangedFilter)
 		self.breakpoints.onSelectedBreakpoint.add(self.onSelectedBreakpoint)
 
 		active_view = self.window.active_view()
@@ -376,7 +377,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			core.display(e)
 			return
 
-		yield from self.debugger.launch(adapter_configuration, configuration, self.breakpoints)
+		yield from self.debugger.launch(adapter_configuration, configuration)
 
 	def clearBreakpointInformation(self) -> None:
 		if self.breakpointInformation:
@@ -467,15 +468,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		if self.debugger:
 			self.debugger.dispose()
 		del DebuggerInterface.instances[self.window.id()]
-
-	def onChangedFilter(self, filter: Filter) -> None:
-		self.debugger.update_exception_filters(self.breakpoints.filters)
-
-	def onChangedBreakpoint(self, breakpoint: Breakpoint) -> None:
-		file = breakpoint.file
-		breakpoints = self.breakpoints.breakpoints_for_file(file)
-		self.debugger.update_breakpoints_for_file(file, breakpoints)
-		self.pages_panel.modified(0)
 
 	def onSelectedBreakpoint(self, breakpoint: Optional[Breakpoint]) -> None:
 		if breakpoint:

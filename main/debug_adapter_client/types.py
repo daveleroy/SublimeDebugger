@@ -21,7 +21,11 @@ class Error(Exception):
 
 	@staticmethod
 	def from_json(json: dict) -> 'Error':
-		return Error(json.get('showUser', True), json.get('format', 'No error reason given'))
+		# why on earth does the optional error details have variables that need to be formatted in it????????
+		format = json.get('format', 'No error reason given')
+		variables = json.get('variables', {})
+		error_message = format.format(**variables)
+		return Error(json.get('showUser', True), error_message)
 
 
 class Thread:

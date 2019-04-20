@@ -17,7 +17,7 @@ import json
 
 from sublime_db.libs import asyncio
 from sublime_db import ui, core
-from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter
+from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
 
 from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities
 from .transport import Transport
@@ -275,6 +275,18 @@ class DebugAdapterClient:
 		})
 
 	@core.async
+	def SetFunctionBreakpoints(self, breakpoints: List[FunctionBreakpoint]) -> core.awaitable[None]:
+		sourceBreakpoints = [] #type: List[dict]
+		for b in breakpoints:
+			if not b.enabled:
+				continue
+			sourceBreakpoints.append(b.into_json())
+
+		result = yield from self.send_request_asyc('setFunctionBreakpoints', {
+				"breakpoints": sourceBreakpoints
+			})
+
+	@core.async
 	def SetBreakpointsFile(self, file: str, breakpoints: List[Breakpoint]) -> core.awaitable[None]:
 		sourceBreakpoints = [] #type: List[dict]
 		breakpoints = list(filter(lambda b: b.enabled, breakpoints))
@@ -476,7 +488,7 @@ class DebugAdapterClient:
 			if not success:
 				body = data.get('body')
 				if body:
-					error = body.get('error')
+					error = body.get('error', '')
 					future.set_exception(Error.from_json(error))
 					return
 

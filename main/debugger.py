@@ -5,7 +5,8 @@ from sublime_db import core
 from .breakpoints import (
 	Breakpoints,
 	Breakpoint,
-	Filter
+	Filter,
+	FunctionBreakpoint
 )
 from .debug_adapter_client.client import (
 	DebugAdapterClient,
@@ -45,12 +46,13 @@ class DebuggerState:
 	stopping = 4
 
 	def __init__(self,
-              on_state_changed: Callable[[int], None],
-              on_threads: Callable[[List[Thread]], None],
-              on_scopes: Callable[[List[Scope]], None],
-              on_output: Callable[[OutputEvent], None],
-              on_selected_frame: Callable[[Optional[Thread], Optional[StackFrame]], None]
-              ) -> None:
+			breakpoints: Breakpoints,
+			on_state_changed: Callable[[int], None],
+			on_threads: Callable[[List[Thread]], None],
+			on_scopes: Callable[[List[Scope]], None],
+			on_output: Callable[[OutputEvent], None],
+			on_selected_frame: Callable[[Optional[Thread], Optional[StackFrame]], None]
+		) -> None:
 		self.on_state_changed = on_state_changed
 		self.on_threads = on_threads
 		self.on_scopes = on_scopes
@@ -73,7 +75,14 @@ class DebuggerState:
 		self.stopped_reason = ""
 
 		self._state = DebuggerState.stopped
+
 		self.disposeables = [] #type: List[Any]
+
+		self.breakpoints = breakpoints
+		breakpoints.onSendFilterToDebugger.add(self.onSendFilterToDebugger)
+		breakpoints.onSendBreakpointToDebugger.add(self.onSendBreakpointToDebugger)
+		breakpoints.onSendFunctionBreakpointToDebugger.add(self.onSendFunctionBreakpointToDebugger)
+
 
 	def dispose(self) -> None:
 		self.force_stop_adapter()
@@ -92,11 +101,11 @@ class DebuggerState:
 		self._state = state
 		self.on_state_changed(state)
 
-	def launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration, breakpoints: Breakpoints) -> core.awaitable[None]:
+	def launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration) -> core.awaitable[None]:
 		if self.launching_async:
 			self.launching_async.cancel()
 
-		self.launching_async = core.run(self._launch(adapter_configuration, configuration, breakpoints))
+		self.launching_async = core.run(self._launch(adapter_configuration, configuration))
 		try:
 			yield from self.launching_async
 		except Exception as e:
@@ -110,7 +119,7 @@ class DebuggerState:
 
 		self.launching_async = None
 
-	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration, breakpoints: Breakpoints) -> core.awaitable[None]:
+	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration) -> core.awaitable[None]:
 		if self.state != DebuggerState.stopped:
 			print('stopping debug adapter')
 			yield from self.stop()
@@ -163,14 +172,31 @@ class DebuggerState:
 		# when it does happen we can then add all the breakpoints and complete the configuration
 		@core.async
 		def Initialized() -> core.awaitable[None]:
-			yield from adapter.Initialized()
-			yield from adapter.AddBreakpoints(breakpoints)
-			yield from adapter.ConfigurationDone()
+			try:
+				yield from adapter.Initialized()
+			except Exception as e:
+				self.log_error("there was waiting for initialized from debugger {}".format(e))
+			try:
+				yield from adapter.AddBreakpoints(self.breakpoints)
+			except Exception as e:
+				self.log_error("there was an error adding breakpoints {}".format(e))
+			try:
+				if capabilities.supportsFunctionBreakpoints:
+					yield from adapter.SetFunctionBreakpoints(self.breakpoints.functionBreakpoints)
+				elif len(self.breakpoints.functionBreakpoints) > 0:
+					self.log_error("debugger doesn't support function breakpoints")
+			except Exception as e:
+				self.log_error("there was an error adding function breakpoints {}".format(e))
+			try:
+				if capabilities.supportsConfigurationDoneRequest:
+					yield from adapter.ConfigurationDone()
+			except Exception as e:
+				self.log_error("there was an error in configuration done {}".format(e))
 		core.run(Initialized())
 
 		capabilities = yield from adapter.Initialize()
 		for filter in capabilities.exceptionBreakpointFilters:
-			breakpoints.add_filter(filter.id, filter.label, filter.default)
+			self.breakpoints.add_filter(filter.id, filter.label, filter.default)
 
 		if configuration.request == 'launch':
 			self.launch_request = True
@@ -208,13 +234,20 @@ class DebuggerState:
 		else:
 			self.state = DebuggerState.running
 
-	def update_exception_filters(self, filters: List[Filter]) -> None:
-		if self.adapter:
-			core.run(self.adapter.setExceptionBreakpoints(filters))
+	def onSendFilterToDebugger(self, filter: Filter) -> None:
+		if not self.adapter:
+			return
+		core.run(self.adapter.setExceptionBreakpoints(self.breakpoints.filters))
 
-	def update_breakpoints_for_file(self, file: str, breakpoints: List[Breakpoint]) -> None:
-		if self.adapter:
-			core.run(self.adapter.SetBreakpointsFile(file, breakpoints))
+	def onSendBreakpointToDebugger(self, breakpoint: Breakpoint) -> None:
+		if not self.adapter:
+			return
+		file = breakpoint.file
+		breakpoints = self.breakpoints.breakpoints_for_file(file)
+		core.run(self.adapter.SetBreakpointsFile(file, breakpoints))
+
+	def onSendFunctionBreakpointToDebugger(self, breakpoint: FunctionBreakpoint) -> None:
+		pass
 
 	def stop(self) -> core.awaitable[None]:
 		# the adapter isn't stopping and stop is called again we force stop it
