@@ -122,6 +122,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		def run(**args):
 			expression = args['text']
 			self.run_async(run_repl_command(expression, self.debugger, self.console_panel))
+			self.open_repl_console()
 		ui.run_input_command(input, run)		
 
 	@core.require_main_thread
