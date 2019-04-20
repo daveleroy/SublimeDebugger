@@ -12,7 +12,7 @@ from .util import extract_variables
 
 
 def _adapters_path() -> str:
-	return os.path.join(sublime.packages_path(), "sublime_db/debug_adapters")
+	return os.path.join(sublime.packages_path(), "sublime_db/data/debug_adapters")
 
 
 class AdapterConfiguration:
@@ -26,16 +26,13 @@ class AdapterConfiguration:
 		def from_json(json: dict) -> 'AdapterConfiguration.Installation':
 			return AdapterConfiguration.Installation(json['name'], json['url'], json['format'])
 
-	def __init__(self, type: str, json: dict, window: str) -> None:
+	def __init__(self, type: str, json: dict) -> None:
 
-		variables = extract_variables(window)
-		self.command = sublime.expand_variables(json['command'], variables)
+		self.command = json['command']
 
 		vscode_package_file = json.get('vscode-package-file')
-		if vscode_package_file:
-			vscode_package_file = sublime.expand_variables(vscode_package_file, variables)
 
-		sublime.expand_variables(json['command'], variables)
+
 		install_json = json.get('installation')
 		installation = None
 		if install_json:
@@ -50,6 +47,7 @@ class AdapterConfiguration:
 		self.snippets = [] #type: List[dict]
 		self.installation = installation
 		self.installed = True
+		self.installing = False
 		self.load_installation_if_needed()
 
 	def load_installation_if_needed(self) -> None:
@@ -65,23 +63,23 @@ class AdapterConfiguration:
 			print('No snippets loaded. {}'.format(e))
 
 	@staticmethod
-	def from_json(type: str, json: dict, window: sublime.Window) -> 'AdapterConfiguration':
+	def from_json(type: str, json: dict) -> 'AdapterConfiguration':
 		return AdapterConfiguration(
 			type,
 			json,
-			window
 		)
 
 
 @core.async
 def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:
-	assert adapter.installation
-	yield from core.main_loop.run_in_executor(core.main_executor, _install_adapter_blocking, adapter)
-
-	vscode_package_file = os.path.join(_adapters_path(), adapter.installation.name, 'extension', 'package.json')
-	snippets_output_file = os.path.join(_adapters_path(), adapter.installation.name, 'snippets.json')
-
 	try:
+		assert adapter.installation
+		yield from core.main_loop.run_in_executor(core.main_executor, _install_adapter_blocking, adapter)
+
+		vscode_package_file = os.path.join(_adapters_path(), adapter.installation.name, 'extension', 'package.json')
+		snippets_output_file = os.path.join(_adapters_path(), adapter.installation.name, 'snippets.json')
+
+	
 		snippets = [] #type: List[dict]
 		with open(vscode_package_file) as file:
 			j = json.load(file)
@@ -102,7 +100,6 @@ def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:
 		print('Failed to find debug configuration snippets in vscode package.json file, ', str(e))
 
 	adapter.load_installation_if_needed()
-
 
 def _install_adapter_blocking(adapter: AdapterConfiguration):
 	install_cfg = adapter.installation

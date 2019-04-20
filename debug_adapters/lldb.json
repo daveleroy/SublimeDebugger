@@ -1,0 +1,13 @@
+{
+	"command" : [
+		"lldb",
+		"-b",
+		"-O command script import '${packages}/sublime_db/data/debug_adapters/vscode-lldb/extension/adapter'",
+		"-O script adapter.main.run_stdio_session()"
+	],
+	"installation": {
+		"name": "vscode-lldb",
+		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/latest/vspackage",
+		"format": "zip"
+	}
+}

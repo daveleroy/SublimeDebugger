@@ -11,107 +11,25 @@
 
 	// when the debugger hits a breakpoint bring the sublime window to the foreground
 	// NOTE: this runs the "subl" command to occomplish this so it must be in your PATH
-	"bring_window_to_front_on_pause" : true,
+	"bring_window_to_front_on_pause" : false,
 
 	// This is the list of debug adapters.
 	// If you are having issues running one ensure you have the required dependencies to run them the command
-	// Look in the docs for more info: https://github.com/daveleroy/sublime_db/blob/master/docs/setup.md 
+	// Look in the docs for more info: https://github.com/daveleroy/sublime_db/blob/master/docs/setup.md
+	"adapters_custom" : {
+		// "adapter_name": {
+		// 	"command":["p", "-arg"]
+		// }
+	},
 	"adapters" : {
-		"lldb" : {
-			"command" : [
-				"lldb",
-				"-b",
-				"-O command script import '${packages}/sublime_db/debug_adapters/vscode-lldb/extension/adapter'",
-				"-O script adapter.main.run_stdio_session()"
-			],
-			"installation": {
-				"name": "vscode-lldb",
-				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/latest/vspackage",
-				"format": "zip"
-			}
-		},
-		"gdb": {
-			"command": [
-				"node",
-				"${packages}/sublime_db/debug_adapters/native-debug/extension/out/src/gdb.js"
-			],
-			"installation": {
-				"name": "native-debug",
-				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/webfreak/vsextensions/debug/latest/vspackage",
-				"format": "zip"
-			}
-		},
-		"chrome" : {
-			"command" : [
-				"node",
-				"${packages}/sublime_db/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js"
-			],
-			"installation": {
-				"name": "vscode-chrome-debug",
-				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
-				"format": "zip"
-			}
-		},
-		// "chrome_tcp" : {
-		// 	"command" : [
-		// 		"node",
-		// 		"${packages}/sublime_db/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js",
-		// 		"--server=4713"
-		// 	],
-		// 	"tcp_port" : 4713,
-		// 	"installation": {
-		// 		"name": "vscode-chrome-debug",
-		// 		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
-		// 		"format": "zip"
-		// 	}
-		// },
-		"firefox" : {
-			"command" : [
-				"node",
-				"${packages}/sublime_db/debug_adapters/vscode-firefox-debug/extension/out/firefoxDebugAdapter.js"
-			],
-			"installation": {
-				"name": "vscode-firefox-debug",
-				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/hbenl/vsextensions/vscode-firefox-debug/latest/vspackage",
-				"format": "zip"
-			}
-		},
-		"python" : {
-			"command" : [
-				"node",
-				"${packages}/sublime_db/debug_adapters/vscode-python/extension/out/client/debugger/debugAdapter/main.js"
-			],
-			"installation": {
-				"name": "vscode-python",
-				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/latest/vspackage",
-				"format": "zip"
-			}
-		},
-		"go" : {
-			"command": [
-				"node",
-				"${packages}/sublime_db/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
-			],
-			"installation": {
-				"name": "vscode-go",
-				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage",
-				"format": "zip"
-			}
-		},
-		"php" : {
-			"command": [
-				"node",
-				"${packages}/sublime_db/debug_adapters/vscode-php/extension/out/phpDebug.js"
-			],
-
-			"hover_word_regex_match" : "\\$[a-zA-Z0-9_]*",
-			"hover_word_seperators" : "./\\()\"'-:,.;<>~!@#%^&*|+=[]{}`~?.",
-			"installation": {
-				"name": "vscode-php",
-				"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/felixfbecker/vsextensions/php-debug/latest/vspackage",
-				"format": "zip"
-			}
-		}
+		"lldb" : "${packages}/sublime_db/debug_adapters/lldb.json",
+		"gdb" : "${packages}/sublime_db/debug_adapters/gdb.json",
+		"chrome" : "${packages}/sublime_db/debug_adapters/chrome.json",
+		// "chrome-tcp" : "${packages}/sublime_db/debug_adapters/chrome-tcp.json",
+		"firefox" : "${packages}/sublime_db/debug_adapters/firefox.json",
+		"python" : "${packages}/sublime_db/debug_adapters/python.json",
+		"go" : "${packages}/sublime_db/debug_adapters/go.json",
+		"php" : "${packages}/sublime_db/debug_adapters/php.json",
 	}
 }
 

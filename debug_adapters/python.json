@@ -1,0 +1,11 @@
+{
+	"command" : [
+		"node",
+		"${packages}/sublime_db/data/debug_adapters/vscode-python/extension/out/client/debugger/debugAdapter/main.js"
+	],
+	"installation": {
+		"name": "vscode-python",
+		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/latest/vspackage",
+		"format": "zip"
+	}
+}

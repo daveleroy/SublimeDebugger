@@ -5,6 +5,7 @@ import sublime_plugin
 import os
 import subprocess
 import re
+import json
 
 from sublime_db import ui
 from sublime_db import core
@@ -253,9 +254,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.view = self.panel.view #type: sublime.View
 
 		self.persistance = PersistedData(project_name)
-
-		for breakpoint in self.persistance.load_breakpoints():
-			self.breakpoints.add(breakpoint)
+		self.persistance.load_breakpoints(self.breakpoints)
 
 		self.load_configurations()
 
@@ -295,14 +294,36 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		else:
 			print('Failed to find active view to listen for settings changes')
 
+
 	def load_configurations(self) -> None:
+		variables = extract_variables(self.window)
 		adapters = {}
-		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters', {}).items():
+
+		def load_adapter(adapter_name, adapter_json):
+			adapter_json = sublime.expand_variables(adapter_json, variables)
+
+			# if its a string then it points to a json file with configuration in it
+			# otherwise it is the configuration
 			try:
-				adapter = AdapterConfiguration.from_json(adapter_name, adapter_json, self.window)
+				if isinstance(adapter_json, str):
+					with open(adapter_json) as json_data:
+						adapter_json = json.load(json_data,)
+						adapter_json = sublime.expand_variables(adapter_json, variables)
+			except Exception as e:
+				core.display('Failed when opening debug adapter configuration file {}'.format(e))
+				raise e
+
+			try:
+				adapter = AdapterConfiguration.from_json(adapter_name, adapter_json)
 				adapters[adapter.type] = adapter
 			except Exception as e:
 				core.display('There was an error creating a AdapterConfiguration {}'.format(e))
+
+		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters', {}).items():
+			load_adapter(adapter_name, adapter_json)
+
+		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters_custom', {}).items():
+			load_adapter(adapter_name, adapter_json)
 
 		configurations = []
 		configurations_json = [] #type: list
@@ -312,7 +333,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		for index, configuration_json in enumerate(configurations_json):
 			configuration = Configuration.from_json(configuration_json)
-			configuration.all = sublime.expand_variables(configuration.all, extract_variables(self.window))
+			configuration.all = sublime.expand_variables(configuration.all, variables)
 			configuration.index = index
 			configurations.append(configuration)
 

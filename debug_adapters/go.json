@@ -1,0 +1,11 @@
+{
+	"command": [
+		"node",
+		"${packages}/sublime_db/data/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
+	],
+	"installation": {
+		"name": "vscode-go",
+		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage",
+		"format": "zip"
+	}
+}

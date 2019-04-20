@@ -1,0 +1,11 @@
+{
+	"command" : [
+		"node",
+		"${packages}/sublime_db/data/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js"
+	],
+	"installation": {
+		"name": "vscode-chrome-debug",
+		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage",
+		"format": "zip"
+	}
+}
