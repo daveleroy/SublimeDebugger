@@ -84,3 +84,18 @@ class OutputPhantomsPanel:
 	def dispose(self) -> None:
 		self.window.destroy_output_panel(self.name)
 		del OutputPhantomsPanel.panels[self.window.id()]
+
+class OutputPanelEventListener(sublime_plugin.EventListener):
+	def on_post_window_command(self, window, command, args):
+		if command == "show_panel":
+			panel = OutputPhantomsPanel.for_window(window)
+			if panel and get_setting(panel.view, "hide_status_bar", False):
+				if args["panel"] == "output.Debugger":
+					window.set_status_bar_visible(False)
+				else:
+					window.set_status_bar_visible(True)
+
+		if command == "hide_panel":
+			panel = OutputPhantomsPanel.for_window(window)
+			if panel and get_setting(panel.view, "keep_panel_open", False):
+				panel.show()
