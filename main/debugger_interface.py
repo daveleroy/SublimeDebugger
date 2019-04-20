@@ -36,8 +36,9 @@ from .debugger import (
 	Error
 )
 
-from .output_panel import OutputPhantomsPanel, PanelInputHandler
-
+from .output_panel import OutputPhantomsPanel
+from .commands.commands import Autocomplete, run_command_from_pallete, AutoCompleteTextInputHandler
+from .commands import breakpoint_menus
 
 class UnderlineComponent(ui.Block):
 	def __init__(self) -> None:
@@ -96,7 +97,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		return True
 
 	@staticmethod
-	def forWindow(window: sublime.Window, create: bool = False) -> 'Optional[DebuggerInterface]':
+	def for_window(window: sublime.Window, create: bool = False) -> 'Optional[DebuggerInterface]':
 		instance = DebuggerInterface.instances.get(window.id())
 		if not instance and create:
 			main = DebuggerInterface(window)
@@ -106,7 +107,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 	@staticmethod
 	def debuggerForWindow(window: sublime.Window) -> Optional[DebuggerState]:
-		main = DebuggerInterface.forWindow(window)
+		main = DebuggerInterface.for_window(window)
 		if main:
 			return main.debugger
 		return None
@@ -114,22 +115,13 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def refresh_phantoms(self) -> None:
 		ui.reload()
 
-	def create_input_handler(self, window: sublime.Window, label: str, text: str, on_change: Callable[[str], None], on_done: Callable[[Optional[str]], None]) -> ui.InputHandler:
-		return PanelInputHandler(self.panel, label, text, on_change, on_done)
-
 	def open_repl_console(self) -> None:
-		prev_view = self.window.active_view()
-		self.window.focus_view(self.view)
-
-		def on_done(value: Optional[str]) -> None:
-			if value:
-				self.run_async(run_repl_command(value, self.debugger, self.console_panel))
-
-			self.window.focus_view(prev_view)
-
-		def on_change(value: str) -> None:
-			pass
-		PanelInputHandler(self.panel, label='Command', text="", on_change=on_change, on_done=on_done)
+		label = "input debugger command"
+		input = AutoCompleteTextInputHandler(label)
+		def run(**args):
+			expression = args['text']
+			self.run_async(run_repl_command(expression, self.debugger, self.console_panel))
+		ui.run_input_command(input, run)		
 
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
@@ -144,7 +136,8 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		data.setdefault('settings', {}).setdefault('debug.configurations', [])
 		window.set_project_data(data)
 
-		ui.set_create_input_handler(window, self.create_input_handler)
+		autocomplete = Autocomplete.create_for_window(window)
+
 		self.input_open = False
 		self.window = window
 		self.disposeables = [] #type: List[Any]
@@ -387,7 +380,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def on_drag_select(self, view: sublime.View) -> None:
 		if view != self.view:
 			self.clearBreakpointInformation()
-			self.panel.close_input()
 
 	# TODO this could be made better
 	def is_source_file(self, view: sublime.View) -> bool:
@@ -439,18 +431,19 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		core.run(self.async_on_text_hovered(event))
 
 	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
+		if self.window.active_view() != event.view:
+			return
 		if not self.is_source_file(event.view):
 			return
 		file = event.view.file_name()
 		if not file:
 			return
-
 		at = event.view.text_point(event.line, 0)
+		line = event.line + 1
+		breakpoint = self.breakpoints.get_breakpoint(file, line)
+		if breakpoint:
+			breakpoint_menus.edit_breakpoint(self.breakpoints, breakpoint)
 
-		breakpoint = self.breakpoints.get_breakpoint(file, event.line + 1)
-		if not breakpoint:
-			return
-		self.breakpoints.select_breakpoint(breakpoint)
 
 	def dispose(self) -> None:
 		self.persistance.save_breakpoints(self.breakpoints)
@@ -537,7 +530,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			self.selected_frame_generated_view = None
 			view.set_name(source.name)
 			view.set_read_only(False)
-			view.run_command('debug_set_contents', {
+			view.run_command('sublime_debug_replace_contents', {
 				'characters': content
 			})
 			view.set_read_only(True)
@@ -569,17 +562,4 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			self.selected_frame_line = None
 
 	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:
-
-		@core.async
-		def a() -> core.awaitable[None]:
-			view = yield from core.sublime_open_file_async(sublime.active_window(), breakpoint.file, breakpoint.line)
-			at = view.text_point(breakpoint.line - 2, 0)
-			view.sel().clear()
-			self.clearBreakpointInformation()
-
-			# we have to focus the input view before showing the popup otherwise focusing the view closes the popup...
-			prev_view = self.window.active_view()
-			self.window.focus_view(self.view)
-			self.breakpointInformation = ui.Popup(BreakpointInlineComponent(breakpoints=self.breakpoints, breakpoint=breakpoint), view, at, on_close=lambda: self.window.focus_view(prev_view))
-
-		self.run_async(a())
+		breakpoint_menus.edit_breakpoint(self.breakpoints, breakpoint)

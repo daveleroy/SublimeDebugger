@@ -62,4 +62,8 @@
 		"caption" : "Debugger: Install Adapters",
 		"command" : "sublime_debug_install_adapter"
 	},
+	{
+		"caption" : "_",
+		"command" : "sublime_debug_input"
+	},
 ]

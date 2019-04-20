@@ -142,13 +142,13 @@ class LayoutView (Layout):
 		self.update()
 		self._highlighter = None
 		self._unhighlightedSyntaxHighlightedTexts = []
-		self._syntaxHighlightCache = {} #type: Dict[]
+		self._syntaxHighlightCache = {} #type: dict
 		try:
 			import mdpopups
 			scheme = view.settings().get('color_scheme')
 			self._highlighter = mdpopups.SublimeHighlight(scheme)
 		except ImportError as e:
-			core.log('syntax highlighting disabled no mdpopups')
+			core.log_info('syntax highlighting disabled no mdpopups')
 
 	def em_width(self) -> float:
 		return self._em_width
@@ -237,8 +237,8 @@ class Phantom(LayoutView, Renderable):
 		return False
 
 	def render_sublime(self) -> None:
-		assert self.cachedPhantom, "??"
-		self.set.update([self.cachedPhantom])
+		if self.cachedPhantom:
+			self.set.update([self.cachedPhantom])
 
 	def clear_sublime(self) -> None:
 		self.set.update([])

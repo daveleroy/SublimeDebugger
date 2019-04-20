@@ -10,6 +10,7 @@ from sublime_db import core
 from sublime_db.main.commands import *
 from sublime_db.main.output_panel import *
 from sublime_db.ui import ViewEventsListener
+from sublime_db.ui import SublimeDebugInputCommand
 
 from sublime_db.main.debugger_interface import *
 from sublime_db.main.util import get_setting
@@ -29,14 +30,12 @@ def startup() -> None:
 		window = view.window()
 		if get_setting(view, 'open_at_startup', False) and (not window.id() in was_opened_at_startup) and DebuggerInterface.should_auto_open_in_window(window):
 			was_opened_at_startup.add(window.id())
-			DebuggerInterface.forWindow(window, True)
+			DebuggerInterface.for_window(window, True)
 
 	ui.view_activated.add(on_view_activated)
 
 
 def shutdown() -> None:
-	# we just want to ensure that we still set the event if we had an exception somewhere
-	# otherwise shutdown could lock us up
 	print('shutdown')
 	for key, instance in dict(DebuggerInterface.instances).items():
 		instance.dispose()
@@ -51,7 +50,6 @@ def plugin_loaded():
 	#	ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
 	# except:
 	#	pass
-
 	print('plugin_loaded')
 	core.startup(startup)
 

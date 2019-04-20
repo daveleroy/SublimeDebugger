@@ -12,6 +12,7 @@ from sublime_db.main.debugger import (
 	ScopeState
 )
 
+from sublime_db.main.commands import AutoCompleteTextInputHandler
 
 class VariableComponent (ui.Block):
 	def __init__(self, variable: Variable, syntax_highlight=True) -> None:
@@ -20,18 +21,11 @@ class VariableComponent (ui.Block):
 		self.variable = VariableState(variable, self.dirty)
 
 	def on_edit(self) -> None:
-		def on_done(value: Optional[str]) -> None:
-			if value is not None:
-				self.variable.set_value(value)
-
-		def on_change(value: str) -> None:
-			pass
-
-		window = sublime.active_window()
-		title = self.variable.name
-		value = self.variable.value
-
-		input_handler = ui.create_input_handler_for_window(window, title, value, on_done=on_done, on_change=on_change)
+		label = "edit variable {}: {}".format(self.variable.name, self.variable.value)
+		input = AutoCompleteTextInputHandler(label)
+		def run(**args):
+			self.variable.set_value(args['text'])
+		ui.run_input_command(input, run)
 
 	def render(self) -> ui.Block.Children:
 		v = self.variable

@@ -45,39 +45,55 @@ class ConsoleItem (ui.Block):
 
 
 class ConsolePanel (ui.Block):
+	class Filter:
+		def __init__(self, name, enabled):
+			self.name = name
+			self.enabled = enabled
+
 	def __init__(self, on_click: Callable[[], None]):
 		super().__init__()
 		self.items = [] #type: List[ui.Block]
 		self.text = [] #type: List[str]
 		self.on_click = on_click
 		self.filter = ERROR | OUTPUT | TEXT | NONE
-
-	def change_filter(self, index: int = 0) -> None:
-		core.run(self.change_filter_async(sublime.active_window(), index))
-
-	@core.async
-	def change_filter_async(self, window, index) -> core.awaitable[None]:
-		names = ["-- All -- ", "output: debugger", "output: program", "output: other"]
-		masks = [
-			(ERROR | OUTPUT | TEXT | NONE),
-			(TEXT),
-			(ERROR | OUTPUT),
-			(NONE)
+		self.filters = [
+			ConsolePanel.Filter("output: debugger", True),
+			ConsolePanel.Filter("output: program", True),
+			ConsolePanel.Filter("output: other", True)
 		]
-		for i in range(0, 4):
-			if self.filter & masks[i]:
-				names[i] += "  ✓"
+		self.updated_filter()
 
-		selected_index = yield from core.sublime_show_quick_panel_async(window, names, index)
-		if selected_index < 0:
-			return
+	def open_console_menu(self, selected_index=0):
+		values = []
+		class ListInputItemChecked (ui.ListInputItem):
+			def __init__(self, name, checked):
+				n = ""
+				if checked: n += '● '
+				else: n += '○ '
+				n += name
+				super().__init__(n, name)
 
-		if selected_index == 0:
-			self.filter = masks[0]
-		else:
-			self.filter ^= masks[selected_index]
+		for filter in self.filters:
+			values.append(ListInputItemChecked(filter.name, filter.enabled))
 
-		self.change_filter(selected_index)
+		input = ui.ListInput(values, placeholder="filter console output", index=selected_index)
+		def run_command(list, **args):
+			i = list
+			self.filters[i].enabled = not self.filters[i].enabled
+			self.updated_filter()
+			self.open_console_menu(i)
+
+		ui.run_input_command(input, run_command)
+
+	def updated_filter(self):
+		mask = 0
+		if self.filters[0].enabled:
+			mask |= TEXT
+		if self.filters[1].enabled:
+			mask |= ERROR | OUTPUT
+		if self.filters[2].enabled:
+			mask |= NONE
+		self.filter = mask
 		self.dirty()
 
 	def get_text(self) -> str:
@@ -133,7 +149,7 @@ class ConsolePanel (ui.Block):
 		self.dirty()
 
 	def render(self) -> ui.Block.Children:
-		count = int(self.layout.height() / 1.65)
+		count = int(self.layout.height() / 1.525) - 2.0
 		items = []
 
 		for item in reversed(self.items):
