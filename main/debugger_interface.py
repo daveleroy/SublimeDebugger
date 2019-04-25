@@ -23,6 +23,7 @@ from .components.callstack_panel import CallStackPanel
 from .components.console_panel import ConsolePanel
 from .components.variables_panel import VariablesPanel
 from .components.pages_panel import TabbedPanel
+from .components.panel import OutputPhantomsPanel
 
 from .repl import run_repl_command
 
