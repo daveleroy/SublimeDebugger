@@ -24,8 +24,6 @@ from .components.console_panel import ConsolePanel
 from .components.variables_panel import VariablesPanel
 from .components.pages_panel import TabbedPanel
 
-from .repl import run_repl_command
-
 from .debugger import (
 	DebuggerState,
 	OutputEvent,
@@ -121,7 +119,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		input = AutoCompleteTextInputHandler(label)
 		def run(**args):
 			expression = args['text']
-			self.run_async(run_repl_command(expression, self.debugger, self.console_panel))
+			self.debugger.evaluate(expression)
 			self.open_repl_console()
 		ui.run_input_command(input, run)		
 
@@ -274,17 +272,17 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			ui.view_gutter_hovered.add(self.on_gutter_hovered),
 			ui.view_text_hovered.add(self.on_text_hovered),
 			ui.view_drag_select.add(self.on_drag_select),
+			self.breakpoints.onSelectedBreakpoint.add(self.onSelectedBreakpoint)
 		])
 
-		offset = self.panel.phantom_location()
 
+		phantom_location = self.panel.phantom_location()
 		self.disposeables.extend([
-			ui.Phantom(self.debugger_panel, self.view, sublime.Region(offset, offset + 0), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.pages_panel, self.view, sublime.Region(offset, offset + 1), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.variables_panel, self.view, sublime.Region(offset, offset + 2), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.debugger_panel, self.view, sublime.Region(phantom_location, phantom_location + 0), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.pages_panel, self.view, sublime.Region(phantom_location, phantom_location + 1), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.variables_panel, self.view, sublime.Region(phantom_location, phantom_location + 2), sublime.LAYOUT_INLINE),
 		])
 
-		self.breakpoints.onSelectedBreakpoint.add(self.onSelectedBreakpoint)
 
 		active_view = self.window.active_view()
 
@@ -548,6 +546,11 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 				return
 
 			content = yield from self.debugger.adapter.GetSource(source)
+
+			# throw out the view if it doesn't have a buffer since it was closed
+			if self.selected_frame_generated_view and not self.selected_frame_generated_view.buffer_id():
+				self.selected_frame_generated_view = None
+
 			view = self.selected_frame_generated_view or self.window.new_file()
 			self.selected_frame_generated_view = None
 			view.set_name(source.name)

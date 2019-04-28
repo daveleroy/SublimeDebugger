@@ -317,6 +317,27 @@ class DebuggerState:
 	def log_error(self, string: str) -> None:
 		output = OutputEvent("error", string, 0)
 		self.on_output(output)
+	
+	def evaluate(self, command: str):
+		self.log_info(command)
+
+		adapter = self.adapter
+
+		if not adapter:
+			self.log_error("Failed to run command: Debugger is not running")
+			return
+
+		@core.async
+		def run():
+			try:
+				response = yield from adapter.Evaluate(command, self.frame, "repl")
+			except Exception as e:
+				self.log_error(str(e))
+				return
+
+			event = OutputEvent("console", response.result, response.variablesReference)
+			self.on_output(event)
+		core.run(run())
 
 	def _unselect_thread_if_not_found(self) -> None:
 		for thread in self.threads:
