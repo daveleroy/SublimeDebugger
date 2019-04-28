@@ -169,7 +169,7 @@ class TCPTransport(Transport):
 				try:
 					self.socket.sendall(bytes('Content-Length: {}\r\n\r\n'.format(len(message)), 'UTF-8'))
 					self.socket.sendall(bytes(message, 'UTF-8'))
-					print(' << ', message)
+					core.log_info(' << ', message)
 				except Exception as err:
 					print("Failure writing to socket", err)
 					self.close()
@@ -263,7 +263,7 @@ class StdioTransport(Transport):
 					self.process.stdin.write(bytes('Content-Length: {}\r\n\r\n'.format(len(message)), 'UTF-8'))
 					self.process.stdin.write(bytes(message, 'UTF-8'))
 					self.process.stdin.flush()
-					print('<< ', message)
+					core.log_info('<< ', message)
 				except (BrokenPipeError, OSError) as err:
 					print("Failure writing to stdout", err)
 					self.close()

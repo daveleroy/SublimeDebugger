@@ -459,7 +459,7 @@ class DebugAdapterClient:
 			self._on_terminated({})
 
 	def transport_message(self, message: str) -> None:
-		print('>> ', message)
+		core.log_info('>> ', message)
 		msg = json.loads(message)
 		self.recieved_msg(msg)
 

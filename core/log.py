@@ -1,7 +1,7 @@
 
 should_log_exceptions = True
 should_log_error = True
-should_log_info = True
+should_log_info = False
 
 
 def log_error(*args) -> None:
