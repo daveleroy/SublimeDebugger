@@ -69,6 +69,10 @@ class SublimeDebugQuitCommand(RunDebuggerInterfaceCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.dispose()
 
+class SublimeDebugStartCommand(RunDebuggerInterfaceCommand):
+	def on_main(self, main: DebuggerInterface) -> None:
+		main.on_play()
+
 class SublimeDebugStopCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_stop()
