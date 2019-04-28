@@ -13,7 +13,7 @@ import sublime_plugin
 
 from sublime_db.libs import asyncio
 
-from .core import call_soon_threadsafe, async, awaitable
+from .core import call_soon_threadsafe, create_future, async, awaitable
 from .event import Handle
 
 @async
