@@ -9,7 +9,7 @@ from sublime_db.core.typecheck import (
 	Union
 )
 
-from .core import main_loop
+from .core import call_soon_threadsafe
 
 T = TypeVar('T')
 
@@ -52,5 +52,5 @@ class EventDispatchMain(Event[T], Generic[T]):
 			h.callback(data)
 
 	def post(self, data: T) -> None:
-		main_loop.call_soon_threadsafe(self._post, data)
+		call_soon_threadsafe(self._post, data)
 

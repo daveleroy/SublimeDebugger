@@ -74,7 +74,7 @@ class AdapterConfiguration:
 def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:
 	try:
 		assert adapter.installation
-		yield from core.main_loop.run_in_executor(core.main_executor, _install_adapter_blocking, adapter)
+		yield from core.run_in_executor(_install_adapter_blocking, adapter)
 
 		vscode_package_file = os.path.join(_adapters_path(), adapter.installation.name, 'extension', 'package.json')
 		snippets_output_file = os.path.join(_adapters_path(), adapter.installation.name, 'snippets.json')

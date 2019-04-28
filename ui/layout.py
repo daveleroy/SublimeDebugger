@@ -150,7 +150,7 @@ class Layout:
 
 	def on_navigate(self, path: str) -> None:
 		# ensure this gets dispatched on our main thread not sublime's
-		core.main_loop.call_soon_threadsafe(self.on_navigate_main, path)
+		core.call_soon_threadsafe(self.on_navigate_main, path)
 
 	def register_on_click_handler(self, callback: 'Callable') -> str:
 		self.on_click_handlers_id += 1

@@ -71,7 +71,7 @@ def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None
 
 @core.async
 def select_or_add_configuration(window: sublime.Window, index: Optional[int], configurations: List[Configuration], adapters: List[AdapterConfiguration]) -> core.awaitable[Optional[Configuration]]:
-	done = core.main_loop.create_future()
+	done = core.create_future()
 	names = []
 	for c in configurations:
 		if index is not None and c.index == index:

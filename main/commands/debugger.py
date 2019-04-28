@@ -27,7 +27,7 @@ class SublimeDebugReplaceContentsCommand(sublime_plugin.TextCommand):
 
 class RunDebuggerInterfaceCommand(sublime_plugin.WindowCommand):
 	def run(self) -> None:
-		core.main_loop.call_soon_threadsafe(self.run_main)
+		core.call_soon_threadsafe(self.run_main)
 
 	def run_main(self) -> None:
 		main = DebuggerInterface.for_window(self.window)

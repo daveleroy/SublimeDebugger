@@ -63,7 +63,7 @@ class DebugAdapterClient:
 		self.onThreads = core.Event() #type: core.Event[Optional[List[Thread]]]
 		self.on_error_event = core.Event() #type: core.Event[str]
 		self.is_running = True
-		self._on_initialized_future = core.main_loop.create_future()
+		self._on_initialized_future = core.create_future()
 		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
 
 	def dispose(self) -> None:
@@ -465,7 +465,7 @@ class DebugAdapterClient:
 
 	@core.async
 	def send_request_asyc(self, command: str, args: dict) -> core.awaitable[dict]:
-		future = core.main_loop.create_future()
+		future = core.create_future()
 		self.seq += 1
 		request = {
 			"seq": self.seq,
@@ -502,16 +502,16 @@ class DebugAdapterClient:
 			body = data.get('body', {})
 			event = data['event']
 			if event == 'initialized':
-				return core.main_loop.call_soon(self._on_initialized)
+				return core.call_soon(self._on_initialized)
 			if event == 'output':
-				return core.main_loop.call_soon(self._on_output, body)
+				return core.call_soon(self._on_output, body)
 			if event == 'continued':
-				return core.main_loop.call_soon(self._on_continued, body)
+				return core.call_soon(self._on_continued, body)
 			if event == 'stopped':
-				return core.main_loop.call_soon(self._on_stopped, body)
+				return core.call_soon(self._on_stopped, body)
 			if event == 'terminated':
-				return core.main_loop.call_soon(self._on_terminated, body)
+				return core.call_soon(self._on_terminated, body)
 			if event == 'thread':
-				return core.main_loop.call_soon(self._on_thread, body)
+				return core.call_soon(self._on_thread, body)
 			if event == 'breakpoint':
-				return core.main_loop.call_soon(self._on_breakpoint, body)
+				return core.call_soon(self._on_breakpoint, body)

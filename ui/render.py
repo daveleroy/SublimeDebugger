@@ -23,11 +23,11 @@ class Timer:
 	def __init__(self, callback: Callable[[], None], interval: float, repeat: bool) -> None:
 		self.interval = interval
 		self.callback = callback
-		self.cancelable = core.main_loop.call_later(interval, self.on_complete)
+		self.cancelable = core.call_later(interval, self.on_complete)
 		self.repeat = repeat
 
 	def schedule(self) -> None:
-		self.cancelable = core.main_loop.call_later(self.interval, self.on_complete)
+		self.cancelable = core.call_later(self.interval, self.on_complete)
 
 	def on_complete(self) -> None:
 		self.callback()
@@ -66,11 +66,11 @@ def schedule_render() -> None:
 @core.async
 def render_scheduled() -> None:
 	global _render_scheduled
-	render()
+	perform_render()
 	_render_scheduled = False
 
 
-def render() -> None:
+def perform_render() -> None:
 	_renderables.extend(_renderables_add)
 
 	renderables_to_update = [] #type: List[Renderable]

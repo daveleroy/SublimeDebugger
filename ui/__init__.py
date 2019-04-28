@@ -1,5 +1,5 @@
 
-from .render import * #type: ignore
+from .render import *
 from .events import (
 	GutterEvent,
 	HoverEvent,
@@ -29,7 +29,7 @@ from sublime_db.libs import asyncio
 from sublime_db import core
 
 
-_rendering_timer = None #type: Optional[Timer]
+_update_timer = None #type: Optional[Timer]
 
 
 def startup() -> None:
@@ -37,11 +37,11 @@ def startup() -> None:
 	dir_path = os.path.dirname(os.path.abspath(__file__))
 	import_css(dir_path + '/ui.css')
 
-	global _rendering_timer
-	_rendering_timer = Timer(update, 2, True)
+	global _update_timer
+	_update_timer = Timer(update, 2, True)
 
 
 def shutdown() -> None:
-	if _rendering_timer:
-		_rendering_timer.dispose()
-	render() #type: ignore
+	if _update_timer:
+		_update_timer.dispose()
+	perform_render()

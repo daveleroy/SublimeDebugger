@@ -20,7 +20,7 @@ def Debugger_for_window(window: sublime.Window):
 
 class WindowCommand(sublime_plugin.WindowCommand):
 	def run(self, **args) -> None:
-		core.main_loop.call_soon_threadsafe(self._run_main, args)
+		core.call_soon_threadsafe(self._run_main, args)
 
 	def _run_main(self, args) -> None:
 		self.run_main(**args)

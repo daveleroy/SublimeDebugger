@@ -57,7 +57,8 @@ class Process:
 				if not line:
 					print("no data received, closing")
 					break
-				core.main_loop.call_soon_threadsafe(callback, line)
+
+				core.call_soon_threadsafe(callback, line)
 			except Exception as err:
 				print("Failure reading from process", err)
 				break
@@ -105,7 +106,7 @@ class TCPTransport(Transport):
 			return
 		self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
 		self.socket = None
-		core.main_loop.call_soon_threadsafe(self.on_closed)
+		core.call_soon_threadsafe(self.on_closed)
 
 	def dispose(self) -> None:
 		self.close()
@@ -150,7 +151,7 @@ class TCPTransport(Transport):
 					if len(data) >= content_length:
 						content = data[:content_length]
 						message = content.decode("UTF-8")
-						core.main_loop.call_soon_threadsafe(self.on_receive, message)
+						core.call_soon_threadsafe(self.on_receive, message)
 						data = data[content_length:]
 						read_state = STATE_HEADERS
 					else:
@@ -214,7 +215,7 @@ class StdioTransport(Transport):
 			return
 		self.process = None
 		self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
-		core.main_loop.call_soon_threadsafe(self.on_closed)
+		core.call_soon_threadsafe(self.on_closed)
 
 	def dispose(self) -> None:
 		self.close()
@@ -241,7 +242,7 @@ class StdioTransport(Transport):
 				if (content_length > 0):
 					content = self.process.stdout.read(content_length)
 					message = content.decode("UTF-8")
-					core.main_loop.call_soon_threadsafe(self.on_receive, message)
+					core.call_soon_threadsafe(self.on_receive, message)
 
 			except IOError as err:
 				self.close()
