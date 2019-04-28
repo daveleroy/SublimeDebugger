@@ -78,7 +78,7 @@ class AutoCompleteTextInputHandler(ui.TextInput):
 		if window:
 			self.autocomplete  = Autocomplete.for_window(window)
 		
-	def preview():
+	def preview(self, args):
 		if self.autocomplete:
 			self.autocomplete.enable()
 
