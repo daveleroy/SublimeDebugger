@@ -181,7 +181,7 @@ class LayoutView (Layout):
 				if item.text in cache:
 					item.html = cache[item.text]
 				else:
-					item.html = self._highlighter.syntax_highlight(item.text, item.language)
+					item.html = self._highlighter.syntax_highlight(item.text, item.language, inline=True)
 					cache[item.text] = item.html
 			self._unhighlightedSyntaxHighlightedTexts = []
 			event.set()

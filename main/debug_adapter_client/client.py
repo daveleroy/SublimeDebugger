@@ -19,30 +19,8 @@ from sublime_db.libs import asyncio
 from sublime_db import ui, core
 from sublime_db.main.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
 
-from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities
+from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities, StoppedEvent, ContinuedEvent, OutputEvent
 from .transport import Transport
-
-
-class StoppedEvent:
-	def __init__(self, thread: Thread, allThreadsStopped: bool, reason: str, text: Optional[str]) -> None:
-		self.thread = thread
-		self.allThreadsStopped = allThreadsStopped
-		self.reason = reason
-		self.text = text
-
-
-class ContinuedEvent:
-	def __init__(self, thread: Thread, allThreadsContinued: bool) -> None:
-		self.thread = thread
-		self.allThreadsContinued = allThreadsContinued
-
-
-class OutputEvent:
-	def __init__(self, category: str, text: str, variablesReference: int) -> None:
-		self.category = category
-		self.text = text
-		self.variablesReference = variablesReference
-
 
 @core.all_methods(core.require_main_thread)
 class DebugAdapterClient:
@@ -435,9 +413,7 @@ class DebugAdapterClient:
 		self.onExited.post(None)
 
 	def _on_output(self, body: dict) -> None:
-		category = body.get('category', 'console')
-		data = OutputEvent(category, body['output'], body.get('variablesReference', 0))
-		self.onOutput.post(data)
+		self.onOutput.post(OutputEvent.from_json(body))
 
 	def _on_thread(self, body: dict) -> None:
 		self.threadsCommandBase()

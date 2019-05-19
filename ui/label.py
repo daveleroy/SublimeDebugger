@@ -69,13 +69,16 @@ class Label(Inline):
 
 
 class CodeBlock(Inline):
-	def __init__(self, text: str, language: str = 'python') -> None:
+	def __init__(self, text: str, language: str = 'c++') -> None:
 		super().__init__()
 		self.text = text
 		self.language = language
 
 	def added(self, layout: Layout) -> str:
 		self.highlight = layout.syntax_highlight(self.text, self.language)
+
+	def width(self, layout: Layout) -> float:
+		return len(self.text) * layout.em_width()
 
 	def html_inner(self, layout: Layout) -> str:
 		return self.highlight.html or self.highlight.text

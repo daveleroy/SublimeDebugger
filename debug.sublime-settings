@@ -16,7 +16,7 @@
 	"keep_panel_open": false,
 
 	// when the debugger hits a breakpoint bring the sublime window to the foreground
-	// NOTE: this runs the "subl" command to occomplish this so it must be in your PATH
+	// NOTE: this runs the "subl" command to accomplish this so it must be in your PATH
 	"bring_window_to_front_on_pause" : false,
 
 	// This is the list of debug adapters.

@@ -13,7 +13,7 @@ from sublime_db import core
 from .breakpoints import Breakpoints, Breakpoint, Filter
 
 from .util import get_setting, register_on_changed_setting, extract_variables
-from .configurations import Configuration, AdapterConfiguration, select_or_add_configuration
+from .configurations import Configuration, AdapterConfiguration
 from .config import PersistedData
 
 from .components.variable_component import VariableStateful, VariableStatefulComponent, Variable
@@ -23,6 +23,7 @@ from .components.callstack_panel import CallStackPanel
 from .components.console_panel import ConsolePanel
 from .components.variables_panel import VariablesPanel
 from .components.pages_panel import TabbedPanel
+from .components.selected_line import SelectedLine
 
 from .debugger import (
 	DebuggerState,
@@ -32,53 +33,14 @@ from .debugger import (
 	Thread,
 	EvaluateResponse,
 	DebugAdapterClient,
-	Error
+	Error,
+	Source
 )
 
 from .output_panel import OutputPhantomsPanel
 from .commands.commands import Autocomplete, run_command_from_pallete, AutoCompleteTextInputHandler
 from .commands import breakpoint_menus
-
-class UnderlineComponent(ui.Block):
-	def __init__(self) -> None:
-		super().__init__()
-
-	def height(self, layout: ui.Layout) -> float:
-		return 0.05
-
-	def render(self) -> ui.Block.Children:
-		return [
-			ui.HorizontalSpacer(1000)
-		]
-
-
-class SelectedLineText(ui.Block):
-	def __init__(self, text: str) -> None:
-		super().__init__()
-		self.text = text
-
-	def render(self) -> ui.Block.Children:
-		return [
-			ui.Padding(ui.block(ui.Label(self.text)), left=1, top=-0.125)
-		]
-
-
-class SelectedLine:
-	def __init__(self, view: sublime.View, line: int, text: str):
-		pt_current_line = view.text_point(line, 0)
-		pt_prev_line = view.text_point(line - 1, 0)
-		pt_next_line = view.text_point(line + 1, 0)
-		line_prev = view.line(pt_current_line)
-		line_current = view.line(pt_prev_line)
-
-		self.top_line = ui.Phantom(UnderlineComponent(), view, line_current, sublime.LAYOUT_BELOW)
-		self.text = ui.Phantom(SelectedLineText(text), view, sublime.Region(pt_next_line - 1, pt_next_line - 1), sublime.LAYOUT_INLINE)
-		self.bottom_line = ui.Phantom(UnderlineComponent(), view, line_prev, sublime.LAYOUT_BELOW)
-
-	def dispose(self):
-		self.top_line.dispose()
-		self.text.dispose()
-		self.bottom_line.dispose()
+from .commands import select_configuration
 
 
 class DebuggerInterface (DebuggerPanelCallbacks):
@@ -160,8 +122,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		self.selected_frame_line = None #type: Optional[SelectedLine]
 		self.selected_frame_generated_view = None #type: Optional[sublime.View]
-
-		self.breakpointInformation = None #type: Optional[Any]
 
 		def on_state_changed(state: int) -> None:
 			if state == DebuggerState.stopped:
@@ -250,7 +210,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			self.panel,
 			ui.view_gutter_hovered.add(self.on_gutter_hovered),
 			ui.view_text_hovered.add(self.on_text_hovered),
-			ui.view_drag_select.add(self.on_drag_select),
 			self.breakpoints.onSelectedBreakpoint.add(self.onSelectedBreakpoint)
 		])
 
@@ -308,10 +267,10 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		data = self.window.project_data()
 		if data:
 			configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
+			configurations_json = sublime.expand_variables(configurations_json, variables)
 
 		for index, configuration_json in enumerate(configurations_json):
 			configuration = Configuration.from_json(configuration_json)
-			configuration.all = sublime.expand_variables(configuration.all, variables)
 			configuration.index = index
 			configurations.append(configuration)
 
@@ -334,28 +293,20 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def show(self) -> None:
 		self.panel.show()
 
-	@core.async
-	def SelectConfiguration(self) -> core.awaitable[None]:
-		selected_index = None #type: Optional[int]
-		if self.configuration:
-			selected_index = self.configuration.index
-
-		configuration = yield from select_or_add_configuration(self.window, selected_index, self.configurations, self.adapters)
-		print('Selected configuration:', configuration)
-		if configuration:
-			self.persistance.save_configuration_option(configuration)
-			self.configuration = configuration
-			self.debugger_panel.set_name(configuration.name)
+	def changeConfiguration(self, configuration: Configuration):
+		self.configuration = configuration
+		self.persistance.save_configuration_option(configuration)
+		self.debugger_panel.set_name(configuration.name)
 
 	@core.async
 	def LaunchDebugger(self) -> core.awaitable[None]:
+		self.show_console_panel()
 		self.console_panel.clear()
 		self.console_panel.Add('Console cleared...')
 		try:
 			if not self.configuration:
-				yield from self.SelectConfiguration()
-
-			if not self.configuration:
+				self.console_panel.AddStderr("Add or select a configuration to begin debugging")
+				select_configuration.run(self)
 				return
 
 			configuration = self.configuration
@@ -370,15 +321,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			return
 
 		yield from self.debugger.launch(adapter_configuration, configuration)
-
-	def clearBreakpointInformation(self) -> None:
-		if self.breakpointInformation:
-			self.breakpointInformation.dispose()
-			self.breakpointInformation = None
-
-	def on_drag_select(self, view: sublime.View) -> None:
-		if view != self.view:
-			self.clearBreakpointInformation()
 
 	# TODO this could be made better
 	def is_source_file(self, view: sublime.View) -> bool:
@@ -452,13 +394,10 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		self.dispose_selected_frame()
 
-		self.clearBreakpointInformation()
-
 		for d in self.disposeables:
 			d.dispose()
 
 		self.breakpoints.dispose()
-		self.window.destroy_output_panel('debugger')
 		if self.debugger:
 			self.debugger.dispose()
 		del DebuggerInterface.instances[self.window.id()]
@@ -466,8 +405,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def onSelectedBreakpoint(self, breakpoint: Optional[Breakpoint]) -> None:
 		if breakpoint:
 			self.OnExpandBreakpoint(breakpoint)
-		else:
-			self.clearBreakpointInformation()
 
 	def show_console_panel(self) -> None:
 		self.pages_panel.selected(2)
@@ -477,9 +414,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 	def show_call_stack_panel(self) -> None:
 		self.pages_panel.selected(1)
-
-	def on_settings(self) -> None:
-		self.run_async(self.SelectConfiguration())
 
 	def on_play(self) -> None:
 		self.panel.show()
@@ -586,3 +520,5 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 	def OnExpandBreakpoint(self, breakpoint: Breakpoint) -> None:
 		breakpoint_menus.edit_breakpoint(self.breakpoints, breakpoint)
+
+

@@ -41,16 +41,20 @@ def _create_main_loop():
 
 
 def call_soon_threadsafe(callback, *args):
-	_main_loop.call_soon_threadsafe(callback, *args)
+	return _main_loop.call_soon_threadsafe(callback, *args)
+
 
 def call_soon(callback, *args):
-	_main_loop.call_soon(callback, *args)
+	return _main_loop.call_soon(callback, *args)
+
 
 def call_later(interval, callback, *args):
-	_main_loop.call_later(interval, callback, *args)
+	return _main_loop.call_later(interval, callback, *args)
+
 
 def create_future():
 	return _main_loop.create_future()
+
 
 def run_in_executor(callable, *args):
 	return _main_loop.run_in_executor(_main_executor, callable, *args)
@@ -62,10 +66,11 @@ def start_event_loop() -> None:
 	global _main_loop
 	_main_loop = _create_main_loop()
 
+	main_loop = _main_loop
 	def _run_event_loop() -> None:
 		print('running main event loop')
-		_main_loop.run_forever()
-		_main_loop.close()
+		main_loop.run_forever()
+		main_loop.close()
 		print('done running main event loop')
 
 	_main_thread = threading.Thread(target=_run_event_loop)

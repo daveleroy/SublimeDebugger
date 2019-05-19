@@ -29,7 +29,8 @@ from .debug_adapter_client.types import (
 	CompletionItem,
 	Error,
 	Capabilities,
-	ExceptionBreakpointsFilter
+	ExceptionBreakpointsFilter,
+	Source
 )
 from .configurations import (
 	Configuration,

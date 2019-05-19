@@ -218,3 +218,40 @@ class Capabilities:
 	@staticmethod
 	def from_json(json: dict) -> 'Capabilities':
 		return Capabilities(json)
+
+
+class StoppedEvent:
+	def __init__(self, thread: Thread, allThreadsStopped: bool, reason: str, text: Optional[str]) -> None:
+		self.thread = thread
+		self.allThreadsStopped = allThreadsStopped
+		self.reason = reason
+		self.text = text
+
+
+class ContinuedEvent:
+	def __init__(self, thread: Thread, allThreadsContinued: bool) -> None:
+		self.thread = thread
+		self.allThreadsContinued = allThreadsContinued
+
+
+class OutputEvent:
+	def __init__(self, category: str, text: str, variablesReference: int, source: Optional[Source] = None, line: Optional[int] = None) -> None:
+		self.category = category
+		self.text = text
+		self.variablesReference = variablesReference
+		self.source = source
+		self.line = line
+
+	@staticmethod
+	def from_json(json) -> 'OutputEvent':
+		category = json.get('category', 'console')
+		source = json.get('source')
+		if source:
+			source = Source.from_json(source)
+
+		return OutputEvent(
+			category, 
+			json['output'], 
+			json.get('variablesReference', 0),
+			source,
+			json.get('line'))

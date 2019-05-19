@@ -8,10 +8,9 @@ from sublime_db.libs import asyncio
 
 from sublime_db.main.debugger_interface import DebuggerInterface
 from sublime_db.main.adapter_configuration import AdapterConfiguration, install_adapter
-from sublime_db.main.configurations import add_configuration
 
 from sublime_db.main.debugger import DebuggerState
-
+from sublime_db.main.commands import select_configuration
 
 def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	debugger = DebuggerInterface.debuggerForWindow(window)
@@ -126,11 +125,10 @@ class SublimeDebugRunCommandCommand(DebuggerCommand):
 		main.open_repl_console()
 
 
-class SublimeDebugChangeConfiguration(DebuggerCommand):
-	def on_main(self, main: DebuggerInterface) -> None:
-		core.run(main.SelectConfiguration())
-
-
 class SublimeDebugRefreshPhantoms(RunDebuggerInterfaceCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.refresh_phantoms()
+
+class SublimeDebugChangeConfiguration(DebuggerCommand):
+	def on_main(self, debugger: 'DebuggerInterface') -> None:
+		select_configuration.run(debugger)
