@@ -16,7 +16,7 @@ from .util import get_setting, register_on_changed_setting, extract_variables
 from .configurations import Configuration, AdapterConfiguration, select_or_add_configuration
 from .config import PersistedData
 
-from .components.variable_component import VariableComponent, Variable
+from .components.variable_component import VariableStateful, VariableStatefulComponent, Variable
 from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
 from .components.breakpoints_panel import BreakpointsPanel, show_breakpoint_options
 from .components.callstack_panel import CallStackPanel
@@ -143,7 +143,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.disposeables = [] #type: List[Any]
 		self.breakpoints = Breakpoints()
 
-		self.console_panel = ConsolePanel(self.open_repl_console)
+		self.console_panel = ConsolePanel(self.open_repl_console, self.on_navigate_to_source)
 		self.variables_panel = VariablesPanel()
 		self.callstack_panel = CallStackPanel()
 		self.breakpoints_panel = BreakpointsPanel(self.breakpoints, self.onSelectedBreakpoint)
@@ -201,8 +201,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 				self.dispose_selected_frame()
 
 		def on_output(event: OutputEvent) -> None:
-			category = event.category
-			msg = event.text
 			variablesReference = event.variablesReference
 
 			if variablesReference and self.debugger.adapter:
@@ -213,32 +211,13 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 					variables = yield from self.debugger.adapter.GetVariables(variablesReference)
 					for variable in variables:
 						variable.name = "" # this is what vs code does?
-						self.console_panel.AddVariable(variable)
+						self.console_panel.add_variable(variable, event.source, event.line)
 					self.pages_panel.modified(2)
 
 				# this could make variable messages appear out of order. Do we care??
 				self.run_async(appendVariabble())
-
-			elif category == "stdout":
-				self.console_panel.AddStdout(msg)
-				self.pages_panel.modified(2)
-			elif category == "stderr":
-				self.console_panel.AddStderr(msg)
-				self.pages_panel.modified(2)
-			elif category == "telemetry":
-				pass
-			elif category == "output":
-				self.console_panel.AddStdout(msg)
-				self.pages_panel.modified(2)
-			elif category == "error":
-				self.console_panel.AddStderr(msg)
-				self.pages_panel.modified(2)
-			elif category == "info":
-				self.console_panel.Add(msg)
-				self.pages_panel.modified(2)
 			else:
-				self.console_panel.AddOutputOther(msg)
-				self.pages_panel.modified(2)
+				self.console_panel.add(event)
 
 		self.debugger = DebuggerState(
 			self.breakpoints,
@@ -440,9 +419,11 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			def on_close() -> None:
 				event.view.erase_regions('selected_hover')
 
-			variableComponent = VariableComponent(variable)
-			variableComponent.variable.expand()
-			ui.Popup(variableComponent, event.view, word.a, on_close=on_close)
+			variableState = VariableStateful(variable, None)
+			component = VariableStatefulComponent(variableState)
+			variableState.on_dirty = component.dirty
+			variableState.expand()
+			ui.Popup(component, event.view, word.a, on_close=on_close)
 
 		except Error as e:
 			pass # errors trying to evaluate a hover expression should be ignored
@@ -528,16 +509,16 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			self.pages_panel.modified(2)
 		core.run(awaitable, on_error=on_error)
 
-	@core.async
-	def navigate_to_frame(self, thread: Thread, frame: StackFrame) -> core.awaitable[None]:
-		source = frame.source
 
-		if not source:
-			self.dispose_selected_frame()
-			return
+	def on_navigate_to_source(self, source: Source, line: int):
+		core.run(self.navigate_to_source(source, line))
+
+	@core.async
+	def navigate_to_source(self, source: Source, line: int):
+		self.navigate_soure = source
+		self.navigate_line = line
 
 		# sublime lines are 0 based
-		line = frame.line - 1
 
 		selected_frame_generated_view = None #type: Optional[sublime.View]
 
@@ -564,19 +545,36 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		elif source.path:
 			view = yield from core.sublime_open_file_async(self.window, source.path)
 		else:
-			return
-		view.show(view.text_point(line, 0), True)
+			return None
+
+		view.show(view.text_point(line - 1, 0), True)
+		
 		# We seem to have already selected a differn't frame in the time we loaded the view
-		if frame != self.debugger.frame:
+		if source != self.navigate_soure:
 			# if we generated a view close it
 			if selected_frame_generated_view:
 				selected_frame_generated_view.close()
+			return None
 
+		self.selected_frame_generated_view = selected_frame_generated_view
+		return view
+
+
+	@core.async
+	def navigate_to_frame(self, thread: Thread, frame: StackFrame) -> core.awaitable[None]:
+		source = frame.source
+
+		if not source:
+			self.dispose_selected_frame()
 			return
 
+		# sublime lines are 0 based
+		line = frame.line - 1
+
+		view = yield from self.navigate_to_source(source, frame.line)
 		self.dispose_selected_frame()
-		self.selected_frame_generated_view = selected_frame_generated_view
-		self.selected_frame_line = SelectedLine(view, line, thread.stopped_text)
+		if view:
+			self.selected_frame_line = SelectedLine(view, line, thread.stopped_text)
 
 	def dispose_selected_frame(self) -> None:
 		if self.selected_frame_generated_view:

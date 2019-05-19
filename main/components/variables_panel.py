@@ -8,7 +8,7 @@ from sublime_db.main.debugger import (
 	DebugAdapterClient
 )
 
-from .variable_component import ScopeComponent
+from .variable_component import Variable, VariableStateful, VariableStatefulComponent
 from .layout import variables_panel_width
 
 
@@ -34,11 +34,16 @@ class VariablesPanel (ui.Block):
 		# expand the first scope only
 		first = True
 		for v in self.scopes:
-			scopes_item = ScopeComponent(v)
+			variable = Variable(v.client, v.name, "", v.variablesReference)
+			variable_stateful = VariableStateful(variable, None)
+			component = VariableStatefulComponent(variable_stateful)
+			variable_stateful.on_dirty = component.dirty
+
 			if first:
 				first = False
-				scopes_item.scope.toggle_expand()
-			scopes_items.append(scopes_item)
+				variable_stateful.expand()
+
+			scopes_items.append(component)
 
 		items.append(ui.Table(items=scopes_items))
 

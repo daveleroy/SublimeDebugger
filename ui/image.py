@@ -114,3 +114,6 @@ class Images:
 		self.more = Image.named_light_dark('material/baseline_more_horiz_white_48dp.png')
 		self.not_checked = Image.named_light_dark('material/baseline_check_box_outline_blank_white_48dp.png')
 		self.checked = Image.named_light_dark('material/baseline_check_box_white_48dp.png')
+
+		self.open = Image.named_light_dark('triangle-open.png')
+		self.close = Image.named_light_dark('triangle-close.png')

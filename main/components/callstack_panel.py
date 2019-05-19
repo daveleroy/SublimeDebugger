@@ -145,11 +145,11 @@ class ThreadComponent (ui.Block):
 		self.panel.set_selected(self.thread, self.frames[index], index)
 
 	def render(self) -> ui.Block.Children:
-		max_length = callstack_panel_width(self.layout) - 5
+		max_length = callstack_panel_width(self.layout) - 6
 		if self.thread.stopped:
 			item = ui.block(
 				ui.Button(self.toggle, items=[
-					ui.Img((ui.Images.shared.right, ui.Images.shared.down)[self.thread.expanded]),
+					ui.Img((ui.Images.shared.close, ui.Images.shared.open)[self.thread.expanded]),
 				]),
 				ui.Button(self.on_select_thread, items=[
 					ui.Box(
