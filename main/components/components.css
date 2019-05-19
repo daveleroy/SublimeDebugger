@@ -31,34 +31,37 @@
 	padding-right: 5px;
 }
 
-.DebuggerPanel .Table {
-	padding-left: 3px;
-}
-
 .BreakpointsPanel .Table {
 	padding-left: 3px;
 	padding-right: 3px;
 }
 
+.DebuggerPanel .Panel {
+	border-radius: 5px;
+}
 .DebuggerItem {
+	border-radius: 15px;
+	border: 1px solid rgba(0,0,0,0.1);
 	background-color: var(--segment-color);
-	border-radius: 10px;
-	border: 1px solid rgba(0,0,0,0.05);
+	margin-top: 0px;
+	padding-top: 1px;
+	margin-bottom: 1px;
 }
 
 .PageTab {
 	background-color: rgba(0, 0, 0, 0.075);
-	border-top-left-radius: 10px;
-	border-top-right-radius: 10px;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
 	padding-top: 7px;
 	padding-left: 7px;
 	padding-right: 7px;
 	padding-bottom: 2.5px;
-	border: 1px solid rgba(0, 0, 0, 0);
 	position: relative;
 	left: 1px;
 }
-
+.Panel {
+	border: 1px solid rgba(0, 0, 0, 0.025);
+}
 .PageTab.selected {
 	background-color: var(--panel-color);
 	border: 1px solid rgba(0, 0, 0, 0.05);

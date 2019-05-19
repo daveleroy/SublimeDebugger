@@ -3,14 +3,12 @@ html {
 .dark {
 	--text-color: var(--foreground);
 	--panel-color: color(var(--background) blend(black 80%));
-	--input-color: color(var(--background) blend(black 80%));
-	--segment-color: color(var(--background) blend(black 60%));
+	--segment-color: color(var(--background) blend(black 65%));
 	--label-color: var(--text-color);
 }
 .light {
 	--text-color: var(--foreground);
 	--panel-color: color(var(--background) blend(black 92%));
-	--input-color: color(var(--background) blend(black 90%));
 	--segment-color: color(var(--background) blend(black 80%));
 	--label-color: var(--text-color);
 }
@@ -46,7 +44,7 @@ html {
 }
 .Box {
 	background-color: var(--segment-color);
-	border-radius: 10px;
+	border-radius: 7px;
 	padding-top: var(--box-padding-top);
 	padding-bottom: var(--box-padding-bottom);
 	border: 1px solid rgba(0,0,0,0.05);
@@ -59,6 +57,10 @@ a {
 	position: relative;
 	bottom: var(--label-offset);
 }
+.CodeBlock {
+	position: relative;
+	bottom: var(--label-offset);
+}
 .Table {
 }
 .Table.inset {
@@ -66,33 +68,11 @@ a {
 }
 .TableItem {
 }
-.Input {
-	padding-left: 4px;
-}
-.Input .Box {
-	background-color: var(--input-color);
-	border-radius: 3px;
-}
-.Input .Box.editing {
-	border-style: solid;
-	border-width: 0.75px;
-	border-color: grey;
-}
-.Input .Box.error {
-	border-style: solid;
-	border-width: 0.75px;
-	border-color: rgba(200, 100, 100, 1.0);
-}
 .Panel {
 	padding-bottom: 100rem;
-	border-radius: 10px;
+	border-radius: 5px;
 	background-color: var(--panel-color);
 }
 .Panel .Segment {
 	--width: 18rem;
-}
-.highlight {
-	display: inline;
-	position: relative;
-	bottom: var(--label-offset);
 }
