@@ -13,7 +13,7 @@ from sublime_db.modules import core
 from .breakpoints import Breakpoints, Breakpoint, Filter
 
 from .util import get_setting, register_on_changed_setting, extract_variables
-from .configurations import Configuration, AdapterConfiguration
+from .adapter_configuration import Configuration, AdapterConfiguration
 from .config import PersistedData
 
 from .components.variable_component import VariableStateful, VariableStatefulComponent, Variable

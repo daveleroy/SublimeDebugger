@@ -17,9 +17,7 @@ import sublime_plugin
 
 from sublime_db.modules import core
 from sublime_db.modules import ui
-from sublime_db.modules.debugger.adapter_configuration import AdapterConfiguration, install_adapter
-from sublime_db.modules.debugger.configurations import Configuration
-from sublime_db.modules.debugger.adapter_configuration import AdapterConfiguration
+from sublime_db.modules.debugger.adapter_configuration import AdapterConfiguration, Configuration
 
 
 def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None]:
@@ -79,7 +77,6 @@ def run(debugger: 'DebuggerInterface') -> core.awaitable[Optional[Configuration]
 
 	def run(list):
 		index = list
-		print('installing')
 		if index < len(debugger.configurations):
 			debugger.changeConfiguration(debugger.configurations[index])
 		else:

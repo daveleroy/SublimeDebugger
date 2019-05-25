@@ -33,7 +33,7 @@ from sublime_db.modules.dap.types import (
 	Source,
 	ThreadEvent
 )
-from .configurations import (
+from .adapter_configuration import (
 	Configuration,
 	AdapterConfiguration
 )
