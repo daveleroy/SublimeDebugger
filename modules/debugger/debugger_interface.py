@@ -148,9 +148,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			elif state == DebuggerState.stopping or state == DebuggerState.starting:
 				self.debugger_panel.setState(LOADING)
 
-		def on_threads(threads: List[Thread]) -> None:
-			self.callstack_panel.update(self.debugger, threads)
-
 		def on_scopes(scopes: List[Scope]) -> None:
 			self.variables_panel.set_scopes(scopes)
 
@@ -179,13 +176,16 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			else:
 				self.console_panel.add(event)
 
+		def on_threads_stateful(threads: Any):
+			self.callstack_panel.update(self.debugger, threads)
+
 		self.debugger = DebuggerState(
 			self.breakpoints,
 			on_state_changed=on_state_changed,
-			on_threads=on_threads,
 			on_scopes=on_scopes,
 			on_output=on_output,
-			on_selected_frame=on_selected_frame)
+			on_selected_frame=on_selected_frame,
+			on_threads_stateful=on_threads_stateful)
 
 		self.panel = OutputPhantomsPanel(window, 'Debugger')
 		self.panel.show()

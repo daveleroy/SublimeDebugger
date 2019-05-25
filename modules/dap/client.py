@@ -15,11 +15,11 @@ import socket
 import threading
 import json
 
+from sublime_db.modules import core
 from sublime_db.modules.libs import asyncio
-from sublime_db.modules import ui, core
 from sublime_db.modules.debugger.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
 
-from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities, StoppedEvent, ContinuedEvent, OutputEvent
+from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities, StoppedEvent, ContinuedEvent, OutputEvent, ThreadEvent
 from .transport import Transport
 
 @core.all_methods(core.require_main_thread)
@@ -30,15 +30,12 @@ class DebugAdapterClient:
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
 
-		self.threads = [] #type: List[Thread]
-		self.threads_for_id = {} #type: Dict[int, Thread]
-
 		self.allThreadsStopped = False
 		self.onExited = core.Event() #type: core.Event[Any]
 		self.onStopped = core.Event() #type: core.Event[StoppedEvent]
 		self.onContinued = core.Event() #type: core.Event[Any]
 		self.onOutput = core.Event() #type: core.Event[Any]
-		self.onThreads = core.Event() #type: core.Event[Optional[List[Thread]]]
+		self.onThreads = core.Event() #type: core.Event[ThreadEvent]
 		self.on_error_event = core.Event() #type: core.Event[str]
 		self.is_running = True
 		self._on_initialized_future = core.create_future()
@@ -95,6 +92,17 @@ class DebugAdapterClient:
 		})
 
 	@core.async
+	def GetThreads(self) -> None:
+		response = yield from self.send_request_asyc('threads', {})
+
+		threads = []
+		for thread in response['threads']:
+			thread = Thread(self, thread['id'], thread.get("name"))
+			threads.append(thread)
+
+		return threads
+
+	@core.async
 	def GetScopes(self, frame: StackFrame) -> core.awaitable[List[Scope]]:
 		body = yield from self.send_request_asyc('scopes', {
 			"frameId": frame.id
@@ -126,39 +134,6 @@ class DebugAdapterClient:
 			'sourceReference': source.sourceReference
 		})
 		return body['content']
-
-	def _thread_for_id(self, id: int) -> Thread:
-		thread = self.threads_for_id.get(id)
-		if thread:
-			return thread
-
-		thread = Thread(self, id, '...')
-
-		# I think this is the correct thing to do according to the spec.
-		thread.stopped = self.allThreadsStopped
-		# If we had an allThreadsStopped event any new threads we see should be marked as "stopped" until an allThreadsContinued event occurs.
-		# This is clearly not what vscode does. The first breakpoint hit in the go example has 3 additional runtime threads that are marked as running despite "allThreadsStopped" being present
-		# When a step occurs they all get marked as stopped. Presumably they only marked the thread for the stopped event and not any threads that are seen after running the threads command.
-
-		self.threads_for_id[id] = thread
-		return thread
-
-	def threadsCommandBase(self) -> None:
-		def response(response: dict) -> None:
-			def get_or_create_thread(id: int, name: str) -> Optional[Thread]:
-				thread = self._thread_for_id(id)
-				thread.name = name
-				return thread
-
-			threads = []
-			for thread in response['threads']:
-				thread = get_or_create_thread(thread['id'], thread['name'])
-				threads.append(thread)
-
-			self.threads = threads
-			self.onThreads.post(threads)
-
-		core.run(self.send_request_asyc('threads', {}), response)
 
 	@core.async
 	def Initialized(self) -> core.awaitable[None]:
@@ -230,14 +205,12 @@ class DebugAdapterClient:
 	def Launch(self, config: dict) -> core.awaitable[None]:
 		yield from self.send_request_asyc('launch', config)
 		# the spec says to grab the baseline threads here?
-		self.threadsCommandBase()
 		self.is_running = True
 
 	@core.async
 	def Attach(self, config: dict) -> core.awaitable[None]:
 		yield from self.send_request_asyc('attach', config)
 		# the spec says to grab the baseline threads here?
-		self.threadsCommandBase()
 		self.is_running = True
 
 	@core.async
@@ -352,26 +325,16 @@ class DebugAdapterClient:
 			pass
 		self._on_initialized_future.set_result(None)
 
-	def _continued(self, threadId: int, allThreadsContinued: bool) -> None:
-		if allThreadsContinued:
-
-			self.allThreadsStopped = False
-
-		if allThreadsContinued:
-			for thread in self.threads:
-				thread.stopped = False
-		else:
-			thread = self._thread_for_id(threadId)
-			thread.stopped = False
-
-		# we have to post that we changed the threads here
-		self.onThreads.post(self.threads)
-		event = ContinuedEvent(self._thread_for_id(threadId), allThreadsContinued)
-		self.onContinued.post(event)
-
 	def _on_continued(self, body: dict) -> None:
 		threadId = body['threadId']
 		self._continued(threadId, body.get('allThreadsContinued', True))
+	
+	def _continued(self, threadId: int, allThreadsContinued: bool) -> None:
+		if allThreadsContinued:
+			self.allThreadsStopped = False
+
+		event = ContinuedEvent(threadId, allThreadsContinued)
+		self.onContinued.post(event)
 
 	def _on_stopped(self, body: dict) -> None:
 		# only ask for threads if there was a reason for the stoppage
@@ -390,22 +353,10 @@ class DebugAdapterClient:
 		else:
 			stopped_text = "Stopped"
 
-		thread_for_event = self._thread_for_id(threadId)
-		thread_for_event.stopped = True
-		thread_for_event.stopped_text = stopped_text
-		thread_for_event.expanded = True
-
 		if allThreadsStopped:
 			self.allThreadsStopped = True
-			for thread in self.threads:
-				thread.stopped = True
-				thread.stopped_text = stopped_text
 
-		# we aren't going to post that we changed the threads
-		# we will let the threadsCommandBase to that for us so we don't update the UI twice
-		self.threadsCommandBase()
-
-		event = StoppedEvent(self._thread_for_id(threadId), allThreadsStopped, description, text)
+		event = StoppedEvent(threadId, allThreadsStopped, stopped_text)
 		self.onStopped.post(event)
 
 	def _on_terminated(self, body: dict) -> None:
@@ -416,7 +367,7 @@ class DebugAdapterClient:
 		self.onOutput.post(OutputEvent.from_json(body))
 
 	def _on_thread(self, body: dict) -> None:
-		self.threadsCommandBase()
+		self.onThreads.post(ThreadEvent.from_json(body))
 
 	def _on_breakpoint(self, body: dict) -> None:
 		breakpoint_result = body['breakpoint']

@@ -221,16 +221,25 @@ class Capabilities:
 
 
 class StoppedEvent:
-	def __init__(self, thread: Thread, allThreadsStopped: bool, reason: str, text: Optional[str]) -> None:
-		self.thread = thread
+	def __init__(self, threadId: int, allThreadsStopped: bool, text: str) -> None:
+		self.threadId = threadId
 		self.allThreadsStopped = allThreadsStopped
-		self.reason = reason
 		self.text = text
 
 
+class ThreadEvent:
+	def __init__(self, threadId: int, reason: str) -> None:
+		self.threadId = threadId
+		self.reason = reason
+
+	@staticmethod
+	def from_json(json) -> 'ThreadEvent':
+		return ThreadEvent(json['threadId'], json['reason'])
+
+
 class ContinuedEvent:
-	def __init__(self, thread: Thread, allThreadsContinued: bool) -> None:
-		self.thread = thread
+	def __init__(self, threadId: int, allThreadsContinued: bool) -> None:
+		self.threadId = threadId
 		self.allThreadsContinued = allThreadsContinued
 
 
