@@ -17,9 +17,35 @@ from .layout import console_panel_width
 
 ERROR = 1
 OUTPUT = 1 << 1
-TEXT = 1 << 2
 NONE = 1 << 3
 IGNORE = 1 << 4
+DEBUGGER_INFO = 1 << 5
+DEBUGGER_ERROR = 1 << 6
+DEBUGGER_OUTPUT = 1 << 7
+
+DEBUGGER = DEBUGGER_INFO|DEBUGGER_ERROR|DEBUGGER_OUTPUT
+
+event_filter_map = {
+	None: OUTPUT,
+	"console": OUTPUT,
+	"stderr": ERROR,
+	"stdout": OUTPUT,
+	"telemetry": IGNORE,
+	"debugger.error": DEBUGGER_ERROR,
+	"debugger.info": DEBUGGER_INFO,
+	"debugger.output": DEBUGGER_OUTPUT,
+}
+filter_color_map = {
+	ERROR: "red",
+	OUTPUT: "primary",
+
+	NONE: "secondary",
+	IGNORE: "secondary",
+
+	DEBUGGER_INFO: "secondary",
+	DEBUGGER_ERROR: "red-secondary",
+	DEBUGGER_OUTPUT: "secondary",
+}
 
 
 class ConsoleItem (ui.Block):
@@ -61,17 +87,7 @@ class ConsoleItem (ui.Block):
 
 		items = []
 
-		if self.kind == TEXT:
-			items.append(ui.Label(self.text, width=width, align=0, color='secondary'))
-		elif (self.kind == OUTPUT) or (self.kind == NONE):
-			items.append(ui.Label(self.text, width=width, align=0, color='primary'))
-		elif self.kind == ERROR:
-			items.append(ui.Label(self.text, width=width, align=0, color='red'))
-		elif self.kind == IGNORE:
-			items.append(ui.Label(self.text, width=width, align=0, color='secondary'))
-		else:
-			assert None, "expected type..."
-
+		items.append(ui.Label(self.text, width=width, align=0, color=filter_color_map[self.kind]))
 
 		if source_item:
 			items.append(source_item)
@@ -95,14 +111,7 @@ class ConsolePanel (ui.Block):
 		self.text = [] #type: List[str]
 		self.on_click = on_click
 		self.on_navigate_to_source = on_navigate_to_source
-		self.filter = ERROR | OUTPUT | TEXT | NONE
-		self.event_filter_map = {
-			None: OUTPUT,
-			"console": OUTPUT,
-			"stderr": ERROR,
-			"stdout": OUTPUT,
-			"telemetry": IGNORE
-		}
+		self.filter = ERROR | OUTPUT | DEBUGGER | NONE 
 		self.filters = [
 			ConsolePanel.Filter("output: debugger", True),
 			ConsolePanel.Filter("output: program", True),
@@ -141,7 +150,7 @@ class ConsolePanel (ui.Block):
 	def updated_filter(self):
 		mask = 0
 		if self.filters[0].enabled:
-			mask |= TEXT
+			mask |= DEBUGGER_OUTPUT | DEBUGGER_ERROR | DEBUGGER_INFO
 		if self.filters[1].enabled:
 			mask |= ERROR | OUTPUT
 		if self.filters[2].enabled:
@@ -162,11 +171,12 @@ class ConsolePanel (ui.Block):
 		})
 
 	def add(self, event: OutputEvent):
-		filter = self.event_filter_map.get(event.category, NONE)
+		filter = event_filter_map.get(event.category, NONE)
 		source = event.source
 		line = event.line
 		text = event.text
 
+		# program
 		if (filter & (OUTPUT | ERROR)):
 			match = re.match("(.*):([0-9]+):([0-9]+): error: (.*)", text)
 			if match:
@@ -190,7 +200,7 @@ class ConsolePanel (ui.Block):
 	def Add(self, text: str) -> None:
 		self.text.append(text)
 		for line in reversed(text.rstrip('\r\n').split('\n')):
-			item = ConsoleItem(self.on_navigate_to_source, TEXT, line, None)
+			item = ConsoleItem(self.on_navigate_to_source, DEBUGGER_INFO, line, None)
 			self.items.append(item)
 		self.dirty()
 

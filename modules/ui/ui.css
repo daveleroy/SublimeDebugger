@@ -12,17 +12,17 @@ html {
 	--segment-color: color(var(--background) blend(black 80%));
 	--label-color: var(--text-color);
 }
-.secondary {
-	--label-color: color(var(--text-color) alpha(0.7));
-}
 .primary {
 	--label-color: var(--text-color);
 }
-.white {
-	--label-color: white;
+.secondary {
+	--label-color: color(var(--text-color) alpha(0.7));
 }
 .red {
 	--label-color: var(--redish);
+}
+.red-secondary {
+	--label-color: color(var(--redish) alpha(0.7));
 }
 .height {
 	height: var(--height);

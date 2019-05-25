@@ -75,13 +75,16 @@
 }
 .UnderlineComponent {
 	position: absolute;
-	margin-bottom: 5px;
+	margin-bottom: 0.5rem;
 	height: 5px;
 	width: 100rem;
 	background-color: color(var(--bluish) alpha(0.5));
 }
 
 .SelectedLineText {
+	position: relative;
+	bottom: .15rem;
+	padding-right: 1rem;
 	--text-color: color(var(--bluish) alpha(0.75));
 }
 
