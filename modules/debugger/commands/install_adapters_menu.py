@@ -30,7 +30,8 @@ def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):
 		else:
 			values.append(ui.ListInputItem("○ {}".format(adapter.installation.name)))
 		
-	input = ui.ListInput(values, placeholder="install debug adapter clients", index=selected_index)
+	def input (selected_index):
+		return ui.ListInput(values, placeholder="install debug adapter clients", index=selected_index)
 
 	@core.async
 	def run_async(list, adapter):
@@ -46,6 +47,7 @@ def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):
 		debugger.console_panel.Add("... debug adapter installed")
 		
 		open_install_adapter_menu(debugger, list)
+
 	def run(list):
 		print('installing')
 		adapter = adapters[list]
@@ -53,7 +55,10 @@ def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):
 		open_install_adapter_menu(debugger, list)
 		core.run(run_async(list, adapter))
 
-	ui.run_input_command(input, run)
+	def run_not_main(list):
+		ui.run_input_command(input(selected_index), run)
+
+	ui.run_input_command(input(selected_index), run, run_not_main=run_not_main)
 
 
 class SublimeDebugInstallAdapter(DebuggerCommand):

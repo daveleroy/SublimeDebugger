@@ -6,7 +6,9 @@ from sublime_db.modules.core.typecheck import (
 )
 import sublime
 import sublime_plugin
+import threading
 
+from sublime_db.modules import core
 from . import view_drag_select
 
 command_id = 0
@@ -18,7 +20,14 @@ class SublimeDebugInputCommand(sublime_plugin.WindowCommand):
 	def run(self, command_id, **args):
 		global is_running_input
 		is_running_input = False
-		command_data[command_id][1](**args)
+		run_main = command_data[command_id][1]
+		run_not_main = command_data[command_id][2]
+		if run_not_main:
+			run_not_main(**args)
+		def call():
+			run_main(**args)
+		core.call_soon_threadsafe(call)
+
 	def input(self, args):
 		return command_data[args["command_id"]][0]
 	def is_visible(self):
@@ -32,11 +41,11 @@ def on_view_drag_select(event):
 		})
 
 view_drag_select.add(on_view_drag_select)
-def run_input_command(input, run, on_cancel = None):
+def run_input_command(input, run, on_cancel=None, run_not_main=None):
 	global command_id
 	command_id += 1
 	current_command = command_id
-	command_data[current_command] = [input, run]
+	command_data[current_command] = [input, run, run_not_main]
 
 	window = sublime.active_window()
 	def on_cancel_internal():
@@ -72,7 +81,6 @@ def run_input_command(input, run, on_cancel = None):
 				}
 			}
 		)
-		print('run command')
 		sublime_command_visible = False
 	sublime.set_timeout(cb, 0)
 

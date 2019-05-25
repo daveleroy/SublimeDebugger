@@ -132,3 +132,13 @@ class SublimeDebugRefreshPhantoms(RunDebuggerInterfaceCommand):
 class SublimeDebugChangeConfiguration(DebuggerCommand):
 	def on_main(self, debugger: 'DebuggerInterface') -> None:
 		select_configuration.run(debugger)
+
+
+class SublimeDebugShowLine(sublime_plugin.TextCommand):
+	def run(self, edit, line: int, move_cursor: bool):
+		a = self.view.text_point(line, 0)
+		region = sublime.Region(a, a)
+		self.view.show_at_center(region)
+		if move_cursor:
+			self.view.sel().clear()
+			self.view.sel().add(region)

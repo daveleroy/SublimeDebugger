@@ -124,14 +124,19 @@ class ConsolePanel (ui.Block):
 		for filter in self.filters:
 			values.append(ListInputItemChecked(filter.name, filter.enabled))
 
-		input = ui.ListInput(values, placeholder="filter console output", index=selected_index)
+		def input(selected_index):
+			return ui.ListInput(values, placeholder="filter console output", index=selected_index)
+
 		def run_command(list, **args):
 			i = list
 			self.filters[i].enabled = not self.filters[i].enabled
 			self.updated_filter()
 			self.open_console_menu(i)
 
-		ui.run_input_command(input, run_command)
+		def run_not_main(list, **args):
+			ui.run_input_command(input(list), run_command, run_not_main=run_not_main)
+
+		ui.run_input_command(input(selected_index), run_command, run_not_main=run_not_main)
 
 	def updated_filter(self):
 		mask = 0

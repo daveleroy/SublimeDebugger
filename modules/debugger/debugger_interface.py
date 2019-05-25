@@ -82,8 +82,12 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		def run(**args):
 			expression = args['text']
 			self.debugger.evaluate(expression)
-			self.open_repl_console()
-		ui.run_input_command(input, run)		
+
+		# just re run the same command right away to avoid flicker
+		def run_not_main(**args):
+			ui.run_input_command(input, run, run_not_main=run_not_main)
+
+		ui.run_input_command(input, run, run_not_main=run_not_main)		
 
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
@@ -445,10 +449,10 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 
 	def on_navigate_to_source(self, source: Source, line: int):
-		core.run(self.navigate_to_source(source, line))
+		core.run(self.navigate_to_source(source, line, True))
 
 	@core.async
-	def navigate_to_source(self, source: Source, line: int):
+	def navigate_to_source(self, source: Source, line: int, move_cursor: bool = False):
 		self.navigate_soure = source
 		self.navigate_line = line
 
@@ -481,8 +485,11 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		else:
 			return None
 
-		view.show(view.text_point(line - 1, 0), True)
-		
+		view.run_command("sublime_debug_show_line", {
+			'line' : line -1,
+			'move_cursor' : move_cursor
+		})
+
 		# We seem to have already selected a differn't frame in the time we loaded the view
 		if source != self.navigate_soure:
 			# if we generated a view close it
@@ -496,6 +503,8 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 	@core.async
 	def navigate_to_frame(self, thread: Thread, frame: StackFrame) -> core.awaitable[None]:
+		print("Navigating to frame")
+
 		source = frame.source
 
 		if not source:
