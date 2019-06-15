@@ -1,15 +1,19 @@
-
-from .breakpoints import Breakpoints, Breakpoint
-from .adapter_configuration import Configuration
 from sublime_db.modules.core.typecheck import (
 	Optional,
 	List
 )
-from sublime_db.modules import core
 
 import sublime
 import os
 import json
+
+from sublime_db.modules.debugger_stateful.adapter_configuration import Configuration
+from sublime_db.modules import core
+
+from sublime_db.modules.debugger_stateful.breakpoints import (
+	Breakpoints, 
+	Breakpoint
+)
 
 def _project_data_file(project_path: str) -> str:
 	import hashlib

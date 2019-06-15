@@ -1,18 +1,15 @@
+from sublime_db.modules.core.typecheck import (List, Callable, Optional)
 
 import os
 
-from sublime_db.modules.core.typecheck import (List, Callable, Optional)
 from sublime_db.modules import ui
 from sublime_db.modules import core
 
-from sublime_db.modules.debugger.debugger import (
+from sublime_db.modules.debugger_stateful.debugger import (
 	Thread,
 	StackFrame,
 	DebugAdapterClient,
-	DebuggerState
-)
-
-from sublime_db.modules.debugger.threads import (
+	DebuggerStateful,
 	ThreadStateful
 )
 
@@ -23,34 +20,15 @@ class CallStackPanel (ui.Block):
 	def __init__(self) -> None:
 		super().__init__()
 		self.threads = [] #type: List[ThreadStateful]
-		self.selected_thread = None #type: Optional[Thread]
-		self.selected_frame_index = None #type: Optional[int]
 		self.thread_components = [] #type: List[ThreadComponent]
 
-	def set_selected(self, thread: Thread, frame: Optional[StackFrame], index: Optional[int]) -> None:
-		self.debugger.set_selected_thread(thread)
-		if frame:
-			self.debugger.set_selected_frame(frame)
-		self.selected_thread = thread
-		self.selected_frame_index = index
-		self.dirty_threads()
-
-	def has_selection(self) -> bool:
-		return self.debugger.thread is not None
-
-	def has_selection_frame(self) -> bool:
-		return self.selected_frame_index is not None
-
-	def dirty_threads(self) -> None:
-		for thread_component in self.thread_components:
-			thread_component.dirty()
-
-	def update(self, debugger: DebuggerState, threads: List[ThreadStateful]) -> None:
+	def update(self, debugger: DebuggerStateful, threads: List[ThreadStateful]) -> None:
 		self.threads = threads
 		self.debugger = debugger
 		for thread in threads:
 			thread.on_dirty = self.dirty
 		self.dirty()
+
 	def render(self) -> ui.Block.Children:
 		self.thread_components = []
 		for thread in self.threads:
@@ -59,6 +37,7 @@ class CallStackPanel (ui.Block):
 		return [
 			ui.Table(items=self.thread_components)
 		]
+
 
 class ThreadComponent (ui.Block):
 	def __init__(self, panel: CallStackPanel, thread: ThreadStateful) -> None:
@@ -77,30 +56,6 @@ class ThreadComponent (ui.Block):
 			self.thread.collapse()
 		else:
 			self.thread.expand();
-
-	# def fetch_frames_if_needed(self) -> None:
-	# 	if self.thread.stopped and self.thread.expanded and not self.fetched:
-	# 		self.fetched = True
-	# 		print('fetching thread frames')
-
-	# 		def response(frames: List[StackFrame]) -> None:
-	# 			if not frames:
-	# 				self.frames = frames
-	# 				self.dirty()
-	# 				return
-
-	# 			if self.panel.selected_thread == self.thread and not self.panel.has_selection_frame():
-	# 				for i, frame in enumerate(frames):
-	# 					if frame.presentation != StackFrame.subtle:
-	# 						self.panel.set_selected(self.thread, frame, i)
-	# 						break
-	# 				else:
-	# 					self.panel.set_selected(self.thread, frames[0], 0)
-
-	# 			self.frames = frames
-	# 			self.dirty()
-
-	# 		core.run(self.thread.client.GetStackTrace(self.thread), response)
 
 	def onClicked(self, index: int) -> None:
 		self.thread.debugger.select_threadstateful(self.thread, self.thread.frames[index])
@@ -144,7 +99,7 @@ class ThreadComponent (ui.Block):
 
 			def on_click(index=index):
 				self.onClicked(index)
-			component = ui.Padding(StackFrameComponent(self.debugger, frame, on_click), top=0.1, bottom=0.2)
+			component = ui.Padding(StackFrameComponent(frame, on_click), top=0.1, bottom=0.2)
 			frames.append(component)
 
 		table = ui.Table(items=frames, selected_index=selected_index)
@@ -157,10 +112,9 @@ class ThreadComponent (ui.Block):
 
 
 class StackFrameComponent (ui.Block):
-	def __init__(self, debugger: DebuggerState, frame: StackFrame, on_click: Callable[[], None]) -> None:
+	def __init__(self, frame: StackFrame, on_click: Callable[[], None]) -> None:
 		super().__init__()
 		self.frame = frame
-		self.debugger = debugger
 		self.on_click = on_click
 
 	def render(self) -> ui.Block.Children:

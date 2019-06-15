@@ -7,8 +7,8 @@ import gzip
 import urllib.request
 import sublime
 import json
+
 from sublime_db.modules import core
-from .util import extract_variables
 
 
 def _adapters_path() -> str:

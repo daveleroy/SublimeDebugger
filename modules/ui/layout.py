@@ -1,7 +1,3 @@
-from . import size
-from sublime_db.modules import core
-import os
-import sublime
 from sublime_db.modules.core.typecheck import (
 	List,
 	Optional,
@@ -9,9 +5,14 @@ from sublime_db.modules.core.typecheck import (
 	Dict,
 	TYPE_CHECKING
 )
-
 if TYPE_CHECKING:
 	from .component import Component
+
+import os
+import sublime
+
+from sublime_db.modules import core
+from . import size
 
 
 _all_css = size.css()

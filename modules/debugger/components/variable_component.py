@@ -5,7 +5,7 @@ import sublime
 from sublime_db.modules import ui
 from sublime_db.modules import core
 
-from sublime_db.modules.debugger.debugger import (
+from sublime_db.modules.debugger_stateful.debugger import (
 	Variable,
 )
 

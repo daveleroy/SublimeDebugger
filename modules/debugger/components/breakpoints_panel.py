@@ -4,6 +4,7 @@ from sublime_db.modules.core.typecheck import (
 	List,
 	Sequence
 )
+
 import os
 import sublime
 import functools
@@ -11,11 +12,11 @@ import functools
 from sublime_db.modules import ui
 from sublime_db.modules import core
 
-from sublime_db.modules.debugger.breakpoints import Breakpoints, Breakpoint, Filter
-from .layout import breakpoints_panel_width
+from sublime_db.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, Filter
 from sublime_db.modules.debugger.commands import AutoCompleteTextInputHandler
-
 from sublime_db.modules.debugger.commands import breakpoint_menus
+
+from .layout import breakpoints_panel_width
 
 
 def show_breakpoint_options(breakpoints: Breakpoints):

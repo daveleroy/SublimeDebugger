@@ -17,7 +17,7 @@ import json
 
 from sublime_db.modules import core
 from sublime_db.modules.libs import asyncio
-from sublime_db.modules.debugger.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
+from sublime_db.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
 
 from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities, StoppedEvent, ContinuedEvent, OutputEvent, ThreadEvent
 from .transport import Transport

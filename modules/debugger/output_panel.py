@@ -1,4 +1,3 @@
-
 from sublime_db.modules.core.typecheck import (
 	Callable,
 	Optional,
@@ -14,7 +13,6 @@ from sublime_db.modules import core
 from sublime_db.modules import ui
 from sublime_db.modules.libs import asyncio
 
-from .debugger import CompletionItem
 from sublime_db.modules.debugger.util import get_setting
 
 _phantom_text = " \u200b\u200b\u200b\u200b\u200b"

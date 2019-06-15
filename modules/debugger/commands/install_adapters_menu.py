@@ -1,6 +1,3 @@
-
-
-
 from sublime_db.modules.core.typecheck import (
 	Any,
 	Callable,
@@ -12,7 +9,7 @@ import sublime_plugin
 
 from sublime_db.modules import core
 from sublime_db.modules import ui
-from sublime_db.modules.debugger.adapter_configuration import AdapterConfiguration, install_adapter
+from sublime_db.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
 from sublime_db.modules.debugger.debugger_interface import DebuggerInterface
 from .debugger import DebuggerCommand
 

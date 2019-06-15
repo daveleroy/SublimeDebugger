@@ -1,6 +1,3 @@
-
-
-
 from sublime_db.modules.core.typecheck import (
 	Any,
 	Callable,
@@ -8,16 +5,16 @@ from sublime_db.modules.core.typecheck import (
 	Dict,
 	TYPE_CHECKING
 )
-
 if TYPE_CHECKING:
 	from sublime_db.modules.debugger.debugger_interface import DebuggerInterface
 
 import sublime
 import sublime_plugin
+import json
 
 from sublime_db.modules import core
 from sublime_db.modules import ui
-from sublime_db.modules.debugger.adapter_configuration import AdapterConfiguration, Configuration
+from sublime_db.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, Configuration
 
 
 def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None]:

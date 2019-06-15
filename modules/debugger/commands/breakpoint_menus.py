@@ -9,7 +9,7 @@ import sublime_plugin
 
 from sublime_db.modules import core
 from sublime_db.modules import ui
-from sublime_db.modules.debugger.breakpoints import Breakpoints, Breakpoint, FunctionBreakpoint
+from sublime_db.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, FunctionBreakpoint
 from .commands import AutoCompleteTextInputHandler
 
 def edit_breakpoint(breakpoints: Breakpoints, breakpoint: Breakpoint, selected_index = 0):
@@ -59,6 +59,8 @@ def edit_line_breakpoint(breakpoints: Breakpoints, breakpoint: Breakpoint, selec
 	
 	def run_not_main(**args):
 		selected_index = args['list']
+		if selected_index == 4:
+			return
 		ui.run_input_command(input(selected_index), run_main, run_not_main=run_not_main, on_cancel=on_cancel)
 	
 	ui.run_input_command(input(selected_index), run_main, run_not_main=run_not_main, on_cancel=on_cancel)
@@ -89,6 +91,8 @@ def edit_function_breakpoint(breakpoints: Breakpoints, breakpoint: FunctionBreak
 		edit_function_breakpoint(breakpoints, breakpoint, i)
 	
 	def run_not_main(**args):
+		if selected_index == 3:
+			return
 		selected_index = args['list']
 		ui.run_input_command(input(selected_index), run_main, run_not_main=run_not_main)
 	

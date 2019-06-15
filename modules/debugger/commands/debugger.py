@@ -1,16 +1,16 @@
+from sublime_db.modules.core.typecheck import List
+
 import sublime_plugin
 import sublime
-
-from sublime_db.modules.core.typecheck import List
 
 from sublime_db.modules import core
 from sublime_db.modules.libs import asyncio
 
+from sublime_db.modules.debugger_stateful.debugger import DebuggerStateful
 from sublime_db.modules.debugger.debugger_interface import DebuggerInterface
-from sublime_db.modules.debugger.adapter_configuration import AdapterConfiguration, install_adapter
 
-from sublime_db.modules.debugger.debugger import DebuggerState
 from sublime_db.modules.debugger.commands import select_configuration
+from sublime_db.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
 
 def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	debugger = DebuggerInterface.debuggerForWindow(window)
@@ -77,7 +77,7 @@ class SublimeDebugStopCommand(DebuggerCommand):
 		main.on_stop()
 
 	def is_enabled(self) -> bool:
-		return not DebuggerInState(self.window, DebuggerState.stopped)
+		return not DebuggerInState(self.window, DebuggerStateful.stopped)
 
 
 class SublimeDebugPauseCommand(DebuggerCommand):
@@ -85,7 +85,7 @@ class SublimeDebugPauseCommand(DebuggerCommand):
 		main.on_pause()
 
 	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.running)
+		return DebuggerInState(self.window, DebuggerStateful.running)
 
 
 class SublimeDebugStepOverCommand(DebuggerCommand):
@@ -93,7 +93,7 @@ class SublimeDebugStepOverCommand(DebuggerCommand):
 		main.on_step_over()
 
 	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.paused)
+		return DebuggerInState(self.window, DebuggerStateful.paused)
 
 
 class SublimeDebugStepInCommand(DebuggerCommand):
@@ -101,7 +101,7 @@ class SublimeDebugStepInCommand(DebuggerCommand):
 		main.on_step_in()
 
 	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.paused)
+		return DebuggerInState(self.window, DebuggerStateful.paused)
 
 
 class SublimeDebugStepOutCommand(DebuggerCommand):
@@ -109,7 +109,7 @@ class SublimeDebugStepOutCommand(DebuggerCommand):
 		main.on_step_out()
 
 	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.paused)
+		return DebuggerInState(self.window, DebuggerStateful.paused)
 
 
 class SublimeDebugResumeCommand(DebuggerCommand):
@@ -117,7 +117,7 @@ class SublimeDebugResumeCommand(DebuggerCommand):
 		main.on_resume()
 
 	def is_enabled(self) -> bool:
-		return DebuggerInState(self.window, DebuggerState.paused)
+		return DebuggerInState(self.window, DebuggerStateful.paused)
 
 
 class SublimeDebugRunCommandCommand(DebuggerCommand):

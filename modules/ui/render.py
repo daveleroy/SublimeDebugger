@@ -1,11 +1,3 @@
-
-from .image import view_background_lightness
-from .layout import Layout, reload_css
-from sublime_db.modules import core
-
-import sublime
-import threading
-
 from sublime_db.modules.core.typecheck import (
 	List,
 	Optional,
@@ -14,10 +6,15 @@ from sublime_db.modules.core.typecheck import (
 	Dict,
 	TYPE_CHECKING
 )
-# for mypy
 if TYPE_CHECKING:
 	from .component import Component
 
+from .image import view_background_lightness
+from .layout import Layout, reload_css
+from sublime_db.modules import core
+
+import sublime
+import threading
 
 class Timer:
 	def __init__(self, callback: Callable[[], None], interval: float, repeat: bool) -> None:

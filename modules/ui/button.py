@@ -1,4 +1,3 @@
-
 from sublime_db.modules.core.typecheck import (
 	List,
 	Sequence,

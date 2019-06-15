@@ -10,23 +10,12 @@ import json
 from sublime_db.modules import ui
 from sublime_db.modules import core
 
-from .breakpoints import Breakpoints, Breakpoint, Filter
 
 from .util import get_setting, register_on_changed_setting, extract_variables
-from .adapter_configuration import Configuration, AdapterConfiguration
 from .config import PersistedData
 
-from .components.variable_component import VariableStateful, VariableStatefulComponent, Variable
-from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
-from .components.breakpoints_panel import BreakpointsPanel, show_breakpoint_options
-from .components.callstack_panel import CallStackPanel
-from .components.console_panel import ConsolePanel
-from .components.variables_panel import VariablesPanel
-from .components.pages_panel import TabbedPanel
-from .components.selected_line import SelectedLine
-
-from .debugger import (
-	DebuggerState,
+from sublime_db.modules.debugger_stateful.debugger import (
+	DebuggerStateful,
 	OutputEvent,
 	StackFrame,
 	Scope,
@@ -36,6 +25,25 @@ from .debugger import (
 	Error,
 	Source
 )
+from sublime_db.modules.debugger_stateful.breakpoints import (
+	Breakpoints, 
+	Breakpoint, 
+	Filter
+)
+
+from sublime_db.modules.debugger_stateful.adapter_configuration import (
+	Configuration, 
+	AdapterConfiguration
+)
+
+from .components.variable_component import VariableStateful, VariableStatefulComponent, Variable
+from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
+from .components.breakpoints_panel import BreakpointsPanel, show_breakpoint_options
+from .components.callstack_panel import CallStackPanel
+from .components.console_panel import ConsolePanel
+from .components.variables_panel import VariablesPanel
+from .components.pages_panel import TabbedPanel
+from .components.selected_line import SelectedLine
 
 from .output_panel import OutputPhantomsPanel
 from .commands.commands import Autocomplete, run_command_from_pallete, AutoCompleteTextInputHandler
@@ -67,7 +75,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		return instance
 
 	@staticmethod
-	def debuggerForWindow(window: sublime.Window) -> Optional[DebuggerState]:
+	def debuggerForWindow(window: sublime.Window) -> Optional[DebuggerStateful]:
 		main = DebuggerInterface.for_window(window)
 		if main:
 			return main.debugger
@@ -128,13 +136,13 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.selected_frame_generated_view = None #type: Optional[sublime.View]
 
 		def on_state_changed(state: int) -> None:
-			if state == DebuggerState.stopped:
+			if state == DebuggerStateful.stopped:
 				self.breakpoints.clear_breakpoint_results()
 				self.debugger_panel.setState(STOPPED)
 				self.show_console_panel()
-			elif state == DebuggerState.running:
+			elif state == DebuggerStateful.running:
 				self.debugger_panel.setState(RUNNING)
-			elif state == DebuggerState.paused:
+			elif state == DebuggerStateful.paused:
 				self.debugger_panel.setState(PAUSED)
 
 				if get_setting(self.view, 'bring_window_to_front_on_pause', False):
@@ -149,7 +157,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 							pass
 
 				self.show_call_stack_panel()
-			elif state == DebuggerState.stopping or state == DebuggerState.starting:
+			elif state == DebuggerStateful.stopping or state == DebuggerStateful.starting:
 				self.debugger_panel.setState(LOADING)
 
 		def on_scopes(scopes: List[Scope]) -> None:
@@ -183,7 +191,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		def on_threads_stateful(threads: Any):
 			self.callstack_panel.update(self.debugger, threads)
 
-		self.debugger = DebuggerState(
+		self.debugger = DebuggerStateful(
 			self.breakpoints,
 			on_state_changed=on_state_changed,
 			on_scopes=on_scopes,

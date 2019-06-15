@@ -1,13 +1,8 @@
-import sublime
 from sublime_db.modules.core.typecheck import (Tuple, List, Optional, Callable, Union, Dict, Any, Set)
+
+import sublime
 from sublime_db.modules import core
 
-from .breakpoints import (
-	Breakpoints,
-	Breakpoint,
-	Filter,
-	FunctionBreakpoint
-)
 from sublime_db.modules.dap.client import (
 	DebugAdapterClient,
 	StoppedEvent,
@@ -37,13 +32,18 @@ from .adapter_configuration import (
 	Configuration,
 	AdapterConfiguration
 )
-
-from .threads import (
+from .breakpoints import (
+	Breakpoints,
+	Breakpoint,
+	Filter,
+	FunctionBreakpoint
+)
+from .thread import (
 	ThreadStateful
 )
 
 
-class DebuggerState:
+class DebuggerStateful:
 	stopped = 0
 	paused = 1
 	running = 2
@@ -80,7 +80,7 @@ class DebuggerState:
 		self.threads_stateful = []
 		self.threads_stateful_from_id = {}
 
-		self._state = DebuggerState.stopped
+		self._state = DebuggerStateful.stopped
 
 		self.disposeables = [] #type: List[Any]
 
@@ -126,12 +126,12 @@ class DebuggerState:
 		self.launching_async = None
 
 	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration) -> core.awaitable[None]:
-		if self.state != DebuggerState.stopped:
+		if self.state != DebuggerStateful.stopped:
 			print('stopping debug adapter')
 			yield from self.stop()
 
-		assert(self.state == DebuggerState.stopped, "debugger not in stopped state?")
-		self.state = DebuggerState.starting
+		assert(self.state == DebuggerStateful.stopped, "debugger not in stopped state?")
+		self.state = DebuggerStateful.starting
 		self.adapter_configuration = adapter_configuration
 		self.configuration = configuration
 
@@ -220,7 +220,7 @@ class DebuggerState:
 
 		self.adapter = adapter
 		# At this point we are running?
-		self.state = DebuggerState.running
+		self.state = DebuggerStateful.running
 
 	def force_stop_adapter(self) -> None:
 		if self.launching_async:
@@ -240,14 +240,14 @@ class DebuggerState:
 		if self.process:
 			self.process.dispose()
 			self.process = None
-		self.state = DebuggerState.stopped
+		self.state = DebuggerStateful.stopped
 
 	def _refresh_state(self) -> None:
 		thread = self._selected_or_first_thread()
 		if thread and thread.stopped:
-			self.state = DebuggerState.paused
+			self.state = DebuggerStateful.paused
 		else:
-			self.state = DebuggerState.running
+			self.state = DebuggerStateful.running
 
 	def onSendFilterToDebugger(self, filter: Filter) -> None:
 		if not self.adapter:
@@ -266,11 +266,11 @@ class DebuggerState:
 
 	def stop(self) -> core.awaitable[None]:
 		# the adapter isn't stopping and stop is called again we force stop it
-		if not self.adapter or self.state == DebuggerState.stopping:
+		if not self.adapter or self.state == DebuggerStateful.stopping:
 			self.force_stop_adapter()
 			return
 
-		self.state = DebuggerState.stopping
+		self.state = DebuggerStateful.stopping
 
 		# this seems to be what the spec says to do in the overview
 		# https://microsoft.github.io/debug-adapter-protocol/overview
