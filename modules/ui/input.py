@@ -1,5 +1,5 @@
 
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Any,
 	Callable,
 	Optional
@@ -8,7 +8,7 @@ import sublime
 import sublime_plugin
 import threading
 
-from sublime_db.modules import core
+from sublime_debug.modules import core
 from . import view_drag_select
 
 command_id = 0

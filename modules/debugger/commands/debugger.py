@@ -1,16 +1,16 @@
-from sublime_db.modules.core.typecheck import List
+from sublime_debug.modules.core.typecheck import List
 
 import sublime_plugin
 import sublime
 
-from sublime_db.modules import core
-from sublime_db.modules.libs import asyncio
+from sublime_debug.modules import core
+from sublime_debug.modules.libs import asyncio
 
-from sublime_db.modules.debugger_stateful.debugger import DebuggerStateful
-from sublime_db.modules.debugger.debugger_interface import DebuggerInterface
+from sublime_debug.modules.debugger_stateful.debugger import DebuggerStateful
+from sublime_debug.modules.debugger.debugger_interface import DebuggerInterface
 
-from sublime_db.modules.debugger.commands import select_configuration
-from sublime_db.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
+from sublime_debug.modules.debugger.commands import select_configuration
+from sublime_debug.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
 
 def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	debugger = DebuggerInterface.debuggerForWindow(window)

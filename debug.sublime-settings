@@ -21,21 +21,21 @@
 
 	// This is the list of debug adapters.
 	// If you are having issues running one ensure you have the required dependencies to run them the command
-	// Look in the docs for more info: https://github.com/daveleroy/sublime_db/blob/master/docs/setup.md
+	// Look in the docs for more info: https://github.com/daveleroy/sublime_debug/blob/master/docs/setup.md
 	"adapters_custom" : {
 		// "adapter_name": {
 		// 	"command":["p", "-arg"]
 		// }
 	},
 	"adapters" : {
-		"lldb" : "${packages}/sublime_db/debug_adapters/lldb.json",
-		"gdb" : "${packages}/sublime_db/debug_adapters/gdb.json",
-		"chrome" : "${packages}/sublime_db/debug_adapters/chrome.json",
-		// "chrome-tcp" : "${packages}/sublime_db/debug_adapters/chrome-tcp.json",
-		"firefox" : "${packages}/sublime_db/debug_adapters/firefox.json",
-		"python" : "${packages}/sublime_db/debug_adapters/python.json",
-		"go" : "${packages}/sublime_db/debug_adapters/go.json",
-		"php" : "${packages}/sublime_db/debug_adapters/php.json",
+		"lldb" : "${packages}/sublime_debug/debug_adapters/lldb.json",
+		"gdb" : "${packages}/sublime_debug/debug_adapters/gdb.json",
+		"chrome" : "${packages}/sublime_debug/debug_adapters/chrome.json",
+		// "chrome-tcp" : "${packages}/sublime_debug/debug_adapters/chrome-tcp.json",
+		"firefox" : "${packages}/sublime_debug/debug_adapters/firefox.json",
+		"python" : "${packages}/sublime_debug/debug_adapters/python.json",
+		"go" : "${packages}/sublime_debug/debug_adapters/go.json",
+		"php" : "${packages}/sublime_debug/debug_adapters/php.json",
 	}
 }
 

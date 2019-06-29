@@ -1,7 +1,7 @@
 {
 	"command" : [
 		"node",
-		"${packages}/sublime_db/data/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js",
+		"${packages}/sublime_debug/data/debug_adapters/vscode-chrome-debug/extension/out/src/chromeDebug.js",
 		"--server=4713"
 	],
 	"tcp_port" : 4713,

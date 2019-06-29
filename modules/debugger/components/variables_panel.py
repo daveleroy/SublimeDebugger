@@ -1,8 +1,8 @@
-from sublime_db.modules.core.typecheck import (List, Callable, Optional)
-from sublime_db.modules import ui
-from sublime_db.modules import core
+from sublime_debug.modules.core.typecheck import (List, Callable, Optional)
+from sublime_debug.modules import ui
+from sublime_debug.modules import core
 
-from sublime_db.modules.debugger_stateful.debugger import (
+from sublime_debug.modules.debugger_stateful.debugger import (
 	Scope,
 	Thread,
 	DebugAdapterClient

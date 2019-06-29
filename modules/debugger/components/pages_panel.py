@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Callable,
 	Any,
 	List,
@@ -6,7 +6,7 @@ from sublime_db.modules.core.typecheck import (
 	Tuple
 )
 
-from sublime_db.modules import ui
+from sublime_debug.modules import ui
 from .layout import pages_panel_width
 
 

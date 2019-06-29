@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Set
+from sublime_debug.modules.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Set
 
 import sublime
 import sublime_plugin
@@ -7,14 +7,14 @@ import subprocess
 import re
 import json
 
-from sublime_db.modules import ui
-from sublime_db.modules import core
+from sublime_debug.modules import ui
+from sublime_debug.modules import core
 
 
 from .util import get_setting, register_on_changed_setting, extract_variables
 from .config import PersistedData
 
-from sublime_db.modules.debugger_stateful.debugger import (
+from sublime_debug.modules.debugger_stateful.debugger import (
 	DebuggerStateful,
 	OutputEvent,
 	StackFrame,
@@ -25,13 +25,13 @@ from sublime_db.modules.debugger_stateful.debugger import (
 	Error,
 	Source
 )
-from sublime_db.modules.debugger_stateful.breakpoints import (
+from sublime_debug.modules.debugger_stateful.breakpoints import (
 	Breakpoints, 
 	Breakpoint, 
 	Filter
 )
 
-from sublime_db.modules.debugger_stateful.adapter_configuration import (
+from sublime_debug.modules.debugger_stateful.adapter_configuration import (
 	Configuration, 
 	AdapterConfiguration
 )

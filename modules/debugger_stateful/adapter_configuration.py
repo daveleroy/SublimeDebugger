@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import List, Optional, Generator, Any, Callable, Dict
+from sublime_debug.modules.core.typecheck import List, Optional, Generator, Any, Callable, Dict
 
 import os
 import shutil
@@ -8,11 +8,11 @@ import urllib.request
 import sublime
 import json
 
-from sublime_db.modules import core
+from sublime_debug.modules import core
 
 
 def _adapters_path() -> str:
-	return os.path.join(sublime.packages_path(), "sublime_db/data/debug_adapters")
+	return os.path.join(sublime.packages_path(), "sublime_debug/data/debug_adapters")
 
 
 class AdapterConfiguration:

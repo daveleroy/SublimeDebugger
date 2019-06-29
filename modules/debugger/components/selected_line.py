@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Callable,
 	Any,
 	List,
@@ -8,7 +8,7 @@ from sublime_db.modules.core.typecheck import (
 
 import sublime
 
-from sublime_db.modules import ui
+from sublime_debug.modules import ui
 
 
 class UnderlineComponent(ui.Block):

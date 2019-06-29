@@ -2,7 +2,7 @@
 	"command" : [
 		"lldb",
 		"-b",
-		"-O command script import '${packages}/sublime_db/data/debug_adapters/vscode-lldb/extension/adapter'",
+		"-O command script import '${packages}/sublime_debug/data/debug_adapters/vscode-lldb/extension/adapter'",
 		"-O script adapter.main.run_stdio_session()"
 	],
 	"installation": {

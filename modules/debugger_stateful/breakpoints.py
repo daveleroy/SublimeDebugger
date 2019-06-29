@@ -1,8 +1,8 @@
 
-from sublime_db.modules.core.typecheck import Tuple, List, Optional, Any
+from sublime_debug.modules.core.typecheck import Tuple, List, Optional, Any
 
 import sublime
-from sublime_db.modules import ui, core
+from sublime_debug.modules import ui, core
 
 
 class FunctionBreakpoint:

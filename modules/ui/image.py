@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import Dict, Optional
+from sublime_debug.modules.core.typecheck import Dict, Optional
 
 import sublime
 
@@ -80,7 +80,7 @@ class Img (Inline):
 
 
 def _path_for_image(name): #type: (str) -> str
-	return 'Packages/sublime_db/images/{}'.format(name)
+	return 'Packages/sublime_debug/images/{}'.format(name)
 
 
 class Images:

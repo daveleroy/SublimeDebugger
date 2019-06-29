@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Optional,
 	List
 )
@@ -7,10 +7,10 @@ import sublime
 import os
 import json
 
-from sublime_db.modules.debugger_stateful.adapter_configuration import Configuration
-from sublime_db.modules import core
+from sublime_debug.modules.debugger_stateful.adapter_configuration import Configuration
+from sublime_debug.modules import core
 
-from sublime_db.modules.debugger_stateful.breakpoints import (
+from sublime_debug.modules.debugger_stateful.breakpoints import (
 	Breakpoints, 
 	Breakpoint
 )
@@ -18,7 +18,7 @@ from sublime_db.modules.debugger_stateful.breakpoints import (
 def _project_data_file(project_path: str) -> str:
 	import hashlib
 	hash = hashlib.sha224(project_path.encode('utf-8')).hexdigest()
-	return os.path.join(sublime.packages_path(), "sublime_db/data/{}.json".format(hash))
+	return os.path.join(sublime.packages_path(), "sublime_debug/data/{}.json".format(hash))
 
 
 class PersistedData:

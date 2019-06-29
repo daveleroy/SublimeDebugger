@@ -1,5 +1,5 @@
 
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Optional,
 	List
 )

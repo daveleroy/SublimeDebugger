@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	List,
 	Optional,
 	Callable,
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 import os
 import sublime
 
-from sublime_db.modules import core
+from sublime_debug.modules import core
 from . import size
 
 

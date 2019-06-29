@@ -1,7 +1,7 @@
 {
 	"command": [
 		"node",
-		"${packages}/sublime_db/data/debug_adapters/vscode-php/extension/out/phpDebug.js"
+		"${packages}/sublime_debug/data/debug_adapters/vscode-php/extension/out/phpDebug.js"
 	],
 
 	"hover_word_regex_match" : "\\$[a-zA-Z0-9_]*",

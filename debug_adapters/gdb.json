@@ -1,7 +1,7 @@
 {
 	"command": [
 		"node",
-		"${packages}/sublime_db/data/debug_adapters/native-debug/extension/out/src/gdb.js"
+		"${packages}/sublime_debug/data/debug_adapters/native-debug/extension/out/src/gdb.js"
 	],
 	"installation": {
 		"name": "native-debug",

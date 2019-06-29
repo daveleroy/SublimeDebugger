@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Any,
 	Generator,
 	Callable,
@@ -13,7 +13,7 @@ import sublime
 import threading
 import concurrent
 
-from sublime_db.modules.libs import asyncio
+from sublime_debug.modules.libs import asyncio
 from .log import log_exception
 
 T = TypeVar('T')

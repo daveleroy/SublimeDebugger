@@ -1,25 +1,25 @@
 import threading
 import sublime
 
-from sublime_db.modules.core.typecheck import Set
+from sublime_debug.modules.core.typecheck import Set
 
-from sublime_db.modules import ui
-from sublime_db.modules import core
+from sublime_debug.modules import ui
+from sublime_debug.modules import core
 
 # import all the commands so that sublime sees them
-from sublime_db.modules.debugger.commands import *
-from sublime_db.modules.debugger.output_panel import *
-from sublime_db.modules.debugger.debugger_interface import *
+from sublime_debug.modules.debugger.commands import *
+from sublime_debug.modules.debugger.output_panel import *
+from sublime_debug.modules.debugger.debugger_interface import *
 
-from sublime_db.modules.ui import ViewEventsListener
-from sublime_db.modules.ui import SublimeDebugInputCommand
+from sublime_debug.modules.ui import ViewEventsListener
+from sublime_debug.modules.ui import SublimeDebugInputCommand
 
-from sublime_db.modules.debugger.util import get_setting
+from sublime_debug.modules.debugger.util import get_setting
 
 def startup() -> None:
 	print('Starting up')
 	ui.startup()
-	ui.import_css('{}/{}'.format(sublime.packages_path(), 'sublime_db/modules/debugger/components/components.css'))
+	ui.import_css('{}/{}'.format(sublime.packages_path(), 'sublime_debug/modules/debugger/components/components.css'))
 
 	was_opened_at_startup = set() #type: Set[int]
 

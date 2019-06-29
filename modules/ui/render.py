@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	List,
 	Optional,
 	Callable,
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 from .image import view_background_lightness
 from .layout import Layout, reload_css
-from sublime_db.modules import core
+from sublime_debug.modules import core
 
 import sublime
 import threading

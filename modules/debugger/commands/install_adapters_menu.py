@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Any,
 	Callable,
 	Optional
@@ -7,10 +7,10 @@ from sublime_db.modules.core.typecheck import (
 import sublime
 import sublime_plugin
 
-from sublime_db.modules import core
-from sublime_db.modules import ui
-from sublime_db.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
-from sublime_db.modules.debugger.debugger_interface import DebuggerInterface
+from sublime_debug.modules import core
+from sublime_debug.modules import ui
+from sublime_debug.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
+from sublime_debug.modules.debugger.debugger_interface import DebuggerInterface
 from .debugger import DebuggerCommand
 
 def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):

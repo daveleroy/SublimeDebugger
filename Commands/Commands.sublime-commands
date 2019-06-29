@@ -3,7 +3,7 @@
 		"caption": "Preferences: Debugger Settings",
 		"command": "edit_settings",
 		"args": {
-		  "base_file": "${packages}/sublime_db/debug.sublime-settings"
+		  "base_file": "${packages}/sublime_debug/debug.sublime-settings"
 		}
 	},
 	{

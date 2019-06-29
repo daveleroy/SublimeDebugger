@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Callable,
 	Optional,
 	Dict,
@@ -9,11 +9,11 @@ from sublime_db.modules.core.typecheck import (
 import sublime
 import sublime_plugin
 
-from sublime_db.modules import core
-from sublime_db.modules import ui
-from sublime_db.modules.libs import asyncio
+from sublime_debug.modules import core
+from sublime_debug.modules import ui
+from sublime_debug.modules.libs import asyncio
 
-from sublime_db.modules.debugger.util import get_setting
+from sublime_debug.modules.debugger.util import get_setting
 
 _phantom_text = " \u200b\u200b\u200b\u200b\u200b"
 

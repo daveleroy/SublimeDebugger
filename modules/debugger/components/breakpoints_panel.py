@@ -1,4 +1,4 @@
-from sublime_db.modules.core.typecheck import (
+from sublime_debug.modules.core.typecheck import (
 	Callable,
 	Any,
 	List,
@@ -9,12 +9,12 @@ import os
 import sublime
 import functools
 
-from sublime_db.modules import ui
-from sublime_db.modules import core
+from sublime_debug.modules import ui
+from sublime_debug.modules import core
 
-from sublime_db.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, Filter
-from sublime_db.modules.debugger.commands import AutoCompleteTextInputHandler
-from sublime_db.modules.debugger.commands import breakpoint_menus
+from sublime_debug.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, Filter
+from sublime_debug.modules.debugger.commands import AutoCompleteTextInputHandler
+from sublime_debug.modules.debugger.commands import breakpoint_menus
 
 from .layout import breakpoints_panel_width
 

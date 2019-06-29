@@ -1,15 +1,15 @@
-from sublime_db.modules.core.typecheck import (List, Callable, Optional)
+from sublime_debug.modules.core.typecheck import (List, Callable, Optional)
 
 import sublime
 
-from sublime_db.modules import ui
-from sublime_db.modules import core
+from sublime_debug.modules import ui
+from sublime_debug.modules import core
 
-from sublime_db.modules.debugger_stateful.debugger import (
+from sublime_debug.modules.debugger_stateful.debugger import (
 	Variable,
 )
 
-from sublime_db.modules.debugger.commands import AutoCompleteTextInputHandler
+from sublime_debug.modules.debugger.commands import AutoCompleteTextInputHandler
 
 class VariableStateful:
 	def __init__(self, variable: Variable, on_dirty: Callable[[], None]) -> None:

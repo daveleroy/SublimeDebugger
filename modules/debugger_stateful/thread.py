@@ -1,14 +1,14 @@
-from sublime_db.modules.core.typecheck import (List, Callable, Optional, TYPE_CHECKING)
-from sublime_db.modules import core
+from sublime_debug.modules.core.typecheck import (List, Callable, Optional, TYPE_CHECKING)
+from sublime_debug.modules import core
 
-from sublime_db.modules.debugger_stateful.debugger import (
+from sublime_debug.modules.debugger_stateful.debugger import (
 	Thread,
 	StackFrame,
 	DebugAdapterClient,
 )
 
 if TYPE_CHECKING:
-	from sublime_db.modules.debugger_stateful.debugger import DebuggerStateful
+	from sublime_debug.modules.debugger_stateful.debugger import DebuggerStateful
 
 class ThreadStateful:
 	def __init__(self, debugger: 'DebuggerStateful', id: int, name: Optional[str], stopped: bool):
