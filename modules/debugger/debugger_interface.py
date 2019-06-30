@@ -89,7 +89,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		input = AutoCompleteTextInputHandler(label)
 		def run(**args):
 			expression = args['text']
-			self.debugger.evaluate(expression)
+			self.run_async(self.debugger.evaluate(expression))
 
 		# just re run the same command right away to avoid flicker
 		def run_not_main(**args):

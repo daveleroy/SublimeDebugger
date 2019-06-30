@@ -288,28 +288,44 @@ class DebuggerStateful:
 
 		self.force_stop_adapter()
 
+	@core.async
 	def resume(self) -> core.awaitable[None]:
-		assert self.adapter, 'no adapter for command'
+		assert self.adapter, 'debugger not running'
 		yield from self.adapter.Resume(self._thread_for_command())
 
+	@core.async
 	def pause(self) -> core.awaitable[None]:
-		assert self.adapter, 'no adapter for command'
+		assert self.adapter, 'debugger not running'
 		yield from self.adapter.Pause(self._thread_for_command())
 
+	@core.async
 	def step_over(self) -> core.awaitable[None]:
-		assert self.adapter, 'no adapter for command'
+		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepOver(self._thread_for_command())
 		self.selected_frame = None
 
+	@core.async
 	def step_in(self) -> core.awaitable[None]:
-		assert self.adapter, 'no adapter for command'
+		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepIn(self._thread_for_command())
 		self.selected_frame = None
 
+	@core.async
 	def step_out(self) -> core.awaitable[None]:
-		assert self.adapter, 'no adapter for command'
+		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepOut(self._thread_for_command())
 		self.selected_frame = None
+
+	@core.async
+	def evaluate(self, command: str) -> core.awaitable[None]:
+		self.log_info(command)
+		assert self.adapter, 'debugger not running'
+
+		adapter = self.adapter
+
+		response = yield from adapter.Evaluate(command, self.frame, "repl")
+		event = OutputEvent("console", response.result, response.variablesReference)
+		self.on_output(event)
 
 	def log_info(self, string: str) -> None:
 		output = OutputEvent("debugger.info", string, 0)
@@ -322,28 +338,6 @@ class DebuggerStateful:
 	def log_error(self, string: str) -> None:
 		output = OutputEvent("debugger.error", string, 0)
 		self.on_output(output)
-	
-	def evaluate(self, command: str):
-		self.log_info(command)
-
-		adapter = self.adapter
-
-		if not adapter:
-			self.log_error("Failed to run command: Debugger is not running")
-			return
-
-		@core.async
-		def run():
-			try:
-				response = yield from adapter.Evaluate(command, self.frame, "repl")
-			except Exception as e:
-				self.log_error(str(e))
-				return
-
-			event = OutputEvent("console", response.result, response.variablesReference)
-			self.on_output(event)
-		core.run(run())
-
 
 	# after a successfull launch/attach, stopped event, thread event we request all threads
 	# see https://microsoft.github.io/debug-adapter-protocol/overview
