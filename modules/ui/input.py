@@ -1,5 +1,5 @@
 
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	Any,
 	Callable,
 	Optional
@@ -8,7 +8,7 @@ import sublime
 import sublime_plugin
 import threading
 
-from sublime_debug.modules import core
+from debugger.modules import core
 from . import view_drag_select
 
 command_id = 0
@@ -16,7 +16,7 @@ command_data = {}
 sublime_command_visible = False
 is_running_input = False
 
-class SublimeDebugInputCommand(sublime_plugin.WindowCommand):
+class DebuggerInputCommand(sublime_plugin.WindowCommand):
 	def run(self, command_id, **args):
 		global is_running_input
 		is_running_input = False
@@ -75,7 +75,7 @@ def run_input_command(input, run, on_cancel=None, run_not_main=None):
 		is_running_input = True
 		window.run_command("show_overlay", {
 				"overlay": "command_palette",
-				"command": "sublime_debug_input",
+				"command": "debugger_input",
 				"args": {
 					"command_id" : command_id
 				}

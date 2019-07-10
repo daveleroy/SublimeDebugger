@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
-from sublime_debug.modules.core.typecheck import Optional, List, Any, Callable, Generator
+from debugger.modules.core.typecheck import Optional, List, Any, Callable, Generator
 
 from queue import Queue
 import socket
@@ -35,7 +35,7 @@ import os
 import subprocess
 import sys
 
-from sublime_debug.modules import core
+from debugger.modules import core
 
 
 class Process:

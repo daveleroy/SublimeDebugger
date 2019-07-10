@@ -1,16 +1,16 @@
-from sublime_debug.modules.core.typecheck import List
+from debugger.modules.core.typecheck import List
 
 import sublime_plugin
 import sublime
 
-from sublime_debug.modules import core
-from sublime_debug.modules.libs import asyncio
+from debugger.modules import core
+from debugger.modules.libs import asyncio
 
-from sublime_debug.modules.debugger_stateful.debugger import DebuggerStateful
-from sublime_debug.modules.debugger.debugger_interface import DebuggerInterface
+from debugger.modules.debugger_stateful.debugger import DebuggerStateful
+from debugger.modules.debugger.debugger_interface import DebuggerInterface
 
-from sublime_debug.modules.debugger.commands import select_configuration
-from sublime_debug.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
+from debugger.modules.debugger.commands import select_configuration
+from debugger.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
 
 def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	debugger = DebuggerInterface.debuggerForWindow(window)
@@ -19,7 +19,7 @@ def DebuggerInState(window: sublime.Window, state: int) -> bool:
 	return False
 
 
-class SublimeDebugReplaceContentsCommand(sublime_plugin.TextCommand):
+class DebuggerReplaceContentsCommand(sublime_plugin.TextCommand):
 	def run(self, edit, characters) -> None:
 		self.view.replace(edit, sublime.Region(0, self.view.size()), characters)
 
@@ -44,14 +44,14 @@ class DebuggerCommand(RunDebuggerInterfaceCommand):
 		return DebuggerInterface.for_window(self.window) is not None
 
 
-class SublimeDebugOpenCommand(RunDebuggerInterfaceCommand):
+class DebuggerOpenCommand(RunDebuggerInterfaceCommand):
 	def run_main(self) -> None:
 		main = DebuggerInterface.for_window(self.window, True)
 		assert main
 		main.show()
 
 
-class SublimeDebugToggleBreakpointCommand(DebuggerCommand):
+class DebuggerToggleBreakpointCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		view = self.window.active_view()
 		x, y = view.rowcol(view.sel()[0].begin())
@@ -64,15 +64,15 @@ class SublimeDebugToggleBreakpointCommand(DebuggerCommand):
 			main.breakpoints.add_breakpoint(file, line)
 
 
-class SublimeDebugQuitCommand(RunDebuggerInterfaceCommand):
+class DebuggerQuitCommand(RunDebuggerInterfaceCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.dispose()
 
-class SublimeDebugStartCommand(RunDebuggerInterfaceCommand):
+class DebuggerStartCommand(RunDebuggerInterfaceCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_play()
 
-class SublimeDebugStopCommand(DebuggerCommand):
+class DebuggerStopCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_stop()
 
@@ -80,7 +80,7 @@ class SublimeDebugStopCommand(DebuggerCommand):
 		return not DebuggerInState(self.window, DebuggerStateful.stopped)
 
 
-class SublimeDebugPauseCommand(DebuggerCommand):
+class DebuggerPauseCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_pause()
 
@@ -88,7 +88,7 @@ class SublimeDebugPauseCommand(DebuggerCommand):
 		return DebuggerInState(self.window, DebuggerStateful.running)
 
 
-class SublimeDebugStepOverCommand(DebuggerCommand):
+class DebuggerStepOverCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_step_over()
 
@@ -96,7 +96,7 @@ class SublimeDebugStepOverCommand(DebuggerCommand):
 		return DebuggerInState(self.window, DebuggerStateful.paused)
 
 
-class SublimeDebugStepInCommand(DebuggerCommand):
+class DebuggerStepInCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_step_in()
 
@@ -104,7 +104,7 @@ class SublimeDebugStepInCommand(DebuggerCommand):
 		return DebuggerInState(self.window, DebuggerStateful.paused)
 
 
-class SublimeDebugStepOutCommand(DebuggerCommand):
+class DebuggerStepOutCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_step_out()
 
@@ -112,7 +112,7 @@ class SublimeDebugStepOutCommand(DebuggerCommand):
 		return DebuggerInState(self.window, DebuggerStateful.paused)
 
 
-class SublimeDebugResumeCommand(DebuggerCommand):
+class DebuggerResumeCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.on_resume()
 
@@ -120,21 +120,22 @@ class SublimeDebugResumeCommand(DebuggerCommand):
 		return DebuggerInState(self.window, DebuggerStateful.paused)
 
 
-class SublimeDebugRunCommandCommand(DebuggerCommand):
+class DebuggerRunCommandCommand(DebuggerCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
 		main.open_repl_console()
 
 
-class SublimeDebugRefreshPhantoms(RunDebuggerInterfaceCommand):
+class DebuggerRefreshPhantomsCommand(RunDebuggerInterfaceCommand):
 	def on_main(self, main: DebuggerInterface) -> None:
+		print("Refresh phantoms")
 		main.refresh_phantoms()
 
-class SublimeDebugChangeConfiguration(DebuggerCommand):
+class DebuggerChangeConfigurationCommand(DebuggerCommand):
 	def on_main(self, debugger: 'DebuggerInterface') -> None:
 		select_configuration.run(debugger)
 
 
-class SublimeDebugShowLine(sublime_plugin.TextCommand):
+class DebuggerShowLineCommand(sublime_plugin.TextCommand):
 	def run(self, edit, line: int, move_cursor: bool):
 		a = self.view.text_point(line, 0)
 		region = sublime.Region(a, a)

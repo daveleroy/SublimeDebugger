@@ -9,15 +9,15 @@
 	https://microsoft.github.io/debug-adapter-protocol/implementors/adapters/
 '''
 
-from sublime_debug.modules.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator
+from debugger.modules.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Generator
 
 import socket
 import threading
 import json
 
-from sublime_debug.modules import core
-from sublime_debug.modules.libs import asyncio
-from sublime_debug.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
+from debugger.modules import core
+from debugger.modules.libs import asyncio
+from debugger.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
 
 from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities, StoppedEvent, ContinuedEvent, OutputEvent, ThreadEvent
 from .transport import Transport

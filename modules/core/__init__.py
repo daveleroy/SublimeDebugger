@@ -5,7 +5,17 @@ from .log import *
 from .event import Handle, Event, EventDispatchMain
 
 
-def startup(on_main: Callable[[], None]) -> None:
+
+_current_package = ""
+
+def current_package() -> str:
+	return "{}/{}".format(sublime.packages_path(), _current_package)
+
+
+def startup(on_main: Callable[[], None], package_name: str) -> None:
+	global _current_package
+	_current_package = package_name
+	print(_current_package)
 	start_event_loop()
 	call_soon_threadsafe(on_main)
 

@@ -7,7 +7,7 @@ This project attemps to match Visual Studio Code's Debugger fairly closely so th
 
 - Install a debug adapter by running: ```Debugger: Install adapter``` from the command palette.
   - These are just a few of the debug adapters out there
-  - You can add your own to the [settings file](https://github.com/daveleroy/sublime_debug/blob/master/debug.sublime-settings)
+  - You can add your own to the [settings file](https://github.com/daveleroy/debugger/blob/master/debugger.sublime-settings)
 
 - Add a configuration ```Debugger: Add Configuration``` from the command palette (or add one manually, see below).
   - Configurations are added to `debug.configurations` in project settings and use the same configuration format as Visual Studio Code. Most adapters come with some configuration snippets. 

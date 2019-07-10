@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	Any,
 	Callable,
 	Optional
@@ -7,10 +7,10 @@ from sublime_debug.modules.core.typecheck import (
 import sublime
 import sublime_plugin
 
-from sublime_debug.modules import core
-from sublime_debug.modules import ui
-from sublime_debug.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
-from sublime_debug.modules.debugger.debugger_interface import DebuggerInterface
+from debugger.modules import core
+from debugger.modules import ui
+from debugger.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
+from debugger.modules.debugger.debugger_interface import DebuggerInterface
 from .debugger import DebuggerCommand
 
 def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):
@@ -58,6 +58,6 @@ def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):
 	ui.run_input_command(input(selected_index), run, run_not_main=run_not_main)
 
 
-class SublimeDebugInstallAdapter(DebuggerCommand):
+class DebuggerInstallAdapter(DebuggerCommand):
 	def on_main(self, debugger: DebuggerInterface) -> None:
 		open_install_adapter_menu(debugger)

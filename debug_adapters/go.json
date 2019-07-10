@@ -1,7 +1,7 @@
 {
 	"command": [
 		"node",
-		"${packages}/sublime_debug/data/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
+		"${package}/data/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
 	],
 	"installation": {
 		"name": "vscode-go",

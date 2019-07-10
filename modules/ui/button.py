@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	List,
 	Sequence,
 	Callable,

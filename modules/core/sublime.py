@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	Any, 
 	TypeVar, 
 	Generic, 
@@ -11,14 +11,14 @@ from sublime_debug.modules.core.typecheck import (
 import sublime
 import sublime_plugin
 
-from sublime_debug.modules.libs import asyncio
+from debugger.modules.libs import asyncio
 
 from .core import call_soon_threadsafe, create_future, async, awaitable
 from .event import Handle
 
 @async
 def sublime_open_file_async(window: sublime.Window, file: str, line: Optional[int] = None) -> awaitable[sublime.View]:
-	from sublime_debug.modules import ui
+	from debugger.modules import ui
 	future_view = create_future()
 
 	# Do this stuff on the main thread. Otherwise we end up with the issue that the view_loaded event could happen before we register the callback for it.

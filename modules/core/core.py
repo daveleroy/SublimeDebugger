@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	Any,
 	Generator,
 	Callable,
@@ -13,7 +13,7 @@ import sublime
 import threading
 import concurrent
 
-from sublime_debug.modules.libs import asyncio
+from debugger.modules.libs import asyncio
 from .log import log_exception
 
 T = TypeVar('T')
@@ -93,8 +93,6 @@ def all_methods(decorator):
 
 
 '''decorator for requiring that a function must be run in the background'''
-
-
 def require_main_thread(function):
     def wrapper(*args, **kwargs):
         assert_main_thread()
@@ -136,10 +134,3 @@ def is_main_thred() -> bool:
 def display(msg: 'Any') -> None:
 	sublime.error_message('{}'.format(msg))
 
-
-class Error:
-	def __init__(self, msg: str) -> None:
-		self.msg = msg
-
-	def __str__(self) -> str:
-		return self.msg

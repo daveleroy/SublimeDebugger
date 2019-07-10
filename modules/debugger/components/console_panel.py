@@ -1,17 +1,17 @@
-from sublime_debug.modules.core.typecheck import List, Callable, Optional
+from debugger.modules.core.typecheck import List, Callable, Optional
 
 import os
 import sublime
 import re
 
-from sublime_debug.modules import ui, core
+from debugger.modules import ui, core
 
 from .variable_component import (
 	Variable,
 	VariableStateful,
 	VariableStatefulComponent
 )
-from sublime_debug.modules.dap.types import Source, OutputEvent
+from debugger.modules.dap.types import Source, OutputEvent
 
 from .layout import console_panel_width
 

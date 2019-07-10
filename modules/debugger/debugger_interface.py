@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Set
+from debugger.modules.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Set
 
 import sublime
 import sublime_plugin
@@ -7,14 +7,14 @@ import subprocess
 import re
 import json
 
-from sublime_debug.modules import ui
-from sublime_debug.modules import core
+from debugger.modules import ui
+from debugger.modules import core
 
 
 from .util import get_setting, register_on_changed_setting, extract_variables
 from .config import PersistedData
 
-from sublime_debug.modules.debugger_stateful.debugger import (
+from debugger.modules.debugger_stateful.debugger import (
 	DebuggerStateful,
 	OutputEvent,
 	StackFrame,
@@ -25,13 +25,13 @@ from sublime_debug.modules.debugger_stateful.debugger import (
 	Error,
 	Source
 )
-from sublime_debug.modules.debugger_stateful.breakpoints import (
+from debugger.modules.debugger_stateful.breakpoints import (
 	Breakpoints, 
 	Breakpoint, 
 	Filter
 )
 
-from sublime_debug.modules.debugger_stateful.adapter_configuration import (
+from debugger.modules.debugger_stateful.adapter_configuration import (
 	Configuration, 
 	AdapterConfiguration
 )
@@ -46,7 +46,7 @@ from .components.pages_panel import TabbedPanel
 from .components.selected_line import SelectedLine
 
 from .output_panel import OutputPhantomsPanel
-from .commands.commands import Autocomplete, run_command_from_pallete, AutoCompleteTextInputHandler
+from .commands.commands import Autocomplete, AutoCompleteTextInputHandler
 from .commands import breakpoint_menus
 from .commands import select_configuration
 
@@ -238,7 +238,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		if active_view:
 			self.disposeables.append(
-				register_on_changed_setting(active_view, self.on_settings_updated)
+				register_on_changed_setting(self.window, self.on_settings_updated)
 			)
 		else:
 			print('Failed to find active view to listen for settings changes')
@@ -482,7 +482,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			self.selected_frame_generated_view = None
 			view.set_name(source.name)
 			view.set_read_only(False)
-			view.run_command('sublime_debug_replace_contents', {
+			view.run_command('debugger_replace_contents', {
 				'characters': content
 			})
 			view.set_read_only(True)
@@ -493,7 +493,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		else:
 			return None
 
-		view.run_command("sublime_debug_show_line", {
+		view.run_command("debugger_show_line", {
 			'line' : line -1,
 			'move_cursor' : move_cursor
 		})

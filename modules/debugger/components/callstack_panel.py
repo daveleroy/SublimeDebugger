@@ -1,11 +1,11 @@
-from sublime_debug.modules.core.typecheck import (List, Callable, Optional)
+from debugger.modules.core.typecheck import (List, Callable, Optional)
 
 import os
 
-from sublime_debug.modules import ui
-from sublime_debug.modules import core
+from debugger.modules import ui
+from debugger.modules import core
 
-from sublime_debug.modules.debugger_stateful.debugger import (
+from debugger.modules.debugger_stateful.debugger import (
 	Thread,
 	StackFrame,
 	DebugAdapterClient,

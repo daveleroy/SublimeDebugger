@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	Callable,
 	Any,
 	List,
@@ -6,7 +6,7 @@ from sublime_debug.modules.core.typecheck import (
 	Tuple
 )
 
-from sublime_debug.modules import ui
+from debugger.modules import ui
 
 VARIABLE_PANEL_MIN_WIDTH = 40
 PANEL_MIN_WIDTH = 65

@@ -1,5 +1,5 @@
 
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	TypeVar,
 	Generic,
 	Callable,
@@ -10,7 +10,7 @@ from sublime_debug.modules.core.typecheck import (
 import sublime
 import sublime_plugin
 
-from sublime_debug.modules import core
+from debugger.modules import core
 
 
 class GutterEvent:

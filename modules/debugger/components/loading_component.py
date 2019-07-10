@@ -1,6 +1,6 @@
 
-from sublime_debug.modules.core.typecheck import List, Optional
-from sublime_debug.modules import ui
+from debugger.modules.core.typecheck import List, Optional
+from debugger.modules import ui
 
 
 class LoadingComponent (ui.Inline):

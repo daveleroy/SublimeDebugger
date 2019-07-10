@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import TYPE_CHECKING, Optional, List, Callable, TypeVar
+from debugger.modules.core.typecheck import TYPE_CHECKING, Optional, List, Callable, TypeVar
 
 if TYPE_CHECKING:
 	from .client import DebugAdapterClient

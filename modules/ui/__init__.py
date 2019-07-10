@@ -25,8 +25,8 @@ from .padding import *
 
 import os
 
-from sublime_debug.modules.libs import asyncio
-from sublime_debug.modules import core
+from debugger.modules.libs import asyncio
+from debugger.modules import core
 
 
 _update_timer = None #type: Optional[Timer]

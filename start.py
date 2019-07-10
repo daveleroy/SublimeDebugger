@@ -1,25 +1,32 @@
+
+import sys
+
+# if not installed by package control the package name will be sublime_debugger if cloned from the git repo
+if not 'debugger' in sys.modules:
+	sys.modules['debugger'] = sys.modules['sublime_debugger']
+
 import threading
 import sublime
 
-from sublime_debug.modules.core.typecheck import Set
+from debugger.modules.core.typecheck import Set
 
-from sublime_debug.modules import ui
-from sublime_debug.modules import core
+from debugger.modules import ui
+from debugger.modules import core
 
 # import all the commands so that sublime sees them
-from sublime_debug.modules.debugger.commands import *
-from sublime_debug.modules.debugger.output_panel import *
-from sublime_debug.modules.debugger.debugger_interface import *
+from debugger.modules.debugger.commands import *
+from debugger.modules.debugger.output_panel import *
+from debugger.modules.debugger.debugger_interface import *
 
-from sublime_debug.modules.ui import ViewEventsListener
-from sublime_debug.modules.ui import SublimeDebugInputCommand
+from debugger.modules.ui import ViewEventsListener
+from debugger.modules.ui import DebuggerInputCommand
 
-from sublime_debug.modules.debugger.util import get_setting
+from debugger.modules.debugger.util import get_setting
 
 def startup() -> None:
 	print('Starting up')
 	ui.startup()
-	ui.import_css('{}/{}'.format(sublime.packages_path(), 'sublime_debug/modules/debugger/components/components.css'))
+	ui.import_css('{}/{}'.format(core.current_package(), 'modules/debugger/components/components.css'))
 
 	was_opened_at_startup = set() #type: Set[int]
 
@@ -51,7 +58,7 @@ def plugin_loaded():
 	# except:
 	#	pass
 	print('plugin_loaded')
-	core.startup(startup)
+	core.startup(startup, __package__.split('.', 1)[0])
 
 
 def plugin_unloaded():

@@ -1,8 +1,8 @@
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	Callable,
 	List,
 )
-from sublime_debug.modules import ui
+from debugger.modules import ui
 
 STOPPED = 0
 RUNNING = 1

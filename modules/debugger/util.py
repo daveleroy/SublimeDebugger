@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	List,
 	Callable,
 	Optional,
@@ -6,7 +6,7 @@ from sublime_debug.modules.core.typecheck import (
 )
 
 import sublime
-
+from debugger.modules import core
 
 class SettingsChangedCallbabck:
 	id = 0
@@ -24,13 +24,13 @@ class SettingsChangedCallbabck:
 
 
 def register_on_changed_setting(view: sublime.View, on_changed: Callable[[], None]) -> SettingsChangedCallbabck:
-	plugin_settings = sublime.load_settings('debug.sublime-settings')
+	plugin_settings = sublime.load_settings('debugger.sublime-settings')
 	view_settings = view.settings()
 	return SettingsChangedCallbabck([plugin_settings, view_settings], on_changed)
 
 
 def get_setting(view: Optional[sublime.View], setting: str, default: Any = None) -> Any:
-	plugin_settings = sublime.load_settings('debug.sublime-settings')
+	plugin_settings = sublime.load_settings('debugger.sublime-settings')
 	plugin_setting = plugin_settings.get(setting, default)
 	if not view:
 		return plugin_setting
@@ -41,6 +41,7 @@ def get_setting(view: Optional[sublime.View], setting: str, default: Any = None)
 
 def extract_variables(window: sublime.Window) -> dict:
 	variables = window.extract_variables()
+	variables["package"] = core.current_package()
 	project = variables.get('project_path')
 	if project:
 		variables['workspaceFolder'] = project

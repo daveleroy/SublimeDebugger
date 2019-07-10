@@ -1,4 +1,4 @@
-from sublime_debug.modules.core.typecheck import (
+from debugger.modules.core.typecheck import (
 	Any,
 	Callable,
 	Optional
@@ -7,9 +7,9 @@ from sublime_debug.modules.core.typecheck import (
 import sublime
 import sublime_plugin
 
-from sublime_debug.modules import core
-from sublime_debug.modules import ui
-from sublime_debug.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, FunctionBreakpoint
+from debugger.modules import core
+from debugger.modules import ui
+from debugger.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, FunctionBreakpoint
 from .commands import AutoCompleteTextInputHandler
 
 def edit_breakpoint(breakpoints: Breakpoints, breakpoint: Breakpoint, selected_index = 0):

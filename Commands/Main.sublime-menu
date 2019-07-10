@@ -1,61 +1,61 @@
 [
-	{ "caption": "Debugger", "id": "sublime_debug",
+	{ "caption": "Debugger", "id": "debugger",
 		"children" : [
 			{
 				"caption" : "Open (In project)",
-				"command" : "sublime_debug_open",
+				"command" : "debugger_open",
 			},
 			 {
 				"caption" : "Quit",
-				"command" : "sublime_debug_quit",
+				"command" : "debugger_quit",
 			},
 			{
 			"caption": "Settings",
 				"command": "edit_settings",
 				"args": {
-				  "base_file": "${packages}/sublime_debug/debug.sublime-settings"
+				  "base_file": "${packages}/debugger/debugger.sublime-settings"
 				}
 			},
 			{ "caption": "-"},
 			{
 				"caption" : "Configurations",
-				"command" : "sublime_debug_change_configuration"
+				"command" : "debugger_change_configuration"
 			},
 			{
 				"caption" : "Install Adapters",
-				"command" : "sublime_debug_install_adapter",
+				"command" : "debugger_install_adapter",
 			},
 			{ "caption": "-"},
 			{
 				"caption" : "Start",
-				"command" : "sublime_debug_start",
+				"command" : "debugger_start",
 			},
 			{
 				"caption" : "Stop",
-				"command" : "sublime_debug_stop"
+				"command" : "debugger_stop"
 			},
 			{ "caption": "-"},
 			{
 				"caption" : "Step Over",
-				"command" : "sublime_debug_step_over"
+				"command" : "debugger_step_over"
 			},
 			{
 				"caption" : "Step Out",
-				"command" : "sublime_debug_step_out"
+				"command" : "debugger_step_out"
 			},
 			{
 				"caption" : "Step In",
-				"command" : "sublime_debug_step_in"
+				"command" : "debugger_step_in"
 			},
 			{
 				"caption" : "Pause",
-				"command" : "sublime_debug_pause"
+				"command" : "debugger_pause"
 			},
 			{
 				"caption" : "Resume",
-				"command" : "sublime_debug_resume"
+				"command" : "debugger_resume"
 			},
-			{ "caption": "-", "id": "sublime_debug_end" },
+			{ "caption": "-", "id": "debugger_end" },
 		],
 	},
 ]

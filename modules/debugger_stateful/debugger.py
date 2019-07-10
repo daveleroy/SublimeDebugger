@@ -1,21 +1,21 @@
-from sublime_debug.modules.core.typecheck import (Tuple, List, Optional, Callable, Union, Dict, Any, Set)
+from debugger.modules.core.typecheck import (Tuple, List, Optional, Callable, Union, Dict, Any, Set)
 
 import sublime
-from sublime_debug.modules import core
+from debugger.modules import core
 
-from sublime_debug.modules.dap.client import (
+from debugger.modules.dap.client import (
 	DebugAdapterClient,
 	StoppedEvent,
 	ContinuedEvent,
 	OutputEvent
 )
-from sublime_debug.modules.dap.transport import (
+from debugger.modules.dap.transport import (
 	start_tcp_transport,
 	Process,
 	TCPTransport,
 	StdioTransport
 )
-from sublime_debug.modules.dap.types import (
+from debugger.modules.dap.types import (
 	StackFrame,
 	EvaluateResponse,
 	Thread,
