@@ -1,6 +1,5 @@
-from debugger.modules.core.typecheck import (
-	Sequence
-)
+from ..typecheck import *
+
 from .component import Component, Inline, Block
 from .layout import Layout
 

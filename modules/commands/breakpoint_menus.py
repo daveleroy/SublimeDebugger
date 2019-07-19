@@ -1,15 +1,11 @@
-from debugger.modules.core.typecheck import (
-	Any,
-	Callable,
-	Optional
-)
-
 import sublime
 import sublime_plugin
 
-from debugger.modules import core
-from debugger.modules import ui
-from debugger.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, FunctionBreakpoint
+from .. import core
+from .. import ui
+
+from ..debugger.breakpoints import Breakpoints, Breakpoint, FunctionBreakpoint
+
 from .commands import AutoCompleteTextInputHandler
 
 def edit_breakpoint(breakpoints: Breakpoints, breakpoint: Breakpoint, selected_index = 0):
@@ -55,13 +51,11 @@ def edit_line_breakpoint(breakpoints: Breakpoints, breakpoint: Breakpoint, selec
 		
 		edit_line_breakpoint(breakpoints, breakpoint, i)
 		
-	
-	
 	def run_not_main(**args):
-		selected_index = args['list']
-		if selected_index == 4:
+		i = args['list']
+		if i == 4:
 			return
-		ui.run_input_command(input(selected_index), run_main, run_not_main=run_not_main, on_cancel=on_cancel)
+		ui.run_input_command(input(i), run_main, run_not_main=run_not_main, on_cancel=on_cancel)
 	
 	ui.run_input_command(input(selected_index), run_main, run_not_main=run_not_main, on_cancel=on_cancel)
 
@@ -91,10 +85,10 @@ def edit_function_breakpoint(breakpoints: Breakpoints, breakpoint: FunctionBreak
 		edit_function_breakpoint(breakpoints, breakpoint, i)
 	
 	def run_not_main(**args):
-		if selected_index == 3:
+		i = args['list']
+		if i == 3:
 			return
-		selected_index = args['list']
-		ui.run_input_command(input(selected_index), run_main, run_not_main=run_not_main)
+		ui.run_input_command(input(i), run_main, run_not_main=run_not_main)
 	
 	ui.run_input_command(input(selected_index), run_main, run_not_main=run_not_main)
 

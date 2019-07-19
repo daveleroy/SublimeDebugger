@@ -1,9 +1,5 @@
-from debugger.modules.core.typecheck import (
-	List,
-	Sequence,
-	Callable,
-	Optional
-)
+from ..typecheck import *
+
 from .component import Component, Inline
 from .layout import Layout
 from .render import Timer

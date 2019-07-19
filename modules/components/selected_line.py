@@ -1,14 +1,8 @@
-from debugger.modules.core.typecheck import (
-	Callable,
-	Any,
-	List,
-	Sequence,
-	Tuple
-)
+from ..typecheck import *
 
 import sublime
 
-from debugger.modules import ui
+from .. import ui
 
 
 class UnderlineComponent(ui.Block):

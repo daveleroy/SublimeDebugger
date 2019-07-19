@@ -1,6 +1,6 @@
+from ..typecheck import *
 
-from debugger.modules.core.typecheck import List, Optional
-from debugger.modules import ui
+from .. import ui
 
 
 class LoadingComponent (ui.Inline):

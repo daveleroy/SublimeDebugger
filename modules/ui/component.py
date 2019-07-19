@@ -1,12 +1,4 @@
-from debugger.modules.core.typecheck import (
-	Tuple,
-	Union,
-	List,
-	Optional,
-	Callable,
-	Sequence,
-	TypeVar
-)
+from ..typecheck import *
 
 from .layout import Layout
 

@@ -1,20 +1,15 @@
-from debugger.modules.core.typecheck import (
-	Callable,
-	Any,
-	List,
-	Sequence
-)
+from ..typecheck import *
 
 import os
 import sublime
 import functools
 
-from debugger.modules import ui
-from debugger.modules import core
+from .. import ui
+from .. import core
 
-from debugger.modules.debugger_stateful.breakpoints import Breakpoints, Breakpoint, Filter
-from debugger.modules.debugger.commands import AutoCompleteTextInputHandler
-from debugger.modules.debugger.commands import breakpoint_menus
+from ..debugger.breakpoints import Breakpoints, Breakpoint, Filter
+from ..commands import AutoCompleteTextInputHandler
+from ..commands import breakpoint_menus
 
 from .layout import breakpoints_panel_width
 

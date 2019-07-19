@@ -1,32 +1,28 @@
 
 import sys
 
-# if not installed by package control the package name will be sublime_debugger if cloned from the git repo
-if not 'debugger' in sys.modules:
-	sys.modules['debugger'] = sys.modules['sublime_debugger']
-
 import threading
 import sublime
 
-from debugger.modules.core.typecheck import Set
+from .modules.typecheck import Set
 
-from debugger.modules import ui
-from debugger.modules import core
+from .modules import ui
+from .modules import core
 
 # import all the commands so that sublime sees them
-from debugger.modules.debugger.commands import *
-from debugger.modules.debugger.output_panel import *
-from debugger.modules.debugger.debugger_interface import *
+from .modules.commands import *
+from .modules.debugger.output_panel import *
+from .modules.debugger.debugger_interface import *
 
-from debugger.modules.ui import ViewEventsListener
-from debugger.modules.ui import DebuggerInputCommand
+from .modules.ui import ViewEventsListener
+from .modules.ui import DebuggerInputCommand
 
-from debugger.modules.debugger.util import get_setting
+from .modules.debugger.util import get_setting
 
 def startup() -> None:
 	print('Starting up')
 	ui.startup()
-	ui.import_css('{}/{}'.format(core.current_package(), 'modules/debugger/components/components.css'))
+	ui.import_css('{}/{}'.format(core.current_package(), 'modules/components/components.css'))
 
 	was_opened_at_startup = set() #type: Set[int]
 

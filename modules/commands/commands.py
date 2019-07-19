@@ -1,17 +1,15 @@
-from debugger.modules.core.typecheck import (
-	Any,
-	Callable,
-	Optional
-)
+from ..typecheck import *
+
 import sublime
 import sublime_plugin
 
-from debugger.modules import core
-from debugger.modules import ui
-from debugger.modules.dap.types import Variable
+from .. import core
+from .. import ui
+
+from ..dap.types import Variable
 
 def DebuggerInterface_for_window(window: sublime.Window):
-	from debugger.modules.debugger.debugger_interface import DebuggerInterface
+	from ..debugger.debugger_interface import DebuggerInterface
 	debugger = DebuggerInterface.for_window(window)
 	return debugger
 
@@ -25,7 +23,7 @@ class DebuggerWindowCommand(sublime_plugin.WindowCommand):
 	def _run_main(self, args) -> None:
 		self.run_main(**args)
 	def run_main(self, **args) -> None:
-		from debugger.modules.debugger.debugger_interface import DebuggerInterface
+		from ..debugger.debugger_interface import DebuggerInterface
 		debugger = DebuggerInterface.for_window(self.window)
 		if debugger:
 			debugger.show()
@@ -101,7 +99,7 @@ class AutocompleteEventListener(sublime_plugin.EventListener):
 
 	@core.async
 	def get_completions(self, view: sublime.View, text: str) -> core.awaitable[None]:
-		from debugger.modules.debugger.debugger_interface import DebuggerInterface
+		from ..debugger.debugger_interface import DebuggerInterface
 		window = view.window()
 		m = DebuggerInterface.for_window(window)
 		if not m:

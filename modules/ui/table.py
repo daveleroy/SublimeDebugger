@@ -1,8 +1,5 @@
-from debugger.modules.core.typecheck import (
-	List,
-	Sequence,
-	Optional
-)
+from ..typecheck import *
+
 from .component import Block, Layout, Component
 from .size import HEIGHT, WIDTH
 

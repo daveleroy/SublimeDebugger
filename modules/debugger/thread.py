@@ -1,14 +1,14 @@
-from debugger.modules.core.typecheck import (List, Callable, Optional, TYPE_CHECKING)
-from debugger.modules import core
+from ..typecheck import *
+if TYPE_CHECKING:
+	from .debugger import DebuggerStateful
+	
+from .. import core
 
-from debugger.modules.debugger_stateful.debugger import (
+from ..debugger.debugger import (
 	Thread,
 	StackFrame,
 	DebugAdapterClient,
 )
-
-if TYPE_CHECKING:
-	from debugger.modules.debugger_stateful.debugger import DebuggerStateful
 
 class ThreadStateful:
 	def __init__(self, debugger: 'DebuggerStateful', id: int, name: Optional[str], stopped: bool):

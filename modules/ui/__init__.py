@@ -1,3 +1,4 @@
+from .. import core
 
 from .render import *
 from .events import (
@@ -25,8 +26,8 @@ from .padding import *
 
 import os
 
-from debugger.modules.libs import asyncio
-from debugger.modules import core
+from ..libs import asyncio
+
 
 
 _update_timer = None #type: Optional[Timer]

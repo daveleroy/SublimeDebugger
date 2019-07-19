@@ -1,8 +1,4 @@
-
-from debugger.modules.core.typecheck import (
-	Optional,
-	List
-)
+from ..typecheck import *
 
 from .layout import Layout
 from .component import Inline, Block

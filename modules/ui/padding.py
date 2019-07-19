@@ -1,12 +1,5 @@
+from ..typecheck import *
 
-
-from debugger.modules.core.typecheck import (
-	List,
-	Sequence,
-	Callable,
-	Optional,
-	Union
-)
 from .component import Component, Inline, Block, components
 from .layout import Layout
 

@@ -1,4 +1,4 @@
-from debugger.modules.core.typecheck import Tuple, List, Optional, Callable, Union, Dict, Any, Set
+from ..typecheck import *
 
 import sublime
 import sublime_plugin
@@ -7,14 +7,26 @@ import subprocess
 import re
 import json
 
-from debugger.modules import ui
-from debugger.modules import core
+from .. import ui
+from .. import core
 
+from ..components.variable_component import VariableStateful, VariableStatefulComponent, Variable
+from ..components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
+from ..components.breakpoints_panel import BreakpointsPanel, show_breakpoint_options
+from ..components.callstack_panel import CallStackPanel
+from ..components.console_panel import ConsolePanel
+from ..components.variables_panel import VariablesPanel
+from ..components.pages_panel import TabbedPanel
+from ..components.selected_line import SelectedLine
+
+from ..commands.commands import Autocomplete, AutoCompleteTextInputHandler
+from ..commands import breakpoint_menus
+from ..commands import select_configuration
 
 from .util import get_setting, register_on_changed_setting, extract_variables
 from .config import PersistedData
 
-from debugger.modules.debugger_stateful.debugger import (
+from ..debugger.debugger import (
 	DebuggerStateful,
 	OutputEvent,
 	StackFrame,
@@ -25,30 +37,18 @@ from debugger.modules.debugger_stateful.debugger import (
 	Error,
 	Source
 )
-from debugger.modules.debugger_stateful.breakpoints import (
+from .breakpoints import (
 	Breakpoints, 
 	Breakpoint, 
 	Filter
 )
 
-from debugger.modules.debugger_stateful.adapter_configuration import (
+from .adapter_configuration import (
 	Configuration, 
 	AdapterConfiguration
 )
 
-from .components.variable_component import VariableStateful, VariableStatefulComponent, Variable
-from .components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
-from .components.breakpoints_panel import BreakpointsPanel, show_breakpoint_options
-from .components.callstack_panel import CallStackPanel
-from .components.console_panel import ConsolePanel
-from .components.variables_panel import VariablesPanel
-from .components.pages_panel import TabbedPanel
-from .components.selected_line import SelectedLine
-
 from .output_panel import OutputPhantomsPanel
-from .commands.commands import Autocomplete, AutoCompleteTextInputHandler
-from .commands import breakpoint_menus
-from .commands import select_configuration
 
 
 class DebuggerInterface (DebuggerPanelCallbacks):

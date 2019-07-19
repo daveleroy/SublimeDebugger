@@ -1,8 +1,9 @@
-from debugger.modules.core.typecheck import (List, Callable, Optional)
-from debugger.modules import ui
-from debugger.modules import core
+from ..typecheck import *
 
-from debugger.modules.debugger_stateful.debugger import (
+from .. import ui
+from .. import core
+
+from ..debugger.debugger import (
 	Scope,
 	Thread,
 	DebugAdapterClient

@@ -1,16 +1,13 @@
-from debugger.modules.core.typecheck import (
-	Optional,
-	List
-)
+from ..typecheck import *
 
 import sublime
 import os
 import json
 
-from debugger.modules.debugger_stateful.adapter_configuration import Configuration
-from debugger.modules import core
+from .adapter_configuration import Configuration
+from .. import core
 
-from debugger.modules.debugger_stateful.breakpoints import (
+from .breakpoints import (
 	Breakpoints, 
 	Breakpoint
 )

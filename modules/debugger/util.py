@@ -1,4 +1,4 @@
-from debugger.modules.core.typecheck import (
+from ..typecheck import (
 	List,
 	Callable,
 	Optional,
@@ -6,7 +6,7 @@ from debugger.modules.core.typecheck import (
 )
 
 import sublime
-from debugger.modules import core
+from .. import core
 
 class SettingsChangedCallbabck:
 	id = 0

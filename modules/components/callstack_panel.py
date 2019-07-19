@@ -1,11 +1,11 @@
-from debugger.modules.core.typecheck import (List, Callable, Optional)
+from ..typecheck import *
 
 import os
 
-from debugger.modules import ui
-from debugger.modules import core
+from .. import ui
+from .. import core
 
-from debugger.modules.debugger_stateful.debugger import (
+from ..debugger.debugger import (
 	Thread,
 	StackFrame,
 	DebugAdapterClient,

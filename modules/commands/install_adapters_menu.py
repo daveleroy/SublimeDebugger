@@ -1,16 +1,12 @@
-from debugger.modules.core.typecheck import (
-	Any,
-	Callable,
-	Optional
-)
-
 import sublime
 import sublime_plugin
 
-from debugger.modules import core
-from debugger.modules import ui
-from debugger.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, install_adapter
-from debugger.modules.debugger.debugger_interface import DebuggerInterface
+from .. import core
+from .. import ui
+
+from ..debugger.adapter_configuration import AdapterConfiguration, install_adapter
+from ..debugger.debugger_interface import DebuggerInterface
+
 from .debugger import DebuggerCommand
 
 def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):

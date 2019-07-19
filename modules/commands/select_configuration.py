@@ -1,20 +1,15 @@
-from debugger.modules.core.typecheck import (
-	Any,
-	Callable,
-	Optional,
-	Dict,
-	TYPE_CHECKING
-)
+from ..typecheck import *
 if TYPE_CHECKING:
-	from debugger.modules.debugger.debugger_interface import DebuggerInterface
+	from ..debugger.debugger_interface import DebuggerInterface
 
 import sublime
 import sublime_plugin
 import json
 
-from debugger.modules import core
-from debugger.modules import ui
-from debugger.modules.debugger_stateful.adapter_configuration import AdapterConfiguration, Configuration
+from .. import core
+from .. import ui
+
+from ..debugger.adapter_configuration import AdapterConfiguration, Configuration
 
 
 def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None]:

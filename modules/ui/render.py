@@ -1,17 +1,11 @@
-from debugger.modules.core.typecheck import (
-	List,
-	Optional,
-	Callable,
-	Set,
-	Dict,
-	TYPE_CHECKING
-)
+from ..typecheck import *
+
 if TYPE_CHECKING:
 	from .component import Component
 
 from .image import view_background_lightness
 from .layout import Layout, reload_css
-from debugger.modules import core
+from .. import core
 
 import sublime
 import threading

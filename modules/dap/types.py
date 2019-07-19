@@ -1,5 +1,4 @@
-from debugger.modules.core.typecheck import TYPE_CHECKING, Optional, List, Callable, TypeVar
-
+from ..typecheck import *
 if TYPE_CHECKING:
 	from .client import DebugAdapterClient
 

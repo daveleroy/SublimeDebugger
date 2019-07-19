@@ -1,8 +1,6 @@
-from debugger.modules.core.typecheck import (
-	Callable,
-	List,
-)
-from debugger.modules import ui
+from ..typecheck import *
+
+from .. import ui
 
 STOPPED = 0
 RUNNING = 1

@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
-from debugger.modules.core.typecheck import Optional, List, Any, Callable, Generator
+from ..typecheck import *
 
 from queue import Queue
 import socket
@@ -35,7 +35,7 @@ import os
 import subprocess
 import sys
 
-from debugger.modules import core
+from .. import core
 
 
 class Process:

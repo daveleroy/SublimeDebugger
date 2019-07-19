@@ -1,19 +1,10 @@
-from debugger.modules.core.typecheck import (
-	Any,
-	Generator,
-	Callable,
-	List,
-	Optional,
-	TypeVar,
-	Generic,
-	Union
-)
+from ..typecheck import *
 
 import sublime
 import threading
 import concurrent
 
-from debugger.modules.libs import asyncio
+from ..libs import asyncio
 from .log import log_exception
 
 T = TypeVar('T')

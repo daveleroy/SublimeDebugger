@@ -1,17 +1,9 @@
-
-from debugger.modules.core.typecheck import (
-	TypeVar,
-	Generic,
-	Callable,
-	List,
-	Optional
-)
+from ..typecheck import *
 
 import sublime
 import sublime_plugin
 
-from debugger.modules import core
-
+from .. import core
 
 class GutterEvent:
 	def __init__(self, view: sublime.View, line: int) -> None:

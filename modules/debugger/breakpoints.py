@@ -1,8 +1,7 @@
-
-from debugger.modules.core.typecheck import Tuple, List, Optional, Any
+from ..typecheck import *
 
 import sublime
-from debugger.modules import ui, core
+from .. import ui, core
 
 
 class FunctionBreakpoint:

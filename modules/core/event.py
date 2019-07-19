@@ -1,13 +1,4 @@
-from debugger.modules.core.typecheck import (
-	Any,
-	Generator,
-	Callable,
-	List,
-	Optional,
-	TypeVar,
-	Generic,
-	Union
-)
+from ..typecheck import *
 
 from .core import call_soon_threadsafe
 

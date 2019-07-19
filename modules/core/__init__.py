@@ -5,12 +5,13 @@ from .log import *
 from .event import Handle, Event, EventDispatchMain
 
 
-
 _current_package = ""
 
 def current_package() -> str:
 	return "{}/{}".format(sublime.packages_path(), _current_package)
 
+def current_package_name() -> str:
+	return _current_package
 
 def startup(on_main: Callable[[], None], package_name: str) -> None:
 	global _current_package

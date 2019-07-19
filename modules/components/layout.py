@@ -1,12 +1,6 @@
-from debugger.modules.core.typecheck import (
-	Callable,
-	Any,
-	List,
-	Sequence,
-	Tuple
-)
+from ..typecheck import *
 
-from debugger.modules import ui
+from .. import ui
 
 VARIABLE_PANEL_MIN_WIDTH = 40
 PANEL_MIN_WIDTH = 65

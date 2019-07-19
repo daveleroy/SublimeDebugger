@@ -1,17 +1,12 @@
-from debugger.modules.core.typecheck import (
-	List,
-	Optional,
-	Callable,
-	Dict,
-	TYPE_CHECKING
-)
+from ..typecheck import *
+
 if TYPE_CHECKING:
 	from .component import Component
 
 import os
 import sublime
 
-from debugger.modules import core
+from .. import core
 from . import size
 
 

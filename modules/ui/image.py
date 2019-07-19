@@ -1,15 +1,14 @@
-from debugger.modules.core.typecheck import Dict, Optional
+from ..typecheck import *
 
 import sublime
 
-from debugger.modules import core
-
+from .. import core
 from .component import Component, Inline
 from .layout import Layout
 from .size import HEIGHT, WIDTH
 
 def _image_to_data(path: str) -> bytes:
-	p = '{}/{}'.format(core.current_package(), path)
+	p = '{}/../{}'.format(sublime.packages_path(), path)
 	f = open(p, 'rb')
 	r = f.read()
 	f.close()
@@ -81,7 +80,7 @@ class Img (Inline):
 
 
 def _path_for_image(name): #type: (str) -> str
-	return 'images/{}'.format(name)
+	return 'Packages/{}/images/{}'.format(core.current_package_name(), name)
 
 
 class Images:

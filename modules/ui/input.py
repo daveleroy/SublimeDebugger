@@ -1,14 +1,10 @@
+from ..typecheck import *
 
-from debugger.modules.core.typecheck import (
-	Any,
-	Callable,
-	Optional
-)
 import sublime
 import sublime_plugin
 import threading
 
-from debugger.modules import core
+from .. import core
 from . import view_drag_select
 
 command_id = 0

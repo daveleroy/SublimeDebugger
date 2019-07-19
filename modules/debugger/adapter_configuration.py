@@ -1,4 +1,4 @@
-from debugger.modules.core.typecheck import List, Optional, Generator, Any, Callable, Dict
+from ..typecheck import *
 
 import os
 import shutil
@@ -8,7 +8,7 @@ import urllib.request
 import sublime
 import json
 
-from debugger.modules import core
+from .. import core
 
 
 def _adapters_path() -> str:
