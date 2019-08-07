@@ -2,8 +2,10 @@
 	"command" : [
 		"lldb",
 		"-b",
-		"-O command script import '${package}/data/debug_adapters/vscode-lldb/extension/adapter'",
-		"-O script adapter.main.run_stdio_session()"
+		"-O",
+		"command script import '${package}/data/debug_adapters/vscode-lldb/extension/adapter'",
+		"-O",
+		"script adapter.main.run_stdio_session()"
 	],
 	"installation": {
 		"name": "vscode-lldb",
