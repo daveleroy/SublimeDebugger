@@ -415,7 +415,9 @@ class Breakpoints:
 
 	def sync(self, view: sublime.View) -> None:
 		file = view.file_name()
-		print('Breakpoints: sync view ', file)
+		if not file:
+			return
+
 		dirty = False
 		for b in self.breakpoints:
 			if b.file != file:

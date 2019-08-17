@@ -60,7 +60,7 @@ class AdapterConfiguration:
 			with open(snippets_file) as file:
 				self.snippets = json.load(file)
 		except Exception as e:
-			print('No snippets loaded. {}'.format(e))
+			core.log_info('No snippets loaded. {}'.format(e))
 
 	@staticmethod
 	def from_json(type: str, json: dict) -> 'AdapterConfiguration':
