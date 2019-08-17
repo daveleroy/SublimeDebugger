@@ -69,9 +69,12 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def for_window(window: sublime.Window, create: bool = False) -> 'Optional[DebuggerInterface]':
 		instance = DebuggerInterface.instances.get(window.id())
 		if not instance and create:
-			main = DebuggerInterface(window)
-			DebuggerInterface.instances[window.id()] = main
-			return main
+			try:
+				main = DebuggerInterface(window)
+				DebuggerInterface.instances[window.id()] = main
+				return main
+			except Error as e:
+				core.log_exception()
 		return instance
 
 	@staticmethod
@@ -100,15 +103,22 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
 
-		data = window.project_data()
-		project_name = window.project_file_name()
-		if not data or not project_name:
-			sublime.error_message("Debugger must be run inside a sublime project")
-			return
+		# ensure we are being run inside a sublime project
+		# if not prompt the user to create one
+		while True:
+			data = window.project_data()
+			project_name = window.project_file_name()
+			if not data or not project_name:
+				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
+				if r:
+					window.run_command('save_project_and_workspace_as')
+				else:
+					raise Error(True, "Debugger must be run inside a sublime project")
 
-		# ensure we have debug configurations added to the project file
-		data.setdefault('settings', {}).setdefault('debug.configurations', [])
-		window.set_project_data(data)
+			# ensure we have debug configurations added to the project file
+			data.setdefault('settings', {}).setdefault('debug.configurations', [])
+			window.set_project_data(data)
+			break
 
 		autocomplete = Autocomplete.create_for_window(window)
 
