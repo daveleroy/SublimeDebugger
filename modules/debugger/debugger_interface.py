@@ -23,7 +23,7 @@ from ..commands.commands import Autocomplete, AutoCompleteTextInputHandler
 from ..commands import breakpoint_menus
 from ..commands import select_configuration
 
-from .util import get_setting, register_on_changed_setting, extract_variables
+from .util import WindowSettingsCallback, get_setting, extract_variables
 from .config import PersistedData
 
 from ..debugger.debugger import (
@@ -234,14 +234,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		])
 
 
-		active_view = self.window.active_view()
-
-		if active_view:
-			self.disposeables.append(
-				register_on_changed_setting(self.window, self.on_settings_updated)
-			)
-		else:
-			print('Failed to find active view to listen for settings changes')
+		self.disposeables.append(WindowSettingsCallback(self.window, self.on_settings_updated))
 
 
 	def load_configurations(self) -> None:
