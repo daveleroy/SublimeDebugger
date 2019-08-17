@@ -1,0 +1,8 @@
+Whats new in version 0.1.3
+
+- When attempting to open the debugger in a window without a sublime project promp the user to create one.
+
+- Fixes some other minor bugs and configuration issues
+
+For a full list of changes https://github.com/daveleroy/sublime_debugger/commits/0.1.3
+If you have issues https://github.com/daveleroy/sublime_debugger
