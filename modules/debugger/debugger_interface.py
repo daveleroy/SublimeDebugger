@@ -282,7 +282,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		data = self.window.project_data()
 		if data:
 			configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
-			configurations_json = sublime.expand_variables(configurations_json, variables)
 
 		for index, configuration_json in enumerate(configurations_json):
 			configuration = Configuration.from_json(configuration_json)
@@ -335,7 +334,9 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			core.display(e)
 			return
 
-		yield from self.debugger.launch(adapter_configuration, configuration)
+		variables = extract_variables(self.window)
+		configuration_expanded = configuration.with_expanded_variables(variables)
+		yield from self.debugger.launch(adapter_configuration, configuration_expanded)
 
 	# TODO this could be made better
 	def is_source_file(self, view: sublime.View) -> bool:

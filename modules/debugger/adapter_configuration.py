@@ -71,7 +71,7 @@ class AdapterConfiguration:
 
 
 class Configuration:
-	def __init__(self, name: str, type: str, request: str, all: dict) -> None:
+	def __init__(self, name: str, type: str, request: str, all: dict, expand_platforms: bool = True) -> None:
 		self.name = name
 		self.type = type
 		self.index = -1
@@ -79,14 +79,15 @@ class Configuration:
 
 		self.all = all
 
-		if core.platform.osx:
-			platform = self.all.get('osx', {})
-		elif core.platform.linux:
-			platform = self.all.get('linux', {})
-		elif core.platform.linux:
-			platform = self.all.get('windows', {})
-		for item in platform.items():
-			self.all[item[0]] = item[1]
+		if expand_platforms:
+			if core.platform.osx:
+				platform = self.all.get('osx', {})
+			elif core.platform.linux:
+				platform = self.all.get('linux', {})
+			elif core.platform.linux:
+				platform = self.all.get('windows', {})
+			for item in platform.items():
+				self.all[item[0]] = item[1]
 
 	@staticmethod
 	def from_json(json: dict) -> 'Configuration':
@@ -97,6 +98,15 @@ class Configuration:
 		request = json.get('request')
 		assert request, 'expecting request for debug.configuration'
 		return Configuration(name, type, request, json)
+
+	class Expanded(Configuration):
+		def __init__(self, name: str, type: str, request: str, all: dict, variables: Any) -> None:
+			all = sublime.expand_variables(all, variables)
+			super().__init__(name, type, request, all, expand_platforms=False)
+
+	def with_expanded_variables(self, variables: Any) -> Expanded:
+		return Configuration.Expanded(self.name, self.type, self.request, self.all, variables)
+
 
 
 @core.async

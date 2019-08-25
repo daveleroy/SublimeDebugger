@@ -106,7 +106,7 @@ class DebuggerStateful:
 		self._state = state
 		self.on_state_changed(state)
 
-	def launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration) -> core.awaitable[None]:
+	def launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration.Expanded) -> core.awaitable[None]:
 		if self.launching_async:
 			self.launching_async.cancel()
 
@@ -124,7 +124,7 @@ class DebuggerStateful:
 
 		self.launching_async = None
 
-	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration) -> core.awaitable[None]:
+	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration.Expanded) -> core.awaitable[None]:
 		if self.state != DebuggerStateful.stopped:
 			yield from self.stop()
 
