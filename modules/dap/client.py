@@ -18,20 +18,19 @@ import json
 from .. import core
 from ..debugger.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
 
-from .types import StackFrame, Variable, Thread, Scope, EvaluateResponse, CompletionItem, Source, Error, Capabilities, StoppedEvent, ContinuedEvent, OutputEvent, ThreadEvent
+from .types import *
 from .transport import Transport
-
 from ..libs import asyncio
 
 
 @core.all_methods(core.require_main_thread)
 class DebugAdapterClient:
-	def __init__(self, transport: Transport) -> None:
+	def __init__(self, transport: Transport, on_run_in_terminal: Callable[[RunInTerminalRequest], int]) -> None:
 		self.transport = transport
 		self.transport.start(self.transport_message, self.transport_closed)
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
-
+		self.on_run_in_terminal = on_run_in_terminal
 		self.allThreadsStopped = False
 		self.onExited = core.Event() #type: core.Event[Any]
 		self.onStopped = core.Event() #type: core.Event[StoppedEvent]
@@ -198,7 +197,7 @@ class DebugAdapterClient:
 			"columnsStartAt1": True,
 			"supportsVariableType": True,
 			"supportsVariablePaging": False,
-			"supportsRunInTerminalRequest": False,
+			"supportsRunInTerminalRequest": True,
 			"locale": "en-us"}
 		)
 		return Capabilities.from_json(response)
@@ -408,10 +407,49 @@ class DebugAdapterClient:
 
 		return future
 
+	def send_response(self,  request: dict, body: dict, error: Optional[str] = None) -> None:
+		self.seq += 1
+
+		if error:
+			success = False
+		else:
+			success = True
+
+		data = {
+			"type": "response",
+			"seq": self.seq,
+			"request_seq": request['seq'],
+			"command": request['command'],
+			"success": success,
+			"message": error,
+		}
+		msg = json.dumps(data)
+		self.transport.send(msg)
+
+	def handle_reverse_request_run_in_terminal(self, request: dict):
+		command = RunInTerminalRequest.from_json(request['arguments'])
+		pid = self.on_run_in_terminal(command)
+		self.send_response(request, {
+			'processId': pid
+		})
+
+	def handle_reverse_request(self, request: dict):
+		command = request['command']
+		if command == 'runInTerminal':
+			self.handle_reverse_request_run_in_terminal(request)
+			return
+
+		self.send_response(request, {}, error = "request not supported by client: {}".format(command))
+
 	def recieved_msg(self, data: dict) -> None:
 		t = data['type']
 		if t == 'response':
-			future = self.pending_requests.pop(data['request_seq'])
+			try:
+				future = self.pending_requests.pop(data['request_seq'])
+			except KeyError:
+				# the python adapter seems to send multiple initialized responses?
+				core.log_info("ignoring request request_seq not found")
+				return
 
 			success = data['success']
 			if not success:
@@ -427,6 +465,10 @@ class DebugAdapterClient:
 				body = data.get('body', {})
 				future.set_result(body)
 			return
+
+		if t == 'request':
+			self.handle_reverse_request(data)
+
 		if t == 'event':
 			body = data.get('body', {})
 			event = data['event']
