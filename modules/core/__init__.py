@@ -3,7 +3,7 @@ from .core import *
 from .sublime import *
 from .log import *
 from .event import Handle, Event, EventDispatchMain
-
+from . import platform
 
 _current_package = ""
 

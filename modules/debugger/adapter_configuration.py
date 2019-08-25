@@ -74,9 +74,19 @@ class Configuration:
 	def __init__(self, name: str, type: str, request: str, all: dict) -> None:
 		self.name = name
 		self.type = type
-		self.all = all
 		self.index = -1
 		self.request = request
+
+		self.all = all
+
+		if core.platform.osx:
+			platform = self.all.get('osx', {})
+		elif core.platform.linux:
+			platform = self.all.get('linux', {})
+		elif core.platform.linux:
+			platform = self.all.get('windows', {})
+		for item in platform.items():
+			self.all[item[0]] = item[1]
 
 	@staticmethod
 	def from_json(json: dict) -> 'Configuration':
