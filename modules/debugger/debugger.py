@@ -74,13 +74,11 @@ class DebuggerStateful:
 		self.supports_terminate_request = True
 
 		self.selected_frame = None #type: Optional[StackFrame]
-		self.selected_thread = None #type: Optional[Thread]
+		self.selected_thread_explicitly = False =
 		self.selected_threadstateful = None #type: Optional[Thread]
 
-		self.frame = None #type: Optional[StackFrame]
 		self.threads_stateful = []
 		self.threads_stateful_from_id = {}
-
 		self._state = DebuggerStateful.stopped
 
 		self.disposeables = [] #type: List[Any]
@@ -128,10 +126,9 @@ class DebuggerStateful:
 
 	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration) -> core.awaitable[None]:
 		if self.state != DebuggerStateful.stopped:
-			print('stopping debug adapter')
 			yield from self.stop()
 
-		assert(self.state == DebuggerStateful.stopped, "debugger not in stopped state?")
+		assert self.state == DebuggerStateful.stopped, "debugger not in stopped state?"
 		self.state = DebuggerStateful.starting
 		self.adapter_configuration = adapter_configuration
 		self.configuration = configuration
@@ -304,18 +301,21 @@ class DebuggerStateful:
 		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepOver(self._thread_for_command())
 		self.selected_frame = None
+		self.selected_thread_explicitly = False
 
 	@core.async
 	def step_in(self) -> core.awaitable[None]:
 		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepIn(self._thread_for_command())
 		self.selected_frame = None
+		self.selected_thread_explicitly = False
 
 	@core.async
 	def step_out(self) -> core.awaitable[None]:
 		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepOut(self._thread_for_command())
 		self.selected_frame = None
+		self.selected_thread_explicitly = False
 
 	@core.async
 	def evaluate(self, command: str) -> core.awaitable[None]:
@@ -324,7 +324,7 @@ class DebuggerStateful:
 
 		adapter = self.adapter
 
-		response = yield from adapter.Evaluate(command, self.frame, "repl")
+		response = yield from adapter.Evaluate(command, self.selected_frame, "repl")
 		event = OutputEvent("console", response.result, response.variablesReference)
 		self.on_output(event)
 
@@ -397,6 +397,7 @@ class DebuggerStateful:
 			if not self.selected_threadstateful.id in self.threads_stateful_from_id:
 				self.selected_threadstateful = None
 				self.selected_frame = None
+				self.selected_thread_explicitly = False
 
 		if not self.selected_threadstateful and self.threads_stateful:
 			self.selected_threadstateful = self.threads_stateful[0]
@@ -407,7 +408,7 @@ class DebuggerStateful:
 
 		self.on_threads_stateful(self.threads_stateful)
 
-		if old_frame != self.selected_frame and reload_scopes:
+		if (old_frame is not self.selected_frame) and reload_scopes:
 			self.reload_scopes()
 
 	def reload_scopes(self):
@@ -429,8 +430,10 @@ class DebuggerStateful:
 		self.selected_threadstateful.fetch_if_needed()
 		if frame:
 			self.selected_frame = frame
+			self.selected_thread_explicitly = False
 		else:
-			self.selected_frame = thread
+			self.selected_frame = None
+			self.selected_thread_explicitly = True
 
 		self.update_selection_if_needed(reload_scopes=False)
 		self.reload_scopes()
@@ -445,31 +448,38 @@ class DebuggerStateful:
 		if not event:
 			return
 
-		thread = self._threadstateful_for_id(event.threadId).on_continued()
-		if thread == self.selected_threadstateful:
+		event_thread = self._threadstateful_for_id(event.threadId)
+		event_thread.on_continued()
+		if event_thread == self.selected_threadstateful:
 			self.selected_frame = None
+			self.selected_thread_explicitly = False
 
 		if event.allThreadsContinued:
 			self.selected_frame = None
+			self.selected_thread_explicitly = False
 
 			for thread in self.threads_stateful:
-				thread.on_continued()
+				if event_thread is not thread: 
+					thread.on_continued()
 
 		self._refresh_state()
 	
 	def _on_stopped_event(self, event: StoppedEvent) -> None:
 		self.refresh_threads()
 
-		thread = self._threadstateful_for_id(event.threadId).on_stopped(event.text)
-		if thread == self.selected_threadstateful:
+		event_thread = self._threadstateful_for_id(event.threadId)
+		event_thread.on_stopped(event.text)
+		if event_thread == self.selected_threadstateful:
 			self.selected_frame = None
+			self.selected_thread_explicitly = False
 
 		if event.allThreadsStopped:
 			self.selected_frame = None
+			self.selected_thread_explicitly = False
 			for thread in self.threads_stateful:
-				thread.on_stopped(event.text)
+				if event_thread is not thread: 
+					thread.on_stopped(event.text)
 
-		self.update_selection_if_needed()
 		self._refresh_state()
 
 	def _on_exited_event(self, event: Any) -> None:

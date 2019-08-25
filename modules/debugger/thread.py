@@ -57,7 +57,7 @@ class ThreadStateful:
 
 	@property
 	def frames(self)->List[StackFrame]:
-		if self.expanded and self.stopped and self.fetched:
+		if self.expanded:
 			return self._frames
 		return []
 
@@ -77,11 +77,13 @@ class ThreadStateful:
 	def on_continued(self):
 		self.fetched = False
 		self._stopped = False
+		self._frames = []
 		self.dirty()
 
 	def on_stopped(self, stopped_text: str):
 		self._stopped = True
 		self.fetched = False
+		self._frames = []
 		self.stopped_text = stopped_text
 		self.fetch_if_needed()
 		self.dirty()
