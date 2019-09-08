@@ -48,7 +48,4 @@ class VariablesPanel (ui.Block):
 
 		items.append(ui.Table(items=scopes_items))
 
-		return [
-			ui.HorizontalSpacer(variables_panel_width(self.layout)),
-			ui.Panel(items=items)
-		]
+		return items

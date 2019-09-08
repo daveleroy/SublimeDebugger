@@ -71,7 +71,7 @@ class BreakpointsPanel(ui.Block):
 			# line number
 			ui.Padding(ui.Box(ui.Label(tag, color=color, width=3)), left=0.5, right=0.5),
 			# filename
-			ui.Label(name, color=color, padding_left=0.25, width=15, align=0),
+			ui.Label(name, color=color, padding_left=0.25, width=13.6, align=0),
 		])
 		return ui.Padding(ui.block(toggle_button, fileAndLine), top=0.1, bottom=0.1)
 
@@ -89,7 +89,7 @@ class BreakpointsPanel(ui.Block):
 				ui.Button(on_click=on_click, items=[
 					ui.Img((ui.Images.shared.dot, ui.Images.shared.dot_disabled)[not filter.enabled]),
 				]),
-				ui.Label(filter.name, color=color, padding_left=0.25, width=15, align=0)
+				ui.Label(filter.name, color=color, padding_left=0.25, width=13.6, align=0)
 			))
 		for breakpoint in self.breakpoints.functionBreakpoints:
 			color = colors[breakpoint == self.selected]

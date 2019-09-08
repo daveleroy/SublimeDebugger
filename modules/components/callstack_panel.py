@@ -57,7 +57,7 @@ class ThreadComponent (ui.Block):
 		else:
 			self.thread.expand();
 
-	def onClicked(self, index: int) -> None:
+	def on_selected_frame_at(self, index: int) -> None:
 		self.thread.debugger.select_threadstateful(self.thread, self.thread.frames[index])
 
 	def render(self) -> ui.Block.Children:
@@ -79,9 +79,7 @@ class ThreadComponent (ui.Block):
 				ui.Button(self.on_select_thread, items=[
 					ui.Img(ui.Images.shared.thread_running),
 					ui.Box(
-						ui.Label("", padding_left=0.8),
-						ui.Img(ui.Images.shared.thread),
-						ui.Label("", padding_left=0.8),
+						ui.Padding(ui.Img(ui.Images.shared.thread), left=0.8, right=0.8)
 					),
 					ui.Label(self.thread.name, padding_left=0.8, width=max_length, align=0),
 				]),
@@ -94,11 +92,11 @@ class ThreadComponent (ui.Block):
 		selected_index = -1
 	
 		for index, frame in enumerate(self.thread.frames):
-			if self.thread == self.debugger.selected_threadstateful and frame == self.debugger.selected_frame:
+			if self.thread == self.debugger.selected_threadstateful and not self.debugger.selected_thread_explicitly and frame == self.debugger.selected_frame:
 				selected_index = index
 
 			def on_click(index=index):
-				self.onClicked(index)
+				self.on_selected_frame_at(index)
 			component = ui.Padding(StackFrameComponent(frame, on_click), top=0.1, bottom=0.2)
 			frames.append(component)
 
