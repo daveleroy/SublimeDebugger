@@ -103,6 +103,11 @@ class Images:
 		self.down = Image.named_light_dark('material/baseline_keyboard_arrow_down_white_48dp.png')
 		self.left = Image.named_light_dark('material/baseline_keyboard_arrow_left_white_48dp.png')
 
+		self.refresh = Image.named_light_dark('material/refresh.png')
+		self.plus = Image.named_light_dark('material/plus.png')
+		self.help = Image.named_light_dark('material/help.png')
+		self.clear = Image.named_light_dark('material/clear.png')
+
 		self.stop_disable = Image.named_light_dark('material/baseline_stop_white_disable_48dp.png')
 		self.pause_disable = Image.named_light_dark('material/baseline_pause_white_disable_48dp.png')
 		self.right_disable = Image.named_light_dark('material/baseline_keyboard_arrow_right_white_disable_48dp.png')
