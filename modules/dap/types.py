@@ -3,10 +3,10 @@ if TYPE_CHECKING:
 	from .client import DebugAdapterClient
 
 
-T = TypeVar('T')
+__T = TypeVar('T')
 
 
-def array_from_json(from_json: Callable[[], T], json_array: list) -> T:
+def _array_from_json(from_json: Callable[[], __T], json_array: list) -> __T:
 	items = []
 	for json in json_array:
 		items.append(from_json(json))
@@ -158,7 +158,7 @@ class Source:
 			elif json_hint == 'deemphasize':
 				hint = Source.deemphasize
 
-		sources = array_from_json(Source.from_json, json.get('sources', []))
+		sources = _array_from_json(Source.from_json, json.get('sources', []))
 
 		return Source(
 			json.get('name'),
@@ -192,7 +192,7 @@ class Capabilities:
 		self.supportsConditionalBreakpoints = json.get('supportsConditionalBreakpoints', False)
 		self.supportsHitConditionalBreakpoints = json.get('supportsHitConditionalBreakpoints', False)
 		self.supportsEvaluateForHovers = json.get('supportsEvaluateForHovers', False)
-		self.exceptionBreakpointFilters = array_from_json(ExceptionBreakpointsFilter.from_json, json.get('exceptionBreakpointFilters', []))
+		self.exceptionBreakpointFilters = _array_from_json(ExceptionBreakpointsFilter.from_json, json.get('exceptionBreakpointFilters', []))
 		self.supportsStepBack = json.get('supportsStepBack', False)
 		self.supportsSetVariable = json.get('supportsSetVariable', False)
 		self.supportsRestartFrame = json.get('supportsRestartFrame', False)
@@ -263,3 +263,22 @@ class OutputEvent:
 			json.get('variablesReference', 0),
 			source,
 			json.get('line'))
+
+
+class RunInTerminalRequest:
+	def __init__(self, kind: str, title: str, cwd: str, args: List[str], env: Dict[str, Optional[str]]) -> None:
+		self.kind = kind
+		self.title = title
+		self.cwd = cwd
+		self.args = args
+		self.env = env
+
+	@staticmethod
+	def from_json(json) -> 'RunInTerminalRequest':
+		return RunInTerminalRequest(
+			json.get('kind', 'integrated'), 
+			json.get('title', 'No Title'), 
+			json['cwd'],
+			json['args'],
+			json.get('env', {})
+		)
