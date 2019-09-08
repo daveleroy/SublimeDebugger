@@ -15,10 +15,6 @@
 	"folders":
 	[
 		{
-			"folder_exclude_patterns":
-			[
-				"debug_adapters"
-			],
 			"path": "."
 		}
 	],
