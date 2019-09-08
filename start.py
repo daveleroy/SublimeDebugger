@@ -13,7 +13,7 @@ from .modules import core
 from .modules.commands import *
 from .modules.debugger.output_panel import *
 from .modules.debugger.debugger_interface import *
-
+from .modules.debugger.build.build import DebuggerBuildExecCommand
 from .modules.ui import ViewEventsListener
 from .modules.ui import DebuggerInputCommand
 
