@@ -32,12 +32,12 @@ class DebuggerPanelCallbacks:
 
 
 class DebuggerPanel(ui.Block):
-	def __init__(self, callbacks: DebuggerPanelCallbacks) -> None:
+	def __init__(self, callbacks: DebuggerPanelCallbacks, breakpoints: ui.Block) -> None:
 		super().__init__()
 		self.state = STOPPED
 		self.callbacks = callbacks
 		self.name = ''
-
+		self.breakpoints = breakpoints
 	def setState(self, state: int) -> None:
 		self.state = state
 		self.dirty()
@@ -76,7 +76,7 @@ class DebuggerPanel(ui.Block):
 			play = True
 			controls = False
 
-		items = []
+		items = [DebuggerItem(self.callbacks.on_play, ui.Img(ui.Images.shared.settings))]
 
 		if play:
 			items.append(
@@ -123,23 +123,22 @@ class DebuggerPanel(ui.Block):
 
 		items_new = []
 		for item in items:
-			items_new.append(ui.Padding(item, bottom=0.2))
+			items_new.append(item)
 		return [
-			ui.Panel(items=items_new),
+			ui.block(*items_new),
+			ui.Panel(items= [self.breakpoints]),
 		]
 
 
-class DebuggerItem (ui.Block):
+class DebuggerItem (ui.Inline):
 	def __init__(self, callback: Callable[[], None], image: ui.Img) -> None:
 		super().__init__()
 		self.image = image
 		self.callback = callback
 
-	def render(self) -> ui.Block.Children:
+	def render(self) -> ui.Inline.Children:
 		return [
-			ui.block(
-				ui.Padding(ui.Button(self.callback, items=[self.image]), left=0.6, right=0.6)
-			)
+			ui.Padding(ui.Button(self.callback, items=[self.image]), left=0.6, right=0.6, top=0.0, bottom=0.0)
 		]
 
 

@@ -10,7 +10,6 @@
 .selected_stack_frame {
 	background-color: color(var(--bluish) alpha(0.3));
 }
-
 .StackframeSelectedError {
 	background-color: rgba(255, 25, 25, 0.25);
 }
@@ -25,53 +24,60 @@
 .EventLogText .stderr {
 	--text-color: rgba(255, 50, 50, 1.0);
 }
-
 .ConsolePanel .Table {
 	padding-left: 5px;
 	padding-right: 5px;
 }
-
+.TerminalComponent {
+	padding-left: 5px;
+}
 .BreakpointsPanel .Table {
 	padding-left: 3px;
 	padding-right: 3px;
 }
-
+.DebuggerPanel {
+	border-radius: 5px;
+	border: 1px solid rgba(0,0,0,0);
+	background-color: var(--segment-color);
+}
 .DebuggerPanel .Panel {
 	border-radius: 5px;
 }
 .DebuggerItem {
-	border-radius: 15px;
-	border: 1px solid rgba(0,0,0,0.1);
+	border-radius: 5px;
+	border: 1px solid rgba(0,0,0,0);
 	background-color: var(--segment-color);
-	margin-top: 0px;
-	padding-top: 1px;
-	margin-bottom: 1px;
-}
-
-.PageTab {
-	background-color: rgba(0, 0, 0, 0.075);
-	border-top-left-radius: 5px;
-	border-top-right-radius: 5px;
-	padding-top: 7px;
-	padding-left: 7px;
-	padding-right: 7px;
-	padding-bottom: 2.5px;
+	padding-top: 0.5rem;
+	padding-bottom: 0.5rem;
 	position: relative;
 	left: 1px;
 }
 .Panel {
 	border: 1px solid rgba(0, 0, 0, 0.025);
 }
-.PageTab.selected {
+.TabbedPanel .Panel {
+	padding-top: 2px;
+	border: 1px solid var(--segment-color);
 	background-color: var(--panel-color);
+}
+.Tab {
+	background-color: rgba(0, 0, 0, 0.05);
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+	padding-top: 7px;
+	padding-left: 7px;
+	padding-right: 7px;
+	padding-bottom: 0.5rem;
+	margin-left: 3px;
+	position: relative;
+	left: 1px;
+}
+.Tab.selected {
+	background-color: var(--segment-color);
 	border: 1px solid rgba(0, 0, 0, 0.05);
 }
-.TabbedPanel .Panel {
-	border-top-left-radius: 0px;
-	padding-top: 2px;
-}
 .VariablesPanel {
-	margin-top: 1.5rem;
+	overflow: hidden;
 }
 .UnderlineComponent {
 	position: absolute;
@@ -80,14 +86,12 @@
 	width: 100rem;
 	background-color: color(var(--bluish) alpha(0.5));
 }
-
 .SelectedLineText {
 	position: relative;
 	bottom: .15rem;
 	padding-right: 1rem;
 	--text-color: color(var(--bluish) alpha(0.75));
 }
-
 .CommandPrompComponent {
 	padding-left: 3rem;
 }

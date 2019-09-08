@@ -14,7 +14,6 @@ from ..components.variable_component import VariableStateful, VariableStatefulCo
 from ..components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
 from ..components.breakpoints_panel import BreakpointsPanel, show_breakpoint_options
 from ..components.callstack_panel import CallStackPanel
-from ..components.console_panel import ConsolePanel
 from ..components.variables_panel import VariablesPanel
 from ..components.pages_panel import TabbedPanel
 from ..components.selected_line import SelectedLine
@@ -50,6 +49,58 @@ from .adapter_configuration import (
 )
 
 from .output_panel import OutputPhantomsPanel
+
+from .terminal import TerminalComponent
+from .debugger_terminal import DebuggerTerminal
+from .. components.pages_panel import TabbedPanelItem
+
+class Panels:
+	def __init__(self, view: sublime.View, phantom_location: int, columns: int):
+		self.panels = []
+		self.pages = []
+		self.columns = columns
+		for i in range(0, columns):
+			pages = TabbedPanel([], 0)
+			self.pages.append(pages)
+			phantom = ui.Phantom(pages, view, sublime.Region(phantom_location, phantom_location + i), sublime.LAYOUT_INLINE)
+
+	def add(self, panels: [TabbedPanelItem]):
+		self.panels.extend(panels)
+		self.layout()
+	
+	def modified(self, panel: TabbedPanelItem):
+		column = panel.column
+		row = panel.row
+		if row >= 0 and column >= 0:
+			self.pages[column].modified(row)
+
+	def remove(self, id: int):
+		for item in self.panels:
+			if item.id == id:
+				self.panels.remove(item)
+				self.layout()
+				return
+
+	def show(self, id: int):
+		for panel in self.panels:
+			if panel.id == id:
+				column = panel.column
+				row = panel.row
+				self.pages[column].show(row)
+		
+
+	def layout(self):
+		items = []
+		for i in range(0, self.columns): 
+			items.append([])
+
+		for panel in self.panels:
+			panel.column = panel.index % self.columns
+			panel.row = len(items[panel.column])
+			items[panel.column].append(panel)
+
+		for i in range(0, self.columns): 
+			self.pages[i].update(items[i])
 
 
 class DebuggerInterface (DebuggerPanelCallbacks):
@@ -128,7 +179,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.disposeables = [] #type: List[Any]
 		self.breakpoints = Breakpoints()
 
-		self.console_panel = ConsolePanel(self.open_repl_console, self.on_navigate_to_source)
 		self.variables_panel = VariablesPanel()
 		self.callstack_panel = CallStackPanel()
 		self.breakpoints_panel = BreakpointsPanel(self.breakpoints, self.onSelectedBreakpoint)
@@ -136,12 +186,8 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		def on_breakpoint_more():
 			show_breakpoint_options(self.breakpoints)
 
-		self.pages_panel = TabbedPanel([
-			("Breakpoints", self.breakpoints_panel, on_breakpoint_more),
-			("Call Stack", self.callstack_panel, None),
-			("Console", self.console_panel, self.console_panel.open_console_menu),
-		], 0)
-		self.debugger_panel = DebuggerPanel(self)
+
+		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
 
 		self.selected_frame_line = None #type: Optional[SelectedLine]
 		self.selected_frame_generated_view = None #type: Optional[sublime.View]
@@ -181,26 +227,32 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 				self.dispose_selected_frame()
 
 		def on_output(event: OutputEvent) -> None:
-			variablesReference = event.variablesReference
-
-			if variablesReference and self.debugger.adapter:
-				# this seems to be what vscode does it ignores the actual message here.
-				# Some of the messages are junk like "output" that we probably don't want to display
-				@core.async
-				def appendVariabble() -> core.awaitable[None]:
-					variables = yield from self.debugger.adapter.GetVariables(variablesReference)
-					for variable in variables:
-						variable.name = "" # this is what vs code does?
-						self.console_panel.add_variable(variable, event.source, event.line)
-					self.pages_panel.modified(2)
-
-				# this could make variable messages appear out of order. Do we care??
-				self.run_async(appendVariabble())
-			else:
-				self.console_panel.add(event)
+			self.terminal.program_output(self.debugger.adapter, event)
 
 		def on_threads_stateful(threads: Any):
 			self.callstack_panel.update(self.debugger, threads)
+
+
+		from .diff import DiffCollection
+		from .terminal import Terminal
+		def on_terminal_added(terminal: Terminal):
+			component = TerminalComponent(terminal)
+
+			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, component.action_buttons())
+			def on_modified():
+				self.panels.modified(panel)
+
+			terminal.on_updated.add(on_modified)
+
+			self.panels.add([panel])
+
+		def on_terminal_removed(terminal: Terminal):
+			self.panels.remove(id(terminal))
+
+		terminals = DiffCollection(on_terminal_added, on_terminal_removed)
+		
+		def on_terminals(list: Any):
+			terminals.update(list)
 
 		self.debugger = DebuggerStateful(
 			self.breakpoints,
@@ -208,7 +260,8 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			on_scopes=on_scopes,
 			on_output=on_output,
 			on_selected_frame=on_selected_frame,
-			on_threads_stateful=on_threads_stateful)
+			on_threads_stateful=on_threads_stateful,
+			on_terminals=on_terminals)
 
 		self.panel = OutputPhantomsPanel(window, 'Debugger')
 		self.panel.show()
@@ -219,13 +272,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		self.load_configurations()
 
-		self.stopped_reason = ''
-		self.path = window.project_file_name()
-		if self.path:
-			self.path = os.path.dirname(self.path)
-			self.console_panel.Add('Opened In Workspace: {}'.format(self.path))
-		else:
-			self.console_panel.AddStderr('warning: debugger opened in a window that is not part of a project')
+
 
 		print('Creating a window: h')
 
@@ -237,16 +284,35 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		])
 
 
+		self.disposeables.append(WindowSettingsCallback(self.window, self.on_settings_updated))
+
 		phantom_location = self.panel.phantom_location()
 		self.disposeables.extend([
 			ui.Phantom(self.debugger_panel, self.view, sublime.Region(phantom_location, phantom_location + 0), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.pages_panel, self.view, sublime.Region(phantom_location, phantom_location + 1), sublime.LAYOUT_INLINE),
-			ui.Phantom(self.variables_panel, self.view, sublime.Region(phantom_location, phantom_location + 2), sublime.LAYOUT_INLINE),
 		])
 
+		callstack_panel_item = TabbedPanelItem(id(self.callstack_panel), self.callstack_panel, "Call Stack", 0)
+		variables_panel_item = TabbedPanelItem(id(self.variables_panel), self.variables_panel, "Variables", 1)
 
-		self.disposeables.append(WindowSettingsCallback(self.window, self.on_settings_updated))
+		self.terminal = DebuggerTerminal(
+			on_run_command=self.on_run_command, 
+			on_clicked_source=self.on_navigate_to_source
+		)
+		terminal_component = TerminalComponent(self.terminal)
+		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
 
+		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(project_name)))
+
+
+		self.panels = Panels(self.view, phantom_location + 1, 3)
+		self.panels.add([
+			callstack_panel_item,
+			variables_panel_item,
+			terminal_panel_item
+		])
+
+	def update_panels(self):
+		pass
 
 	def load_configurations(self) -> None:
 		variables = extract_variables(self.window)
@@ -316,11 +382,11 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	@core.async
 	def LaunchDebugger(self) -> core.awaitable[None]:
 		self.show_console_panel()
-		self.console_panel.clear()
-		self.console_panel.Add('Console cleared...')
+		self.terminal.clear()
+		self.terminal.log_info('Console cleared...')
 		try:
 			if not self.configuration:
-				self.console_panel.AddStderr("Add or select a configuration to begin debugging")
+				self.terminal.log_error("Add or select a configuration to begin debugging")
 				select_configuration.run(self)
 				return
 
@@ -336,7 +402,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			return
 
 		variables = extract_variables(self.window)
-		configuration_expanded = configuration.with_expanded_variables(variables)
+		configuration_expanded = ConfigurationExpanded(configuration, variables)
 		yield from self.debugger.launch(adapter_configuration, configuration_expanded)
 
 	# TODO this could be made better
@@ -424,13 +490,13 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			self.OnExpandBreakpoint(breakpoint)
 
 	def show_console_panel(self) -> None:
-		self.pages_panel.selected(2)
+		self.panels.show(id(self.terminal))
 
 	def show_breakpoints_panel(self) -> None:
-		self.pages_panel.selected(0)
+		pass
 
 	def show_call_stack_panel(self) -> None:
-		self.pages_panel.selected(1)
+		self.panels.show(id(self.callstack_panel))
 
 	def on_play(self) -> None:
 		self.panel.show()
@@ -456,10 +522,11 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 	def run_async(self, awaitable: core.awaitable[None]):
 		def on_error(e: Exception) -> None:
-			self.console_panel.AddStderr(str(e))
-			self.pages_panel.modified(2)
+			self.terminal.log_error(str(e))
 		core.run(awaitable, on_error=on_error)
 
+	def on_run_command(self, command: str) -> None:
+		self.run_async(self.debugger.evaluate(command))
 
 	def on_navigate_to_source(self, source: Source, line: int):
 		core.run(self.navigate_to_source(source, line, True))

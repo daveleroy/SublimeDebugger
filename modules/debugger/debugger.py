@@ -29,6 +29,11 @@ from ..dap.types import (
 	Source,
 	ThreadEvent
 )
+
+from .terminal import Terminal, TerminalProcess, TerminalStandard
+
+from .. import dap
+
 from .adapter_configuration import (
 	ConfigurationExpanded,
 	AdapterConfiguration
@@ -43,6 +48,7 @@ from .thread import (
 	ThreadStateful
 )
 
+from .build import build
 
 class DebuggerStateful:
 	stopped = 0
@@ -59,12 +65,14 @@ class DebuggerStateful:
 			on_output: Callable[[OutputEvent], None],
 			on_selected_frame: Callable[[Optional[Thread], Optional[StackFrame]], None],
 			on_threads_stateful: Callable[[List[ThreadStateful]], None],
+			on_terminals: Callable[[List[Terminal]], None],
 		) -> None:
 		self.on_state_changed = on_state_changed
 		self.on_threads_stateful = on_threads_stateful
 		self.on_scopes = on_scopes
 		self.on_output = on_output
 		self.on_selected_frame = on_selected_frame
+		self.on_terminals = on_terminals
 
 		self.adapter = None #type: Optional[DebugAdapterClient]
 		self.process = None #type: Optional[Process]
@@ -74,11 +82,12 @@ class DebuggerStateful:
 		self.supports_terminate_request = True
 
 		self.selected_frame = None #type: Optional[StackFrame]
-		self.selected_thread_explicitly = False =
+		self.selected_thread_explicitly = False
 		self.selected_threadstateful = None #type: Optional[Thread]
 
 		self.threads_stateful = []
 		self.threads_stateful_from_id = {}
+		self.terminals = [] #type: List[Terminal]
 		self._state = DebuggerStateful.stopped
 
 		self.disposeables = [] #type: List[Any]
@@ -89,8 +98,16 @@ class DebuggerStateful:
 		breakpoints.onSendFunctionBreakpointToDebugger.add(self.onSendFunctionBreakpointToDebugger)
 
 
+	def dispose_terminals(self):
+		for terminal in self.terminals:
+			terminal.dispose()
+
+		self.terminals = []
+		self.on_terminals(self.terminals)
+
 	def dispose(self) -> None:
 		self.force_stop_adapter()
+		self.dispose_terminals()
 		for disposeable in self.disposeables:
 			disposeable.dispose()
 
@@ -106,10 +123,11 @@ class DebuggerStateful:
 		self._state = state
 		self.on_state_changed(state)
 
-	def launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration.Expanded) -> core.awaitable[None]:
+	def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded) -> core.awaitable[None]:
 		if self.launching_async:
 			self.launching_async.cancel()
 
+		self.dispose_terminals()
 		self.launching_async = core.run(self._launch(adapter_configuration, configuration))
 		try:
 			yield from self.launching_async
@@ -124,7 +142,7 @@ class DebuggerStateful:
 
 		self.launching_async = None
 
-	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: Configuration.Expanded) -> core.awaitable[None]:
+	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded) -> core.awaitable[None]:
 		if self.state != DebuggerStateful.stopped:
 			yield from self.stop()
 
@@ -135,6 +153,14 @@ class DebuggerStateful:
 
 		if not adapter_configuration.installed:
 			raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
+
+		if 'sublime_debugger_build' in configuration.all:
+			self.log_info('running build...')
+			terminal = TerminalStandard('Build Results')
+			self.terminals.append(terminal)
+			self.on_terminals(self.terminals)
+			yield from build.run(sublime.active_window(), terminal.write_stdout, configuration.all['sublime_debugger_build'])
+			self.log_info('... finished running build')
 
 		# If there is a command to run for this debugger run it now
 		if adapter_configuration.tcp_port:
@@ -161,7 +187,15 @@ class DebuggerStateful:
 			self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.log_info)
 			transport = StdioTransport(self.process)
 
-		adapter = DebugAdapterClient(transport)
+		def on_run_in_terminal(request: dap.RunInTerminalRequest) -> int:
+			terminal = TerminalProcess(request.cwd, request.args)
+			self.terminals.append(terminal)
+			self.on_terminals(self.terminals)
+			return terminal.pid()
+
+		adapter = DebugAdapterClient(transport, 
+			on_run_in_terminal = on_run_in_terminal
+		)
 		adapter.onThreads.add(self._on_threads_event)
 		adapter.onOutput.add(self._on_output_event)
 		adapter.onStopped.add(self._on_stopped_event)
@@ -220,26 +254,6 @@ class DebuggerStateful:
 		# At this point we are running?
 		self.state = DebuggerStateful.running
 
-	def force_stop_adapter(self) -> None:
-		if self.launching_async:
-			self.launching_async.cancel()
-
-		self.selected_frame = None
-		self.selected_threadstateful = None
-
-		self.threads_stateful_from_id = {}
-		self.threads_stateful = []
-		self.on_threads_stateful(self.threads_stateful)
-		self.on_scopes([])
-		self.on_selected_frame(None, None)
-		if self.adapter:
-			self.adapter.dispose()
-			self.adapter = None
-		if self.process:
-			self.process.dispose()
-			self.process = None
-		self.state = DebuggerStateful.stopped
-
 	def _refresh_state(self) -> None:
 		thread = self._selected_or_first_thread()
 		if thread and thread.stopped:
@@ -286,6 +300,27 @@ class DebuggerStateful:
 
 		self.force_stop_adapter()
 
+	def force_stop_adapter(self) -> None:
+		if self.launching_async:
+			self.launching_async.cancel()
+
+		self.selected_frame = None
+		self.selected_thread_explicitly = False
+		self.selected_threadstateful = None
+
+		self.threads_stateful_from_id = {}
+		self.threads_stateful = []
+		self.on_threads_stateful(self.threads_stateful)
+		self.on_scopes([])
+		self.on_selected_frame(None, None)
+		if self.adapter:
+			self.adapter.dispose()
+			self.adapter = None
+		if self.process:
+			self.process.dispose()
+			self.process = None
+		self.state = DebuggerStateful.stopped
+
 	@core.async
 	def resume(self) -> core.awaitable[None]:
 		assert self.adapter, 'debugger not running'
@@ -329,15 +364,15 @@ class DebuggerStateful:
 		self.on_output(event)
 
 	def log_info(self, string: str) -> None:
-		output = OutputEvent("debugger.info", string, 0)
+		output = OutputEvent("debugger.info", string + '\n', 0)
 		self.on_output(output)
 
 	def log_output(self, string: str) -> None:
-		output = OutputEvent("debugger.output", string, 0)
+		output = OutputEvent("debugger.output", string + '\n', 0)
 		self.on_output(output)
 
 	def log_error(self, string: str) -> None:
-		output = OutputEvent("debugger.error", string, 0)
+		output = OutputEvent("debugger.error", string + '\n', 0)
 		self.on_output(output)
 
 	# after a successfull launch/attach, stopped event, thread event we request all threads
