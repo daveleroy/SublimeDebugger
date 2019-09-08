@@ -99,14 +99,11 @@ class Configuration:
 		assert request, 'expecting request for debug.configuration'
 		return Configuration(name, type, request, json)
 
-	class Expanded(Configuration):
-		def __init__(self, name: str, type: str, request: str, all: dict, variables: Any) -> None:
-			all = sublime.expand_variables(all, variables)
-			super().__init__(name, type, request, all, expand_platforms=False)
 
-	def with_expanded_variables(self, variables: Any) -> Expanded:
-		return Configuration.Expanded(self.name, self.type, self.request, self.all, variables)
-
+class ConfigurationExpanded(Configuration):
+	def __init__(self, configuration: Configuration, variables: Any) -> None:
+		all = sublime.expand_variables(configuration.all, variables)
+		super().__init__(configuration.name, configuration.type, configuration.request, all, expand_platforms=False)
 
 
 @core.async

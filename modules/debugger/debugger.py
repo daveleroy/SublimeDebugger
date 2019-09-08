@@ -30,7 +30,7 @@ from ..dap.types import (
 	ThreadEvent
 )
 from .adapter_configuration import (
-	Configuration,
+	ConfigurationExpanded,
 	AdapterConfiguration
 )
 from .breakpoints import (

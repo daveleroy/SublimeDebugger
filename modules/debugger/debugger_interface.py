@@ -44,7 +44,8 @@ from .breakpoints import (
 )
 
 from .adapter_configuration import (
-	Configuration, 
+	Configuration,
+	ConfigurationExpanded,
 	AdapterConfiguration
 )
 
@@ -370,7 +371,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			word_string = x.group()
 
 		try:
-			response = yield from self.debugger.adapter.Evaluate(word_string, self.debugger.frame, 'hover')
+			response = yield from self.debugger.adapter.Evaluate(word_string, self.debugger.selected_frame, 'hover')
 			variable = Variable(self.debugger.adapter, "", response.result, response.variablesReference)
 			event.view.add_regions('selected_hover', [word], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
 
