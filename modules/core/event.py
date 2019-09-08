@@ -26,17 +26,18 @@ class Event (Generic[T]):
 	def add_handle(self, handle: Handle[T]) -> None:
 		self.handlers.append(handle)
 
-	def post(self, data: T) -> None:
+	def __call__(self, *data: T) -> None:
+		self.post(*data)
+
+	def post(self, *data: T) -> None:
 		for h in self.handlers:
-			h.callback(data)
+			h.callback(*data)
 
 
 '''
 	will dispatch events on the main thread if called from a background thread
 	in our case we used it to make sublime events dispatch on our main thread
 '''
-
-
 class EventDispatchMain(Event[T], Generic[T]):
 	def _post(self, data: T) -> None:
 		for h in self.handlers:

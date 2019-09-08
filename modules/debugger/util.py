@@ -28,7 +28,7 @@ class WindowSettingsCallback:
 		self.window = window
 		self.settings_changed_callback = None
 		self.on_changed = on_changed
-		self.on_view_updated = ui.view_activated.add(self.on_update_settings_view),
+		self.on_view_updated = ui.view_activated.add(self.on_update_settings_view)
 		
 		view = window.active_view()
 		if view:

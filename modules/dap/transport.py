@@ -39,7 +39,7 @@ from .. import core
 
 
 class Process:
-	def __init__(self, command: List[str], on_stdout: Optional[Callable[[str], None]], on_stderr: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, shell=False) -> None:
+	def __init__(self, command: List[str], on_stdout: Optional[Callable[[str], None]], on_stderr: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, cwd=None) -> None:
 		print('Starting process: {}'.format(command))
 
 		# taken from Default/exec.py
@@ -53,8 +53,11 @@ class Process:
 			stdout=subprocess.PIPE, 
 			stderr=subprocess.PIPE, 
 			stdin=subprocess.PIPE, 
-			shell=shell,
-			startupinfo=startupinfo)
+			shell=False,
+			bufsize=0,
+			startupinfo=startupinfo,
+			cwd = cwd)
+
 		self.pid = self.process.pid
 		self.on_stdout = on_stdout
 		self.on_stderr = on_stderr
@@ -70,15 +73,16 @@ class Process:
 
 	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
 		while not self.closed:
+			self.process.poll()
 			try:
-				line = file.readline().decode('UTF-8')
+				line = file.read(2**15).decode('UTF-8')
 				if not line:
-					print("Nothing to read from process, closing")
+					core.log_info("Nothing to read from process, closing")
 					break
 
 				core.call_soon_threadsafe(callback, line)
 			except Exception as err:
-				print("Failure reading from process", err)
+				core.log_exception()
 				break
 
 		self.close()
@@ -101,12 +105,10 @@ class Process:
 					"taskkill /PID %d /T /F" % self.pid,
 					startupinfo=startupinfo)
 			else:
-				print(self.pid)
-				print(self.process.pid)
 				try:
 					os.killpg(self.process.pid, signal.SIGTERM)
-				except Exception as e:
-					core.log_exception()
+				except ProcessLookupError as e:
+					pass
 
 				self.process.terminate()
 		except Exception as e:
