@@ -106,12 +106,13 @@ class Block (Component):
 class BlockInline (Block):
 	Children = Sequence['Inline']
 
-	def __init__(self) -> None:
+	def __init__(self, items: Sequence['Inline']) -> None:
 		super().__init__()
 		self.html_tag = 'div'
-
+		self.items = items
+	
 	def render(self) -> Sequence['Inline']:  #type: ignore
-		return []
+		return self.items
 
 	def height(self, layout: Layout) -> float:
 		from .size import HEIGHT
@@ -127,23 +128,5 @@ class BlockInline (Block):
 		return '<{} class="{}" style="height:{}rem;"{}><img class="height">{}</{}>'.format(self.html_tag, self.className, self.height(layout), self.html_tag_extra, inner, self.html_tag)
 
 
-class BlockItemsInline (BlockInline):
-	def __init__(self, items: Sequence['Inline']) -> None:
-		super().__init__()
-		self.items = items
-
-	def render(self) -> Sequence['Inline']:  #type: ignore
-		return self.items
-
-
-class BlockItems (Block):
-	def __init__(self, items: Sequence['Block']) -> None:
-		super().__init__()
-		self.items = items
-
-	def render(self) -> Sequence['Block']:
-		return self.items
-
-
 def block(*items: Inline) -> Block:
-	return BlockItemsInline(items)
+	return BlockInline(items)
