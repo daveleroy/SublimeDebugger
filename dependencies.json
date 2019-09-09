@@ -1,0 +1,14 @@
+{
+	"*": {
+		">=3124": [
+			"mdpopups",
+			"ptyprocess"
+		]
+	},
+	"windows": {
+		">=3124": [
+			"mdpopups",
+			"pywinpty"
+		]
+	}
+}
