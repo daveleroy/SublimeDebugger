@@ -292,9 +292,14 @@ class StdioTransport(Transport):
 					if header.startswith(CONTENT_HEADER):
 						content_length = int(header[len(CONTENT_HEADER):])
 
-				if (content_length > 0):
-					content = self.process.stdout.read(content_length)
-					message = content.decode("UTF-8")
+				if content_length > 0:
+					total_content = b""
+					while (content_length > 0):
+						content = self.process.stdout.read(content_length)
+						content_length -= len(content)
+						total_content += content
+					
+					message = total_content.decode("UTF-8")
 					core.call_soon_threadsafe(self.on_receive, message)
 
 			except IOError as err:
