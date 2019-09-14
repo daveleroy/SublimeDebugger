@@ -69,18 +69,17 @@ class ThreadComponent (ui.Block):
 				]),
 				ui.Button(self.on_select_thread, items=[
 					ui.Box(
-						ui.Padding(ui.Img(ui.Images.shared.thread), left=0.8, right=0.8)
+						ui.Padding(ui.Img(ui.Images.shared.thread_running), left=0.8, right=0.8)
 					),
-					ui.Label(self.thread.name, padding_left=0.8, width=max_length, align=0),
-				])
+					ui.Label(self.thread.name, padding_left=0.8),
+				]),
 			)
 		else:
 			item = ui.block(
 				ui.Button(self.on_select_thread, items=[
-					ui.Img(ui.Images.shared.thread_running),
-					ui.Box(
-						ui.Padding(ui.Img(ui.Images.shared.thread), left=0.8, right=0.8)
-					),
+					ui.Padding(ui.Box(
+						ui.Padding(ui.Img(ui.Images.shared.thread_running), left=0.8, right=0.8)
+					), left= ui.size.WIDTH),
 					ui.Label(self.thread.name, padding_left=0.8, width=max_length, align=0),
 				]),
 			)

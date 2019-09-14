@@ -5,10 +5,10 @@
 	padding-left: var(--width);
 }
 .table-item-selected {
-	background-color: color(var(--bluish) alpha(0.3));
+	background-color: color(var(--accent) alpha(0.3));
 }
 .selected_stack_frame {
-	background-color: color(var(--bluish) alpha(0.3));
+	background-color: color(var(--accent) alpha(0.3));
 }
 .StackframeSelectedError {
 	background-color: rgba(255, 25, 25, 0.25);
@@ -32,8 +32,7 @@
 	padding-left: 5px;
 }
 .BreakpointsPanel .Table {
-	padding-left: 3px;
-	padding-right: 3px;
+	padding: 3px;
 }
 .DebuggerPanel {
 	border-radius: 5px;
@@ -50,18 +49,19 @@
 	padding-top: 0.5rem;
 	padding-bottom: 0.5rem;
 	position: relative;
-	left: 1px;
+	left: -2px;
 }
 .Panel {
-	border: 1px solid rgba(0, 0, 0, 0.025);
+	border: 0px solid rgba(0, 0, 0, 0.025);
 }
+
 .TabbedPanel .Panel {
 	padding-top: 2px;
 	border: 1px solid var(--segment-color);
 	background-color: var(--panel-color);
 }
 .Tab {
-	background-color: rgba(0, 0, 0, 0.05);
+	background-color: rgba(0, 0, 0, 0.0);
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;
 	padding-top: 7px;
@@ -74,7 +74,7 @@
 }
 .Tab.selected {
 	background-color: var(--segment-color);
-	border: 1px solid rgba(0, 0, 0, 0.05);
+	border: 1px solid var(--segment-color);
 }
 .VariablesPanel {
 	overflow: hidden;
