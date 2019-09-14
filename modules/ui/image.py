@@ -30,6 +30,9 @@ def view_background_lightness(view: sublime.View) -> float:
 	lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
 	return lum
 
+def reload_images():
+	Image.cached = {}
+	Images.shared = Images()
 
 class Image:
 	cached = {} #type: Dict[str, str]
@@ -92,33 +95,28 @@ class Images:
 		self.dot_expr = Image.named('breakpoint-expr.png')
 		self.dot_log = Image.named('breakpoint-log.png')
 		self.dot_disabled = Image.named('breakpoint-disabled.png')
-		self.resume = Image.named_light_dark('material/baseline_resume_arrow_white_48dp.png')
-		self.play = Image.named_light_dark('material/baseline_play_arrow_white_48dp.png')
-		self.stop = Image.named_light_dark('material/baseline_stop_white_48dp.png')
-		self.settings = Image.named_light_dark('material/baseline_settings_white_48dp.png')
-		self.thread_running = Image.named_light_dark('material/baseline_360_white_48dp.png')
-		self.pause = Image.named_light_dark('material/baseline_pause_white_48dp.png')
-		self.up = Image.named_light_dark('material/baseline_keyboard_arrow_up_white_48dp.png')
-		self.right = Image.named_light_dark('material/baseline_keyboard_arrow_right_white_48dp.png')
-		self.down = Image.named_light_dark('material/baseline_keyboard_arrow_down_white_48dp.png')
-		self.left = Image.named_light_dark('material/baseline_keyboard_arrow_left_white_48dp.png')
+		self.resume = Image.named_light_dark('continue.png')
+		self.play = Image.named_light_dark('play.png')
+		self.stop = Image.named_light_dark('stop.png')
+		self.settings = Image.named_light_dark('settings.png')
+		self.pause = Image.named_light_dark('pause.png')
 
-		self.refresh = Image.named_light_dark('material/refresh.png')
-		self.plus = Image.named_light_dark('material/plus.png')
-		self.help = Image.named_light_dark('material/help.png')
-		self.clear = Image.named_light_dark('material/clear.png')
+		self.clear = Image.named_light_dark('clear.png')
 
-		self.stop_disable = Image.named_light_dark('material/baseline_stop_white_disable_48dp.png')
-		self.pause_disable = Image.named_light_dark('material/baseline_pause_white_disable_48dp.png')
-		self.right_disable = Image.named_light_dark('material/baseline_keyboard_arrow_right_white_disable_48dp.png')
-		self.down_disable = Image.named_light_dark('material/baseline_keyboard_arrow_down_white_disable_48dp.png')
-		self.left_disable = Image.named_light_dark('material/baseline_keyboard_arrow_left_white_disable_48dp.png')
+		self.stop_disable = Image.named_light_dark('stop_disabled.png')
+		self.pause_disable = Image.named_light_dark('pause_disabled.png')
 
-		self.thread = Image.named_light_dark('material/baseline_sort_white_48dp.png')
-		self.dots = Image.named_light_dark('material/baseline_more_horiz_white_48dp.png')
-		self.more = Image.named_light_dark('material/baseline_more_horiz_white_48dp.png')
-		self.not_checked = Image.named_light_dark('material/baseline_check_box_outline_blank_white_48dp.png')
-		self.checked = Image.named_light_dark('material/baseline_check_box_white_48dp.png')
+		self.up = Image.named_light_dark('up.png')
+		self.down = Image.named_light_dark('step_over.png')
+		self.left = Image.named_light_dark('step_out.png')
+		self.right = Image.named_light_dark('step_into.png')
 
-		self.open = Image.named_light_dark('triangle-open.png')
-		self.close = Image.named_light_dark('triangle-close.png')
+		self.down_disable = Image.named_light_dark('step_over_disabled.png')
+		self.left_disable = Image.named_light_dark('step_out_disabled.png')
+		self.right_disable = Image.named_light_dark('step_into_disabled.png')
+
+		self.thread = Image.named_light_dark('thread_stopped.png')
+		self.thread_running = Image.named_light_dark('thread_running.png')
+
+		self.open = Image.named_light_dark('open.png')
+		self.close = Image.named_light_dark('close.png')
