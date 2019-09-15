@@ -65,6 +65,7 @@ class Terminal:
 		self._name = name
 		self.on_updated = Event()
 		self.line_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
+		self.escape_input = True
 
 	def name(self) -> str:
 		return self._name
@@ -101,6 +102,8 @@ class Terminal:
 
 	def writeable(self) -> bool:
 		return False
+	def can_escape_input(self) -> bool:
+		return False
 	def writeable_prompt(self) -> str:
 		return ""
 	def write(self, text: str):
@@ -132,10 +135,20 @@ class TerminalProcess (Terminal):
 
 	def writeable(self) -> bool:
 		return True
+	
 	def writeable_prompt(self) -> str:
-		return "click to write to stdin"
+		if self.escape_input:
+			return "click to write a line to stdin"
+		return "click to write escaped input to stdin"
+
 	def write(self, text: str):
-		self.process.write(text)
+		if self.escape_input:
+			text = text.encode('utf-8').decode("unicode_escape")
+
+		self.process.write(text + '\n')
+	
+	def can_escape_input(self) -> bool:
+		return True
 
 	def dispose(self):
 		self.process.dispose()
@@ -184,6 +197,7 @@ class StandardLine (Line):
 		self.line = None #type: Optional[int]
 		self.color = _color_for_type.get(type, "secondary")
 		self.on_clicked_source = on_clicked_source
+
 	def append(self, text: str):
 		self.text += text
 
@@ -253,6 +267,10 @@ class TerminalComponent (ui.Block):
 	def on_input(self):
 		label = "write to terminal"
 		input.getInputAutocomplete(label, self.terminal.write, repeat=True)
+	
+	def on_toggle_input_mode(self):
+		self.terminal.escape_input = not self.terminal.escape_input
+		self.dirty()
 
 	def action_buttons(self) -> List[Tuple[ui.Image, Callable]]:
 		return [
@@ -296,10 +314,18 @@ class TerminalComponent (ui.Block):
 
 		if self.terminal.writeable():
 			label = self.terminal.writeable_prompt()
+			offset = (max_line_length - len(label)) * self.layout.em_width() - 2.0
 			input = ui.Button(self.on_input, items=[
 				ui.Img(ui.Images.shared.right),
 				ui.Label(label, color="secondary"),
 			])
-			lines.append(ui.block(input))
+			if self.terminal.can_escape_input():
+				mode_toggle = ui.Button(self.on_toggle_input_mode, items = [
+					ui.Label('\\esc', width=offset, align=1, color=["primary", "secondary"][self.terminal.escape_input]),
+				])
+				lines.append(ui.block(input, mode_toggle))
+			else:
+				lines.append(ui.block(input))
+		
 		return lines
 
