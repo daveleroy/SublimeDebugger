@@ -294,13 +294,14 @@ class StdioTransport(Transport):
 
 				if content_length > 0:
 					total_content = b""
-					while (content_length > 0):
+					while (self.process and content_length > 0):
 						content = self.process.stdout.read(content_length)
 						content_length -= len(content)
 						total_content += content
-					
-					message = total_content.decode("UTF-8")
-					core.call_soon_threadsafe(self.on_receive, message)
+
+					if content_length == 0:
+						message = total_content.decode("UTF-8")
+						core.call_soon_threadsafe(self.on_receive, message)
 
 			except IOError as err:
 				self.close()
