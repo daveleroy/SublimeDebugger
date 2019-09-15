@@ -1,0 +1,20 @@
+For getting set up see https://github.com/daveleroy/sublime_debugger/blob/master/docs/setup.md
+If you have issues or need help https://github.com/daveleroy/sublime_debugger
+
+For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
+
+Whats new in version 0.1.4
+• New layout to better support temporary panels created for build results/integrated terminal (and in the future allow customizing the layout of the panels)
+• New console rendering code to support text wrapping and build results/integrated terminal
+• (WIP) Support internal terminal requests to allow program input. Requires configurat changes to use this feature which depends on the adapter in question. (LLVM uses "terminal": "intergrated")
+• Allow defining platform specific configuration settings with a top level object called "linux", "osx", or "windows" in your configuration. Same as vscode 
+• Fixes issue where hover providers/autocomplete/run command was not working for some debug adapters 
+• Fixes issue where using $file and other variables in a configuration had their values expanded when the debugger was opened not when the debugger was started
+• Fixes some wonkyness that occured when stepping the debugger that caused it to not update correctly
+
+Whats new in version 0.1.3
+• When attempting to open the debugger in a window without a sublime project promp the user to create one.
+• Fixes some other minor bugs and configuration issues
+
+Whats new in version 0.1.0
+• Adds package control support

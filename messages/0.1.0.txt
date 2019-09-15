@@ -1,6 +1,0 @@
-Whats new in version 0.1.0
-
-- Adds package control support
-
-For a full list of changes https://github.com/daveleroy/sublime_debugger/commits/0.1.0
-If you have issues https://github.com/daveleroy/sublime_debugger
