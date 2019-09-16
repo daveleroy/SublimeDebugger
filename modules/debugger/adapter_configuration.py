@@ -84,7 +84,7 @@ class Configuration:
 				platform = self.all.get('osx', {})
 			elif core.platform.linux:
 				platform = self.all.get('linux', {})
-			elif core.platform.linux:
+			elif core.platform.windows:
 				platform = self.all.get('windows', {})
 			else:
 				platform = {}
