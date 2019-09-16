@@ -86,6 +86,9 @@ class Configuration:
 				platform = self.all.get('linux', {})
 			elif core.platform.linux:
 				platform = self.all.get('windows', {})
+			else:
+				platform = {}
+
 			for item in platform.items():
 				self.all[item[0]] = item[1]
 
