@@ -3,7 +3,6 @@
 		"node",
 		"${package}/data/debug_adapters/vscode-php/extension/out/phpDebug.js"
 	],
-
 	"hover_word_regex_match" : "\\$[a-zA-Z0-9_]*",
 	"hover_word_seperators" : "./\\()\"'-:,.;<>~!@#%^&*|+=[]{}`~?.",
 	"installation": {

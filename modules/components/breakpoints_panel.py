@@ -39,7 +39,7 @@ class BreakpointsPanel(ui.Block):
 	def __init__(self, breakpoints: Breakpoints, on_expand: Callable[[Breakpoint], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
-		self.selected = None
+		self.selected = None #type: Optional[Breakpoint]
 		# FIXME put in on activate/deactivate
 		self.breakpoints.onUpdatedFunctionBreakpoint.add(self._updated)
 		self.breakpoints.onUpdatedBreakpoint.add(self._updated)
@@ -91,10 +91,11 @@ class BreakpointsPanel(ui.Block):
 				]),
 				ui.Label(filter.name, color=color, padding_left=0.25, width=13.6, align=0)
 			))
-		for breakpoint in self.breakpoints.functionBreakpoints:
-			color = colors[breakpoint == self.selected]
-			name = breakpoint.name
-			i = self.item(breakpoint, breakpoint.image(), name, "ƒn", breakpoint.enabled)
+
+		for function_breakpoint in self.breakpoints.functionBreakpoints:
+			color = colors[function_breakpoint == self.selected]
+			name = function_breakpoint.name
+			i = self.item(function_breakpoint, function_breakpoint.image(), name, "ƒn", function_breakpoint.enabled)
 			items.append(i)
 
 		for breakpoint in self.breakpoints.breakpoints:

@@ -2,13 +2,9 @@ from ..typecheck import *
 
 import os
 
-from .. import ui
-from .. import core
+from .. import core, ui, dap
 
 from ..debugger.debugger import (
-	Thread,
-	StackFrame,
-	DebugAdapterClient,
 	DebuggerStateful,
 	ThreadStateful
 )
@@ -109,7 +105,7 @@ class ThreadComponent (ui.Block):
 
 
 class StackFrameComponent (ui.Block):
-	def __init__(self, frame: StackFrame, on_click: Callable[[], None]) -> None:
+	def __init__(self, frame: dap.StackFrame, on_click: Callable[[], None]) -> None:
 		super().__init__()
 		self.frame = frame
 		self.on_click = on_click
@@ -117,7 +113,7 @@ class StackFrameComponent (ui.Block):
 	def render(self) -> ui.Block.Children:
 		frame = self.frame
 		name = os.path.basename(frame.file)
-		if frame.presentation == StackFrame.subtle:
+		if frame.presentation == dap.StackFrame.subtle:
 			color = "secondary"
 		else:
 			color = "primary"

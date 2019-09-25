@@ -1,8 +1,24 @@
 [
-	{ "caption": "-", "id": "debugger_start" },
-	{
-		"caption": "Toggle breakpoint",
-		"command": "debugger_toggle_breakpoint"
-	},
-	{ "caption": "-", "id": "debugger_end" }
+    {
+        "id": "debugger",
+        "caption": "-"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "toggle_breakpoint"
+        },
+        "caption": "Toggle Breakpoint"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "run_to_current_line"
+        },
+        "caption": "Run To Cursor"
+    },
+    {
+        "id": "debugger",
+        "caption": "-"
+    }
 ]

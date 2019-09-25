@@ -11,6 +11,7 @@ from .modules import core
 
 # import all the commands so that sublime sees them
 from .modules.commands import *
+from .modules.debugger.commands import DebuggerCommand
 from .modules.debugger.output_panel import *
 from .modules.debugger.debugger_interface import *
 from .modules.debugger.build.build import DebuggerBuildExecCommand

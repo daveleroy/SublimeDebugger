@@ -323,6 +323,7 @@ class Breakpoints:
 	def add_breakpoint(self, file: str, line: int):
 		b = Breakpoint(file, line, True)
 		self.add(b)
+		return b
 
 	def add(self, breakpoint: Breakpoint):
 		self.breakpoints.append(breakpoint)

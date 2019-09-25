@@ -2,13 +2,7 @@ from ..typecheck import *
 if TYPE_CHECKING:
 	from .debugger import DebuggerStateful
 	
-from .. import core
-
-from ..debugger.debugger import (
-	Thread,
-	StackFrame,
-	DebugAdapterClient,
-)
+from .. import core, dap
 
 class ThreadStateful:
 	def __init__(self, debugger: 'DebuggerStateful', id: int, name: Optional[str], stopped: bool):
@@ -56,7 +50,7 @@ class ThreadStateful:
 		return self._stopped
 
 	@property
-	def frames(self)->List[StackFrame]:
+	def frames(self)->List[dap.StackFrame]:
 		if self.expanded:
 			return self._frames
 		return []
@@ -66,7 +60,7 @@ class ThreadStateful:
 			return
 
 		self.fetched = True
-		def response(frames: List[StackFrame]):
+		def response(frames: List[dap.StackFrame]):
 			self._frames = frames
 			self.debugger.update_selection_if_needed()
 			self.dirty()

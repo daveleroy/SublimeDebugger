@@ -7,7 +7,6 @@ from .. import ui
 from ..debugger.adapter_configuration import AdapterConfiguration, install_adapter
 from ..debugger.debugger_interface import DebuggerInterface
 
-from .debugger import DebuggerCommand
 
 def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):
 	values = []
@@ -28,16 +27,15 @@ def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):
 
 	@core.async
 	def run_async(list, adapter):
-		
-		debugger.console_panel.Add("installing debug adapter...")
+		debugger.terminal.log_info("installing debug adapter...")
 		try: 
 			yield from install_adapter(adapter)
 		except Exception as e:
-			debugger.console_panel.Add(str(e))
-			debugger.console_panel.Add("... debug adapter installed failed")
+			debugger.terminal.log_error(str(e))
+			debugger.terminal.log_error("... debug adapter installed failed")
 		finally:
 			adapter.installing = False
-		debugger.console_panel.Add("... debug adapter installed")
+		debugger.terminal.log_info("... debug adapter installed")
 		
 		open_install_adapter_menu(debugger, list)
 
@@ -52,8 +50,3 @@ def open_install_adapter_menu(debugger: DebuggerInterface, selected_index = 0):
 		ui.run_input_command(input(selected_index), run)
 
 	ui.run_input_command(input(selected_index), run, run_not_main=run_not_main)
-
-
-class DebuggerInstallAdapter(DebuggerCommand):
-	def on_main(self, debugger: DebuggerInterface) -> None:
-		open_install_adapter_menu(debugger)

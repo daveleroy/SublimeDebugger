@@ -15,7 +15,7 @@ future = asyncio.Future
 CancelledError = asyncio.CancelledError
 
 _main_executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
-_main_loop = None
+_main_loop = None #type: asyncio.BaseDefaultEventLoopPolicy
 _main_thread = None
 
 def _create_main_loop():
@@ -75,23 +75,23 @@ def stop_event_loop() -> None:
 
 
 def all_methods(decorator):
-    def decorate(cls):
-        for attribute in cls.__dict__:
-            if callable(getattr(cls, attribute)):
-                setattr(cls, attribute, decorator(getattr(cls, attribute)))
-        return cls
-    return decorate
+	def decorate(cls):
+		for attribute in cls.__dict__:
+			if callable(getattr(cls, attribute)):
+				setattr(cls, attribute, decorator(getattr(cls, attribute)))
+		return cls
+	return decorate
 
 
 '''decorator for requiring that a function must be run in the background'''
 def require_main_thread(function):
-    def wrapper(*args, **kwargs):
-        assert_main_thread()
-        return function(*args, **kwargs)
-    return wrapper
+	def wrapper(*args, **kwargs):
+		assert_main_thread()
+		return function(*args, **kwargs)
+	return wrapper
 
 
-def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: Callable[[Exception], None] = None) -> None:
+def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: Callable[[Exception], None] = None) -> asyncio.Future:
 	task = asyncio.ensure_future(awaitable, loop=_main_loop)
 
 	def done(task) -> None:

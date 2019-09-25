@@ -38,12 +38,9 @@ class DebuggerPanel(ui.Block):
 		self.callbacks = callbacks
 		self.name = ''
 		self.breakpoints = breakpoints
+	
 	def setState(self, state: int) -> None:
 		self.state = state
-		self.dirty()
-
-	def set_name(self, name: str) -> None:
-		self.name = name
 		self.dirty()
 
 	def render(self) -> ui.Block.Children:
@@ -86,14 +83,10 @@ class DebuggerPanel(ui.Block):
 			items.append(
 				DebuggerItem(self.callbacks.on_play, ui.Img(ui.Images.shared.play))
 			)
-		if stop:
-			items.append(
-				DebuggerItem(self.callbacks.on_stop, ui.Img(ui.Images.shared.stop))
-			)
-		else:
-			items.append(
-				DebuggerItem(self.callbacks.on_stop, ui.Img(ui.Images.shared.stop_disable))
-			)
+
+		items.append(
+			DebuggerItem(self.callbacks.on_stop, ui.Img(ui.Images.shared.stop), ui.Img(ui.Images.shared.stop_disable))
+		)
 
 		if not controls:
 			items.append(
@@ -108,18 +101,12 @@ class DebuggerPanel(ui.Block):
 				DebuggerItem(self.callbacks.on_resume, ui.Img(ui.Images.shared.resume))
 			)
 
-		if controls:
-			items.extend([
-				DebuggerItem(self.callbacks.on_step_over, ui.Img(ui.Images.shared.down)),
-				DebuggerItem(self.callbacks.on_step_out, ui.Img(ui.Images.shared.left)),
-				DebuggerItem(self.callbacks.on_step_in, ui.Img(ui.Images.shared.right)),
-			])
-		else:
-			items.extend([
-				DebuggerItem(self.callbacks.on_step_over, ui.Img(ui.Images.shared.down_disable)),
-				DebuggerItem(self.callbacks.on_step_out, ui.Img(ui.Images.shared.left_disable)),
-				DebuggerItem(self.callbacks.on_step_in, ui.Img(ui.Images.shared.right_disable)),
-			])
+		items.extend([
+			DebuggerItem(self.callbacks.on_step_over, ui.Img(ui.Images.shared.down), ui.Img(ui.Images.shared.down_disable)),
+			DebuggerItem(self.callbacks.on_step_out, ui.Img(ui.Images.shared.left), ui.Img(ui.Images.shared.left_disable)),
+			DebuggerItem(self.callbacks.on_step_in, ui.Img(ui.Images.shared.right), ui.Img(ui.Images.shared.right_disable)),
+		])
+			
 
 		items_new = []
 		for item in items:
@@ -131,10 +118,16 @@ class DebuggerPanel(ui.Block):
 
 
 class DebuggerItem (ui.Inline):
-	def __init__(self, callback: Callable[[], None], image: ui.Img) -> None:
+	def __init__(self, callback: Callable[[], None], enabled_image: ui.Img, disabled_image: Optional[ui.Img] = None) -> None:
 		super().__init__()
-		self.image = image
+		
+		if not callback.enabled() and disabled_image:
+			self.image = disabled_image
+		else:
+			self.image = enabled_image
+
 		self.callback = callback
+
 
 	def render(self) -> ui.Inline.Children:
 		return [

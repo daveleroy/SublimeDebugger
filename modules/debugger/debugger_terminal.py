@@ -1,8 +1,9 @@
-
 from ..typecheck import *
-from .terminal import TerminalStandard, Line, LineSourceComponent
-from .. import dap, ui, core
+
+from ..import dap, ui, core
+
 from ..components.variable_component import VariableStatefulComponent, VariableStateful
+from .terminal import TerminalStandard, Line, LineSourceComponent
 
 class VariableLine(Line):
 	def __init__(self, variable: dap.Variable, source: Optional[dap.Source], line: Optional[int], on_clicked_source: Callable[[], None])  -> None:
@@ -41,7 +42,7 @@ class DebuggerTerminal (TerminalStandard):
 	def write(self, text: str):
 		self.on_run_command(text)
 
-	def program_output(self, client: dap.DebugAdapterClient, event: dap.OutputEvent):
+	def program_output(self, client: dap.Client, event: dap.OutputEvent):
 		variablesReference = event.variablesReference
 		if variablesReference:
 			# this seems to be what vscode does it ignores the actual message here.

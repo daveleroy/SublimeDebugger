@@ -1,69 +1,120 @@
 [
-	{
-		"caption": "Preferences: Debugger Settings",
-		"command": "edit_settings",
-		"args": {
-		  "base_file": "${packages}/Debugger/debugger.sublime-settings"
-		}
-	},
-	{
-		"caption" : "Debugger: Open in project",
-		"command" : "debugger_open"
-	},
-	{
-		"caption" : "Debugger: Refresh phantoms",
-		"command" : "debugger_refresh_phantoms"
-	},
-	{
-		"caption" : "Debugger: Quit",
-		"command" : "debugger_quit"
-	},
-	{
-		"caption" : "Debugger: Start",
-		"command" : "debugger_start"
-	},
-	{
-		"caption" : "Debugger: Stop",
-		"command" : "debugger_stop"
-	},
-	{
-		"caption" : "Debugger: Step Over",
-		"command" : "debugger_step_over"
-	},
-	{
-		"caption" : "Debugger: Step Out",
-		"command" : "debugger_step_out"
-	},
-	{
-		"caption" : "Debugger: Step In",
-		"command" : "debugger_step_in"
-	},
-	{
-		"caption" : "Debugger: Pause",
-		"command" : "debugger_pause"
-	},
-	{
-		"caption" : "Debugger: Resume",
-		"command" : "debugger_resume"
-	},
-	{
-		"caption" : "Debugger: Run Command",
-		"command" : "debugger_run_command"
-	},
-	{
-		"caption" : "Debugger: Toggle Breakpoint",
-		"command" : "debugger_toggle_breakpoint"
-	},
-	{
-		"caption" : "Debugger: Configurations",
-		"command" : "debugger_change_configuration"
-	},
-	{
-		"caption" : "Debugger: Install Adapters",
-		"command" : "debugger_install_adapter"
-	},
-	{
-		"caption" : "_",
-		"command" : "debugger_input"
-	},
+    {
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/Debugger/debugger.sublime-settings"
+        },
+        "caption": "Preferences: Debugger Settings"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "open"
+        },
+        "caption": "Debugger: Open"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "quit"
+        },
+        "caption": "Debugger: Quit"
+    },
+    {
+        "id": "debugger",
+        "caption": "-"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "install_adapters"
+        },
+        "caption": "Debugger: Install Adapters"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "change_configuration"
+        },
+        "caption": "Debugger: Change Configuration"
+    },
+    {
+        "id": "debugger",
+        "caption": "-"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "start"
+        },
+        "caption": "Debugger: Start"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "stop"
+        },
+        "caption": "Debugger: Stop"
+    },
+    {
+        "id": "debugger",
+        "caption": "-"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "pause"
+        },
+        "caption": "Debugger: Pause"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "continue"
+        },
+        "caption": "Debugger: Continue"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "step_over"
+        },
+        "caption": "Debugger: Step Over"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "step_in"
+        },
+        "caption": "Debugger: Step In"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "step_out"
+        },
+        "caption": "Debugger: Step Out"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "run_command"
+        },
+        "caption": "Debugger: Run Command"
+    },
+    {
+        "id": "debugger",
+        "caption": "-"
+    },
+    {
+        "command": "debugger",
+        "args": {
+            "action": "refresh_phantoms"
+        },
+        "caption": "Debugger: Refresh Phantoms"
+    },
+    {
+        "command": "debugger_input",
+        "caption": "_"
+    }
 ]

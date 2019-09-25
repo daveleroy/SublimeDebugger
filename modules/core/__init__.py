@@ -4,7 +4,8 @@ from .sublime import *
 from .log import *
 from .event import Handle, Event, EventDispatchMain
 from . import platform
-
+from .error import Error
+from .dispose import Disposables
 _current_package = ""
 
 def current_package() -> str:

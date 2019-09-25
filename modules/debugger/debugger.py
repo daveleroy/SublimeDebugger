@@ -2,37 +2,14 @@ from ..typecheck import *
 
 import sublime
 
-from .. import core
+from .. import core, dap
 
-from ..dap.client import (
-	DebugAdapterClient,
-	StoppedEvent,
-	ContinuedEvent,
-	OutputEvent
-)
 from ..dap.transport import (
-	start_tcp_transport,
 	Process,
-	TCPTransport,
 	StdioTransport
-)
-from ..dap.types import (
-	StackFrame,
-	EvaluateResponse,
-	Thread,
-	Scope,
-	Variable,
-	CompletionItem,
-	Error,
-	Capabilities,
-	ExceptionBreakpointsFilter,
-	Source,
-	ThreadEvent
 )
 
 from .terminal import Terminal, TerminalProcess, TerminalStandard
-
-from .. import dap
 
 from .adapter_configuration import (
 	ConfigurationExpanded,
@@ -61,9 +38,9 @@ class DebuggerStateful:
 	def __init__(self,
 			breakpoints: Breakpoints,
 			on_state_changed: Callable[[int], None],
-			on_scopes: Callable[[List[Scope]], None],
-			on_output: Callable[[OutputEvent], None],
-			on_selected_frame: Callable[[Optional[Thread], Optional[StackFrame]], None],
+			on_scopes: Callable[[List[dap.Scope]], None],
+			on_output: Callable[[dap.OutputEvent], None],
+			on_selected_frame: Callable[[Optional[dap.Thread], Optional[dap.StackFrame]], None],
 			on_threads_stateful: Callable[[List[ThreadStateful]], None],
 			on_terminals: Callable[[List[Terminal]], None],
 		) -> None:
@@ -74,19 +51,19 @@ class DebuggerStateful:
 		self.on_selected_frame = on_selected_frame
 		self.on_terminals = on_terminals
 
-		self.adapter = None #type: Optional[DebugAdapterClient]
+		self.adapter = None #type: Optional[dap.Client]
 		self.process = None #type: Optional[Process]
 		self.launching_async = None
 
 		self.launch_request = True
 		self.supports_terminate_request = True
 
-		self.selected_frame = None #type: Optional[StackFrame]
+		self.selected_frame = None #type: Optional[Union[dap.StackFrame, ThreadStateful]]
 		self.selected_thread_explicitly = False
-		self.selected_threadstateful = None #type: Optional[Thread]
+		self.selected_threadstateful = None #type: Optional[ThreadStateful]
 
-		self.threads_stateful = []
-		self.threads_stateful_from_id = {}
+		self.threads_stateful = [] #type: List[ThreadStateful]
+		self.threads_stateful_from_id = {} #type: Dict[int, ThreadStateful]
 		self.terminals = [] #type: List[Terminal]
 		self._state = DebuggerStateful.stopped
 
@@ -97,6 +74,7 @@ class DebuggerStateful:
 		breakpoints.onSendBreakpointToDebugger.add(self.onSendBreakpointToDebugger)
 		breakpoints.onSendFunctionBreakpointToDebugger.add(self.onSendFunctionBreakpointToDebugger)
 
+		self.state_changed = core.Event() #type: Event
 
 	def dispose_terminals(self):
 		for terminal in self.terminals:
@@ -122,6 +100,7 @@ class DebuggerStateful:
 
 		self._state = state
 		self.on_state_changed(state)
+		self.state_changed()
 
 	def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded) -> core.awaitable[None]:
 		if self.launching_async:
@@ -162,30 +141,9 @@ class DebuggerStateful:
 			yield from build.run(sublime.active_window(), terminal.write_stdout, configuration.all['sublime_debugger_build'])
 			self.log_info('... finished running build')
 
-		# If there is a command to run for this debugger run it now
-		if adapter_configuration.tcp_port:
-			self.log_info('starting debug adapter...')
-			try:
-				self.process = Process(adapter_configuration.command, on_stdout=self.log_info, on_stderr=self.log_info)
-			except Exception as e:
-				self.log_error('Failed to start debug adapter process: {}'.format(e))
-				self.log_error('Command in question: {}'.format(adapter_configuration.command))
-				core.display('Failed to start debug adapter process: Check the Event Log for more details')
-				raise Exception("failed to start debug adapter process")
-			tcp_address = adapter_configuration.tcp_address or 'localhost'
-			try:
-				transport = yield from start_tcp_transport(tcp_address, adapter_configuration.tcp_port)
-			except Exception as e:
-				self.log_error('Failed to connect to debug adapter: {}'.format(e))
-				self.log_error('address: {} port: {}'.format(tcp_address, adapter_configuration.tcp_port))
-				core.display('Failed to connect to debug adapter: Check the Event Log for more details and messages from the debug adapter process?')
-				raise Exception("failed to start debug adapter process")
-
-			self.log_info('... debug adapter started')
-		else:
-			# dont monitor stdout the StdioTransport users it
-			self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.log_info)
-			transport = StdioTransport(self.process)
+		# dont monitor stdout the StdioTransport uses it
+		self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.log_info)
+		transport = StdioTransport(self.process)
 
 		def on_run_in_terminal(request: dap.RunInTerminalRequest) -> int:
 			terminal = TerminalProcess(request.cwd, request.args)
@@ -193,7 +151,7 @@ class DebuggerStateful:
 			self.on_terminals(self.terminals)
 			return terminal.pid()
 
-		adapter = DebugAdapterClient(transport, 
+		adapter = dap.Client(transport, 
 			on_run_in_terminal = on_run_in_terminal
 		)
 		adapter.onThreads.add(self._on_threads_event)
@@ -290,7 +248,7 @@ class DebuggerStateful:
 			if self.supports_terminate_request:
 				try:
 					yield from self.adapter.Terminate()
-				except Error as e:
+				except dap.Error as e:
 					yield from self.adapter.Disconnect()
 			else:
 				yield from self.adapter.Disconnect()
@@ -310,6 +268,7 @@ class DebuggerStateful:
 
 		self.threads_stateful_from_id = {}
 		self.threads_stateful = []
+
 		self.on_threads_stateful(self.threads_stateful)
 		self.on_scopes([])
 		self.on_selected_frame(None, None)
@@ -360,19 +319,19 @@ class DebuggerStateful:
 		adapter = self.adapter
 
 		response = yield from adapter.Evaluate(command, self.selected_frame, "repl")
-		event = OutputEvent("console", response.result, response.variablesReference)
+		event = dap.OutputEvent("console", response.result, response.variablesReference)
 		self.on_output(event)
 
 	def log_info(self, string: str) -> None:
-		output = OutputEvent("debugger.info", string + '\n', 0)
+		output = dap.OutputEvent("debugger.info", string + '\n', 0)
 		self.on_output(output)
 
 	def log_output(self, string: str) -> None:
-		output = OutputEvent("debugger.output", string + '\n', 0)
+		output = dap.OutputEvent("debugger.output", string + '\n', 0)
 		self.on_output(output)
 
 	def log_error(self, string: str) -> None:
-		output = OutputEvent("debugger.error", string + '\n', 0)
+		output = dap.OutputEvent("debugger.error", string + '\n', 0)
 		self.on_output(output)
 
 	# after a successfull launch/attach, stopped event, thread event we request all threads
@@ -384,7 +343,7 @@ class DebuggerStateful:
 			self._update_threads(threads)
 		core.run(async())
 
-	def _update_threads(self, threads: Optional[List[Thread]]) -> None:
+	def _update_threads(self, threads: Optional[List[dap.Thread]]) -> None:
 		self.threads_stateful = []
 		threads_stateful_from_id = {}
 
@@ -405,10 +364,10 @@ class DebuggerStateful:
 		self.update_selection_if_needed()
 		self.on_threads_stateful(self.threads_stateful)
 
-	def _on_threads_event(self, event: ThreadEvent) -> None:
+	def _on_threads_event(self, event: dap.ThreadEvent) -> None:
 		self.refresh_threads()
 
-	def _on_output_event(self, event: OutputEvent) -> None:
+	def _on_output_event(self, event: dap.OutputEvent) -> None:
 		self.on_output(event)
 
 	def _thread_for_command(self) -> ThreadStateful:
@@ -448,7 +407,7 @@ class DebuggerStateful:
 
 	def reload_scopes(self):
 		frame = None
-		if isinstance(self.selected_frame, StackFrame):
+		if isinstance(self.selected_frame, dap.StackFrame):
 			frame = self.selected_frame
 			
 		elif isinstance(self.selected_frame, ThreadStateful) and self.selected_frame.frames:
@@ -460,7 +419,7 @@ class DebuggerStateful:
 		core.run(self.adapter.GetScopes(frame), self.on_scopes)
 		self.on_selected_frame(self.selected_threadstateful, frame)
 
-	def select_threadstateful(self, thread: ThreadStateful, frame: Optional[StackFrame]):
+	def select_threadstateful(self, thread: ThreadStateful, frame: Optional[dap.StackFrame]):
 		self.selected_threadstateful = thread
 		self.selected_threadstateful.fetch_if_needed()
 		if frame:
@@ -479,7 +438,7 @@ class DebuggerStateful:
 		thread = ThreadStateful(self, id, None, self.adapter.allThreadsStopped)
 		return thread
 
-	def _on_continued_event(self, event: ContinuedEvent) -> None:
+	def _on_continued_event(self, event: dap.ContinuedEvent) -> None:
 		if not event:
 			return
 
@@ -499,7 +458,7 @@ class DebuggerStateful:
 
 		self._refresh_state()
 	
-	def _on_stopped_event(self, event: StoppedEvent) -> None:
+	def _on_stopped_event(self, event: dap.StoppedEvent) -> None:
 		self.refresh_threads()
 
 		event_thread = self._threadstateful_for_id(event.threadId)

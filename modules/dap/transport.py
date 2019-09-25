@@ -46,8 +46,8 @@ class Process:
 		# Hide the console window on Windows
 		startupinfo = None
 		if os.name == "nt":
-			startupinfo = subprocess.STARTUPINFO()
-			startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+			startupinfo = subprocess.STARTUPINFO() #type: ignore
+			startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW #type: ignore
 
 		self.process = subprocess.Popen(command, 
 			stdout=subprocess.PIPE, 
@@ -135,119 +135,7 @@ class Transport:
 		assert False
 
 
-STATE_HEADERS = 0
-STATE_CONTENT = 1
-TCP_CONNECT_TIMEOUT = 5
 CONTENT_HEADER = b"Content-Length: "
-
-
-class TCPTransport(Transport):
-	def __init__(self, s: socket.socket) -> None:
-		self.socket = s  # type: 'Optional[socket.socket]'
-		self.send_queue = Queue()  # type: Queue[Optional[str]]
-
-	def start(self, on_receive: Callable[[str], None], on_closed: Callable[[], None]) -> None:
-		self.on_receive = on_receive
-		self.on_closed = on_closed
-		self.read_thread = threading.Thread(target=self.read_socket)
-		self.read_thread.start()
-		self.write_thread = threading.Thread(target=self.write_socket)
-		self.write_thread.start()
-
-	def close(self) -> None:
-		if self.socket == None:
-			return
-		self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
-		self.socket = None
-		core.call_soon_threadsafe(self.on_closed)
-
-	def dispose(self) -> None:
-		self.close()
-
-	def read_socket(self) -> None:
-		remaining_data = b""
-		is_incomplete = False
-		read_state = STATE_HEADERS
-		content_length = 0
-		while self.socket:
-			is_incomplete = False
-			try:
-				received_data = self.socket.recv(4096)
-			except Exception as err:
-				print("Failure reading from socket", err)
-				self.close()
-				break
-
-			if not received_data:
-				print("no data received, closing")
-				self.close()
-				break
-
-			data = remaining_data + received_data
-			remaining_data = b""
-			while len(data) > 0 and not is_incomplete:
-				if read_state == STATE_HEADERS:
-					headers, _sep, rest = data.partition(b"\r\n\r\n")
-					if len(_sep) < 1:
-						is_incomplete = True
-						remaining_data = data
-					else:
-						for header in headers.split(b"\r\n"):
-							if header.startswith(CONTENT_HEADER):
-								header_value = header[len(CONTENT_HEADER):]
-								content_length = int(header_value)
-								read_state = STATE_CONTENT
-						data = rest
-
-				if read_state == STATE_CONTENT:
-					# read content bytes
-					if len(data) >= content_length:
-						content = data[:content_length]
-						message = content.decode("UTF-8")
-						core.call_soon_threadsafe(self.on_receive, message)
-						data = data[content_length:]
-						read_state = STATE_HEADERS
-					else:
-						is_incomplete = True
-						remaining_data = data
-
-	def send(self, message: str) -> None:
-		self.send_queue.put(message)
-
-	def write_socket(self) -> None:
-		while self.socket:
-			message = self.send_queue.get()
-			if message is None:
-				break
-			else:
-				try:
-					self.socket.sendall(bytes('Content-Length: {}\r\n\r\n'.format(len(message)), 'UTF-8'))
-					self.socket.sendall(bytes(message, 'UTF-8'))
-					core.log_info(' << ', message)
-				except Exception as err:
-					print("Failure writing to socket", err)
-					self.close()
-
-
-# starts the tcp connection in a none blocking fashion
-@core.async
-def start_tcp_transport(host: str, port: int) -> core.awaitable[TCPTransport]:
-	def start_tcp_transport_inner() -> TCPTransport:
-		print('connecting to {}:{}'.format(host, port))
-		start_time = time.time()
-		while time.time() - start_time < TCP_CONNECT_TIMEOUT:
-			try:
-				sock = socket.create_connection((host, port))
-				transport = TCPTransport(sock)
-				return transport
-			except ConnectionRefusedError as e:
-				pass
-		raise Exception("Timeout connecting to socket")
-
-	print('connecting to {}:{}'.format(host, port))
-	transport = yield from core.run_in_executor(start_tcp_transport_inner)
-	return transport
-
 
 class StdioTransport(Transport):
 	def __init__(self, process: Process) -> None:

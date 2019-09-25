@@ -31,9 +31,10 @@ class SelectedLineText(ui.Block):
 
 class SelectedLine:
 	def __init__(self, view: sublime.View, line: int, text: str):
-		pt_current_line = view.text_point(line, 0)
-		pt_prev_line = view.text_point(line - 1, 0)
-		pt_next_line = view.text_point(line + 1, 0)
+		# note sublime lines are 0 based not 1 based
+		pt_current_line = view.text_point(line - 1, 0)
+		pt_prev_line = view.text_point(line - 2, 0)
+		pt_next_line = view.text_point(line, 0)
 		line_prev = view.line(pt_current_line)
 		line_current = view.line(pt_prev_line)
 

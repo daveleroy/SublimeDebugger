@@ -1,13 +1,6 @@
 from ..typecheck import *
 
-from .. import ui
-from .. import core
-
-from ..debugger.debugger import (
-	Scope,
-	Thread,
-	DebugAdapterClient
-)
+from .. import core, ui, dap
 
 from .variable_component import Variable, VariableStateful, VariableStatefulComponent
 from .layout import variables_panel_width
@@ -16,13 +9,13 @@ from .layout import variables_panel_width
 class VariablesPanel (ui.Block):
 	def __init__(self) -> None:
 		super().__init__()
-		self.scopes = [] #type: List[Scope]
+		self.scopes = [] #type: List[dap.Scope]
 
 	def clear(self) -> None:
 		self.scopes = []
 		self.dirty()
 
-	def set_scopes(self, scopes: List[Scope]) -> None:
+	def set_scopes(self, scopes: List[dap.Scope]) -> None:
 		self.scopes = scopes
 		self.dirty()
 
