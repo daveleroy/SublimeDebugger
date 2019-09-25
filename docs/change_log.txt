@@ -3,6 +3,10 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.1.6
+• Adds run to cursor command
+• Fixes issue preventing installing debug adapters
+
 Whats new in version 0.1.5
 • Fixes issue that prevented debugging on windows
 
