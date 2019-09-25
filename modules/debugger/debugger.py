@@ -444,17 +444,21 @@ class DebuggerStateful:
 
 		event_thread = self._threadstateful_for_id(event.threadId)
 		event_thread.on_continued()
-		if event_thread == self.selected_threadstateful:
-			self.selected_frame = None
-			self.selected_thread_explicitly = False
+
 
 		if event.allThreadsContinued:
 			self.selected_frame = None
 			self.selected_thread_explicitly = False
+			self.on_selected_frame(None, None)
 
 			for thread in self.threads_stateful:
 				if event_thread is not thread: 
 					thread.on_continued()
+
+		elif event_thread == self.selected_threadstateful:
+			self.selected_frame = None
+			self.selected_thread_explicitly = False
+			self.on_selected_frame(None, None)
 
 		self._refresh_state()
 	
