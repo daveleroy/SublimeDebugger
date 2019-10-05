@@ -5,7 +5,7 @@
 	],
 	"installation": {
 		"name": "vscode-firefox-debug",
-		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/hbenl/vsextensions/vscode-firefox-debug/latest/vspackage",
+		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/firefox-devtools/vsextensions/vscode-firefox-debug/latest/vspackage",
 		"format": "zip"
 	}
 }
