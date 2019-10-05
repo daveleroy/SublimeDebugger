@@ -19,8 +19,17 @@
 	// NOTE: this runs the "subl" command to accomplish this so it must be in your PATH
 	"bring_window_to_front_on_pause" : false,
 
+
+	// info includes debug adapter commands send/recieved and other (possibly) useful things
+	"log_info": false,
+
+	// any uncaught exceptions in the main loop get logged
+	// some caught exceptions also get logged so might not actually be an issue
+	"log_exceptions": true,
+	"log_errors": true,
+
 	// This is the list of debug adapters.
-	// If you are having issues running one ensure you have the required dependencies to run them the command
+	// If you are having issues running one ensure you have the required dependencies to run the the command
 	// Look in the docs for more info: https://github.com/daveleroy/debugger/blob/master/docs/setup.md
 	"adapters_custom" : {
 		// "adapter_name": {

@@ -264,7 +264,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.persistance = PersistedData(project_name)
 		self.persistance.load_breakpoints(self.breakpoints)
 
-		self.load_configurations()
+		self.load_settings_and_configurations()
 
 		self.disposeables.extend([
 			self.panel,
@@ -309,7 +309,16 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.debugger, self.breakpoints)
 		self.disposeables.append(self.breakpoints_provider)
 
-	def load_configurations(self) -> None:
+	def load_settings_and_configurations(self) -> None:
+
+		# logging settings
+		core.log_configure(
+			log_info=get_setting(self.window.active_view(), 'log_info', False),
+			log_errors=get_setting(self.window.active_view(), 'log_errors', True),
+			log_exceptions=get_setting(self.window.active_view(), 'log_exceptions', True),
+		)
+
+		# configuration settings
 		variables = extract_variables(self.window)
 		adapters = {}
 
@@ -359,7 +368,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 	def on_settings_updated(self) -> None:
 		print('Settings were udpdated: reloading configuations')
-		self.load_configurations()
+		self.load_settings_and_configurations()
 
 	def show(self) -> None:
 		self.panel.show()

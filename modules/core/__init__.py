@@ -36,5 +36,5 @@ def shutdown(on_main: Callable[[], None]) -> None:
 		event.set()
 
 	call_soon_threadsafe(shutdown_main_thread)
-	stop_event_loop()
 	event.wait(timeout=1)
+	stop_event_loop()
