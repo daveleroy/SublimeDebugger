@@ -14,3 +14,11 @@ class DebuggerProject:
 			return None
 
 		return view.file_name()
+
+	def extract_variables(self) -> dict:
+		variables = self.window.extract_variables()
+		variables["package"] = core.current_package()
+		project = variables.get('project_path')
+		if project:
+			variables['workspaceFolder'] = project
+		return variables

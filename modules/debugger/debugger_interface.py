@@ -22,7 +22,7 @@ from ..commands.commands import Autocomplete, AutoCompleteTextInputHandler
 from ..commands import breakpoint_menus
 from ..commands import select_configuration
 
-from .util import WindowSettingsCallback, get_setting, extract_variables
+from .util import WindowSettingsCallback, get_setting
 from .config import PersistedData
 
 from ..debugger.debugger import (
@@ -176,7 +176,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		autocomplete = Autocomplete.create_for_window(window)
 
-		self.input_open = False
 		self.window = window
 		self.disposeables = [] #type: List[Any]
 		
@@ -276,8 +275,9 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.disposeables.append(WindowSettingsCallback(self.window, self.on_settings_updated))
 
 		phantom_location = self.panel.phantom_location()
+		phantom_view = self.panel.phantom_view()
 		self.disposeables.extend([
-			ui.Phantom(self.debugger_panel, self.view, sublime.Region(phantom_location, phantom_location + 0), sublime.LAYOUT_INLINE),
+			ui.Phantom(self.debugger_panel, phantom_view, sublime.Region(phantom_location, phantom_location + 0), sublime.LAYOUT_INLINE),
 		])
 
 		callstack_panel_item = TabbedPanelItem(id(self.callstack_panel), self.callstack_panel, "Call Stack", 0)
@@ -293,7 +293,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(project_name)))
 
 
-		self.panels = Panels(self.view, phantom_location + 1, 3)
+		self.panels = Panels(phantom_view, phantom_location + 1, 3)
 		self.panels.add([
 			callstack_panel_item,
 			variables_panel_item,
@@ -319,7 +319,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		)
 
 		# configuration settings
-		variables = extract_variables(self.window)
+		variables = self.project.extract_variables()
 		adapters = {}
 
 		def load_adapter(adapter_name, adapter_json):
@@ -363,8 +363,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.configurations = configurations
 		self.configuration = self.persistance.load_configuration_option(configurations)
 
-		assert self.view
-		self.view.settings().set('font_size', get_setting(self.view, 'ui_scale', 12))
+		self.panel.ui_scale = get_setting(self.view, 'ui_scale', 12)
 
 	def on_settings_updated(self) -> None:
 		print('Settings were udpdated: reloading configuations')
@@ -473,7 +472,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 				core.display(e)
 				return
 
-			variables = extract_variables(self.window)
+			variables = self.project.extract_variables()
 			configuration_expanded = ConfigurationExpanded(configuration, variables)
 			yield from self.debugger.launch(adapter_configuration, configuration_expanded)
 

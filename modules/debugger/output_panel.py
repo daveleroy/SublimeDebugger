@@ -73,6 +73,17 @@ class OutputPhantomsPanel:
 	def phantom_location(self) -> int:
 		return self.view.size() - len(_phantom_text) + 2
 
+	def phantom_view(self) -> sublime.View:
+		return self.view
+
+	@property
+	def ui_scale(self) -> float:
+		return self.view.settings().get('font_size', 12)
+
+	@ui_scale.setter
+	def ui_scale(self, value: float) -> None:
+		self.view.settings().set('font_size', value)
+
 	def dispose(self) -> None:
 		self.window.destroy_output_panel(self.name)
 		del OutputPhantomsPanel.panels[self.window.id()]

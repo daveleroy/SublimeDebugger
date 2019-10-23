@@ -8,6 +8,7 @@ from ..typecheck import (
 import sublime
 from .. import core
 from .. import ui
+
 class SettingsChangedCallbabck:
 	id = 0
 
@@ -55,7 +56,6 @@ class WindowSettingsCallback:
 			self.settings_changed_callback = None
 
 
-
 def get_setting(view: Optional[sublime.View], setting: str, default: Any = None) -> Any:
 	plugin_settings = sublime.load_settings('debugger.sublime-settings')
 	plugin_setting = plugin_settings.get(setting, default)
@@ -64,12 +64,3 @@ def get_setting(view: Optional[sublime.View], setting: str, default: Any = None)
 
 	project_setting = view.settings().get("debug." + setting, plugin_setting)
 	return project_setting
-
-
-def extract_variables(window: sublime.Window) -> dict:
-	variables = window.extract_variables()
-	variables["package"] = core.current_package()
-	project = variables.get('project_path')
-	if project:
-		variables['workspaceFolder'] = project
-	return variables
