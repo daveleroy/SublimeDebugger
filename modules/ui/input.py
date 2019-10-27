@@ -63,6 +63,13 @@ def run_input_command(input, run, on_cancel=None, run_not_main=None):
 	def cb():
 		global sublime_command_visible
 		sublime_command_visible = True
+		
+		# if you don't clear the text then the debugger_input command can't be found in the command pallete....
+		window.run_command("show_overlay", {
+				"overlay": "command_palette",
+				"text": "",
+			}
+		)
 		window.run_command("hide_overlay", {
 				"overlay": "command_palette",
 			}
