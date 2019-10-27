@@ -107,7 +107,20 @@ class ConfigurationExpanded(Configuration):
 	def __init__(self, configuration: Configuration, variables: Any) -> None:
 		all = sublime.expand_variables(configuration.all, variables)
 		super().__init__(configuration.name, configuration.type, configuration.request, all, expand_platforms=False)
+		self.verify()
 
+	def verify(self):
+		def warn(text: str):
+			sublime.error_message(text)
+
+		def error(text: str):
+			raise core.Error(text)
+
+		if self.type == "python":
+			if self.request == "launch":
+				if not self.all.get("program"):
+					warn("Warning: Check your debugger configuration.\n\nField `program` in configuration is empty. If it contained a $variable that variable may not have existed.""")
+			return
 
 @core.async
 def install_adapter(adapter: AdapterConfiguration) -> core.awaitable[None]:
@@ -180,7 +193,23 @@ def _install_adapter_blocking(adapter: AdapterConfiguration):
 		shutil.copyfileobj(response, out_file)
 
 	if archive_format == "zip":
-		with zipfile.ZipFile(archive_name) as zf:
+		with ZipfileLongPaths(archive_name) as zf:
 			zf.extractall(adapter_path)
 
 	os.remove(archive_name)
+
+# Fix for long file paths on windows not being able to be extracted from a zip file
+# https://stackoverflow.com/questions/40419395/python-zipfile-extractall-ioerror-on-windows-when-extracting-files-from-long-pat
+class ZipfileLongPaths(zipfile.ZipFile):
+	def _path(self, path, encoding=None):
+		path = os.path.abspath(path)
+		if core.platform.windows:
+			if path.startswith("\\\\"):
+				path = "\\\\?\\UNC\\" + path[2:]
+			else:
+				path = "\\\\?\\" + path
+		return path
+
+	def _extract_member(self, member, targetpath, pwd):
+		targetpath = self._path(targetpath)
+		return zipfile.ZipFile._extract_member(self, member, targetpath, pwd)
