@@ -1,116 +1,100 @@
 [
     {
-        "command": "edit_settings",
         "args": {
             "base_file": "${packages}/Debugger/debugger.sublime-settings"
         },
+        "command": "edit_settings",
         "caption": "Preferences: Debugger Settings"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "open"
         },
+        "command": "debugger",
         "caption": "Debugger: Open"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "quit"
         },
+        "command": "debugger",
         "caption": "Debugger: Quit"
     },
     {
-        "id": "debugger",
-        "caption": "-"
-    },
-    {
-        "command": "debugger",
         "args": {
             "action": "install_adapters"
         },
+        "command": "debugger",
         "caption": "Debugger: Install Adapters"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "change_configuration"
         },
+        "command": "debugger",
         "caption": "Debugger: Change Configuration"
     },
     {
-        "id": "debugger",
-        "caption": "-"
-    },
-    {
-        "command": "debugger",
         "args": {
             "action": "start"
         },
+        "command": "debugger",
         "caption": "Debugger: Start"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "stop"
         },
+        "command": "debugger",
         "caption": "Debugger: Stop"
     },
     {
-        "id": "debugger",
-        "caption": "-"
-    },
-    {
-        "command": "debugger",
         "args": {
             "action": "pause"
         },
+        "command": "debugger",
         "caption": "Debugger: Pause"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "continue"
         },
+        "command": "debugger",
         "caption": "Debugger: Continue"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "step_over"
         },
+        "command": "debugger",
         "caption": "Debugger: Step Over"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "step_in"
         },
+        "command": "debugger",
         "caption": "Debugger: Step In"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "step_out"
         },
+        "command": "debugger",
         "caption": "Debugger: Step Out"
     },
     {
-        "command": "debugger",
         "args": {
             "action": "run_command"
         },
+        "command": "debugger",
         "caption": "Debugger: Run Command"
     },
     {
-        "id": "debugger",
-        "caption": "-"
-    },
-    {
-        "command": "debugger",
         "args": {
             "action": "refresh_phantoms"
         },
+        "command": "debugger",
         "caption": "Debugger: Refresh Phantoms"
     },
     {

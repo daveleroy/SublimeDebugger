@@ -189,10 +189,11 @@ def generate_commands_and_menus():
 	}
 
 
-	def generate_commands(actions, commands, prefix =""):
+	def generate_commands(actions, commands, prefix="", include_seperators=True):
 		for action in actions:
 			if action['caption'] == '-':
-				commands.append({"caption" : action['caption'], "id": "debugger"})
+				if include_seperators:
+					commands.append({"caption" : action['caption']})
 				continue
 
 			commands.append(
@@ -206,7 +207,7 @@ def generate_commands_and_menus():
 			)
 
 	commands_palette = []
-	generate_commands(actions_window, commands_palette, prefix="Debugger: ")
+	generate_commands(actions_window, commands_palette, prefix="Debugger: ", include_seperators=False)
 
 	commands_palette.insert(0, preferences)
 
@@ -241,3 +242,26 @@ def generate_commands_and_menus():
 
 	with open(current_package + '/Commands/Context.sublime-menu', 'w') as file:
 		json.dump(commands_context, file, indent=4, separators=(',', ': '))
+
+
+
+	keymap_commands = []
+
+	for action in actions_window + actions_context:
+		if action['caption'] == '-':
+			continue
+
+		keymap_commands.append(
+			{
+				"keys" : action.get('keys', "UNBOUND"),
+				"command" : "debugger",
+				"args": {
+					"action": action['action'],
+				}
+			}
+		)
+
+	with open(current_package + '/Commands/Default.sublime-keymap', 'w') as file:
+		json.dump(keymap_commands, file, indent=4, separators=(',', ': '))
+
+		

@@ -2,117 +2,113 @@
     {
         "children": [
             {
-                "command": "debugger",
                 "args": {
                     "action": "open"
                 },
+                "command": "debugger",
                 "caption": "Open"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "quit"
                 },
+                "command": "debugger",
                 "caption": "Quit"
             },
             {
-                "command": "edit_settings",
                 "args": {
                     "base_file": "${packages}/Debugger/debugger.sublime-settings"
                 },
+                "command": "edit_settings",
                 "caption": "Settings"
             },
             {
-                "id": "debugger",
                 "caption": "-"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "install_adapters"
                 },
+                "command": "debugger",
                 "caption": "Install Adapters"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "change_configuration"
                 },
+                "command": "debugger",
                 "caption": "Change Configuration"
             },
             {
-                "id": "debugger",
                 "caption": "-"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "start"
                 },
+                "command": "debugger",
                 "caption": "Start"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "stop"
                 },
+                "command": "debugger",
                 "caption": "Stop"
             },
             {
-                "id": "debugger",
                 "caption": "-"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "pause"
                 },
+                "command": "debugger",
                 "caption": "Pause"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "continue"
                 },
+                "command": "debugger",
                 "caption": "Continue"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "step_over"
                 },
+                "command": "debugger",
                 "caption": "Step Over"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "step_in"
                 },
+                "command": "debugger",
                 "caption": "Step In"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "step_out"
                 },
+                "command": "debugger",
                 "caption": "Step Out"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "run_command"
                 },
+                "command": "debugger",
                 "caption": "Run Command"
             },
             {
-                "id": "debugger",
                 "caption": "-"
             },
             {
-                "command": "debugger",
                 "args": {
                     "action": "refresh_phantoms"
                 },
+                "command": "debugger",
                 "caption": "Refresh Phantoms"
             }
         ],
