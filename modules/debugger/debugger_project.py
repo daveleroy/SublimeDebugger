@@ -1,6 +1,7 @@
 from ..typecheck import *
 
 import sublime
+from .. import core
 
 class DebuggerProject:
 	def __init__(self, window: sublime.Window):
