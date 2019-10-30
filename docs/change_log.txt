@@ -3,6 +3,9 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.1.8
+• Fixes core not defined error
+
 Whats new in version 0.1.7
 • Allow setting logging options in settings
 • Updated url for vscode-firefox-debugger (@appelgriebsch)
