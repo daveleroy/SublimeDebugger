@@ -90,6 +90,22 @@ actions_window = [
 	},
 	{	"caption": "-" },
 	{
+		"action": "add_function_breakpoint",
+		"caption": "Add Function Breakpoint",
+		"command": lambda window, debugger: debugger.add_function_breakpoint,
+	},
+	{
+		"action": "add_watch_expression",
+		"caption": "Add Watch Expression",
+		"command": lambda window, debugger: debugger.add_watch_expression,
+	},
+	{	"caption": "-" },
+	{
+		"action": "save_data",
+		"caption": "Save Breakpoints/Watch Expressions/...",
+		"command": lambda window, debugger: debugger.save_data,
+	},
+	{
 		"action": "refresh_phantoms",
 		"caption": "Refresh Phantoms",
 		"run": lambda window, debugger: debugger.refresh_phantoms(),
@@ -103,7 +119,11 @@ actions_context = [
 		"action": "toggle_breakpoint",
 		"caption": "Toggle Breakpoint",
 		"command": lambda window, debugger: debugger.toggle_breakpoint,
-		"opens": True,
+	},
+	{
+		"action": "toggle_column_breakpoint",
+		"caption": "Toggle Column Breakpoint",
+		"command": lambda window, debugger: debugger.toggle_column_breakpoint,
 	},
 	{
 		"action": "run_to_current_line",

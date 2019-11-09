@@ -6,15 +6,22 @@
         "args": {
             "action": "toggle_breakpoint"
         },
-        "command": "debugger",
-        "caption": "Toggle Breakpoint"
+        "caption": "Toggle Breakpoint",
+        "command": "debugger"
+    },
+    {
+        "args": {
+            "action": "toggle_column_breakpoint"
+        },
+        "caption": "Toggle Column Breakpoint",
+        "command": "debugger"
     },
     {
         "args": {
             "action": "run_to_current_line"
         },
-        "command": "debugger",
-        "caption": "Run To Cursor"
+        "caption": "Run To Cursor",
+        "command": "debugger"
     },
     {
         "caption": "-"
