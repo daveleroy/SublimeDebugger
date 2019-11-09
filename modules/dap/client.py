@@ -31,13 +31,14 @@ class DebugAdapterClient:
 			on_breakpoint_event: Callable[[BreakpointEvent], None] ,
 			on_run_in_terminal: Callable[[RunInTerminalRequest], int]
 		) -> None:
+
 		self.transport = transport
 		self.transport.start(self.transport_message, self.transport_closed)
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
 		self.on_run_in_terminal = on_run_in_terminal
 		self.allThreadsStopped = False
-		self.onExited = core.Event() #type: core.Event[Any]
+		self.onTerminated = core.Event() #type: core.Event[TerminatedEvent]
 		self.onStopped = core.Event() #type: core.Event[StoppedEvent]
 		self.onContinued = core.Event() #type: core.Event[Any]
 		self.onOutput = core.Event() #type: core.Event[Any]
@@ -88,18 +89,25 @@ class DebugAdapterClient:
 		})
 
 	@core.async
-	def Terminate(self) -> core.awaitable[None]:
+	def Restart(self) -> core.awaitable[None]:
+		yield from self.send_request_asyc('restart', {
+		})
+
+	@core.async
+	def Terminate(self, restart: bool = False) -> core.awaitable[None]:
 		yield from self.send_request_asyc('terminate', {
+			"restart": restart
 		})
 
 	@core.async
-	def Disconnect(self) -> core.awaitable[None]:
+	def Disconnect(self, restart: bool = False) -> core.awaitable[None]:
 		yield from self.send_request_asyc('disconnect', {
+			"restart": restart
 		})
 
 	@core.async
-	def GetThreads(self) -> None:
-		response = yield from self.send_request_asyc('threads', {})
+	def GetThreads(self) -> core.awaitable[List[Thread]]:
+		response = yield from self.send_request_asyc('threads', None)
 
 		threads = []
 		for thread in response['threads']:
@@ -192,7 +200,7 @@ class DebugAdapterClient:
 		return variable
 
 	@core.async
-	def Initialize(self) -> Capabilities:
+	def Initialize(self) -> core.awaitable[Capabilities]:
 		response = yield from self.send_request_asyc("initialize", {
 			"clientID": "sublime",
 			"clientName": "Sublime Text",
@@ -208,13 +216,21 @@ class DebugAdapterClient:
 		return Capabilities.from_json(response)
 
 	@core.async
-	def Launch(self, config: dict) -> core.awaitable[None]:
+	def Launch(self, config: dict, restart: Optional[Any]) -> core.awaitable[None]:
+		if restart:
+			config = config.copy()
+			config["__restart"] = restart
+
 		yield from self.send_request_asyc('launch', config)
 		# the spec says to grab the baseline threads here?
 		self.is_running = True
 
 	@core.async
-	def Attach(self, config: dict) -> core.awaitable[None]:
+	def Attach(self, config: dict, restart: Optional[Any]) -> core.awaitable[None]:
+		if restart:
+			config = config.copy()
+			config["__restart"] = restart
+
 		yield from self.send_request_asyc('attach', config)
 		# the spec says to grab the baseline threads here?
 		self.is_running = True
@@ -259,7 +275,7 @@ class DebugAdapterClient:
 
 	@core.async
 	def ConfigurationDone(self) -> core.awaitable[None]:
-		yield from self.send_request_asyc('configurationDone', {})
+		yield from self.send_request_asyc('configurationDone', None)
 
 	@core.async
 	def GetVariables(self, variablesReference: int) -> core.awaitable[List[Variable]]:
@@ -314,7 +330,7 @@ class DebugAdapterClient:
 
 	def _on_terminated(self, body: dict) -> None:
 		self.is_running = False
-		self.onExited.post(None)
+		self.onTerminated.post(TerminatedEvent.from_json(body))
 
 	def _on_output(self, body: dict) -> None:
 		self.onOutput.post(OutputEvent.from_json(body))
