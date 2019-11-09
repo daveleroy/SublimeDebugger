@@ -1,5 +1,6 @@
 
 import sublime
+import re
 
 from ..import core, ui, dap
 
@@ -8,6 +9,10 @@ from .debugger_project import DebuggerProject
 
 from ..components.variable_component import VariableStateful, VariableStatefulComponent
 
+# Provides support for showing debug information when an expression is hovered
+# sends the hovered word to the debug adapter to evaluate and shows a popup with the result
+# word seperates and a word match regex can optionally be defined in the configuration to allow support
+# for treating things like $word keeping the $ as part of the word
 
 class ViewHoverProvider(core.Disposables):
 	def __init__(self, project: DebuggerProject, debugger: DebuggerStateful) -> None:
@@ -27,6 +32,9 @@ class ViewHoverProvider(core.Disposables):
 
 	@core.async
 	def on_hover(self, event):
+		if not self.debugger.adapter:
+			return
+
 		hover_word_seperators = self.debugger.adapter_configuration.hover_word_seperators
 		hover_word_regex_match = self.debugger.adapter_configuration.hover_word_regex_match
 

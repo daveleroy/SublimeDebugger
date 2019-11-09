@@ -1,17 +1,19 @@
-import sublime
-
+from .. typecheck import *
 from .. import core, ui, dap
 from .. components.selected_line import SelectedLine
+
 from .debugger import DebuggerStateful
 from .debugger_project import DebuggerProject
+
+import sublime
 
 class ViewSelectedSourceProvider:
 	def __init__(self, project: DebuggerProject, debugger: DebuggerStateful):
 		self.debugger = debugger
 		self.project = project
-		self.updating = None
-		self.generated_view = None
-		self.selected_frame_line = None
+		self.updating = None #type: Optional[Any]
+		self.generated_view = None #type: Optional[sublime.View]
+		self.selected_frame_line = None #type: Optional[SelectedLine]
 
 	def select(self, source: dap.Source, line: int, stopped_reason: str):
 		if self.updating:
@@ -35,11 +37,11 @@ class ViewSelectedSourceProvider:
 				core.log_error(error)
 
 		@core.async
-		def navigate_async(source: dap.Source, line: int, stopped_reason: str):
+		def navigate_async(source: dap.Source, line: int):
 			self.clear_generated_view()
 			self.navigate_to_source(source, line, move_cursor=True)
 
-		self.updating = core.run(navigate_async(source, line, stopped_reason), on_error=on_error)
+		self.updating = core.run(navigate_async(source, line), on_error=on_error)
 
 
 	def clear(self):
@@ -79,7 +81,7 @@ class ViewSelectedSourceProvider:
 
 			view = self.generated_view or self.project.window.new_file()
 			self.generated_view = view
-			view.set_name(source.name)
+			view.set_name(source.name or "")
 			view.set_read_only(False)
 			view.run_command('debugger_replace_contents', {
 				'characters': content

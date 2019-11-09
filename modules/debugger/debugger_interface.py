@@ -57,15 +57,16 @@ from .breakpoint_commands import BreakpointCommandsProvider
 
 class Panels:
 	def __init__(self, view: sublime.View, phantom_location: int, columns: int):
-		self.panels = []
-		self.pages = []
+		self.panels = [] #type: List[TabbedPanelItem]
+		self.pages = [] #type: List[TabbedPanel]
 		self.columns = columns
+
 		for i in range(0, columns):
 			pages = TabbedPanel([], 0)
 			self.pages.append(pages)
 			phantom = ui.Phantom(pages, view, sublime.Region(phantom_location, phantom_location + i), sublime.LAYOUT_INLINE)
 
-	def add(self, panels: [TabbedPanelItem]):
+	def add(self, panels: List[TabbedPanelItem]):
 		self.panels.extend(panels)
 		self.layout()
 
@@ -90,7 +91,7 @@ class Panels:
 				self.pages[column].show(row)
 
 	def layout(self):
-		items = []
+		items = [] #type: Any
 		for i in range(0, self.columns): 
 			items.append([])
 
@@ -161,12 +162,12 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		while True:
 			data = window.project_data()
 			project_name = window.project_file_name()
-			if not data or not project_name:
+			while not data or not project_name:
 				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
 				if r:
 					window.run_command('save_project_and_workspace_as')
 				else:
-					raise Error(True, "Debugger must be run inside a sublime project")
+					raise core.Error("Debugger must be run inside a sublime project")
 
 			# ensure we have debug configurations added to the project file
 			data.setdefault('settings', {}).setdefault('debug.configurations', [])
@@ -406,7 +407,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def on_navigate_to_source(self, source: dap.Source, line: int):
 		self.source_provider.navigate(source, line)
 
-	def command(enabled=None, disabled=None):
+	def command(enabled: Optional[int]=None, disabled: Optional[int]=None):
 		def wrap(f):
 			@property
 			def wrapper(self):

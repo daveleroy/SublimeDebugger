@@ -125,6 +125,7 @@ class TerminalStandard(Terminal):
 class TerminalProcess (Terminal):
 	def __init__(self, cwd: str, args: List[str]) -> None:
 		super().__init__("Terminal")
+		cwd = cwd or None # turn "" into None
 		self.process = TtyProcess(args, on_output=self.on_process_output, cwd = cwd)
 
 	def pid(self) -> int:

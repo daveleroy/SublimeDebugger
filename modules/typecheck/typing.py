@@ -5,6 +5,8 @@ TYPE_CHECKING = False
 class Any:
     pass
 
+class Protocol:
+    pass
 
 class _GetAttr(type):
     def __getitem__(self, x):

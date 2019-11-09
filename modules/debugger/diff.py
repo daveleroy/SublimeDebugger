@@ -1,15 +1,10 @@
-
-
 from ..typecheck import *
-if TYPE_CHECKING:
-	from .client import DebugAdapterClient
-
 
 T = TypeVar('T')
 
 class DiffCollection (Generic[T]):
 	def __init__(self, on_added:Callable[[T], None], on_removed: Callable[[T], None]):
-		self.items = []
+		self.items = [] # type: List[T]
 		self.on_added = on_added
 		self.on_removed = on_removed
 

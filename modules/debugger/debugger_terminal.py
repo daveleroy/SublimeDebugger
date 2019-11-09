@@ -28,7 +28,7 @@ class VariableLine(Line):
 		return [component]
 
 class DebuggerTerminal (TerminalStandard):
-	def __init__(self, on_run_command: Callable[[str], None], on_clicked_source: [[dap.Source, Optional[int]], None]):
+	def __init__(self, on_run_command: Callable[[str], None], on_clicked_source: Callable[[dap.Source, Optional[int]], None]):
 		super().__init__("Debugger Console")
 		self.on_run_command = on_run_command
 		self.on_clicked_source = on_clicked_source
