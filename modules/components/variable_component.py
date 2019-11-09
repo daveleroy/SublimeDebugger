@@ -4,6 +4,7 @@ import sublime
 
 from .. import ui
 from .. import core
+from .. import dap
 
 from ..dap.types import (
 	Variable,
@@ -12,10 +13,10 @@ from ..dap.types import (
 from ..commands import AutoCompleteTextInputHandler
 
 class VariableStateful:
-	def __init__(self, variable: Variable, on_dirty: Callable[[], None]) -> None:
+	def __init__(self, variable: Variable, on_dirty: Callable[[], None], on_edit: Optional[Callable[['VariableStateful'], None]] = None) -> None:
 		self.variable = variable
 		self.on_dirty = on_dirty
-
+		self.on_edit = on_edit
 		self._expanded = False
 		self.fetched = False
 		self.loading = False
@@ -94,7 +95,7 @@ class VariableStateful:
 		self.loading = False
 		self.variables = []
 		for variable in variables:
-			self.variables.append(VariableStateful(variable, self.on_dirty))
+			self.variables.append(VariableStateful(variable, self.on_dirty, self.on_edit))
 
 		self.on_dirty()
 
@@ -106,12 +107,18 @@ class VariableStatefulComponent (ui.Block):
 		self.variable = variable
 		self.itemRight = itemRight or ui.Inline()
 
+
+
 	def on_edit(self) -> None:
-		label = "edit variable {}: {}".format(self.variable.name, self.variable.value)
-		input = AutoCompleteTextInputHandler(label)
-		def run(**args):
-			self.variable.set_value(args['text'])
-		ui.run_input_command(input, run)
+		# label = "edit variable {}: {}".format(self.variable.name, self.variable.value)
+		# input = AutoCompleteTextInputHandler(label)
+		# def run(**args):
+		# 	self.variable.set_value(args['text'])
+		# ui.run_input_command(input, run)
+		# core.run(self.on_edit_async())
+		if self.variable.on_edit:
+			self.variable.on_edit(self.variable)
+
 
 	def render(self) -> ui.Block.Children:
 		v = self.variable
@@ -125,7 +132,7 @@ class VariableStatefulComponent (ui.Block):
 
 		if not self.variable.expandable:
 			return [
-				ui.block(ui.ButtonDoubleClick(self.on_edit, None, [
+				ui.block(ui.Button(self.on_edit, [
 					ui.Label(name, padding_left=0.5, padding_right=1),
 					value_item,
 				]),
@@ -142,7 +149,7 @@ class VariableStatefulComponent (ui.Block):
 				ui.Button(self.variable.toggle_expand, [
 					image
 				]),
-				ui.ButtonDoubleClick(self.on_edit, None, [
+				ui.Button(self.on_edit, [
 					ui.Label(name, padding_right=1),
 					value_item,
 				]),

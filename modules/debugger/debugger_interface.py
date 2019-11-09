@@ -178,7 +178,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.disposeables = [] #type: List[Any]
 		
 		self.breakpoints = Breakpoints();
-		self.variables_panel = VariablesPanel()
+		self.variables_panel = VariablesPanel(self.breakpoints)
 		self.callstack_panel = CallStackPanel()
 		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
 		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
@@ -492,9 +492,20 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def on_run_command(self, command: str) -> None:
 		self.run_async(self.debugger.evaluate(command))
 
-	@command('toggle_breakpoint')
+	@command()
 	def toggle_breakpoint(self):
 		self.breakpoints_provider.toggle_current_line()
+	
+	@command()
+	def toggle_column_breakpoint(self):
+		self.breakpoints_provider.toggle_current_line_column()
+
+	@command()
+	def add_function_breakpoint(self):
+		self.breakpoints.function.add_command()
+		self.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
+		self.persistance.json['breakpoints'] = self.breakpoints.into_json()
+		self.persistance.save_to_file()
 
 	@command(enabled=DebuggerStateful.paused)
 	def run_to_current_line(self) -> None:

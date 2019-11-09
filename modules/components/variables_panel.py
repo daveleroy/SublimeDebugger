@@ -1,15 +1,19 @@
 from ..typecheck import *
-
-from .. import core, ui, dap
+from .. import core
+from .. import ui 
+from .. import dap
+from ..debugger.breakpoints import Breakpoints
 
 from .variable_component import Variable, VariableStateful, VariableStatefulComponent
 from .layout import variables_panel_width
 
+import sublime
 
 class VariablesPanel (ui.Block):
-	def __init__(self) -> None:
+	def __init__(self, breakpoints: Breakpoints) -> None:
 		super().__init__()
 		self.scopes = [] #type: List[dap.Scope]
+		self.breakpoints = breakpoints
 
 	def clear(self) -> None:
 		self.scopes = []
@@ -18,6 +22,72 @@ class VariablesPanel (ui.Block):
 	def set_scopes(self, scopes: List[dap.Scope]) -> None:
 		self.scopes = scopes
 		self.dirty()
+
+	def on_edit_variable(self, variable: VariableStateful) -> None:
+		core.run(self.on_edit_variable_async(variable))
+
+	@core.async
+	def on_edit_variable_async(self, variable: VariableStateful) -> core.awaitable[None]:
+		info = None #type: Optional[dap.DataBreakpointInfoResponse]
+		try:
+			info = yield from variable.variable.client.DataBreakpointInfoRequest(variable.variable)
+		except dap.Error as e:
+			pass
+
+
+		expression = variable.variable.evaluateName or variable.variable.name
+		value = variable.variable.value or ""
+
+		def on_edit_variable(value: str):
+			variable.set_value(value)
+
+		def copy_value():
+			sublime.set_clipboard(value)
+		def copy_expr():
+			sublime.set_clipboard(expression)
+		def add_watch():
+			pass
+		
+		items = [
+			ui.InputListItem(
+				ui.InputText (
+					on_edit_variable,
+					"editing a variable", 
+				),
+				"Edit Variable",
+			),
+			ui.InputListItem(
+				copy_expr,
+				"Copy Expression",
+			),
+			ui.InputListItem(
+				copy_value,
+				"Copy Value",
+			),
+			ui.InputListItem(
+				add_watch,
+				"Add Variable To Watch",
+			),
+		]
+			
+		if info and info.id:
+			types = info.accessTypes or [""]
+			labels = {
+				dap.DataBreakpoint.write: "Break On Value Write",
+				dap.DataBreakpoint.readWrite: "Break On Value Read or Write",
+				dap.DataBreakpoint.read: "Break On Value Read",
+			}
+			def on_add_data_breakpoint(accessType: str):
+				assert info
+				self.breakpoints.data.add(info, accessType or None)
+
+			for acessType in types:
+				items.append(ui.InputListItem(
+					lambda: on_add_data_breakpoint(acessType),
+					labels.get(acessType) or "Break On Value Change"
+				))
+
+		ui.InputList(items).run()
 
 	def render(self) -> ui.Block.Children:
 		items = [
@@ -29,7 +99,7 @@ class VariablesPanel (ui.Block):
 		first = True
 		for v in self.scopes:
 			variable = Variable(v.client, v.name, "", v.variablesReference)
-			variable_stateful = VariableStateful(variable, None)
+			variable_stateful = VariableStateful(variable, None, on_edit=self.on_edit_variable)
 			component = VariableStatefulComponent(variable_stateful)
 			variable_stateful.on_dirty = component.dirty
 
