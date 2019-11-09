@@ -1,3 +1,4 @@
+import os
 
 from .core import *
 from .sublime import *
@@ -10,7 +11,7 @@ from .dispose import Disposables
 _current_package = ""
 
 def current_package() -> str:
-	return "{}/{}".format(sublime.packages_path(), _current_package)
+	return os.path.join(sublime.packages_path(), _current_package)
 
 def current_package_name() -> str:
 	return _current_package

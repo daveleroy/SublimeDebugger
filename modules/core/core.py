@@ -6,6 +6,7 @@ import concurrent
 
 from ..libs import asyncio
 from .log import log_exception
+from .error import Error
 
 T = TypeVar('T')
 
@@ -22,7 +23,10 @@ def _create_main_loop():
 	def _exception_handler(loop: Any, context: dict) -> None:
 		print('An exception occured in the main_loop')
 		try:
-			raise context['exception']
+			if 'exception' in context:
+				raise context['exception']
+			else:
+				raise Error(context['message'])
 		except:
 			log_exception()
 

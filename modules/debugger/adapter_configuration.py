@@ -12,7 +12,7 @@ from .. import core
 
 
 def _adapters_path() -> str:
-	return os.path.join(core.current_package(), "data/debug_adapters")
+	return os.path.join(core.current_package(), "data", "debug_adapters")
 
 
 class AdapterConfiguration:
