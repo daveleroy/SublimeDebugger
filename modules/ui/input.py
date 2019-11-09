@@ -160,3 +160,126 @@ class ListInput(sublime_plugin.ListInputHandler):
 
 
 
+class InputListItem:
+	def __init__(self, run, text, name = None):
+		self.text = text
+		self.run = run
+		self.name = name
+
+class InputList(sublime_plugin.ListInputHandler):
+	id = 0
+
+	def __init__(self, values: List[InputListItem], placeholder=None, index=0, on_cancel=None, arg_name="list"):
+		super().__init__()
+		self._next_input = None
+		self.values = values
+		self._placeholder = placeholder
+		self.index = index
+		self._on_cancel = on_cancel
+		self._on_cancel_internal = None
+
+		self.arg_name = "list_{}".format(InputList.id)
+		InputList.id += 1
+	def run (self):
+		def on_run(**args):
+			pass
+		run_input_command(self, on_run)
+	def name(self):
+		return self.arg_name
+
+	def placeholder(self):
+		return self._placeholder
+
+	def list_items(self):
+		items = []
+		for index, value in enumerate(self.values):
+			items.append([value.text, index])
+		return (items, self.index)
+
+	def confirm(self, value):
+		run = self.values[value].run
+		if callable(run):
+			core.call_soon_threadsafe(run)
+		else:
+			self._next_input = run
+		return value
+
+	def validate(self, value):
+		return True
+
+	def next_input(self, args):
+		n = self._next_input
+		self._next_input = None
+		return n
+
+	def cancel(self):
+		if self._on_cancel_internal:
+			self._on_cancel_internal()
+		if self._on_cancel:
+			self._on_cancel()
+
+	def description(self, value, text):
+		return self.values[value].name or self.values[value].text
+
+
+class InputText(sublime_plugin.TextInputHandler):
+	id = 0
+	def __init__(self, run=None, placeholder=None, initial=None, on_cancel=None):
+		super().__init__()
+		self._placeholder = placeholder
+		self._initial = initial
+		self._on_cancel = on_cancel
+		self._on_cancel_internal = None
+		self._run = run
+		self.arg_name = "text_{}".format(InputText.id)
+		InputText.id += 1
+
+	def placeholder(self):
+		return self._placeholder
+	def initial_text(self):
+		return self._initial
+	def next_input(self, args):
+		if callable(self._run):
+			core.call_soon_threadsafe(self._run, args[self.arg_name])
+			return None
+		return self._run
+	def name(self):
+		return self.arg_name
+	def cancel(self):
+		print('canceld')
+		if self._on_cancel_internal:
+			self._on_cancel_internal()
+		if self._on_cancel:
+			self._on_cancel()
+
+	def run (self):
+		def on_run(**args):
+			pass
+		run_input_command(self, on_run)
+
+def InputListItemCheckedText(run: Callable[[str], None], name: str, description: str, value: Optional[str]):
+	if value:
+		input_name ="● {}: {}".format(name, value)
+	else:
+		input_name = "○ {}: {}".format(name, description)
+
+	return InputListItem(
+		InputText(
+			run,
+			description,
+			value
+		),
+		input_name,
+		name
+	)
+
+def InputListItemChecked(run: Callable[[], None], true: str, false: str, value: bool):
+	if value:
+		input_name ="● {}".format(true)
+	else:
+		input_name = "○ {}".format(false)
+
+	return InputListItem(
+		run,
+		input_name,
+	)

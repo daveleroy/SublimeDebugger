@@ -16,7 +16,6 @@ import threading
 import json
 
 from .. import core
-from ..debugger.breakpoints import Breakpoints, Breakpoint, BreakpointResult, Filter, FunctionBreakpoint
 
 from .types import *
 from .transport import Transport
@@ -24,8 +23,14 @@ from ..libs import asyncio
 
 
 @core.all_methods(core.require_main_thread)
+
 class DebugAdapterClient:
-	def __init__(self, transport: Transport, on_run_in_terminal: Callable[[RunInTerminalRequest], int]) -> None:
+	def __init__(
+			self, 
+			transport: Transport, 
+			on_breakpoint_event: Callable[[BreakpointEvent], None] ,
+			on_run_in_terminal: Callable[[RunInTerminalRequest], int]
+		) -> None:
 		self.transport = transport
 		self.transport.start(self.transport_message, self.transport_closed)
 		self.pending_requests = {} #type: Dict[int, core.future]
@@ -37,10 +42,10 @@ class DebugAdapterClient:
 		self.onContinued = core.Event() #type: core.Event[Any]
 		self.onOutput = core.Event() #type: core.Event[Any]
 		self.onThreads = core.Event() #type: core.Event[ThreadEvent]
+		self.on_breakpoint_event = on_breakpoint_event
 		self.on_error_event = core.Event() #type: core.Event[str]
 		self.is_running = True
 		self._on_initialized_future = core.create_future()
-		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
 
 	def dispose(self) -> None:
 		print('disposing Debugger')
@@ -215,95 +220,42 @@ class DebugAdapterClient:
 		self.is_running = True
 
 	@core.async
-	def setExceptionBreakpoints(self, filters: List[Filter]) -> core.awaitable[None]:
-		ids = []
-		for f in filters:
-			if not f.enabled:
-				continue
-			ids.append(f.id)
-
+	def SetExceptionBreakpoints(self, filters: List[str]) -> core.awaitable[None]:
 		yield from self.send_request_asyc('setExceptionBreakpoints', {
-			'filters': ids
+			'filters': filters
 		})
 
 	@core.async
-	def SetFunctionBreakpoints(self, breakpoints: List[FunctionBreakpoint]) -> core.awaitable[None]:
-		sourceBreakpoints = [] #type: List[dict]
-		for b in breakpoints:
-			if not b.enabled:
-				continue
-			sourceBreakpoints.append(b.into_json())
-
+	def SetFunctionBreakpoints(self, breakpoints: List[FunctionBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
 		result = yield from self.send_request_asyc('setFunctionBreakpoints', {
-				"breakpoints": sourceBreakpoints
-			})
+			"breakpoints": json_from_array(FunctionBreakpoint.into_json, breakpoints)
+		})
+		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
 	@core.async
-	def SetBreakpointsFile(self, file: str, breakpoints: List[Breakpoint]) -> core.awaitable[None]:
-		sourceBreakpoints = [] #type: List[dict]
-		breakpoints = list(filter(lambda b: b.enabled, breakpoints))
-		for breakpoint in breakpoints:
-			sourceBreakpoint = {
-				"line": breakpoint.line
-			} #type: dict
-			if breakpoint.log:
-				sourceBreakpoint["logMessage"] = breakpoint.log
-			if breakpoint.condition:
-				sourceBreakpoint["condition"] = breakpoint.condition
-			if breakpoint.count:
-				sourceBreakpoint["hitCondition"] = str(breakpoint.count)
-			sourceBreakpoints.append(sourceBreakpoint)
-
-		try:
-			result = yield from self.send_request_asyc('setBreakpoints', {
-				"source": {
-					"path": file
-				},
-				"breakpoints": sourceBreakpoints
-			})
-			breakpoints_result = result['breakpoints']
-			assert len(breakpoints_result) == len(breakpoints), 'expected #breakpoints to match results'
-			for breakpoint, breakpoint_result in zip(breakpoints, breakpoints_result):
-				self._merg_breakpoint(breakpoint, breakpoint_result)
-				id = breakpoint_result.get('id')
-				if id is not None:
-					self.breakpoints_for_id[id] = breakpoint
-
-		except Exception as e:
-			for breakpoint in breakpoints:
-				result = BreakpointResult(False, breakpoint.line, str(e))
-				self.breakpoints.set_breakpoint_result(breakpoint, result)
-
-			raise e #re raise the exception
-
-	def _merg_breakpoint(self, breakpoint: Breakpoint, breakpoint_result: dict) -> None:
-		result = BreakpointResult(breakpoint_result['verified'], breakpoint_result.get('line', breakpoint.line), breakpoint_result.get('message'))
-		self.breakpoints.set_breakpoint_result(breakpoint, result)
+	def DataBreakpointInfoRequest(self, variable: Variable) -> core.awaitable[DataBreakpointInfoResponse]:
+		result = yield from self.send_request_asyc('dataBreakpointInfo', {
+			"variablesReference": variable.containerVariablesReference,
+			"name": variable.name,
+		})
+		return DataBreakpointInfoResponse.from_json(result)
 
 	@core.async
-	def AddBreakpoints(self, breakpoints: Breakpoints) -> core.awaitable[None]:
-		self.breakpoints = breakpoints
-		requests = [] #type: List[core.awaitable[dict]]
-		bps = {} #type: Dict[str, List[Breakpoint]]
-		for breakpoint in breakpoints.breakpoints:
-			if breakpoint.file in bps:
-				bps[breakpoint.file].append(breakpoint)
-			else:
-				bps[breakpoint.file] = [breakpoint]
+	def SetDataBreakpointsRequest(self, breakpoints: List[DataBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
+		result = yield from self.send_request_asyc('setDataBreakpoints', {
+			"breakpoints": json_from_array(DataBreakpoint.into_json, breakpoints)
+		})
+		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
-		for file, filebreaks in bps.items():
-			requests.append(self.SetBreakpointsFile(file, filebreaks))
-
-		filters = []
-		for filter in breakpoints.filters:
-			if filter.enabled:
-				filters.append(filter.id)
-
-		requests.append(self.send_request_asyc('setExceptionBreakpoints', {
-			'filters': filters
-		}))
-		if requests:
-			yield from asyncio.wait(requests)
+	@core.async
+	def SetBreakpointsFile(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
+		result = yield from self.send_request_asyc('setBreakpoints', {
+			"source": {
+				"path": file
+			},
+			"breakpoints": json_from_array(SourceBreakpoint.into_json, breakpoints)
+		})
+		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
 	@core.async
 	def ConfigurationDone(self) -> core.awaitable[None]:
@@ -371,14 +323,7 @@ class DebugAdapterClient:
 		self.onThreads.post(ThreadEvent.from_json(body))
 
 	def _on_breakpoint(self, body: dict) -> None:
-		breakpoint_result = body['breakpoint']
-		id = breakpoint_result.get('id')
-		if id is None:
-			return
-		breakpoint = self.breakpoints_for_id.get(id)
-		if not breakpoint:
-			return
-		self._merg_breakpoint(breakpoint, breakpoint_result)
+		self.on_breakpoint_event(BreakpointEvent.from_json(body))
 
 	def transport_closed(self) -> None:
 		print('Debugger Transport: closed')

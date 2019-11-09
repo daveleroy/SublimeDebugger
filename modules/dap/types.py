@@ -3,15 +3,20 @@ if TYPE_CHECKING:
 	from .client import DebugAdapterClient
 
 
-__T = TypeVar('T')
+__T = TypeVar('__T')
 
 
-def _array_from_json(from_json: Callable[[], __T], json_array: list) -> __T:
+def array_from_json(from_json: Callable[[dict], __T], json_array: list) -> List[__T]:
 	items = []
 	for json in json_array:
 		items.append(from_json(json))
 	return items
 
+def json_from_array(into_json: Callable[[__T], dict], array: List[__T]) -> list:
+	json = []
+	for item in array:
+		json.append(into_json(item))
+	return json
 
 class Error(Exception):
 	def __init__(self, showUser: bool, format: str):
@@ -58,7 +63,7 @@ class StackFrame:
 		source = None #type: Optional[Source]
 		if source_json:
 			source = Source.from_json(source_json)
-			file = source.name
+			file = source.name or "??"
 
 		hint = frame.get('presentationHint', 'normal')
 
@@ -98,12 +103,13 @@ class Scope:
 
 
 class Variable:
-	def __init__(self, client: 'DebugAdapterClient', name: str, value: str, variablesReference: int, containerVariablesReference: int = 0) -> None:
+	def __init__(self, client: 'DebugAdapterClient', name: str, value: str, variablesReference: int, containerVariablesReference: int = 0, evaluateName: Optional[str] = None) -> None:
 		self.client = client
 		self.name = name
 		self.value = value
 		self.containerVariablesReference = 0
 		self.variablesReference = variablesReference
+		self.evaluateName = evaluateName
 
 	@staticmethod
 	def from_json(client: 'DebugAdapterClient', json: dict) -> 'Variable':
@@ -111,7 +117,8 @@ class Variable:
 			client,
 			json['name'],
 			json['value'],
-			json.get('variablesReference', 0)
+			json.get('variablesReference', 0),
+			evaluateName=json.get('evaluateName'),
 		)
 
 
@@ -158,7 +165,7 @@ class Source:
 			elif json_hint == 'deemphasize':
 				hint = Source.deemphasize
 
-		sources = _array_from_json(Source.from_json, json.get('sources', []))
+		sources = array_from_json(Source.from_json, json.get('sources', []))
 
 		return Source(
 			json.get('name'),
@@ -177,13 +184,19 @@ class ExceptionBreakpointsFilter:
 		self.default = default
 
 	@staticmethod
-	def from_json(json: dict) -> 'Filter':
+	def from_json(json: dict) -> 'ExceptionBreakpointsFilter':
 		return ExceptionBreakpointsFilter(
 			json['filter'],
 			json['label'],
 			json.get('default', False),
 		)
 
+	def into_json(self) -> dict:
+		return {
+			'filter': self.id,
+			'label': self.label,
+			'default': self.default,
+		}
 
 class Capabilities:
 	def __init__(self, json: dict):
@@ -192,7 +205,7 @@ class Capabilities:
 		self.supportsConditionalBreakpoints = json.get('supportsConditionalBreakpoints', False)
 		self.supportsHitConditionalBreakpoints = json.get('supportsHitConditionalBreakpoints', False)
 		self.supportsEvaluateForHovers = json.get('supportsEvaluateForHovers', False)
-		self.exceptionBreakpointFilters = _array_from_json(ExceptionBreakpointsFilter.from_json, json.get('exceptionBreakpointFilters', []))
+		self.exceptionBreakpointFilters = array_from_json(ExceptionBreakpointsFilter.from_json, json.get('exceptionBreakpointFilters', []))
 		self.supportsStepBack = json.get('supportsStepBack', False)
 		self.supportsSetVariable = json.get('supportsSetVariable', False)
 		self.supportsRestartFrame = json.get('supportsRestartFrame', False)
@@ -234,6 +247,15 @@ class ThreadEvent:
 	@staticmethod
 	def from_json(json) -> 'ThreadEvent':
 		return ThreadEvent(json['threadId'], json['reason'])
+
+
+class TerminatedEvent:
+	def __init__(self, restart: Optional[Any]) -> None:
+		self.restart = restart
+
+	@staticmethod
+	def from_json(json) -> 'TerminatedEvent':
+		return TerminatedEvent(json.get('restart'))
 
 
 class ContinuedEvent:
@@ -281,4 +303,136 @@ class RunInTerminalRequest:
 			json['cwd'],
 			json['args'],
 			json.get('env', {})
+		)
+
+
+class DataBreakpoint:
+	read = 'read'
+	write = 'write'
+	readWrite ='readWrite'
+
+	def __init__(self, id: str, accessType: Optional[str], condition: Optional[str], hitCondition: Optional[str]) -> None:
+		self.id = id
+		self.accessType = accessType
+		self.condition = condition
+		self.hitCondition = hitCondition
+	def into_json(self) -> dict:
+		return {
+			'dataId': self.id,
+			'accessType': self.accessType,
+			'condition': self.condition,
+			'hitCondition': self.hitCondition,
+		}
+	@staticmethod
+	def from_json(json: dict) -> 'DataBreakpoint':
+		return DataBreakpoint(
+			json['dataId'],
+			json['accessType'],
+			json['condition'],
+			json['hitCondition'],
+		)
+
+class DataBreakpointInfoResponse:
+	def __init__(self, id: Optional[str], description: str, accessTypes: List[str], canPersist: bool) -> None:
+		self.id = id
+		self.description = description
+		self.accessTypes = accessTypes
+		self.canPersist = canPersist
+
+	@staticmethod
+	def from_json(json) -> 'DataBreakpointInfoResponse':
+		return DataBreakpointInfoResponse(
+			json.get('dataId'), 
+			json.get('description', 'no data description'), 
+			json.get('accessTypes', []),
+			json.get('canPersist', False),
+		)
+
+	def into_json(self) -> dict:
+		return {
+			'dataId': self.id,
+			'description': self.description,
+			'accessTypes': self.accessTypes,
+			'canPersist': self.canPersist,
+		}
+
+class FunctionBreakpoint:
+	def __init__(self, name: str, condition: Optional[str], hitCondition: Optional[str]) -> None:
+		self.name = name
+		self.condition = condition
+		self.hitCondition = hitCondition
+
+	@staticmethod
+	def from_json(json) -> 'FunctionBreakpoint':
+		return FunctionBreakpoint(
+			json.get('name'), 
+			json.get('condition'), 
+			json.get('hitCondition'),
+		)
+
+	def into_json(self) -> dict:
+		return {
+			'name': self.name,
+			'condition': self.condition,
+			'hitCondition': self.hitCondition,
+		}
+
+class SourceBreakpoint:
+	def __init__(self, line: int, column: Optional[int], condition: Optional[str], hitCondition: Optional[str], logMessage: Optional[str]) -> None:
+		self.line = line
+		self.column = column
+		self.condition = condition
+		self.hitCondition = hitCondition
+		self.logMessage = logMessage
+
+	@staticmethod
+	def from_json(json) -> 'SourceBreakpoint':
+		return SourceBreakpoint(
+			json.get('line'), 
+			json.get('column'), 
+			json.get('condition'),
+			json.get('hitCondition'),
+			json.get('logMessage'),
+		)
+
+	def into_json(self) -> dict:
+		return {
+			'line': self.line,
+			'column': self.column,
+			'condition': self.condition,
+			'hitCondition': self.hitCondition,
+			'logMessage': self.logMessage,
+		}
+
+
+class BreakpointResult:
+	
+	def __init__(self, verified: bool, line: Optional[int], column: Optional[int], message: Optional[str], id = None) -> None:
+		self.verified = verified
+		self.line = line
+		self.column = column
+		self.message = message
+		self.id = id
+
+	@staticmethod
+	def from_json(json: dict) -> 'BreakpointResult':
+		return BreakpointResult(
+			json['verified'], 
+			json.get('line'), 
+			json.get('column'), 
+			json.get('message'),
+			json.get('id'))
+
+BreakpointResult.failed = BreakpointResult(False, None, None, None, None)
+
+class BreakpointEvent:
+	def __init__(self, reason: str, result: BreakpointResult) -> None:
+		self.reason = reason
+		self.result = result
+
+	@staticmethod
+	def from_json(json) -> 'BreakpointEvent':
+		return BreakpointEvent (
+			json['reason'],
+			BreakpointResult.from_json(json['breakpoint']),
 		)

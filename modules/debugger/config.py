@@ -1,16 +1,12 @@
-from ..typecheck import *
+from .. typecheck import *
+from .. import core
+
+from .adapter_configuration import Configuration
+from .breakpoints import Breakpoints
 
 import sublime
 import os
 import json
-
-from .adapter_configuration import Configuration
-from .. import core
-
-from .breakpoints import (
-	Breakpoints, 
-	Breakpoint
-)
 
 def _project_data_file(project_path: str) -> str:
 	import hashlib
@@ -21,34 +17,34 @@ def _project_data_file(project_path: str) -> str:
 class PersistedData:
 	def __init__(self, project_name: str) -> None:
 		self.project_name = project_name
-		self.data = {}
+		self.json = {} #type: dict
 		VERSION_NUMBER = 0
-		self.data["version"] = VERSION_NUMBER
+		self.json["version"] = VERSION_NUMBER
 
 		try:
 			file_name = _project_data_file(project_name)
 			file = open(file_name, 'r+')
 			contents = file.read()
 			file.close()
-			data = json.loads(contents)
-			if data["version"] == VERSION_NUMBER:
-				self.data = data
+			j = json.loads(contents)
+			if j["version"] == VERSION_NUMBER:
+				self.json = j
 		except FileNotFoundError:
 			pass
 
 	def save_breakpoints(self, breakpoints: Breakpoints) -> None:
-		self.data['breakpoints'] = breakpoints.into_json()
+		self.json['breakpoints'] = breakpoints.into_json()
 
 	def load_breakpoints(self, breakpoints: Breakpoints):
-		breakpoints.load_from_json(self.data.get('breakpoints', {}))
+		breakpoints.load_from_json(self.json.get('breakpoints', {}))
 
 	def save_configuration_option(self, configuration: Configuration) -> None:
-		self.data['config_name'] = configuration.name
-		self.data['config_maybe_at_index'] = configuration.index
+		self.json['config_name'] = configuration.name
+		self.json['config_maybe_at_index'] = configuration.index
 
 	def load_configuration_option(self, configurations: List[Configuration]) -> Optional[Configuration]:
-		config_name = self.data.get('config_name')
-		config_maybe_at_index = self.data.get('config_maybe_at_index')
+		config_name = self.json.get('config_name')
+		config_maybe_at_index = self.json.get('config_maybe_at_index')
 
 		if config_name is None or config_maybe_at_index is None:
 			return None
@@ -68,7 +64,7 @@ class PersistedData:
 
 	def save_to_file(self) -> None:
 		file_name = _project_data_file(self.project_name)
-		data = json.dumps(self.data)
+		data = json.dumps(self.json)
 		file = open(file_name, 'w+')
 		contents = file.write(data)
 		file.close()

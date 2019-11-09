@@ -12,7 +12,7 @@ from .. import core, ui, dap
 
 from ..components.variable_component import VariableStateful, VariableStatefulComponent, Variable
 from ..components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
-from ..components.breakpoints_panel import BreakpointsPanel, show_breakpoint_options
+from ..components.breakpoints_panel import BreakpointsPanel
 from ..components.callstack_panel import CallStackPanel
 from ..components.variables_panel import VariablesPanel
 from ..components.pages_panel import TabbedPanel
@@ -35,8 +35,6 @@ from .debugger_project import (
 
 from .breakpoints import (
 	Breakpoints, 
-	Breakpoint, 
-	Filter
 )
 
 from .adapter_configuration import (
@@ -182,12 +180,12 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.breakpoints = Breakpoints();
 		self.variables_panel = VariablesPanel()
 		self.callstack_panel = CallStackPanel()
-		self.breakpoints_panel = BreakpointsPanel(self.breakpoints, self.on_selected_breakpoint)
+		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
 		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
 
 		def on_state_changed(state: int) -> None:
 			if state == DebuggerStateful.stopped:
-				self.breakpoints.clear_breakpoint_results()
+				self.breakpoints.clear_session_data()
 				self.debugger_panel.setState(STOPPED)
 				self.show_console_panel()
 			elif state == DebuggerStateful.running:
@@ -261,14 +259,12 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.view = self.panel.view #type: sublime.View
 
 		self.persistance = PersistedData(project_name)
-		self.persistance.load_breakpoints(self.breakpoints)
-
+		self.load_data()
 		self.load_settings_and_configurations()
 
 		self.disposeables.extend([
 			self.panel,
 			ui.view_gutter_hovered.add(self.on_gutter_hovered),
-			self.breakpoints.onSelectedBreakpoint.add(self.on_selected_breakpoint)
 		])
 
 
@@ -381,17 +377,11 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			return
 
 		file = event.view.file_name()
-
-		at = event.view.text_point(event.line, 0)
 		line = event.line + 1
-		breakpoint = self.breakpoints.get_breakpoint(file, line)
-		if breakpoint:
-			breakpoint_menus.edit_breakpoint(self.breakpoints, breakpoint)
+		self.breakpoints_provider.edit_breakpoints_at_line(file, line)
 
 	def dispose(self) -> None:
-		self.persistance.save_breakpoints(self.breakpoints)
-		self.persistance.save_to_file()
-
+		self.save_data()
 		for d in self.disposeables:
 			d.dispose()
 
@@ -399,10 +389,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		if self.debugger:
 			self.debugger.dispose()
 		del DebuggerInterface.instances[self.window.id()]
-
-	def on_selected_breakpoint(self, breakpoint: Optional[Breakpoint]) -> None:
-		if breakpoint:
-			breakpoint_menus.edit_breakpoint(self.breakpoints, breakpoint)
 
 	def show_console_panel(self) -> None:
 		self.panels.show(id(self.terminal))

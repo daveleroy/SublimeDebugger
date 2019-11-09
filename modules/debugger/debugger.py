@@ -17,9 +17,7 @@ from .adapter_configuration import (
 )
 from .breakpoints import (
 	Breakpoints,
-	Breakpoint,
-	Filter,
-	FunctionBreakpoint
+	SourceBreakpoint,
 )
 from .thread import (
 	ThreadStateful
@@ -64,17 +62,36 @@ class DebuggerStateful:
 
 		self.threads_stateful = [] #type: List[ThreadStateful]
 		self.threads_stateful_from_id = {} #type: Dict[int, ThreadStateful]
+
 		self.terminals = [] #type: List[Terminal]
 		self._state = DebuggerStateful.stopped
 
 		self.disposeables = [] #type: List[Any]
 
 		self.breakpoints = breakpoints
-		breakpoints.onSendFilterToDebugger.add(self.onSendFilterToDebugger)
-		breakpoints.onSendBreakpointToDebugger.add(self.onSendBreakpointToDebugger)
-		breakpoints.onSendFunctionBreakpointToDebugger.add(self.onSendFunctionBreakpointToDebugger)
+		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
 
-		self.state_changed = core.Event() #type: Event
+		def on_send_data_breakpoints(data_breakpoints):
+			core.run(self.set_data_breakpoints())
+
+		def on_send_function_breakpoints(function_breakpoints):
+			core.run(self.set_function_breakpoints())
+		
+		def on_send_filters(filters):
+			if not self.adapter: return
+			filters = []
+			for f in filters:
+				if f.enabled:
+					filters.append(f.dap.id)
+
+			core.run(self.adapter.SetExceptionBreakpoints(filters))
+
+		breakpoints.data.on_send.add(on_send_data_breakpoints)
+		breakpoints.function.on_send.add(on_send_function_breakpoints)
+		breakpoints.filters.on_send.add(on_send_filters)
+		breakpoints.source.on_send.add(self.on_send_source_breakpoint)
+
+		self.state_changed = core.Event() #type: core.Event[int]
 
 	def dispose_terminals(self):
 		for terminal in self.terminals:
@@ -102,12 +119,12 @@ class DebuggerStateful:
 		self.on_state_changed(state)
 		self.state_changed()
 
-	def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded) -> core.awaitable[None]:
+	def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None) -> core.awaitable[None]:
 		if self.launching_async:
 			self.launching_async.cancel()
 
 		self.dispose_terminals()
-		self.launching_async = core.run(self._launch(adapter_configuration, configuration))
+		self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart))
 		try:
 			yield from self.launching_async
 		except Exception as e:
@@ -121,7 +138,7 @@ class DebuggerStateful:
 
 		self.launching_async = None
 
-	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded) -> core.awaitable[None]:
+	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None) -> core.awaitable[None]:
 		if self.state != DebuggerStateful.stopped:
 			yield from self.stop()
 
@@ -151,14 +168,17 @@ class DebuggerStateful:
 			self.on_terminals(self.terminals)
 			return terminal.pid()
 
-		adapter = dap.Client(transport, 
+		adapter = dap.Client(
+			transport, 
+			on_breakpoint_event = self.on_breakpoint_event,
 			on_run_in_terminal = on_run_in_terminal
 		)
+		self.adapter = adapter
 		adapter.onThreads.add(self._on_threads_event)
 		adapter.onOutput.add(self._on_output_event)
 		adapter.onStopped.add(self._on_stopped_event)
 		adapter.onContinued.add(self._on_continued_event)
-		adapter.onExited.add(self._on_exited_event)
+		adapter.onTerminated.add(self._on_exited_event)
 
 		self.log_info("starting debugger... ")
 
@@ -172,13 +192,14 @@ class DebuggerStateful:
 			except Exception as e:
 				self.log_error("there was waiting for initialized from debugger {}".format(e))
 			try:
-				yield from adapter.AddBreakpoints(self.breakpoints)
+				yield from self.AddBreakpoints()
 			except Exception as e:
 				self.log_error("there was an error adding breakpoints {}".format(e))
 			try:
 				if capabilities.supportsFunctionBreakpoints:
-					yield from adapter.SetFunctionBreakpoints(self.breakpoints.functionBreakpoints)
-				elif len(self.breakpoints.functionBreakpoints) > 0:
+					yield from self.set_function_breakpoints()
+
+				elif len(self.breakpoints.function.breakpoints) > 0:
 					self.log_error("debugger doesn't support function breakpoints")
 			except Exception as e:
 				self.log_error("there was an error adding function breakpoints {}".format(e))
@@ -192,15 +213,15 @@ class DebuggerStateful:
 		capabilities = yield from adapter.Initialize()
 		self.supports_terminate_request = capabilities.supportTerminateDebuggee
 
-		for filter in capabilities.exceptionBreakpointFilters:
-			self.breakpoints.add_filter(filter.id, filter.label, filter.default)
+		filters = capabilities.exceptionBreakpointFilters or []
+		self.breakpoints.filters.update(filters)
 
 		if configuration.request == 'launch':
 			self.launch_request = True
-			yield from adapter.Launch(configuration.all)
+			yield from adapter.Launch(configuration.all, restart)
 		elif configuration.request == 'attach':
 			self.launch_request = False
-			yield from adapter.Attach(configuration.all)
+			yield from adapter.Attach(configuration.all, restart)
 		else:
 			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
 
@@ -208,7 +229,7 @@ class DebuggerStateful:
 		# according to https://microsoft.github.io/debug-adapter-protocol/overview
 		self.refresh_threads()
 
-		self.adapter = adapter
+		
 		# At this point we are running?
 		self.state = DebuggerStateful.running
 
@@ -218,21 +239,78 @@ class DebuggerStateful:
 			self.state = DebuggerStateful.paused
 		else:
 			self.state = DebuggerStateful.running
+	
+	@core.async
+	def AddBreakpoints(self) -> core.awaitable[None]:
+		assert self.adapter
+		requests = [] #type: List[core.awaitable[dict]]
+		bps = {} #type: Dict[str, List[SourceBreakpoint]]
+		for breakpoint in self.breakpoints.source:
+			if breakpoint.file in bps:
+				bps[breakpoint.file].append(breakpoint)
+			else:
+				bps[breakpoint.file] = [breakpoint]
 
-	def onSendFilterToDebugger(self, filter: Filter) -> None:
+		for file, filebreaks in bps.items():
+			requests.append(self.on_send_breakpoints_for_file(file, filebreaks))
+
+		filters = []
+		for filter in self.breakpoints.filters:
+			if filter.enabled:
+				filters.append(filter.dap.id)
+
+		requests.append(self.adapter.SetExceptionBreakpoints(filters))
+		requests.append(self.set_data_breakpoints())
+		if requests:
+			yield from core.asyncio.wait(requests)
+
+	@core.async
+	def set_function_breakpoints(self) -> core.awaitable[None]:
 		if not self.adapter:
 			return
-		core.run(self.adapter.setExceptionBreakpoints(self.breakpoints.filters))
+		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.function))
+		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
+		results = yield from self.adapter.SetFunctionBreakpoints(dap_breakpoints)
+		for result, b in zip(results, breakpoints):
+			self.breakpoints.function.set_result(b, result)
+	
+	@core.async
+	def set_data_breakpoints(self) -> core.awaitable[None]:
+		if not self.adapter: return
+		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.data))
+		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
+		results = yield from self.adapter.SetDataBreakpointsRequest(dap_breakpoints)
+		for result, b in zip(results, breakpoints):
+			self.breakpoints.data.set_result(b, result)
 
-	def onSendBreakpointToDebugger(self, breakpoint: Breakpoint) -> None:
+	@core.async
+	def on_send_breakpoints_for_file(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[None]:
+		if not self.adapter:
+			return
+
+		enabled_breakpoints = list(filter(lambda b: b.enabled, breakpoints))
+		dap_breakpoints = list(map(lambda b: b.dap, enabled_breakpoints))
+
+		try:
+			results = yield from self.adapter.SetBreakpointsFile(file, dap_breakpoints)
+
+			if len(results) != len(enabled_breakpoints):
+				raise dap.Error(True, 'expected #breakpoints to match results')
+
+			for result, b in zip(results, enabled_breakpoints):
+				self.breakpoints.source.set_result(b, result)
+				if result.id:
+					self.breakpoints_for_id[result.id] = b
+		
+		except dap.Error as e:
+			for b in enabled_breakpoints:
+				self.breakpoints.source.set_result(b, dap.BreakpointResult.failed)
+
+	def on_send_source_breakpoint(self, breakpoint: SourceBreakpoint) -> None:
 		if not self.adapter:
 			return
 		file = breakpoint.file
-		breakpoints = self.breakpoints.breakpoints_for_file(file)
-		core.run(self.adapter.SetBreakpointsFile(file, breakpoints))
-
-	def onSendFunctionBreakpointToDebugger(self, breakpoint: FunctionBreakpoint) -> None:
-		pass
+		core.run(self.on_send_breakpoints_for_file(file, self.breakpoints.source.breakpoints_for_file(file)))
 
 	def stop(self) -> core.awaitable[None]:
 		# the adapter isn't stopping and stop is called again we force stop it
@@ -268,6 +346,7 @@ class DebuggerStateful:
 
 		self.threads_stateful_from_id = {}
 		self.threads_stateful = []
+		self.breakpoints_for_id = {}
 
 		self.on_threads_stateful(self.threads_stateful)
 		self.on_scopes([])
@@ -343,7 +422,7 @@ class DebuggerStateful:
 			self._update_threads(threads)
 		core.run(async())
 
-	def _update_threads(self, threads: Optional[List[dap.Thread]]) -> None:
+	def _update_threads(self, threads: List[dap.Thread]) -> None:
 		self.threads_stateful = []
 		threads_stateful_from_id = {}
 
@@ -369,6 +448,11 @@ class DebuggerStateful:
 
 	def _on_output_event(self, event: dap.OutputEvent) -> None:
 		self.on_output(event)
+
+	def on_breakpoint_event(self, event: dap.BreakpointEvent) -> None:
+		b = self.breakpoints_for_id.get(event.result.id)
+		if b:
+			self.breakpoints.set_breakpoint_result(b, event.result)
 
 	def _thread_for_command(self) -> ThreadStateful:
 		thread = self._selected_or_first_thread()
@@ -480,6 +564,8 @@ class DebuggerStateful:
 
 		self._refresh_state()
 
-	def _on_exited_event(self, event: Any) -> None:
+	def _on_exited_event(self, event: dap.TerminatedEvent) -> None:
 		self.force_stop_adapter()
+		if event.restart:
+			core.run(self.launch(self.adapter_configuration, self.configuration, event.restart))
 
