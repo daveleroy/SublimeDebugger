@@ -25,6 +25,8 @@ from ..commands import select_configuration
 from .util import WindowSettingsCallback, get_setting
 from .config import PersistedData
 
+from .help import help_menu
+
 from ..debugger.debugger import (
 	DebuggerStateful,
 )
@@ -510,3 +512,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	@command(enabled=DebuggerStateful.paused)
 	def run_to_current_line(self) -> None:
 		self.breakpoints_provider.run_to_current_line()
+
+	@command()
+	def on_settings(self) -> None:
+		help_menu(self).run()

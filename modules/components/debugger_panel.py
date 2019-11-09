@@ -10,25 +10,21 @@ LOADING = 3
 
 class DebuggerPanelCallbacks:
 	def on_play(self) -> None:
-		pass
-
+		...
 	def on_resume(self) -> None:
-		pass
-
+		...
 	def on_pause(self) -> None:
-		pass
-
+		...
 	def on_stop(self) -> None:
-		pass
-
+		...
 	def on_step_over(self) -> None:
-		pass
-
+		...
 	def on_step_in(self) -> None:
-		pass
-
+		...
 	def on_step_out(self) -> None:
-		pass
+		...
+	def on_settings(self) -> None:
+		...
 
 
 class DebuggerPanel(ui.Block):
@@ -73,7 +69,7 @@ class DebuggerPanel(ui.Block):
 			play = True
 			controls = False
 
-		items = [DebuggerItem(self.callbacks.on_play, ui.Img(ui.Images.shared.settings))]
+		items = [DebuggerItem(self.callbacks.on_settings, ui.Img(ui.Images.shared.settings))]
 
 		if play:
 			items.append(
