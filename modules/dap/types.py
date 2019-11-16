@@ -397,14 +397,25 @@ class SourceBreakpoint:
 		)
 
 	def into_json(self) -> dict:
-		return {
+		# chrome debugger hates null column
+		return _remove_empty({
 			'line': self.line,
 			'column': self.column,
 			'condition': self.condition,
 			'hitCondition': self.hitCondition,
 			'logMessage': self.logMessage,
-		}
+		})
 
+def _remove_empty(dict: dict):
+	rm = []
+	for key, value in dict.items():
+		if value is None:
+			rm.append(key)
+	
+	for key in rm:
+		del dict[key]
+
+	return dict
 
 class BreakpointResult:
 	

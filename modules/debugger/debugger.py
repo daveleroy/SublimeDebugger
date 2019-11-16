@@ -258,7 +258,16 @@ class DebuggerStateful:
 	@core.coroutine
 	def AddBreakpoints(self) -> core.awaitable[None]:
 		assert self.adapter
+
 		requests = [] #type: List[core.awaitable[dict]]
+
+		filters = []
+		for filter in self.breakpoints.filters:
+			if filter.enabled:
+				filters.append(filter.dap.id)
+
+		requests.append(self.adapter.SetExceptionBreakpoints(filters))
+
 		bps = {} #type: Dict[str, List[SourceBreakpoint]]
 		for breakpoint in self.breakpoints.source:
 			if breakpoint.file in bps:
@@ -269,12 +278,6 @@ class DebuggerStateful:
 		for file, filebreaks in bps.items():
 			requests.append(self.on_send_breakpoints_for_file(file, filebreaks))
 
-		filters = []
-		for filter in self.breakpoints.filters:
-			if filter.enabled:
-				filters.append(filter.dap.id)
-
-		requests.append(self.adapter.SetExceptionBreakpoints(filters))
 
 		if self.capabilities.supportsDataBreakpoints:
 			requests.append(self.set_data_breakpoints())
@@ -476,7 +479,7 @@ class DebuggerStateful:
 	def on_breakpoint_event(self, event: dap.BreakpointEvent) -> None:
 		b = self.breakpoints_for_id.get(event.result.id)
 		if b:
-			self.breakpoints.set_breakpoint_result(b, event.result)
+			self.breakpoints.source.set_result(b, event.result)
 
 	def _thread_for_command(self) -> ThreadStateful:
 		thread = self._selected_or_first_thread()
