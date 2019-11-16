@@ -22,7 +22,7 @@ class ViewSelectedSourceProvider:
 			if error is not core.CancelledError:
 				core.log_error(error)
 
-		@core.async
+		@core.coroutine
 		def select_async(source: dap.Source, line: int, stopped_reason: str):
 			view = yield from self.navigate_to_source(source, line)
 			self.selected_frame_line = SelectedLine(view, line, stopped_reason)
@@ -36,7 +36,7 @@ class ViewSelectedSourceProvider:
 			if error is not core.CancelledError:
 				core.log_error(error)
 
-		@core.async
+		@core.coroutine
 		def navigate_async(source: dap.Source, line: int):
 			self.clear_generated_view()
 			self.navigate_to_source(source, line, move_cursor=True)
@@ -64,7 +64,7 @@ class ViewSelectedSourceProvider:
 	def dispose(self):
 		self.clear()
 
-	@core.async
+	@core.coroutine
 	def navigate_to_source(self, source: dap.Source, line: int, move_cursor: bool = False) -> core.awaitable[sublime.View]:
 		self.clear_selected()
 

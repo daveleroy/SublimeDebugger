@@ -59,7 +59,7 @@ class Adapter:
 			return
 		self.snippets = self.installer.snippets()
 
-	@core.async
+	@core.coroutine
 	def install(self, log: core.Logger) -> core.awaitable[None]:
 		yield from self.installer.install(log)
 		self.load_installation_if_needed()

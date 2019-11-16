@@ -30,7 +30,7 @@ class ViewHoverProvider(core.Disposables):
 
 		core.run(self.on_hover(event))
 
-	@core.async
+	@core.coroutine
 	def on_hover(self, event):
 		if not self.debugger.adapter:
 			return

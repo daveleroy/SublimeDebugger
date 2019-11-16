@@ -52,25 +52,27 @@ class DebugAdapterClient:
 		print('disposing Debugger')
 		self.transport.dispose()
 
-	@core.async
+	
+	@core.coroutine
 	def StepIn(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepIn', {
 			'threadId': thread.id
 		})
 
-	@core.async
+	
+	@core.coroutine
 	def StepOut(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepOut', {
 			'threadId': thread.id
 		})
 
-	@core.async
+	@core.coroutine
 	def StepOver(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('next', {
 			'threadId': thread.id
 		})
 
-	@core.async
+	@core.coroutine
 	def Resume(self, thread: Thread) -> core.awaitable[None]:
 		body = yield from self.send_request_asyc('continue', {
 			'threadId': thread.id
@@ -82,30 +84,30 @@ class DebugAdapterClient:
 		else:
 			self._continued(thread.id, False)
 
-	@core.async
+	@core.coroutine
 	def Pause(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('pause', {
 			'threadId': thread.id
 		})
 
-	@core.async
+	@core.coroutine
 	def Restart(self) -> core.awaitable[None]:
 		yield from self.send_request_asyc('restart', {
 		})
-
-	@core.async
+	
+	@core.coroutine
 	def Terminate(self, restart: bool = False) -> core.awaitable[None]:
 		yield from self.send_request_asyc('terminate', {
 			"restart": restart
 		})
 
-	@core.async
+	@core.coroutine
 	def Disconnect(self, restart: bool = False) -> core.awaitable[None]:
 		yield from self.send_request_asyc('disconnect', {
 			"restart": restart
 		})
 
-	@core.async
+	@core.coroutine
 	def GetThreads(self) -> core.awaitable[List[Thread]]:
 		response = yield from self.send_request_asyc('threads', None)
 
@@ -116,7 +118,7 @@ class DebugAdapterClient:
 
 		return threads
 
-	@core.async
+	@core.coroutine
 	def GetScopes(self, frame: StackFrame) -> core.awaitable[List[Scope]]:
 		body = yield from self.send_request_asyc('scopes', {
 			"frameId": frame.id
@@ -127,7 +129,7 @@ class DebugAdapterClient:
 			scopes.append(scope)
 		return scopes
 
-	@core.async
+	@core.coroutine
 	def GetStackTrace(self, thread: Thread) -> core.awaitable[List[StackFrame]]:
 		body = yield from self.send_request_asyc('stackTrace', {
 			"threadId": thread.id,
@@ -138,7 +140,7 @@ class DebugAdapterClient:
 			frames.append(frame)
 		return frames
 
-	@core.async
+	@core.coroutine
 	def GetSource(self, source: Source) -> core.awaitable[str]:
 		body = yield from self.send_request_asyc('source', {
 			'source': {
@@ -149,11 +151,11 @@ class DebugAdapterClient:
 		})
 		return body['content']
 
-	@core.async
+	@core.coroutine
 	def Initialized(self) -> core.awaitable[None]:
 		yield from self._on_initialized_future
 
-	@core.async
+	@core.coroutine
 	def Evaluate(self, expression: str, frame: Optional[StackFrame], context: Optional[str]) -> core.awaitable[Optional[EvaluateResponse]]:
 		frameId = None #type: Optional[int]
 		if frame:
@@ -171,7 +173,7 @@ class DebugAdapterClient:
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
 		return EvaluateResponse(response["result"], response.get("variablesReference", 0))
 
-	@core.async
+	@core.coroutine
 	def Completions(self, text: str, column: int, frame: Optional[StackFrame]) -> core.awaitable[List[CompletionItem]]:
 		frameId = None
 		if frame:
@@ -187,7 +189,7 @@ class DebugAdapterClient:
 			items.append(CompletionItem.from_json(item))
 		return items
 
-	@core.async
+	@core.coroutine
 	def setVariable(self, variable: Variable, value: str) -> core.awaitable[Variable]:
 		response = yield from self.send_request_asyc("setVariable", {
 			"variablesReference": variable.containerVariablesReference,
@@ -199,7 +201,7 @@ class DebugAdapterClient:
 		variable.variablesReference = response.get('variablesReference', 0)
 		return variable
 
-	@core.async
+	@core.coroutine
 	def Initialize(self) -> core.awaitable[Capabilities]:
 		response = yield from self.send_request_asyc("initialize", {
 			"clientID": "sublime",
@@ -215,7 +217,7 @@ class DebugAdapterClient:
 		)
 		return Capabilities.from_json(response)
 
-	@core.async
+	@core.coroutine
 	def Launch(self, config: dict, restart: Optional[Any]) -> core.awaitable[None]:
 		if restart:
 			config = config.copy()
@@ -225,7 +227,7 @@ class DebugAdapterClient:
 		# the spec says to grab the baseline threads here?
 		self.is_running = True
 
-	@core.async
+	@core.coroutine
 	def Attach(self, config: dict, restart: Optional[Any]) -> core.awaitable[None]:
 		if restart:
 			config = config.copy()
@@ -235,20 +237,20 @@ class DebugAdapterClient:
 		# the spec says to grab the baseline threads here?
 		self.is_running = True
 
-	@core.async
+	@core.coroutine
 	def SetExceptionBreakpoints(self, filters: List[str]) -> core.awaitable[None]:
 		yield from self.send_request_asyc('setExceptionBreakpoints', {
 			'filters': filters
 		})
 
-	@core.async
+	@core.coroutine
 	def SetFunctionBreakpoints(self, breakpoints: List[FunctionBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
 		result = yield from self.send_request_asyc('setFunctionBreakpoints', {
 			"breakpoints": json_from_array(FunctionBreakpoint.into_json, breakpoints)
 		})
 		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
-	@core.async
+	@core.coroutine
 	def DataBreakpointInfoRequest(self, variable: Variable) -> core.awaitable[DataBreakpointInfoResponse]:
 		result = yield from self.send_request_asyc('dataBreakpointInfo', {
 			"variablesReference": variable.containerVariablesReference,
@@ -256,14 +258,15 @@ class DebugAdapterClient:
 		})
 		return DataBreakpointInfoResponse.from_json(result)
 
-	@core.async
+	@core.coroutine
 	def SetDataBreakpointsRequest(self, breakpoints: List[DataBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
 		result = yield from self.send_request_asyc('setDataBreakpoints', {
 			"breakpoints": json_from_array(DataBreakpoint.into_json, breakpoints)
 		})
 		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
-	@core.async
+	
+	@core.coroutine
 	def SetBreakpointsFile(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
 		result = yield from self.send_request_asyc('setBreakpoints', {
 			"source": {
@@ -273,11 +276,11 @@ class DebugAdapterClient:
 		})
 		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
-	@core.async
+	@core.coroutine
 	def ConfigurationDone(self) -> core.awaitable[None]:
 		yield from self.send_request_asyc('configurationDone', None)
 
-	@core.async
+	@core.coroutine
 	def GetVariables(self, variablesReference: int) -> core.awaitable[List[Variable]]:
 		response = yield from self.send_request_asyc('variables', {
 			"variablesReference": variablesReference
@@ -352,7 +355,7 @@ class DebugAdapterClient:
 		msg = json.loads(message)
 		self.recieved_msg(msg)
 
-	@core.async
+	@core.coroutine
 	def send_request_asyc(self, command: str, args: dict) -> core.awaitable[dict]:
 		future = core.create_future()
 		self.seq += 1

@@ -186,7 +186,7 @@ class DebuggerStateful:
 		# this is a bit of a weird case. Initialized will happen at some point in time
 		# it depends on when the debug adapter chooses it is ready for configuration information
 		# when it does happen we can then add all the breakpoints and complete the configuration
-		@core.async
+		@core.coroutine
 		def Initialized() -> core.awaitable[None]:
 			try:
 				yield from adapter.Initialized()
@@ -241,7 +241,7 @@ class DebuggerStateful:
 		else:
 			self.state = DebuggerStateful.running
 	
-	@core.async
+	@core.coroutine
 	def AddBreakpoints(self) -> core.awaitable[None]:
 		assert self.adapter
 		requests = [] #type: List[core.awaitable[dict]]
@@ -268,7 +268,7 @@ class DebuggerStateful:
 		if requests:
 			yield from core.asyncio.wait(requests)
 
-	@core.async
+	@core.coroutine
 	def set_function_breakpoints(self) -> core.awaitable[None]:
 		if not self.adapter:
 			return
@@ -278,7 +278,7 @@ class DebuggerStateful:
 		for result, b in zip(results, breakpoints):
 			self.breakpoints.function.set_result(b, result)
 	
-	@core.async
+	@core.coroutine
 	def set_data_breakpoints(self) -> core.awaitable[None]:
 		if not self.adapter: return
 		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.data))
@@ -287,7 +287,7 @@ class DebuggerStateful:
 		for result, b in zip(results, breakpoints):
 			self.breakpoints.data.set_result(b, result)
 
-	@core.async
+	@core.coroutine
 	def on_send_breakpoints_for_file(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[None]:
 		if not self.adapter:
 			return
@@ -366,38 +366,38 @@ class DebuggerStateful:
 			self.process = None
 		self.state = DebuggerStateful.stopped
 
-	@core.async
+	@core.coroutine
 	def resume(self) -> core.awaitable[None]:
 		assert self.adapter, 'debugger not running'
 		yield from self.adapter.Resume(self._thread_for_command())
 
-	@core.async
+	@core.coroutine
 	def pause(self) -> core.awaitable[None]:
 		assert self.adapter, 'debugger not running'
 		yield from self.adapter.Pause(self._thread_for_command())
 
-	@core.async
+	@core.coroutine
 	def step_over(self) -> core.awaitable[None]:
 		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepOver(self._thread_for_command())
 		self.selected_frame = None
 		self.selected_thread_explicitly = False
 
-	@core.async
+	@core.coroutine
 	def step_in(self) -> core.awaitable[None]:
 		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepIn(self._thread_for_command())
 		self.selected_frame = None
 		self.selected_thread_explicitly = False
 
-	@core.async
+	@core.coroutine
 	def step_out(self) -> core.awaitable[None]:
 		assert self.adapter, 'debugger not running'
 		yield from self.adapter.StepOut(self._thread_for_command())
 		self.selected_frame = None
 		self.selected_thread_explicitly = False
 
-	@core.async
+	@core.coroutine
 	def evaluate(self, command: str) -> core.awaitable[None]:
 		self.info(command)
 		assert self.adapter, 'debugger not running'
@@ -423,11 +423,11 @@ class DebuggerStateful:
 	# after a successfull launch/attach, stopped event, thread event we request all threads
 	# see https://microsoft.github.io/debug-adapter-protocol/overview
 	def refresh_threads(self) -> None:
-		@core.async
-		def async() -> core.awaitable[None]:
+		@core.coroutine
+		def refresh_threads() -> core.awaitable[None]:
 			threads = yield from self.adapter.GetThreads()
 			self._update_threads(threads)
-		core.run(async())
+		core.run(refresh_threads())
 
 	def _update_threads(self, threads: List[dap.Thread]) -> None:
 		self.threads_stateful = []

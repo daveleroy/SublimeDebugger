@@ -47,7 +47,7 @@ class DebuggerTerminal (TerminalStandard):
 		if variablesReference:
 			# this seems to be what vscode does it ignores the actual message here.
 			# Some of the messages are junk like "output" that we probably don't want to display
-			@core.async
+			@core.coroutine
 			def appendVariabble() -> core.awaitable[None]:
 				variables = yield from client.GetVariables(variablesReference)
 				for variable in variables:

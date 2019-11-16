@@ -15,7 +15,7 @@ def _adapters_path() -> str:
 class AdapterInstall:
 	@property
 	def installed(self) -> bool: ...
-	@core.async
+	@core.coroutine
 	def install(self, log: core.Logger) -> core.awaitable[None]: ...
 	def snippets(self) -> core.awaitable[list]: ...
 
@@ -41,7 +41,7 @@ class VSCodeAdapterInstall:
 				return json.load(file)['configurationSnippets']
 		return []
 
-	@core.async
+	@core.coroutine
 	def install(self, log: core.Logger) -> core.awaitable[None]:
 		try:
 			log.info('Installing adapter: {}'.format(self.name))

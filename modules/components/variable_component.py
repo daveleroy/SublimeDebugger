@@ -69,7 +69,7 @@ class VariableStateful:
 		if self._expanded:
 			self.toggle_expand()
 
-	@core.async
+	@core.coroutine
 	def _set_value(self, value: str) -> core.awaitable[None]:
 		try:
 			variable = yield from self.variable.client.setVariable(self.variable, value)

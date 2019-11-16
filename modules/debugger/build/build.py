@@ -8,7 +8,7 @@ on_finished_futures = {}
 on_output_callbacks = {}
 id = 0
 
-@core.async
+@core.coroutine
 def run(window: sublime.Window, on_output_callback, args) -> core.awaitable[None]:
 	global on_finished_futures
 	global id

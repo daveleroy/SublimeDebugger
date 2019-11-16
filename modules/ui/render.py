@@ -54,7 +54,7 @@ def schedule_render() -> None:
 	core.run(render_scheduled())
 
 
-@core.async
+@core.coroutine
 def render_scheduled() -> None:
 	global _render_scheduled
 	perform_render()
@@ -135,9 +135,9 @@ class LayoutView (Layout):
 		self._unhighlightedSyntaxHighlightedTexts = []
 		self._syntaxHighlightCache = {} #type: dict
 		try:
-			import mdpopups
+			from mdpopups import SublimeHighlight
 			scheme = view.settings().get('color_scheme')
-			self._highlighter = mdpopups.SublimeHighlight(scheme)
+			self._highlighter = SublimeHighlight(scheme)
 		except ImportError as e:
 			core.log_info('syntax highlighting disabled no mdpopups')
 
@@ -182,7 +182,7 @@ class LayoutView (Layout):
 			event.set()
 
 		sublime.set_timeout(run)
-		event.wait()
+		event.wait(0.5)
 
 	def update(self) -> None:
 		font_size = self.view.settings().get('font_size') or 12

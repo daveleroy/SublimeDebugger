@@ -5,10 +5,10 @@ import sublime_plugin
 
 from ..libs import asyncio
 
-from .core import call_soon_threadsafe, create_future, async, awaitable
+from .core import call_soon_threadsafe, create_future, coroutine, awaitable
 from .event import Handle
 
-@async
+@coroutine
 def sublime_open_file_async(window: sublime.Window, file: str, line: Optional[int] = None) -> awaitable[sublime.View]:
 	from .. import ui
 	future_view = create_future()
@@ -44,14 +44,14 @@ def sublime_open_file_async(window: sublime.Window, file: str, line: Optional[in
 	return view
 	
 
-@async
+@coroutine
 def sublime_show_quick_panel_async(window: sublime.Window, items: List[str], selected_index: int) -> awaitable[int]:
 	done = create_future()
 	window.show_quick_panel(items, lambda index: call_soon_threadsafe(done.set_result, index), selected_index = selected_index)
 	r = yield from done
 	return r
 
-@async
+@coroutine
 def sublime_show_input_panel_async(window: sublime.Window, caption: str, initial_text: str, on_change: Optional[Callable[[str], None]] = None) -> awaitable[Optional[str]]:
 	result = create_future()
 	active_panel = window.active_panel()

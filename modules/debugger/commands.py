@@ -1,12 +1,12 @@
 from ..typecheck import *
+from ..import core
+from .debugger_interface import DebuggerInterface
+from .debugger import DebuggerStateful
 
 import sublime
 import sublime_plugin
 import json
 
-from .. import core
-from .debugger_interface import DebuggerInterface
-from .debugger import DebuggerStateful
 # commands look like...
 
 """
@@ -83,7 +83,7 @@ actions_window = [
 	{
 		"action": "run_command",
 		"caption": "Run Command",
-		"command": lambda window, debugger: debugger.on_run_command,
+		"command": lambda window, debugger: debugger.on_input_command,
 	},
 	{	"caption": "-" },
 	{

@@ -26,7 +26,7 @@ class VariablesPanel (ui.Block):
 	def on_edit_variable(self, variable: VariableStateful) -> None:
 		core.run(self.on_edit_variable_async(variable))
 
-	@core.async
+	@core.coroutine
 	def on_edit_variable_async(self, variable: VariableStateful) -> core.awaitable[None]:
 		info = None #type: Optional[dap.DataBreakpointInfoResponse]
 		try:

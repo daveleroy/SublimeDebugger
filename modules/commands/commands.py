@@ -97,7 +97,7 @@ class AutocompleteEventListener(sublime_plugin.EventListener):
 		self.used_completions = False
 		self.ignore_next_modification = False
 
-	@core.async
+	@core.coroutine
 	def get_completions(self, view: sublime.View, text: str) -> core.awaitable[None]:
 		from ..debugger.debugger_interface import DebuggerInterface
 		window = view.window()
