@@ -152,7 +152,6 @@ class SourceBreakpoints:
 		self.on_send = core.Event() #type: core.Event[SourceBreakpoint]
 
 		self.disposeables = [
-			ui.view_gutter_double_clicked.add(self.on_gutter_double_clicked),
 			ui.view_activated.add(self.on_view_activated),
 			ui.view_modified.add(self.view_modified)
 		] #type: List[Any]
@@ -277,13 +276,7 @@ class SourceBreakpoints:
 
 	def set_result(self, breakpoint: SourceBreakpoint, result: dap.BreakpointResult) -> None:
 		breakpoint.result = result
-		self.updated(breakpoint, send=False)
-
-	def clear_breakpoint_results(self) -> None:
-		pass
-		# for breakpoint in self.breakpoints:
-		# 	breakpoint.result = None
-		# 	self.onUpdatedBreakpoint.post(breakpoint)		
+		self.updated(breakpoint, send=False)	
 
 	def view_modified(self, view: sublime.View):
 		if view.file_name() is None:
@@ -297,19 +290,6 @@ class SourceBreakpoints:
 
 	def on_view_activated(self, view: sublime.View):
 		self.sync_from_breakpoints(view)
-
-	def on_gutter_double_clicked(self, event: ui.GutterEvent) -> None:
-		print('toggle: breakpoint {}'.format(event))
-		file = event.view.file_name()
-		if not file:
-			return
-
-		breakpoints = self.get_breakpoints_on_line(file, event.line + 1)
-		if breakpoints:
-			for breakpoint in breakpoints:
-				self.remove(breakpoint)
-		else:
-			self.add_breakpoint(file, event.line + 1)
 
 	def sync_dirty(self) -> None:
 		self.sync_dirty_scheduled = False

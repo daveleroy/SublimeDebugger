@@ -15,9 +15,28 @@ class BreakpointCommandsProvider(core.Disposables):
 		self.breakpoints = breakpoints
 		self.debugger = debugger
 		self.project = project
-
+		
+		self += ui.view_gutter_clicked.add(self.view_gutter_clicked)
 		self += self.debugger.state_changed.add(self.on_debugger_state_change)
 
+	def view_gutter_clicked(self, event: ui.GutterEvent):
+		file = self.project.source_file(event.view) 
+		if not file:
+			return
+		line = event.line + 1
+
+		if event.button == 1:
+			bp = self.breakpoints.source.get_breakpoint(file, line)
+			if bp:
+				self.breakpoints.source.remove(bp)
+			else:
+				self.breakpoints.source.add_breakpoint(file, line)
+			return
+
+		if event.button == 2:
+			line = event.line + 1
+			self.edit_breakpoints_at_line(file, line)
+			return		
 
 	def current_file_line_column(self) -> Tuple[str, int, int]:
 		view = self.project.window.active_view()

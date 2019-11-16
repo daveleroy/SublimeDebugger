@@ -188,7 +188,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		def on_state_changed(state: int) -> None:
 			if state == DebuggerStateful.stopped:
-				self.breakpoints.clear_session_data()
 				self.debugger_panel.setState(STOPPED)
 				self.show_console_panel()
 			elif state == DebuggerStateful.running:
@@ -267,9 +266,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		self.disposeables.extend([
 			self.panel,
-			ui.view_gutter_hovered.add(self.on_gutter_hovered),
 		])
-
 
 		self.disposeables.append(WindowSettingsCallback(self.window, self.on_settings_updated))
 
@@ -374,14 +371,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def changeConfiguration(self, configuration: Configuration):
 		self.configuration = configuration
 		self.persistance.save_configuration_option(configuration)
-
-	def on_gutter_hovered(self, event: ui.GutterEvent) -> None:
-		if not self.project.is_source_file(event.view):
-			return
-
-		file = event.view.file_name()
-		line = event.line + 1
-		self.breakpoints_provider.edit_breakpoints_at_line(file, line)
 
 	def dispose(self) -> None:
 		self.save_data()

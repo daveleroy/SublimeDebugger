@@ -197,7 +197,7 @@ class DebuggerStateful:
 			except Exception as e:
 				self.error("there was an error adding breakpoints {}".format(e))
 			try:
-				if capabilities.supportsFunctionBreakpoints:
+				if self.capabilities.supportsFunctionBreakpoints:
 					yield from self.set_function_breakpoints()
 
 				elif len(self.breakpoints.function.breakpoints) > 0:
@@ -205,16 +205,16 @@ class DebuggerStateful:
 			except Exception as e:
 				self.error("there was an error adding function breakpoints {}".format(e))
 			try:
-				if capabilities.supportsConfigurationDoneRequest:
+				if self.capabilities.supportsConfigurationDoneRequest:
 					yield from adapter.ConfigurationDone()
 			except Exception as e:
 				self.error("there was an error in configuration done {}".format(e))
 		core.run(Initialized())
 
-		capabilities = yield from adapter.Initialize()
-		self.supports_terminate_request = capabilities.supportTerminateDebuggee
+		self.capabilities = yield from adapter.Initialize()
+		self.supports_terminate_request = self.capabilities.supportsTerminateRequest
 
-		filters = capabilities.exceptionBreakpointFilters or []
+		filters = self.capabilities.exceptionBreakpointFilters or []
 		self.breakpoints.filters.update(filters)
 
 		if configuration.request == 'launch':
@@ -261,7 +261,10 @@ class DebuggerStateful:
 				filters.append(filter.dap.id)
 
 		requests.append(self.adapter.SetExceptionBreakpoints(filters))
-		requests.append(self.set_data_breakpoints())
+
+		if self.capabilities.supportsDataBreakpoints:
+			requests.append(self.set_data_breakpoints())
+			
 		if requests:
 			yield from core.asyncio.wait(requests)
 
@@ -352,6 +355,9 @@ class DebuggerStateful:
 		self.on_threads_stateful(self.threads_stateful)
 		self.on_scopes([])
 		self.on_selected_frame(None, None)
+
+		self.breakpoints.clear_session_data()
+
 		if self.adapter:
 			self.adapter.dispose()
 			self.adapter = None

@@ -9,7 +9,7 @@ from .events import (
 	view_activated,
 	view_text_hovered,
 	view_gutter_hovered,
-	view_gutter_double_clicked,
+	view_gutter_clicked,
 	view_selection_modified,
 	view_modified,
 	view_drag_select)
