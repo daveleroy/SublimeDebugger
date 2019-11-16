@@ -10,7 +10,7 @@ import types
 
 from .. import core, ui, dap
 
-from ..components.variable_component import VariableStateful, VariableStatefulComponent, Variable
+from ..components.variable_component import VariableStateful, VariableStatefulComponent
 from ..components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
 from ..components.breakpoints_panel import BreakpointsPanel
 from ..components.callstack_panel import CallStackPanel
@@ -54,6 +54,10 @@ from .. components.pages_panel import TabbedPanelItem
 from .view_hover import ViewHoverProvider
 from .view_selected_source import ViewSelectedSourceProvider
 from .breakpoint_commands import BreakpointCommandsProvider
+
+from .watch import WatchView
+from .modules import ModulesView
+from .sources import SourcesView
 
 class Panels:
 	def __init__(self, view: sublime.View, phantom_location: int, columns: int):
@@ -161,7 +165,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.disposeables = [] #type: List[Any]
 		
 		self.breakpoints = Breakpoints();
-		self.variables_panel = VariablesPanel(self.breakpoints)
+
 		self.callstack_panel = CallStackPanel()
 		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
 		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
@@ -187,6 +191,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 							pass
 
 				self.show_call_stack_panel()
+
 			elif state == DebuggerStateful.stopping or state == DebuggerStateful.starting:
 				self.debugger_panel.setState(LOADING)
 
@@ -236,6 +241,9 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			on_threads_stateful=on_threads_stateful,
 			on_terminals=on_terminals)
 
+
+		self.variables_panel = VariablesPanel(self.breakpoints, self.debugger.watch)
+
 		self.panel = OutputPhantomsPanel(window, 'Debugger')
 		self.panel.show()
 		self.view = self.panel.view #type: sublime.View
@@ -265,15 +273,18 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		)
 		terminal_component = TerminalComponent(self.terminal)
 		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
+		modules_panel = TabbedPanelItem(id(self.debugger.modules), ModulesView(self.debugger.modules), "Modules", 1)
+		sources_panel = TabbedPanelItem(id(self.debugger.sources), SourcesView(self.debugger.sources), "Sources", 1)
 
 		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(project_name)))
-
 
 		self.panels = Panels(phantom_view, phantom_location + 1, 3)
 		self.panels.add([
 			callstack_panel_item,
 			variables_panel_item,
-			terminal_panel_item
+			terminal_panel_item,
+			modules_panel,
+			sources_panel
 		])
 
 		view_hover = ViewHoverProvider(self.project, self.debugger)
@@ -485,12 +496,19 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	@command()
 	def add_function_breakpoint(self):
 		self.breakpoints.function.add_command()
+	
+	@command()
+	def add_watch_expression(self):
+		self.debugger.watch.add_command()
 
 	def load_data(self):
 		self.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
+		self.debugger.watch.load_json(self.persistance.json.get('watch', []))
+
 	@command()
 	def save_data(self):
 		self.persistance.json['breakpoints'] = self.breakpoints.into_json()
+		self.persistance.json['watch'] = self.debugger.watch.into_json()
 		self.persistance.save_to_file()
 
 	@command(enabled=DebuggerStateful.paused)

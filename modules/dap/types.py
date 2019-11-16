@@ -437,3 +437,45 @@ class BreakpointEvent:
 			json['reason'],
 			BreakpointResult.from_json(json['breakpoint']),
 		)
+
+class Module:
+	def __init__(self, json: dict):
+		self.id = json['id'] # type: Union[int, str]
+		self.name = json['name'] # type: str
+		self.path = json.get('path') # type: Optional[str]
+		self.isOptimized = json.get('isOptimized') # type: Optional[bool]
+		self.isUserCode = json.get('isUserCode') # type: Optional[bool]
+		self.version = json.get('version') # type: Optional[str]
+		self.symbolStatus = json.get('symbolStatus') # type: Optional[str]
+		self.symbolFilePath = json.get('symbolFilePath') # type: Optional[str]
+		self.dateTimeStamp = json.get('dateTimeStamp') # type: Optional[str]
+		self.addressRange = json.get('addressRange') # type: Optional[str]
+
+	@staticmethod
+	def from_json(json) -> 'Module':
+		return Module(json)
+
+class ModuleEvent:
+	none = 0
+	new = 1
+	changed = 2
+	removed = 3
+	
+	reasons = {'new': new, 'changed': changed, 'removed': removed}
+
+	def __init__(self, json: dict):
+		self.reason = ModuleEvent.reasons.get(json['reason'], ModuleEvent.none)
+		self.module = Module.from_json(json['module'])
+
+class LoadedSourceEvent:
+	none = 0
+	new = 1
+	changed = 2
+	removed = 3
+	
+	reasons = {'new': new, 'changed': changed, 'removed': removed}
+
+	def __init__(self, json: dict):
+		self.reason = LoadedSourceEvent.reasons.get(json['reason'], LoadedSourceEvent.none)
+		self.source = Source.from_json(json['source'])
+

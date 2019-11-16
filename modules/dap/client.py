@@ -23,12 +23,13 @@ from ..libs import asyncio
 
 
 @core.all_methods(core.require_main_thread)
-
 class DebugAdapterClient:
 	def __init__(
 			self, 
 			transport: Transport, 
-			on_breakpoint_event: Callable[[BreakpointEvent], None] ,
+			on_breakpoint_event: Callable[[BreakpointEvent], None],
+			on_module_event: Callable[[ModuleEvent], None],
+			on_loaded_source_event: Callable[[LoadedSourceEvent], None],
 			on_run_in_terminal: Callable[[RunInTerminalRequest], int]
 		) -> None:
 
@@ -44,6 +45,8 @@ class DebugAdapterClient:
 		self.onOutput = core.Event() #type: core.Event[Any]
 		self.onThreads = core.Event() #type: core.Event[ThreadEvent]
 		self.on_breakpoint_event = on_breakpoint_event
+		self.on_module_event = on_module_event
+		self.on_loaded_source_event = on_loaded_source_event
 		self.on_error_event = core.Event() #type: core.Event[str]
 		self.is_running = True
 		self._on_initialized_future = core.create_future()
@@ -450,3 +453,7 @@ class DebugAdapterClient:
 				return core.call_soon(self._on_thread, body)
 			if event == 'breakpoint':
 				return core.call_soon(self._on_breakpoint, body)
+			if event == 'module':
+				return core.call_soon(self.on_module_event, ModuleEvent(body))
+			if event == 'loadedSource':
+				return core.call_soon(self.on_loaded_source_event, LoadedSourceEvent(body))

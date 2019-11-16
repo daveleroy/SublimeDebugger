@@ -6,13 +6,38 @@ from .. import ui
 from .. import core
 from .. import dap
 
-from ..dap.types import (
-	Variable,
-)
+class VariableReference (Protocol):
+	@property
+	def client(self) -> dap.Client: 
+		...
+	@property
+	def name(self) -> str: 
+		...
+	@property
+	def value(self) -> str: 
+		...
+	@property
+	def variablesReference(self) -> int:
+		...
 
+class EvaluateVariable:
+	def __init__(self, client: dap.Client, name: str, response: dap.EvaluateResponse):
+		self.response = response
+		self.client = client
+		self._name = name
+
+	@property
+	def variablesReference(self) -> int:
+		return self.response.variablesReference
+	@property
+	def name(self) -> str:
+		return self._name
+	@property
+	def value(self) -> str:
+		return self.response.result
 
 class VariableStateful:
-	def __init__(self, variable: Variable, on_dirty: Callable[[], None], on_edit: Optional[Callable[['VariableStateful'], None]] = None) -> None:
+	def __init__(self, variable: VariableReference, on_dirty: Callable[[], None], on_edit: Optional[Callable[['VariableStateful'], None]] = None) -> None:
 		self.variable = variable
 		self.on_dirty = on_dirty
 		self.on_edit = on_edit
@@ -89,7 +114,7 @@ class VariableStateful:
 			self.loading = True
 			core.run(self.variable.client.GetVariables(self.variable.variablesReference), self._on_fetched)
 
-	def _on_fetched(self, variables: List[Variable]) -> None:
+	def _on_fetched(self, variables: List[dap.Variable]) -> None:
 		self.fetched = True
 		self.loading = False
 		self.variables = []

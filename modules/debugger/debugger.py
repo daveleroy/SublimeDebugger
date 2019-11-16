@@ -25,6 +25,10 @@ from .thread import (
 
 from .build import build
 
+from .modules import Modules
+from .sources import Sources
+from .watch import Watch
+
 class DebuggerStateful:
 	stopped = 0
 	paused = 1
@@ -92,7 +96,15 @@ class DebuggerStateful:
 		breakpoints.source.on_send.add(self.on_send_source_breakpoint)
 
 		self.state_changed = core.Event() #type: core.Event[int]
+		self.modules = Modules()
+		self.sources = Sources()
 
+		def on_added_watch(expr: Watch.Expression):
+			if self.adapter:
+				core.run(self.watch.evaluate_expression(self.adapter, self.selected_frame, expr))
+
+		self.watch = Watch(on_added_watch)
+					
 	def dispose_terminals(self):
 		for terminal in self.terminals:
 			terminal.dispose()
@@ -172,6 +184,8 @@ class DebuggerStateful:
 		adapter = dap.Client(
 			transport, 
 			on_breakpoint_event = self.on_breakpoint_event,
+			on_module_event = self.modules.on_module_event,
+			on_loaded_source_event = self.sources.on_loaded_source_event,
 			on_run_in_terminal = on_run_in_terminal
 		)
 		self.adapter = adapter
@@ -356,7 +370,10 @@ class DebuggerStateful:
 		self.on_scopes([])
 		self.on_selected_frame(None, None)
 
+		self.modules.clear_session_date()
+		self.sources.clear_session_date()
 		self.breakpoints.clear_session_data()
+		self.watch.clear_session_data()
 
 		if self.adapter:
 			self.adapter.dispose()
@@ -507,8 +524,10 @@ class DebuggerStateful:
 			self.on_scopes([])
 			return
 
-		core.run(self.adapter.GetScopes(frame), self.on_scopes)
 		self.on_selected_frame(self.selected_threadstateful, frame)
+
+		core.run(self.adapter.GetScopes(frame), self.on_scopes)
+		core.run(self.watch.evaluate(self.adapter, self.selected_frame))
 
 	def select_threadstateful(self, thread: ThreadStateful, frame: Optional[dap.StackFrame]):
 		self.selected_threadstateful = thread

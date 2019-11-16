@@ -38,26 +38,13 @@ class BreakpointCommandsProvider(core.Disposables):
 			self.edit_breakpoints_at_line(file, line)
 			return		
 
-	def current_file_line_column(self) -> Tuple[str, int, int]:
-		view = self.project.window.active_view()
-		file = self.project.source_file(view)
-		if not file:
-			raise core.Error("No source file selected, either no selection in current window or file is not saved")
-
-		r, c = view.rowcol(view.sel()[0].begin())
-		return file, r + 1, c + 1
-
-	def current_file_line(self) -> Tuple[str, int]:
-		line, col, _ = self.current_file_line_column()
-		return line, col
-
 	def clear_run_to_line(self):
 		if self.run_to_line_breakpoint:
 			self.breakpoints.remove_breakpoint(self.run_to_line_breakpoint)
 			self.run_to_line_breakpoint = None
 	
 	def run_to_current_line(self):
-		file, line = self.current_file_line()
+		file, line = self.project.current_file_line()
 		self.clear_run_to_line()
 		if self.debugger.state != DebuggerStateful.paused:
 			raise core.Error("Debugger not paused")
@@ -70,7 +57,7 @@ class BreakpointCommandsProvider(core.Disposables):
 			self.clear_run_to_line()
 
 	def toggle_current_line(self):
-		file, line = self.current_file_line()
+		file, line = self.project.current_file_line()
 		bp = self.breakpoints.source.get_breakpoint(file, line)
 		if bp:
 			self.breakpoints.source.remove(bp)
@@ -78,7 +65,7 @@ class BreakpointCommandsProvider(core.Disposables):
 			self.breakpoints.source.add_breakpoint(file, line)
 
 	def toggle_current_line_column(self):
-		file, line, column = self.current_file_line_column()
+		file, line, column = self.project.current_file_line_column()
 		bp = self.breakpoints.source.get_breakpoint(file, line, column)
 		if bp:
 			self.breakpoints.source.remove(bp)

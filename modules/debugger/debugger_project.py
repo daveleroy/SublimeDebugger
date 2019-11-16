@@ -23,3 +23,17 @@ class DebuggerProject:
 		if project:
 			variables['workspaceFolder'] = project
 		return variables
+
+
+	def current_file_line_column(self) -> Tuple[str, int, int]:
+		view = self.window.active_view()
+		file = self.source_file(view)
+		if not file or not view:
+			raise core.Error("No source file selected, either no selection in current window or file is not saved")
+
+		r, c = view.rowcol(view.sel()[0].begin())
+		return file, r + 1, c + 1
+
+	def current_file_line(self) -> Tuple[str, int]:
+		line, col, _ = self.current_file_line_column()
+		return line, col

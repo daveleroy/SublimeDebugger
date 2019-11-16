@@ -3,18 +3,22 @@ from .. import core
 from .. import ui 
 from .. import dap
 from ..debugger.breakpoints import Breakpoints
+from ..debugger.watch import Watch, WatchView
 
-from .variable_component import Variable, VariableStateful, VariableStatefulComponent
+from .variable_component import VariableStateful, VariableStatefulComponent
 from .layout import variables_panel_width
 
 import sublime
 
 class VariablesPanel (ui.Block):
-	def __init__(self, breakpoints: Breakpoints) -> None:
+	def __init__(self, breakpoints: Breakpoints, watch: Watch) -> None:
 		super().__init__()
 		self.scopes = [] #type: List[dap.Scope]
 		self.breakpoints = breakpoints
-
+		self.watch = watch
+		self.watch_view = WatchView(self.watch)
+		watch.on_updated.add(self.dirty)
+	
 	def clear(self) -> None:
 		self.scopes = []
 		self.dirty()
@@ -46,7 +50,7 @@ class VariablesPanel (ui.Block):
 		def copy_expr():
 			sublime.set_clipboard(expression)
 		def add_watch():
-			pass
+			self.watch.add(expression)
 		
 		items = [
 			ui.InputListItem(
@@ -91,6 +95,7 @@ class VariablesPanel (ui.Block):
 
 	def render(self) -> ui.Block.Children:
 		items = [
+			self.watch_view
 		] #type: List[ui.Block]
 
 		scopes_items = [] #type: List[ui.Block]
@@ -98,7 +103,7 @@ class VariablesPanel (ui.Block):
 		# expand the first scope only
 		first = True
 		for v in self.scopes:
-			variable = Variable(v.client, v.name, "", v.variablesReference)
+			variable = dap.Variable(v.client, v.name, "", v.variablesReference)
 			variable_stateful = VariableStateful(variable, None, on_edit=self.on_edit_variable)
 			component = VariableStatefulComponent(variable_stateful)
 			variable_stateful.on_dirty = component.dirty
