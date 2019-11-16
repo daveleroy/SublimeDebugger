@@ -1,11 +1,9 @@
 from .. typecheck import *
+from .. import core, ui, dap
+from .. commands import Autocomplete		
 
 import os, threading, re
-
-from .. import core, ui, dap
-from .. core import Event
-from . import input
-
+import sublime
 
 class TtyProcess:
 	def __init__(self, command: List[str], on_output: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, cwd=None) -> None:
@@ -63,7 +61,7 @@ class Terminal:
 		self.lines = [] #type: List[Line]
 		self.new_line = True
 		self._name = name
-		self.on_updated = Event()
+		self.on_updated = core.Event()
 		self.line_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
 		self.escape_input = True
 
@@ -266,8 +264,13 @@ class TerminalComponent (ui.Block):
 		self.dirty()
 
 	def on_input(self):
-		label = "write to terminal"
-		input.getInputAutocomplete(label, self.terminal.write, repeat=True)
+		label = self.terminal.writeable_prompt()
+		def run(value: str):
+			if not value: return
+			self.terminal.write(value)
+			self.on_input()
+
+		ui.InputText(run, label, enable_when_active=Autocomplete.for_window(sublime.active_window())).run()
 	
 	def on_toggle_input_mode(self):
 		self.terminal.escape_input = not self.terminal.escape_input

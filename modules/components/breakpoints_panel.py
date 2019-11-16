@@ -11,9 +11,6 @@ from .. debugger.breakpoints import (
 	ExceptionBreakpointsFilter,
 )
 
-from .. commands import AutoCompleteTextInputHandler
-from .. commands import breakpoint_menus
-
 from .layout import breakpoints_panel_width
 
 import os

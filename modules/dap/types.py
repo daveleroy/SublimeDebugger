@@ -226,6 +226,7 @@ class Capabilities:
 		self.supportsTerminateThreadsRequest = json.get('supportsTerminateThreadsRequest', False)
 		self.supportsSetExpression = json.get('supportsSetExpression', False)
 		self.supportsTerminateRequest = json.get('supportsTerminateRequest', False)
+		self.supportsDataBreakpoints = json.get('supportsDataBreakpoints', False)
 
 	@staticmethod
 	def from_json(json: dict) -> 'Capabilities':

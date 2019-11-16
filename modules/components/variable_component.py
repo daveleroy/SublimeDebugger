@@ -10,7 +10,6 @@ from ..dap.types import (
 	Variable,
 )
 
-from ..commands import AutoCompleteTextInputHandler
 
 class VariableStateful:
 	def __init__(self, variable: Variable, on_dirty: Callable[[], None], on_edit: Optional[Callable[['VariableStateful'], None]] = None) -> None:
@@ -110,12 +109,6 @@ class VariableStatefulComponent (ui.Block):
 
 
 	def on_edit(self) -> None:
-		# label = "edit variable {}: {}".format(self.variable.name, self.variable.value)
-		# input = AutoCompleteTextInputHandler(label)
-		# def run(**args):
-		# 	self.variable.set_value(args['text'])
-		# ui.run_input_command(input, run)
-		# core.run(self.on_edit_async())
 		if self.variable.on_edit:
 			self.variable.on_edit(self.variable)
 

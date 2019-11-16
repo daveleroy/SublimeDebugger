@@ -18,7 +18,7 @@ from ..components.variables_panel import VariablesPanel
 from ..components.pages_panel import TabbedPanel
 from ..components.selected_line import SelectedLine
 
-from ..commands.commands import Autocomplete, AutoCompleteTextInputHandler
+from ..commands.commands import Autocomplete
 
 from .util import WindowSettingsCallback, get_setting
 from .config import PersistedData
@@ -131,29 +131,9 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			instance.show()
 		return instance
 
-	@staticmethod
-	def debuggerForWindow(window: sublime.Window) -> Optional[DebuggerStateful]:
-		main = DebuggerInterface.for_window(window)
-		if main:
-			return main.debugger
-		return None
-
 	def refresh_phantoms(self) -> None:
 		ui.reload()
-
-	def open_repl_console(self) -> None:
-		label = "input debugger command"
-		input = AutoCompleteTextInputHandler(label)
-		def run(**args):
-			expression = args['text']
-			self.run_async(self.debugger.evaluate(expression))
-
-		# just re run the same command right away to avoid flicker
-		def run_not_main(**args):
-			ui.run_input_command(input, run, run_not_main=run_not_main)
-
-		ui.run_input_command(input, run, run_not_main=run_not_main)		
-
+	
 	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
 
@@ -428,7 +408,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	def on_play(self) -> None:
 		self.panel.show()
 
-		@core.async
+		@core.coroutine
 		def on_play_async() -> core.awaitable[None]:
 			self.show_console_panel()
 			self.terminal.clear()
@@ -479,10 +459,20 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	@command(enabled=DebuggerStateful.paused)
 	def on_step_out(self) -> None:
 		self.run_async(self.debugger.step_out())
-
-	@command(disabled=DebuggerStateful.stopped)
+	
 	def on_run_command(self, command: str) -> None:
 		self.run_async(self.debugger.evaluate(command))
+
+	@command(disabled=DebuggerStateful.stopped)
+	def on_input_command(self) -> None:
+		label = "Input Debugger Command"
+		def run(value: str):
+			if value:
+				self.run_async(self.debugger.evaluate(value))
+				self.on_input_command()
+
+		input = ui.InputText(run, label, enable_when_active=Autocomplete.for_window(self.window))
+		input.run()	
 
 	@command()
 	def toggle_breakpoint(self):
@@ -495,7 +485,11 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	@command()
 	def add_function_breakpoint(self):
 		self.breakpoints.function.add_command()
+
+	def load_data(self):
 		self.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
+	@command()
+	def save_data(self):
 		self.persistance.json['breakpoints'] = self.breakpoints.into_json()
 		self.persistance.save_to_file()
 

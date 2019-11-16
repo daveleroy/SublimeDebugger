@@ -5,8 +5,7 @@ import sublime_plugin
 
 from .. import core
 from .. import ui
-
-from ..dap.types import Variable
+from .. import dap
 
 def DebuggerInterface_for_window(window: sublime.Window):
 	from ..debugger.debugger_interface import DebuggerInterface
@@ -67,32 +66,10 @@ class Autocomplete:
 	def disable(self):
 		self.enabled = False
 
-
-class AutoCompleteTextInputHandler(ui.TextInput):
-	text_input_handlers = []
-	def __init__(self, placeholder=None, initial=None, on_cancel=None, arg_name="text"):
-		super().__init__(placeholder, initial, on_cancel, arg_name)
-		window = sublime.active_window()
-		if window:
-			self.autocomplete  = Autocomplete.for_window(window)
-		
-	def preview(self, args):
-		if self.autocomplete:
-			self.autocomplete.enable()
-
-	def cancel(self):
-		if self.autocomplete:
-			self.autocomplete.disable()
-		return super().cancel()
-	def validate(self, args):
-		if self.autocomplete:
-			self.autocomplete.disable()
-		return super().validate(args)
-
 class AutocompleteEventListener(sublime_plugin.EventListener):
 	def __init__(self) -> None:
 		super().__init__()
-		self.completions = [] #type: List[CompletionItem]
+		self.completions = [] #type: List[dap.CompletionItem]
 		self.getting_completions_text = "."
 		self.used_completions = False
 		self.ignore_next_modification = False
