@@ -1,6 +1,7 @@
 .dark {
-	--panel-color: color(var(--background) blend(black 100%));
-	--segment-color: color(var(--background) blend(black 80%));
+	--panel-color: color(var(--background) blend(black 90%));
+	--segment-color: color(var(--background) blend(black 75%));
+
 	--text-color: var(--foreground);
 	--label-color: var(--text-color);
 }

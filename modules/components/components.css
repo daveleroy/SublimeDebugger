@@ -37,7 +37,7 @@
 .DebuggerPanel {
 	border-radius: 5px;
 	border: 1px solid rgba(0,0,0,0);
-	background-color: var(--segment-color);
+	background-color: var(--background);
 }
 .DebuggerPanel .Panel {
 	border-radius: 5px;
@@ -45,7 +45,7 @@
 .DebuggerItem {
 	border-radius: 5px;
 	border: 1px solid rgba(0,0,0,0);
-	background-color: var(--segment-color);
+	background-color: var(--background);
 	padding-top: 0.5rem;
 	padding-bottom: 0.5rem;
 	position: relative;
@@ -57,15 +57,15 @@
 
 .TabbedPanel .Panel {
 	padding-top: 2px;
-	border: 1px solid var(--segment-color);
+	border: 2px solid var(--panel-color);
 	background-color: var(--panel-color);
 }
 .Tab {
 	background-color: rgba(0, 0, 0, 0.0);
-	border-top-left-radius: 5px;
-	border-top-right-radius: 5px;
-	padding-top: 7px;
-	padding-left: 7px;
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	padding-top: 6px;
+	padding-left: 6px;
 	padding-right: 7px;
 	padding-bottom: 0.5rem;
 	margin-left: 3px;
@@ -73,8 +73,8 @@
 	left: 1px;
 }
 .Tab.selected {
-	background-color: var(--segment-color);
-	border: 1px solid var(--segment-color);
+	background-color: var(--panel-color);
+	border: 1px solid var(--panel-color);
 }
 .VariablesPanel {
 	overflow: hidden;

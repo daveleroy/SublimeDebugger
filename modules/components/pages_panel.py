@@ -22,7 +22,8 @@ class TabbedPanel(ui.Block):
 	
 	def update(self, items: List[TabbedPanelItem]):
 		self.items = items
-		self.selected_index = self.selected_index if len(items) < self.selected_index else 0
+		if len(items) < self.selected_index:
+			self.selected_index =  0
 		self.dirty()
 
 	def show(self, index: int):
@@ -65,7 +66,7 @@ class Tab (ui.Inline):
 		if selected:
 			self.add_class('selected')
 			self.items = [
-				ui.Label(item.name, width=12, align=0),
+				ui.Label(item.name.upper(), width=12, align=0, color="secondary"),
 			]
 			for image, on_click in item.buttons:
 				self.items.append(				
@@ -76,12 +77,12 @@ class Tab (ui.Inline):
 
 		elif item.modified:
 			self.items = [
-				ui.Label(item.name, width=12, align=0, color="secondary"),
+				ui.Label(item.name.upper(), width=12, align=0, color="secondary"),
 				ui.Label('◯', width=ui.WIDTH, align=0, color="secondary")
 			]
 		else:
 			self.items = [
-				ui.Label(item.name, width=12 + ui.WIDTH, align=0, color="secondary"),
+				ui.Label(item.name.upper(), width=12 + ui.WIDTH, align=0, color="secondary"),
 			]
 
 	def render(self) -> ui.Inline.Children:
