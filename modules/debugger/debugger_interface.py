@@ -19,8 +19,6 @@ from ..components.pages_panel import TabbedPanel
 from ..components.selected_line import SelectedLine
 
 from ..commands.commands import Autocomplete, AutoCompleteTextInputHandler
-from ..commands import breakpoint_menus
-from ..commands import select_configuration
 
 from .util import WindowSettingsCallback, get_setting
 from .config import PersistedData
@@ -39,10 +37,12 @@ from .breakpoints import (
 	Breakpoints, 
 )
 
-from .adapter_configuration import (
+from .adapter import (
 	Configuration,
 	ConfigurationExpanded,
-	AdapterConfiguration
+	Adapter,
+	install_adapters_menu,
+	select_configuration,
 )
 
 from .output_panel import OutputPhantomsPanel
@@ -330,16 +330,16 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 				if isinstance(adapter_json, str):
 					with open(adapter_json) as json_data:
 						adapter_json = json.load(json_data,)
-						adapter_json = sublime.expand_variables(adapter_json, variables)
 			except Exception as e:
 				core.display('Failed when opening debug adapter configuration file {}'.format(e))
-				raise e
+				core.log_exception()
 
 			try:
-				adapter = AdapterConfiguration.from_json(adapter_name, adapter_json)
+				adapter = Adapter(adapter_name, adapter_json, variables)
 				adapters[adapter.type] = adapter
-			except Exception as e:
-				core.display('There was an error creating a AdapterConfiguration {}'.format(e))
+			except core.Error as e:
+				core.display('There was an error creating an Adapter {}'.format(e))
+				core.log_exception()
 
 		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters', {}).items():
 			load_adapter(adapter_name, adapter_json)
@@ -447,14 +447,14 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			try:
 				if not self.configuration:
 					self.terminal.log_error("Add or select a configuration to begin debugging")
-					select_configuration.run(self)
+					select_configuration(self)
 					return
 
 				configuration = self.configuration
 
 				adapter_configuration = self.adapters.get(configuration.type)
 				if not adapter_configuration:
-					raise Exception('Unable to find debug adapter with the type name "{}"'.format(configuration.type))
+					raise core.Error('Unable to find debug adapter with the type name "{}"'.format(configuration.type))
 
 			except Exception as e:
 				core.log_exception()
@@ -517,3 +517,18 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 	@command()
 	def on_settings(self) -> None:
 		help_menu(self).run()
+
+	@command()
+	def install_adapters(self) -> None:
+		self.show_console_panel()
+		install_adapters_menu(self.adapters.values(), self).run()
+
+	@command()
+	def change_configuration(self) -> None:
+		select_configuration(self)
+
+	def error(self, value: str):
+		self.terminal.log_error(value)
+
+	def info(self, value: str):
+		self.terminal.log_info(value)

@@ -1,3 +1,4 @@
+from ..typecheck import *
 
 _should_log_exceptions = True
 _should_log_error = True
@@ -32,3 +33,10 @@ def log_info(*args) -> None:
 	if not _should_log_info:
 		return
 	print(*args)
+
+T = TypeVar('T')
+class Logger(Protocol):
+	def error(self, value: str):
+		...
+	def info(self, value: str):
+		...

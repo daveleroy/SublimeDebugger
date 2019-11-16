@@ -3,9 +3,10 @@
 		"node",
 		"${package}/data/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
 	],
-	"installation": {
+	"dependencies": ["node"],
+	"install": {
 		"name": "vscode-go",
-		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage",
-		"format": "zip"
+		"type": "vscode",
+		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage"
 	}
 }

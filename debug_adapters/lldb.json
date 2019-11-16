@@ -1,15 +1,32 @@
 {
 	"command" : [
-		"lldb",
-		"-b",
-		"-O",
-		"command script import '${package}/data/debug_adapters/vscode-lldb/extension/adapter'",
-		"-O",
-		"script adapter.main.run_stdio_session()"
+		"node",
+		"${package}/debug_adapters/lldb_util/entry.js",
+		"${install_path}/extension/adapter2/codelldb"
 	],
-	"installation": {
-		"name": "vscode-lldb",
-		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vadimcn/vsextensions/vscode-lldb/latest/vspackage",
-		"format": "zip"
+	"dependencies": ["node"],
+	"install" : {
+		"name": "vscode-lldb"
+	},
+	"osx": {
+		"install": {
+			"name": "vscode-lldb",
+			"type": "vscode",
+			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-darwin.vsix"
+		}
+	},
+	"linux": {
+		"install": {
+			"name": "vscode-lldb",
+			"type": "vscode",
+			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-linux.vsix"
+		}
+	},
+	"windows": {
+		"install": {
+			"name": "vscode-lldb",
+			"type": "vscode",
+			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-windows.vsix"
+		}
 	}
 }

@@ -3,9 +3,10 @@
 		"node",
 		"${package}/data/debug_adapters/native-debug/extension/out/src/gdb.js"
 	],
-	"installation": {
+	"dependencies": ["node"],
+	"install": {
 		"name": "native-debug",
-		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/webfreak/vsextensions/debug/latest/vspackage",
-		"format": "zip"
+		"type": "vscode",
+		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/webfreak/vsextensions/debug/latest/vspackage"
 	}
 }

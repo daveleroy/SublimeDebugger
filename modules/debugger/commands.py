@@ -7,10 +7,6 @@ import json
 from .. import core
 from .debugger_interface import DebuggerInterface
 from .debugger import DebuggerStateful
-from ..commands.install_adapters_menu import open_install_adapter_menu
-from ..commands import select_configuration
-
-
 # commands look like...
 
 """
@@ -37,13 +33,14 @@ actions_window = [
 	{
 		"action": "install_adapters",
 		"caption": "Install Adapters",
-		"run": lambda window, debugger: open_install_adapter_menu(debugger),
+		"command": lambda window, debugger: debugger.install_adapters,
 		"opens": True,
 	},
 	{
 		"action": "change_configuration",
-		"caption": "Change Configuration",
-		"run": lambda window, debugger: select_configuration.run(debugger),
+		"caption": "Add or Change Configuration",
+		"command": lambda window, debugger: debugger.change_configuration,
+		"opens": True,
 	},
 	{	"caption": "-" },
 	{

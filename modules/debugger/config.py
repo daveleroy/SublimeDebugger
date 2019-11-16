@@ -1,7 +1,7 @@
 from .. typecheck import *
 from .. import core
 
-from .adapter_configuration import Configuration
+from .adapter import Configuration
 from .breakpoints import Breakpoints
 
 import sublime
@@ -64,7 +64,7 @@ class PersistedData:
 
 	def save_to_file(self) -> None:
 		file_name = _project_data_file(self.project_name)
-		data = json.dumps(self.json)
+		data = json.dumps(self.json, indent='\t', sort_keys=True)
 		file = open(file_name, 'w+')
 		contents = file.write(data)
 		file.close()

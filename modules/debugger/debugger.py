@@ -11,9 +11,9 @@ from ..dap.transport import (
 
 from .terminal import Terminal, TerminalProcess, TerminalStandard
 
-from .adapter_configuration import (
+from .adapter import (
 	ConfigurationExpanded,
-	AdapterConfiguration
+	Adapter
 )
 from .breakpoints import (
 	Breakpoints,
@@ -119,7 +119,7 @@ class DebuggerStateful:
 		self.on_state_changed(state)
 		self.state_changed()
 
-	def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None) -> core.awaitable[None]:
+	def launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None) -> core.awaitable[None]:
 		if self.launching_async:
 			self.launching_async.cancel()
 
@@ -127,18 +127,19 @@ class DebuggerStateful:
 		self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart))
 		try:
 			yield from self.launching_async
-		except Exception as e:
+		except core.Error as e:
 			self.launching_async = None
 			core.log_exception(e)
-			if isinstance(e, core.CancelledError):
-				self.log_info("... canceled")
-			else:
-				self.log_error("... an error occured, " + str(e))
+			self.error("... an error occured, " + str(e))
+			self.force_stop_adapter()
+		except core.CancelledError:
+			self.launching_async = None
+			self.info("... canceled")
 			self.force_stop_adapter()
 
 		self.launching_async = None
 
-	def _launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None) -> core.awaitable[None]:
+	def _launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None) -> core.awaitable[None]:
 		if self.state != DebuggerStateful.stopped:
 			yield from self.stop()
 
@@ -148,18 +149,18 @@ class DebuggerStateful:
 		self.configuration = configuration
 
 		if not adapter_configuration.installed:
-			raise Exception('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
+			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
 
 		if 'sublime_debugger_build' in configuration.all:
-			self.log_info('running build...')
+			self.info('running build...')
 			terminal = TerminalStandard('Build Results')
 			self.terminals.append(terminal)
 			self.on_terminals(self.terminals)
 			yield from build.run(sublime.active_window(), terminal.write_stdout, configuration.all['sublime_debugger_build'])
-			self.log_info('... finished running build')
+			self.info('... finished running build')
 
 		# dont monitor stdout the StdioTransport uses it
-		self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.log_info)
+		self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.info)
 		transport = StdioTransport(self.process)
 
 		def on_run_in_terminal(request: dap.RunInTerminalRequest) -> int:
@@ -180,7 +181,7 @@ class DebuggerStateful:
 		adapter.onContinued.add(self._on_continued_event)
 		adapter.onTerminated.add(self._on_exited_event)
 
-		self.log_info("starting debugger... ")
+		self.info("starting debugger... ")
 
 		# this is a bit of a weird case. Initialized will happen at some point in time
 		# it depends on when the debug adapter chooses it is ready for configuration information
@@ -190,24 +191,24 @@ class DebuggerStateful:
 			try:
 				yield from adapter.Initialized()
 			except Exception as e:
-				self.log_error("there was waiting for initialized from debugger {}".format(e))
+				self.error("there was waiting for initialized from debugger {}".format(e))
 			try:
 				yield from self.AddBreakpoints()
 			except Exception as e:
-				self.log_error("there was an error adding breakpoints {}".format(e))
+				self.error("there was an error adding breakpoints {}".format(e))
 			try:
 				if capabilities.supportsFunctionBreakpoints:
 					yield from self.set_function_breakpoints()
 
 				elif len(self.breakpoints.function.breakpoints) > 0:
-					self.log_error("debugger doesn't support function breakpoints")
+					self.error("debugger doesn't support function breakpoints")
 			except Exception as e:
-				self.log_error("there was an error adding function breakpoints {}".format(e))
+				self.error("there was an error adding function breakpoints {}".format(e))
 			try:
 				if capabilities.supportsConfigurationDoneRequest:
 					yield from adapter.ConfigurationDone()
 			except Exception as e:
-				self.log_error("there was an error in configuration done {}".format(e))
+				self.error("there was an error in configuration done {}".format(e))
 		core.run(Initialized())
 
 		capabilities = yield from adapter.Initialize()
@@ -223,7 +224,7 @@ class DebuggerStateful:
 			self.launch_request = False
 			yield from adapter.Attach(configuration.all, restart)
 		else:
-			raise Exception('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
+			raise core.Error('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
 
 		# get the baseline threads after launch/attach
 		# according to https://microsoft.github.io/debug-adapter-protocol/overview
@@ -392,7 +393,7 @@ class DebuggerStateful:
 
 	@core.async
 	def evaluate(self, command: str) -> core.awaitable[None]:
-		self.log_info(command)
+		self.info(command)
 		assert self.adapter, 'debugger not running'
 
 		adapter = self.adapter
@@ -401,7 +402,7 @@ class DebuggerStateful:
 		event = dap.OutputEvent("console", response.result, response.variablesReference)
 		self.on_output(event)
 
-	def log_info(self, string: str) -> None:
+	def info(self, string: str) -> None:
 		output = dap.OutputEvent("debugger.info", string + '\n', 0)
 		self.on_output(output)
 
@@ -409,7 +410,7 @@ class DebuggerStateful:
 		output = dap.OutputEvent("debugger.output", string + '\n', 0)
 		self.on_output(output)
 
-	def log_error(self, string: str) -> None:
+	def error(self, string: str) -> None:
 		output = dap.OutputEvent("debugger.error", string + '\n', 0)
 		self.on_output(output)
 
@@ -457,7 +458,7 @@ class DebuggerStateful:
 	def _thread_for_command(self) -> ThreadStateful:
 		thread = self._selected_or_first_thread()
 		if not thread:
-			raise Exception('No thread to run command')
+			raise core.Error('No thread to run command')
 		return thread
 
 	def _selected_or_first_thread(self) -> Optional[ThreadStateful]:
