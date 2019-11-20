@@ -25,7 +25,14 @@ class TtyProcess:
 	def _read(self, callback: Callable[[str], None]) -> None:
 		while not self.closed:
 			try:
-				line = self.process.read().decode('utf-8')
+				if os.name != 'nt':
+					line = self.process.read().decode('utf-8')
+				else:
+					line = self.process.read()
+					line = line.replace('[0m[0K', '')
+					line = line.replace('[0K[?25l', '')
+					line = line.replace('[0K[?25h', '')
+				
 				if not line:
 					core.log_info("Nothing to read from process, closing")
 					break
