@@ -29,7 +29,8 @@ from .modules import Modules
 from .sources import Sources
 from .watch import Watch
 
-class DebuggerStateful:
+
+class DebuggerStateful(dap.ClientEventsListener):
 	stopped = 0
 	paused = 1
 	running = 2
@@ -58,7 +59,6 @@ class DebuggerStateful:
 		self.launching_async = None
 
 		self.launch_request = True
-		self.supports_terminate_request = True
 
 		self.selected_frame = None #type: Optional[Union[dap.StackFrame, ThreadStateful]]
 		self.selected_thread_explicitly = False
@@ -175,25 +175,11 @@ class DebuggerStateful:
 		self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.info)
 		transport = StdioTransport(self.process)
 
-		def on_run_in_terminal(request: dap.RunInTerminalRequest) -> int:
-			terminal = TerminalProcess(request.cwd, request.args)
-			self.terminals.append(terminal)
-			self.on_terminals(self.terminals)
-			return terminal.pid()
-
 		adapter = dap.Client(
-			transport, 
-			on_breakpoint_event = self.on_breakpoint_event,
-			on_module_event = self.modules.on_module_event,
-			on_loaded_source_event = self.sources.on_loaded_source_event,
-			on_run_in_terminal = on_run_in_terminal
+			transport,
+			self
 		)
 		self.adapter = adapter
-		adapter.onThreads.add(self._on_threads_event)
-		adapter.onOutput.add(self._on_output_event)
-		adapter.onStopped.add(self._on_stopped_event)
-		adapter.onContinued.add(self._on_continued_event)
-		adapter.onTerminated.add(self._on_exited_event)
 
 		self.info("starting debugger... ")
 
@@ -226,7 +212,6 @@ class DebuggerStateful:
 		core.run(Initialized())
 
 		self.capabilities = yield from adapter.Initialize()
-		self.supports_terminate_request = self.capabilities.supportsTerminateRequest
 
 		filters = self.capabilities.exceptionBreakpointFilters or []
 		self.breakpoints.filters.update(filters)
@@ -244,7 +229,6 @@ class DebuggerStateful:
 		# according to https://microsoft.github.io/debug-adapter-protocol/overview
 		self.refresh_threads()
 
-		
 		# At this point we are running?
 		self.state = DebuggerStateful.running
 
@@ -278,10 +262,9 @@ class DebuggerStateful:
 		for file, filebreaks in bps.items():
 			requests.append(self.on_send_breakpoints_for_file(file, filebreaks))
 
-
 		if self.capabilities.supportsDataBreakpoints:
 			requests.append(self.set_data_breakpoints())
-			
+
 		if requests:
 			yield from core.asyncio.wait(requests)
 
@@ -344,7 +327,7 @@ class DebuggerStateful:
 		# this seems to be what the spec says to do in the overview
 		# https://microsoft.github.io/debug-adapter-protocol/overview
 		if self.launch_request:
-			if self.supports_terminate_request:
+			if self.capabilities.supportsTerminateRequest:
 				try:
 					yield from self.adapter.Terminate()
 				except dap.Error as e:
@@ -420,11 +403,10 @@ class DebuggerStateful:
 	@core.coroutine
 	def evaluate(self, command: str) -> core.awaitable[None]:
 		self.info(command)
-		assert self.adapter, 'debugger not running'
+		if not self.adapter:
+			raise core.Error('debugger not running')
 
-		adapter = self.adapter
-
-		response = yield from adapter.Evaluate(command, self.selected_frame, "repl")
+		response = yield from self.adapter.Evaluate(command, self.selected_frame, "repl")
 		event = dap.OutputEvent("console", response.result, response.variablesReference)
 		self.on_output(event)
 
@@ -469,17 +451,6 @@ class DebuggerStateful:
 		self.threads_stateful_from_id = threads_stateful_from_id
 		self.update_selection_if_needed()
 		self.on_threads_stateful(self.threads_stateful)
-
-	def _on_threads_event(self, event: dap.ThreadEvent) -> None:
-		self.refresh_threads()
-
-	def _on_output_event(self, event: dap.OutputEvent) -> None:
-		self.on_output(event)
-
-	def on_breakpoint_event(self, event: dap.BreakpointEvent) -> None:
-		b = self.breakpoints_for_id.get(event.result.id)
-		if b:
-			self.breakpoints.source.set_result(b, event.result)
 
 	def _thread_for_command(self) -> ThreadStateful:
 		thread = self._selected_or_first_thread()
@@ -549,33 +520,27 @@ class DebuggerStateful:
 		if id in self.threads_stateful_from_id:
 			return self.threads_stateful_from_id[id]
 		thread = ThreadStateful(self, id, None, self.adapter.allThreadsStopped)
+		thread.stopped_text = ""
 		return thread
 
-	def _on_continued_event(self, event: dap.ContinuedEvent) -> None:
-		if not event:
-			return
+	def on_breakpoint_event(self, event: dap.BreakpointEvent):
+		b = self.breakpoints_for_id.get(event.result.id)
+		if b:
+			self.breakpoints.source.set_result(b, event.result)
 
-		event_thread = self._threadstateful_for_id(event.threadId)
-		event_thread.on_continued()
+	def on_module_event(self, event: dap.ModuleEvent):
+		self.modules.on_module_event(event)
 
+	def on_loaded_source_event(self, event: dap.LoadedSourceEvent):
+		self.sources.on_loaded_source_event(event)
 
-		if event.allThreadsContinued:
-			self.selected_frame = None
-			self.selected_thread_explicitly = False
-			self.on_selected_frame(None, None)
+	def on_output_event(self, event: dap.OutputEvent):
+		self.on_output(event)
 
-			for thread in self.threads_stateful:
-				if event_thread is not thread: 
-					thread.on_continued()
+	def on_threads_event(self, event: dap.ThreadEvent) -> None:
+		self.refresh_threads()
 
-		elif event_thread == self.selected_threadstateful:
-			self.selected_frame = None
-			self.selected_thread_explicitly = False
-			self.on_selected_frame(None, None)
-
-		self._refresh_state()
-	
-	def _on_stopped_event(self, event: dap.StoppedEvent) -> None:
+	def on_stopped_event(self, event: dap.StoppedEvent):
 		self.refresh_threads()
 
 		event_thread = self._threadstateful_for_id(event.threadId)
@@ -588,13 +553,38 @@ class DebuggerStateful:
 			self.selected_frame = None
 			self.selected_thread_explicitly = False
 			for thread in self.threads_stateful:
-				if event_thread is not thread: 
+				if event_thread is not thread:
 					thread.on_stopped(event.text)
 
 		self._refresh_state()
 
-	def _on_exited_event(self, event: dap.TerminatedEvent) -> None:
+	def on_continued_event(self, event: dap.ContinuedEvent):
+		event_thread = self._threadstateful_for_id(event.threadId)
+		event_thread.on_continued()
+
+		if event.allThreadsContinued:
+			self.selected_frame = None
+			self.selected_thread_explicitly = False
+			self.on_selected_frame(None, None)
+
+			for thread in self.threads_stateful:
+				if event_thread is not thread:
+					thread.on_continued()
+
+		elif event_thread == self.selected_threadstateful:
+			self.selected_frame = None
+			self.selected_thread_explicitly = False
+			self.on_selected_frame(None, None)
+
+		self._refresh_state()
+
+	def on_terminated_event(self, event: dap.TerminatedEvent):
 		self.force_stop_adapter()
 		if event.restart:
 			core.run(self.launch(self.adapter_configuration, self.configuration, event.restart))
 
+	def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> int: # pid
+		terminal = TerminalProcess(request.cwd, request.args)
+		self.terminals.append(terminal)
+		self.on_terminals(self.terminals)
+		return terminal.pid()

@@ -22,32 +22,42 @@ from .transport import Transport
 from ..libs import asyncio
 
 
+class ClientEventsListener (Protocol):
+	# events
+	def on_breakpoint_event(self, event: BreakpointEvent):
+		...
+	def on_module_event(self, event: ModuleEvent):
+		...
+	def on_loaded_source_event(self, event: LoadedSourceEvent):
+		...
+	def on_output_event(event: OutputEvent):
+		...
+	def on_terminated_event(self, event: TerminatedEvent):
+		...
+	def on_stopped_event(self, event: StoppedEvent):
+		...
+	def on_continued_event(self, event: ContinuedEvent):
+		...
+	def on_threads_event(self, event: ThreadEvent):
+		...
+	# reverse requests
+	def on_run_in_terminal(self, request: RunInTerminalRequest) -> int: # pid
+		...
+
 @core.all_methods(core.require_main_thread)
-class DebugAdapterClient:
+class Client:
 	def __init__(
-			self, 
-			transport: Transport, 
-			on_breakpoint_event: Callable[[BreakpointEvent], None],
-			on_module_event: Callable[[ModuleEvent], None],
-			on_loaded_source_event: Callable[[LoadedSourceEvent], None],
-			on_run_in_terminal: Callable[[RunInTerminalRequest], int]
-		) -> None:
+		self,
+		transport: Transport,
+		events: ClientEventsListener,
+	) -> None:
 
 		self.transport = transport
+		self.events = events
 		self.transport.start(self.transport_message, self.transport_closed)
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
-		self.on_run_in_terminal = on_run_in_terminal
 		self.allThreadsStopped = False
-		self.onTerminated = core.Event() #type: core.Event[TerminatedEvent]
-		self.onStopped = core.Event() #type: core.Event[StoppedEvent]
-		self.onContinued = core.Event() #type: core.Event[Any]
-		self.onOutput = core.Event() #type: core.Event[Any]
-		self.onThreads = core.Event() #type: core.Event[ThreadEvent]
-		self.on_breakpoint_event = on_breakpoint_event
-		self.on_module_event = on_module_event
-		self.on_loaded_source_event = on_loaded_source_event
-		self.on_error_event = core.Event() #type: core.Event[str]
 		self.is_running = True
 		self._on_initialized_future = core.create_future()
 
@@ -55,14 +65,12 @@ class DebugAdapterClient:
 		print('disposing Debugger')
 		self.transport.dispose()
 
-	
 	@core.coroutine
 	def StepIn(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepIn', {
 			'threadId': thread.id
 		})
 
-	
 	@core.coroutine
 	def StepOut(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepOut', {
@@ -85,7 +93,7 @@ class DebugAdapterClient:
 		if body:
 			self._continued(thread.id, body.get('allThreadsContinued', True))
 		else:
-			self._continued(thread.id, False)
+			self._continued(thread.id, True)
 
 	@core.coroutine
 	def Pause(self, thread: Thread) -> core.awaitable[None]:
@@ -268,7 +276,6 @@ class DebugAdapterClient:
 		})
 		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
-	
 	@core.coroutine
 	def SetBreakpointsFile(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
 		result = yield from self.send_request_asyc('setBreakpoints', {
@@ -309,7 +316,7 @@ class DebugAdapterClient:
 			self.allThreadsStopped = False
 
 		event = ContinuedEvent(threadId, allThreadsContinued)
-		self.onContinued.post(event)
+		self.events.on_continued_event(event)
 
 	def _on_stopped(self, body: dict) -> None:
 		# only ask for threads if there was a reason for the stoppage
@@ -332,25 +339,15 @@ class DebugAdapterClient:
 			self.allThreadsStopped = True
 
 		event = StoppedEvent(threadId, allThreadsStopped, stopped_text)
-		self.onStopped.post(event)
+		self.events.on_stopped_event(event)
 
 	def _on_terminated(self, body: dict) -> None:
 		self.is_running = False
-		self.onTerminated.post(TerminatedEvent.from_json(body))
-
-	def _on_output(self, body: dict) -> None:
-		self.onOutput.post(OutputEvent.from_json(body))
-
-	def _on_thread(self, body: dict) -> None:
-		self.onThreads.post(ThreadEvent.from_json(body))
-
-	def _on_breakpoint(self, body: dict) -> None:
-		self.on_breakpoint_event(BreakpointEvent.from_json(body))
+		self.events.on_terminated_event(TerminatedEvent.from_json(body))
 
 	def transport_closed(self) -> None:
-		print('Debugger Transport: closed')
 		if self.is_running:
-			self.on_error_event.post('Debug Adapter process was terminated prematurely')
+			core.log_error('Debug Adapter process was terminated prematurely')
 			self._on_terminated({})
 
 	def transport_message(self, message: str) -> None:
@@ -371,10 +368,9 @@ class DebugAdapterClient:
 		self.pending_requests[self.seq] = future
 		msg = json.dumps(request)
 		self.transport.send(msg)
-
 		return future
 
-	def send_response(self,  request: dict, body: dict, error: Optional[str] = None) -> None:
+	def send_response(self, request: dict, body: dict, error: Optional[str] = None) -> None:
 		self.seq += 1
 
 		if error:
@@ -395,7 +391,7 @@ class DebugAdapterClient:
 
 	def handle_reverse_request_run_in_terminal(self, request: dict):
 		command = RunInTerminalRequest.from_json(request['arguments'])
-		pid = self.on_run_in_terminal(command)
+		pid = self.events.on_run_in_terminal(command)
 		self.send_response(request, {
 			'processId': pid
 		})
@@ -442,7 +438,7 @@ class DebugAdapterClient:
 			if event == 'initialized':
 				return core.call_soon(self._on_initialized)
 			if event == 'output':
-				return core.call_soon(self._on_output, body)
+				return core.call_soon(self.events.on_output_event, OutputEvent.from_json(body))
 			if event == 'continued':
 				return core.call_soon(self._on_continued, body)
 			if event == 'stopped':
@@ -450,10 +446,10 @@ class DebugAdapterClient:
 			if event == 'terminated':
 				return core.call_soon(self._on_terminated, body)
 			if event == 'thread':
-				return core.call_soon(self._on_thread, body)
+				return core.call_soon(self.events.on_threads_event, ThreadEvent.from_json(body))
 			if event == 'breakpoint':
-				return core.call_soon(self._on_breakpoint, body)
+				return core.call_soon(self.events.on_breakpoint_event, BreakpointEvent.from_json(body))
 			if event == 'module':
-				return core.call_soon(self.on_module_event, ModuleEvent(body))
+				return core.call_soon(self.events.on_module_event, ModuleEvent(body))
 			if event == 'loadedSource':
-				return core.call_soon(self.on_loaded_source_event, LoadedSourceEvent(body))
+				return core.call_soon(self.events.on_loaded_source_event, LoadedSourceEvent(body))
