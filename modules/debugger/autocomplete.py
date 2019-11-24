@@ -1,51 +1,23 @@
 from ..typecheck import *
+from .. import core
+from .. import dap
 
 import sublime
 import sublime_plugin
 
-from .. import core
-from .. import ui
-from .. import dap
-
-def DebuggerInterface_for_window(window: sublime.Window):
-	from ..debugger.debugger_interface import DebuggerInterface
-	debugger = DebuggerInterface.for_window(window)
-	return debugger
-
-def Debugger_for_window(window: sublime.Window):
-	return DebuggerInterface_for_window(window).debugger
-
-class DebuggerWindowCommand(sublime_plugin.WindowCommand):
-	def run(self, **args) -> None:
-		core.call_soon_threadsafe(self._run_main, args)
-
-	def _run_main(self, args) -> None:
-		self.run_main(**args)
-	def run_main(self, **args) -> None:
-		from ..debugger.debugger_interface import DebuggerInterface
-		debugger = DebuggerInterface.for_window(self.window)
-		if debugger:
-			debugger.show()
-			self.run_main_debugger_interface(debugger, **args)
-		else:
-			print('No debugger open for window, ignoring command')
-
-	def run_main_debugger_interface(self, debugger: 'DebuggerInterface', **args) -> None:
-		assert False, "expected run_main_debugger_interface or run_main to be overriden"
-
 class Autocomplete:
-	_for_window = {}
+	_for_window = {} #type: Dict[int, Autocomplete]
 
 	@staticmethod
 	def for_window(window):
-		id = window.id() 
+		id = window.id()
 		if id in Autocomplete._for_window:
 			return Autocomplete._for_window[id]
 		return None
 
 	@staticmethod
 	def create_for_window(window):
-		id = window.id() 
+		id = window.id()
 		if id in Autocomplete._for_window:
 			return Autocomplete._for_window[id]
 		r = Autocomplete(id)
@@ -58,7 +30,7 @@ class Autocomplete:
 		Autocomplete._for_window[id] = self
 
 	def dispose(self):
-		del Autocomplete.for_window[self.id]
+		del Autocomplete._for_window[self.id]
 
 	def enable(self):
 		self.enabled = True
@@ -87,9 +59,9 @@ class AutocompleteEventListener(sublime_plugin.EventListener):
 		self.completions = yield from adapter.Completions(text, len(text) + 1, m.debugger.selected_frame)
 		view.run_command("hide_auto_complete")
 		view.run_command("auto_complete", {
-                    'disable_auto_insert': True,
-                    'next_completion_if_showing': False
-                })
+			'disable_auto_insert': True,
+			'next_completion_if_showing': False
+		})
 
 	def on_query_completions(self, view, prefix, locations) -> Any:
 		window = view.window()
@@ -112,5 +84,4 @@ class AutocompleteEventListener(sublime_plugin.EventListener):
 		if not autocomplete or not autocomplete.enabled:
 			return
 		text = view.substr(sublime.Region(0, view.size()))
-		print('auto complete: ', text)
 		core.run(self.get_completions(view, text))

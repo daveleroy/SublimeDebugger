@@ -1,11 +1,10 @@
 from .. typecheck import *
 from .. import core, ui, dap
-from .. commands import Autocomplete
 from .. components import css
+from . autocomplete import Autocomplete
 
 import os, threading, re
 import sublime
-
 
 
 try:

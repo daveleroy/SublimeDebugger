@@ -111,7 +111,6 @@ class VSCodeAdapterInstall:
 			zf.extractall(self.path)
 		log_info('done')
 		os.remove(archive_name)
-		log_info("REOVEasdf")	
 
 def copyfileobj(fsrc, fdst, log_info, total, length=128*1024):
     copied = 0

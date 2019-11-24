@@ -18,7 +18,7 @@ from ..components.variables_panel import VariablesPanel
 from ..components.tabbed_panel import TabbedPanel, TabbedPanelItem
 from ..components.selected_line import SelectedLine
 
-from ..commands.commands import Autocomplete
+from .autocomplete import Autocomplete
 
 from .util import WindowSettingsCallback, get_setting
 from .config import PersistedData
