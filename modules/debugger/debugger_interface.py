@@ -15,7 +15,7 @@ from ..components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, S
 from ..components.breakpoints_panel import BreakpointsPanel
 from ..components.callstack_panel import CallStackPanel
 from ..components.variables_panel import VariablesPanel
-from ..components.pages_panel import TabbedPanel
+from ..components.tabbed_panel import TabbedPanel, TabbedPanelItem
 from ..components.selected_line import SelectedLine
 
 from ..commands.commands import Autocomplete
@@ -34,7 +34,7 @@ from .debugger_project import (
 )
 
 from .breakpoints import (
-	Breakpoints, 
+	Breakpoints,
 )
 
 from .adapter import (
@@ -49,8 +49,6 @@ from .output_panel import OutputPhantomsPanel
 
 from .terminal import TerminalComponent
 from .debugger_terminal import DebuggerTerminal
-from .. components.pages_panel import TabbedPanelItem
-
 from .view_hover import ViewHoverProvider
 from .view_selected_source import ViewSelectedSourceProvider
 from .breakpoint_commands import BreakpointCommandsProvider
@@ -68,7 +66,7 @@ class Panels:
 		for i in range(0, columns):
 			pages = TabbedPanel([], 0)
 			self.pages.append(pages)
-			phantom = ui.Phantom(pages, view, sublime.Region(phantom_location, phantom_location + i), sublime.LAYOUT_INLINE)
+			phantom = ui.Phantom(pages, view, sublime.Region(phantom_location + i, phantom_location + i), sublime.LAYOUT_INLINE)
 
 	def add(self, panels: List[TabbedPanelItem]):
 		self.panels.extend(panels)
@@ -164,7 +162,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		self.window = window
 		self.disposeables = [] #type: List[Any]
 		
-		self.breakpoints = Breakpoints();
+		self.breakpoints = Breakpoints()
 
 		self.callstack_panel = CallStackPanel()
 		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
@@ -260,15 +258,12 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		phantom_location = self.panel.phantom_location()
 		phantom_view = self.panel.phantom_view()
-		self.disposeables.extend([
-			ui.Phantom(self.debugger_panel, phantom_view, sublime.Region(phantom_location, phantom_location + 0), sublime.LAYOUT_INLINE),
-		])
 
 		callstack_panel_item = TabbedPanelItem(id(self.callstack_panel), self.callstack_panel, "Call Stack", 0)
 		variables_panel_item = TabbedPanelItem(id(self.variables_panel), self.variables_panel, "Variables", 1)
 
 		self.terminal = DebuggerTerminal(
-			on_run_command=self.on_run_command, 
+			on_run_command=self.on_run_command,
 			on_clicked_source=self.on_navigate_to_source
 		)
 		terminal_component = TerminalComponent(self.terminal)
@@ -278,6 +273,9 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(project_name)))
 
+		self.disposeables.extend([
+			ui.Phantom(self.debugger_panel, phantom_view, sublime.Region(phantom_location, phantom_location), sublime.LAYOUT_INLINE),
+		])
 		self.panels = Panels(phantom_view, phantom_location + 1, 3)
 		self.panels.add([
 			callstack_panel_item,

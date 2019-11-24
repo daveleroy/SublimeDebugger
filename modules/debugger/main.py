@@ -24,8 +24,6 @@ def startup() -> None:
 	def on_main():
 		print('Starting up')
 		ui.startup()
-		ui.import_css('{}/{}'.format(core.current_package(), 'modules/components/components.css'))
-
 		was_opened_at_startup = set() #type: Set[int]
 
 		def on_view_activated(view: sublime.View) -> None:

@@ -24,7 +24,7 @@ class Sources:
 		self.sources.clear()
 		self.on_updated()
 
-class SourcesView(ui.Block):
+class SourcesView(ui.div):
 	def __init__(self, sources: Sources):
 		super().__init__()
 		self.sources = sources
@@ -35,14 +35,14 @@ class SourcesView(ui.Block):
 	def removed(self):
 		self.on_updated_handle.dispose()
 
-	def render(self) -> ui.Panel.Children:
+	def render(self) -> ui.div.Children:
 		items = []
 		for module in self.sources.sources:
 			items.append(
-				ui.block(
-					ui.Label(module.name)
-				)
+				ui.div(height=2.5)[
+					ui.text(module.name or "<no module name>")
+				]
 			)
 		return [
-			ui.Table(items=items)
+			ui.div()[items]
 		]

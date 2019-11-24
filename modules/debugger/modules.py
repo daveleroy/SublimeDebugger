@@ -24,7 +24,7 @@ class Modules:
 		self.modules.clear()
 		self.on_updated()
 
-class ModulesView(ui.Block):
+class ModulesView(ui.div):
 	def __init__(self, modules: Modules):
 		super().__init__()
 		self.modules = modules
@@ -35,14 +35,16 @@ class ModulesView(ui.Block):
 	def removed(self):
 		self.on_updated_handle.dispose()
 
-	def render(self) -> ui.Panel.Children:
+	def render(self) -> ui.div.Children:
 		items = []
 		for module in self.modules.modules:
 			items.append(
-				ui.block(
-					ui.Label(module.name)
-				)
+				ui.div()[
+					ui.text(module.name)
+				]
 			)
 		return [
-			ui.Table(items=items)
+			ui.div()[
+				items
+			]
 		]

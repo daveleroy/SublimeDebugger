@@ -12,7 +12,7 @@ class VariableLine(Line):
 		self.line = line
 		self.on_clicked_source = on_clicked_source
 
-	def ui(self, layout, max_width) -> List[ui.Block]:
+	def ui(self, layout, max_width) -> List[ui.div]:
 		source_item = None
 		if self.source:
 			variable_length = len(self.variable.name) + len(self.variable.value)

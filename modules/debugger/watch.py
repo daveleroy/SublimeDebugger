@@ -21,7 +21,7 @@ class Watch:
 			}
 		@staticmethod
 		def from_json(json: dict) -> 'Watch.Expression':
-			return Watch.Expression (
+			return Watch.Expression(
 				json['value'],
 			)
 
@@ -99,7 +99,7 @@ class Watch:
 	def edit_run(self, expression: 'Watch.Expression'):
 		self.edit(expression).run()
 
-class WatchView(ui.Block):
+class WatchView(ui.div):
 	def __init__(self, provider: Watch):
 		super().__init__()
 		self.provider = provider
@@ -110,15 +110,17 @@ class WatchView(ui.Block):
 	def removed(self):
 		self.on_updated_handle.dispose()
 
-	def render(self) -> ui.Panel.Children:
+	def render(self) -> ui.div.Children:
 		items = []
 		for expresion in self.provider.expressions:
 			items.append(WatchExpressionView(expresion, on_edit_not_available=self.provider.edit_run))
 		return [
-			ui.Table(items=items)
+			ui.div()[
+				items
+			]
 		]
 
-class WatchExpressionView(ui.Block):
+class WatchExpressionView(ui.div):
 	def __init__(self, expression: Watch.Expression, on_edit_not_available: Callable[[Watch.Expression], None]):
 		super().__init__()
 		self.expression = expression
@@ -130,17 +132,17 @@ class WatchExpressionView(ui.Block):
 	def removed(self):
 		self.on_updated_handle.dispose()
 
-	def render(self) -> ui.Block.Children:
+	def render(self) -> ui.div.Children:
 		if self.expression.evaluate_response:
 			component = VariableStatefulComponent(self.expression.evaluate_response)
 			self.expression.evaluate_response.on_dirty = component.dirty
 			return [component]
 
 		return [
-			ui.block(
-				ui.Button(lambda: self.on_edit_not_available(self.expression), [
-					ui.Label(self.expression.value, padding_left=0.5, padding_right=1), 
-					ui.Label("not available", color="secondary")
-				])
-			)
+			ui.div()[
+				ui.click(lambda: self.on_edit_not_available(self.expression))[
+					ui.text(self.expression.value),
+					ui.text("not available")
+				]
+			]
 		]

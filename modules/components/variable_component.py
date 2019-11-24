@@ -1,10 +1,12 @@
-from ..typecheck import *
-
-import sublime
-
+from .. typecheck import *
 from .. import ui
 from .. import core
 from .. import dap
+
+from . import css
+
+import sublime
+
 
 class VariableReference (Protocol):
 	@property
@@ -124,74 +126,67 @@ class VariableStateful:
 		self.on_dirty()
 
 
-class VariableStatefulComponent (ui.Block):
-	def __init__(self, variable: VariableStateful, syntax_highlight=True, itemRight: Optional[ui.Inline] = None) -> None:
+class VariableStatefulComponent (ui.div):
+	def __init__(self, variable: VariableStateful, syntax_highlight=True, itemRight: Optional[ui.span] = None) -> None:
 		super().__init__()
 		self.syntax_highlight = syntax_highlight
 		self.variable = variable
-		self.itemRight = itemRight or ui.Inline()
-
-
+		self.itemRight = itemRight or ui.span()
 
 	def on_edit(self) -> None:
 		if self.variable.on_edit:
 			self.variable.on_edit(self.variable)
 
-
-	def render(self) -> ui.Block.Children:
+	def render(self) -> ui.div.Children:
 		v = self.variable
 		name = v.name
 		value = v.value
 
-		if self.syntax_highlight:
-			value_item = ui.CodeBlock(value)
-		else:
-			value_item = ui.Label(value)
+		value_item = ui.click(self.on_edit)[
+			ui.text(name, css=css.label_secondary_padding),
+			ui.code(value) if self.syntax_highlight else ui.text(value),
+		]
 
 		if not self.variable.expandable:
 			return [
-				ui.block(ui.Button(self.on_edit, [
-					ui.Label(name, padding_left=0.5, padding_right=1),
+				ui.div(height=3.0, width=100, css=css.icon_sized_spacer)[
 					value_item,
-				]),
-				self.itemRight)
+					self.itemRight
+				],
 			]
 
-		if self.variable.expanded:
-			image = ui.Img(ui.Images.shared.open)
-		else:
-			image = ui.Img(ui.Images.shared.close)
+		variable_label = ui.div(height=3.0, width=100, css=css.icon_sized_spacer)[
+			ui.click(self.variable.toggle_expand)[
+				ui.icon(ui.Images.shared.open if self.variable.expanded else ui.Images.shared.close)
+			],
+			value_item,
+			self.itemRight
+		]
 
-		items = [
-			ui.block(
-				ui.Button(self.variable.toggle_expand, [
-					image
-				]),
-				ui.Button(self.on_edit, [
-					ui.Label(name, padding_right=1),
-					value_item,
-				]),
-				self.itemRight
+		if not self.variable.expanded:
+			return [
+				variable_label
+			]
+
+		variable_children = [] #type: List[ui.div]
+		count = self.variable.number_expanded()
+		syntax_highlight = count < 25
+		for variable in self.variable.variables[:count]:
+			variable_children.append(VariableStatefulComponent(variable, syntax_highlight))
+
+		more_count = self.variable.has_more()
+		if more_count:
+			variable_children.append(
+				ui.div(height=3.0)[
+					ui.click(self.variable.show_more,)[
+						ui.text("  {} more items...".format(more_count), css=css.label_secondary)
+					]
+				]
 			)
-		] #type: List[ui.Block]
 
-		if self.variable.expanded:
-			inner = [] #type: List[ui.Block]
-			count = self.variable.number_expanded()
-			syntax_highlight = count < 25
-			for i in range(0, count):
-				variable = self.variable.variables[i]
-				inner.append(VariableStatefulComponent(variable, syntax_highlight))
-
-			more_count = self.variable.has_more()
-			if more_count:
-				inner.append(
-					ui.block(ui.Button(self.variable.show_more, [
-						ui.Label("  {} more items...".format(more_count), color="secondary")
-					]))
-				)
-			table = ui.Table(items=inner)
-			table.add_class('inset')
-			items.append(table)
-
-		return items
+		return [
+			variable_label,
+			ui.div(css=css.table_inset)[
+				variable_children
+			]
+		]
