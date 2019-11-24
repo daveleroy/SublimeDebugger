@@ -1,14 +1,13 @@
 from ..typecheck import *
-
-if TYPE_CHECKING:
-	from .component import Component
-
-from .image import view_background_lightness
-from .layout import Layout, reload_css
 from .. import core
+from . html import div, Component, phantom_sizer
+from . layout_view import LayoutView
 
 import sublime
 import threading
+
+if TYPE_CHECKING:
+	from .component import Component
 
 class Timer:
 	def __init__(self, callback: Callable[[], None], interval: float, repeat: bool) -> None:
@@ -36,7 +35,6 @@ _renderables_add = [] #type: List[Renderable]
 
 def reload() -> None:
 	update()
-	reload_css()
 	for renderable in _renderables:
 		renderable.force_dirty()
 	schedule_render()
@@ -114,95 +112,6 @@ class Renderable:
 	def clear_sublime(self) -> None:
 		assert False
 
-
-class SyntaxHighlightedText:
-	def __init__(self, text: str, language: str) -> None:
-		self.html = None #type: Optional[str]
-		self.text = text
-		self.language = language
-
-
-class LayoutView (Layout):
-	def __init__(self, item: 'Component', view: sublime.View) -> None:
-		super().__init__(item)
-		self.view = view
-		self._width = 0
-		self._height = 0
-		self._lightness = 0.0
-		self._em_width = 1.0
-		self.update()
-		self._highlighter = None
-		self._unhighlightedSyntaxHighlightedTexts = []
-		self._syntaxHighlightCache = {} #type: dict
-		try:
-			from mdpopups import SublimeHighlight
-			scheme = view.settings().get('color_scheme')
-			self._highlighter = SublimeHighlight(scheme)
-		except ImportError as e:
-			core.log_info('syntax highlighting disabled no mdpopups')
-
-	def em_width(self) -> float:
-		return self._em_width
-
-	def width(self) -> float:
-		return self._width
-
-	def height(self) -> float:
-		return self._height
-
-	def luminocity(self) -> float:
-		return self._lightness
-
-	def syntax_highlight(self, text: str, language: str) -> SyntaxHighlightedText:
-		item = SyntaxHighlightedText(text, language)
-		self._unhighlightedSyntaxHighlightedTexts.append(item)
-		return item
-
-	# we run syntax highlighting in the main thread all at once before html is generated
-	# This speeds it up a ton since its interacting with sublime's views which seems
-	# we cache all the results because it is really really slow still...
-	def run_syntax_highlight(self) -> None:
-		if not self._highlighter:
-			return
-		event = threading.Event()
-
-		def run():
-			for item in self._unhighlightedSyntaxHighlightedTexts:
-				cache = self._syntaxHighlightCache.setdefault(item.language, {})
-				if item.text in cache:
-					item.html = cache[item.text]
-				else:
-					try:
-						item.html = self._highlighter.syntax_highlight(item.text, item.language, inline=True)
-						cache[item.text] = item.html
-					except:
-						core.log_exception()
-					
-			self._unhighlightedSyntaxHighlightedTexts = []
-			event.set()
-
-		sublime.set_timeout(run)
-		event.wait(0.5)
-
-	def update(self) -> None:
-		font_size = self.view.settings().get('font_size') or 12
-		lightness = view_background_lightness(self.view)
-		size = self.view.viewport_extent()
-		width = size[0] / font_size
-		height = size[1] / font_size
-		em_width = (self.view.em_width() or 12) / font_size
-
-		if em_width != self._em_width or self._width != width or self._height != height or self._lightness != lightness:
-			self._em_width = em_width
-			self._width = width
-			self._height = height
-			self._lightness = lightness
-			self.item.dirty()
-
-	def force_dirty(self) -> None:
-		self.item.dirty()
-
-
 class Phantom(LayoutView, Renderable):
 	id = 0
 
@@ -216,6 +125,8 @@ class Phantom(LayoutView, Renderable):
 		self.set = sublime.PhantomSet(self.view)
 
 		Phantom.id += 1
+
+		# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
 		self.region_id = 'phantom_{}'.format(Phantom.id)
 		self.view.add_regions(self.region_id, [self.region], flags=sublime.DRAW_NO_FILL)
 		self.update()
@@ -223,15 +134,14 @@ class Phantom(LayoutView, Renderable):
 
 	def render(self) -> bool:
 		if super().render() or not self.cachedPhantom:
-			html = '''<body id="debug"><style>{}</style>{}</body>'''.format(self.css, self.html)
-			# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
-			regions = self.view.get_regions(self.region_id)
-			if regions:
-				self.cachedPhantom = sublime.Phantom(regions[0], html, self.layout, self.on_navigate)
+	
 			return True
 		return False
 
 	def render_sublime(self) -> None:
+		regions = self.view.get_regions(self.region_id)
+		self.cachedPhantom = sublime.Phantom(regions[0], self.html, self.layout, self.on_navigate)
+
 		if self.cachedPhantom:
 			self.set.update([self.cachedPhantom])
 
@@ -246,21 +156,23 @@ class Phantom(LayoutView, Renderable):
 
 
 class Popup(LayoutView, Renderable):
-	def __init__(self, component: 'Component', view: sublime.View, location: int = -1, layout: int = sublime.LAYOUT_INLINE, on_close: Optional[Callable[[], None]] = None) -> None:
+	def __init__(self, component: 'Component', view: sublime.View, location: int = -1, on_close: Optional[Callable[[], None]] = None) -> None:
 		super().__init__(component, view)
 		self.on_close = on_close
 		self.location = location
-		self.layout = layout
 		self.max_height = 500
 		self.max_width = 1000
 		self.render()
-		view.show_popup(self.html,
-                  location=location,
-                  max_width=self.max_width,
-                  max_height=self.max_height,
-                  on_navigate=self.on_navigate,
-                  flags=sublime.COOPERATE_WITH_AUTO_COMPLETE | sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-                  on_hide=self.on_hide)
+		
+		view.show_popup(
+			self.html,
+			location=location,
+			max_width=self.max_width,
+			max_height=self.max_height,
+			on_navigate=self.on_navigate,
+			flags=sublime.COOPERATE_WITH_AUTO_COMPLETE | sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+			on_hide=self.on_hide
+		)
 
 		_renderables_add.append(self)
 		self.is_hidden = False
@@ -272,7 +184,6 @@ class Popup(LayoutView, Renderable):
 
 	def render(self) -> bool:
 		if super().render() or not self.html:
-			self.html = '''<body id="debug"><style>{}</style>{}</body>'''.format(self.css, self.html)
 			return True
 		return False
 
