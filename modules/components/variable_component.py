@@ -155,7 +155,7 @@ class VariableStatefulComponent (ui.div):
 				],
 			]
 
-		variable_label = ui.div(height=3.0, width=100, css=css.icon_sized_spacer)[
+		variable_label = ui.div(height=3.0, width=100)[
 			ui.click(self.variable.toggle_expand)[
 				ui.icon(ui.Images.shared.open if self.variable.expanded else ui.Images.shared.close)
 			],

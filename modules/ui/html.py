@@ -125,7 +125,7 @@ html_escape_table = {
 	"&": "&amp;",
 	">": "&gt;",
 	"<": "&lt;",
-	" ": "\u2003" # HACK spaces inside <a> tags are not clickable. We replaces spaces with em spaces
+	" ": "\u00A0" # HACK spaces inside <a> tags are not clickable. We replaces spaces with no break spaces
 }
 
 def html_escape(text: str) -> str:

@@ -1,7 +1,7 @@
 from ..import ui
 
-button = ui.css(padding_left=1, padding_right=1, background_color='var(--segment-color)', raw='''
-	border-radius: 1rem;
+button = ui.css(padding_left=1, padding_right=1, padding_top=0.7, padding_bottom=0.4, background_color='var(--segment-color)', raw='''
+	border-radius: 0.75rem;
 ''')
 
 label = ui.css(color='var(--primary)')
@@ -16,7 +16,7 @@ label_redish_secondary = ui.css(color='color(var(--redish) alpha(0.7)')
 padding = ui.css(padding_left=1, padding_right=1)
 
 
-rounded_panel = ui.css(padding_left=1, padding_right=1, background_color='var(--panel-color)', raw='''
+rounded_panel = ui.css(padding_top=1, padding_left=1, padding_right=1, background_color='var(--panel-color)', raw='''
 	border-radius: 1rem;
 ''')
 
@@ -34,7 +34,8 @@ tab_panel_selected = ui.css(
 	'''
 )
 
-icon_sized_spacer = ui.css(padding_left=1)
+icon_sized_spacer = ui.css(padding_left=2.5)
 table_inset = ui.css(padding_left=2)
 
-selected = ui.css(background_color='color(var(--accent) alpha(0.2))')
+selected = ui.css(background_color='color(var(--accent) alpha(0.2))', raw='border-radius:0.5rem;')
+selected_text = ui.css(color='color(var(--accent) alpha(0.75))', padding_left=1, padding_right=1, raw='position: relative; top:-0.2rem;')

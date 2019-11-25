@@ -134,15 +134,13 @@ class Phantom(LayoutView, Renderable):
 
 	def render(self) -> bool:
 		if super().render() or not self.cachedPhantom:
-	
 			return True
 		return False
 
 	def render_sublime(self) -> None:
 		regions = self.view.get_regions(self.region_id)
-		self.cachedPhantom = sublime.Phantom(regions[0], self.html, self.layout, self.on_navigate)
-
-		if self.cachedPhantom:
+		if regions:
+			self.cachedPhantom = sublime.Phantom(regions[0], self.html, self.layout, self.on_navigate)
 			self.set.update([self.cachedPhantom])
 
 	def clear_sublime(self) -> None:

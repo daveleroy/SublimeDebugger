@@ -69,7 +69,7 @@ class BreakpointsPanel(ui.div):
 			for breakpoint in breakpoints: #type: ignore
 				if breakpoint.tag:
 					tag_and_name = [
-						ui.span(height=2, css=css.button)[
+						ui.span(css=css.button)[
 							ui.text(breakpoint.tag, css=css.label),
 						],
 						ui.text(breakpoint.name, css=css.label_secondary_padding),

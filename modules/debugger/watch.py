@@ -3,6 +3,7 @@ from ..import dap
 from ..import core
 from ..import ui
 from ..components.variable_component import EvaluateVariable, VariableStateful, VariableStatefulComponent
+from ..components import css
 
 if TYPE_CHECKING:
 	from .debugger import DebuggerStateful
@@ -139,10 +140,10 @@ class WatchExpressionView(ui.div):
 			return [component]
 
 		return [
-			ui.div()[
+			ui.div(height=3)[
 				ui.click(lambda: self.on_edit_not_available(self.expression))[
-					ui.text(self.expression.value),
-					ui.text("not available")
+					ui.text(self.expression.value, css=css.label_secondary),
+					ui.text("not available", css=css.label_secondary_padding),
 				]
 			]
 		]

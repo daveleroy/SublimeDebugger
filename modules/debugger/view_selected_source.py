@@ -39,12 +39,13 @@ class ViewSelectedSourceProvider:
 
 		@core.coroutine
 		def select_async(source: dap.Source, line: int, stopped_reason: str):
+			self.clear_selected()
 			view = yield from self.navigate_to_source(source, line)
 			self.selected_frame_line = SelectedLine(view, line, stopped_reason)
 
 		self.updating = core.run(select_async(source, line, stopped_reason), on_error=on_error)
 
-	def navigate(self, source: dap.Source, line: int):
+	def navigate(self, source: dap.Source, line: int = 1):
 		if self.updating:
 			self.updating.cancel()
 		def on_error(error):
@@ -54,7 +55,7 @@ class ViewSelectedSourceProvider:
 		@core.coroutine
 		def navigate_async(source: dap.Source, line: int):
 			self.clear_generated_view()
-			self.navigate_to_source(source, line, move_cursor=True)
+			yield from self.navigate_to_source(source, line, move_cursor=True)
 
 		self.updating = core.run(navigate_async(source, line), on_error=on_error)
 
@@ -81,8 +82,6 @@ class ViewSelectedSourceProvider:
 
 	@core.coroutine
 	def navigate_to_source(self, source: dap.Source, line: int, move_cursor: bool = False) -> core.awaitable[sublime.View]:
-		self.clear_selected()
-
 		# if we aren't going to reuse the previous generated view
 		# or the generated view was closed (no buffer) throw it away
 		if not source.sourceReference or self.generated_view and not self.generated_view.buffer_id():
@@ -92,7 +91,7 @@ class ViewSelectedSourceProvider:
 			if not self.debugger.adapter:
 				raise core.Error('Debugger not running')
 
-			content = yield from self.debugger.adapter.GetSource(source)			
+			content = yield from self.debugger.adapter.GetSource(source)
 
 			view = self.generated_view or self.project.window.new_file()
 			self.generated_view = view

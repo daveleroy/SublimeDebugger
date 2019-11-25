@@ -1,5 +1,6 @@
 from .. typecheck import *
 from .. import ui
+from . import css
 
 import sublime
 
@@ -10,7 +11,7 @@ class UnderlineComponent(ui.div):
 
 	def render(self) -> ui.div.Children:
 		return [
-			ui.div(width=1000, height=0.1),
+			ui.div(width=1000, height=0.15, css=css.selected),
 		]
 
 
@@ -22,7 +23,7 @@ class SelectedLineText(ui.div):
 	def render(self) -> ui.div.Children:
 		return [
 			ui.div(width=25, height=2.5)[
-				ui.text(self.text),
+				ui.text(self.text, css=css.selected_text),
 			],
 		]
 

@@ -241,6 +241,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 
 		self.variables_panel = VariablesPanel(self.breakpoints, self.debugger.watch)
+		self.source_provider = ViewSelectedSourceProvider(self.project, self.debugger)
 
 		self.panel = OutputPhantomsPanel(window, 'Debugger')
 		self.panel.show()
@@ -269,7 +270,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		terminal_component = TerminalComponent(self.terminal)
 		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
 		modules_panel = TabbedPanelItem(id(self.debugger.modules), ModulesView(self.debugger.modules), "Modules", 1)
-		sources_panel = TabbedPanelItem(id(self.debugger.sources), SourcesView(self.debugger.sources), "Sources", 1)
+		sources_panel = TabbedPanelItem(id(self.debugger.sources), SourcesView(self.debugger.sources, self.source_provider.navigate), "Sources", 1)
 
 		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(project_name)))
 
@@ -288,7 +289,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		view_hover = ViewHoverProvider(self.project, self.debugger)
 		self.disposeables.append(view_hover)
 
-		self.source_provider = ViewSelectedSourceProvider(self.project, self.debugger)
 		self.disposeables.append(self.source_provider)
 
 		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.debugger, self.breakpoints)
