@@ -21,7 +21,7 @@ class LayoutComponent (Layout):
 		self.on_click_handlers = {} #type: Dict[int, Callable]
 		self.on_click_handlers_id = 0
 		self.item = phantom_sizer(div()[item])
-		self.add_component(item)
+		self.add_component(self.item)
 		self.requires_render = True
 		self.dirty()
 
@@ -30,6 +30,8 @@ class LayoutComponent (Layout):
 			self.item = phantom_sizer(div()[values])
 		else:
 			self.item = phantom_sizer(div()[values])
+
+		self.add_component(self.item)
 		self.dirty()
 		return self
 
