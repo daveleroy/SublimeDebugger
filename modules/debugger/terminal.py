@@ -32,6 +32,7 @@ class TtyProcess:
 					line = line.replace('[0m[0K', '')
 					line = line.replace('[0K[?25l', '')
 					line = line.replace('[0K[?25h', '')
+					line = line.replace('[0K', '')
 				
 				if not line:
 					core.log_info("Nothing to read from process, closing")
