@@ -40,7 +40,7 @@ class TtyProcess:
 			try:
 				line = self.process.read()
   
-				if os.name == 'nt':
+				if line and os.name == 'nt':
 					line = line.replace('[0m[0K', '')
 					line = line.replace('[0K[?25l', '')
 					line = line.replace('[0K[?25h', '')
