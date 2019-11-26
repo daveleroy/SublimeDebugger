@@ -1,18 +1,31 @@
 from .. typecheck import *
 from .. import core, ui, dap
-from .. commands import Autocomplete		
+from .. components import css
+from . autocomplete import Autocomplete
 
 import os, threading, re
 import sublime
 
+
+try:
+	if core.platform.windows:
+		from winpty import PtyProcess
+	else:
+		from ptyprocess import PtyProcess as _PtyProcess
+
+		class PtyProcess(_PtyProcess):
+			def read(self):
+				return super().read().decode('utf-8')
+
+	SUPPORTED = True
+
+except ImportError:
+	# this stuff is broken on > 4000 until the packages are 3.8 compatible
+	SUPPORTED = False
+
 class TtyProcess:
 	def __init__(self, command: List[str], on_output: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, cwd=None) -> None:
 		print('Starting process: {}'.format(command))
-
-		if core.platform.windows:
-			from winpty import PtyProcess
-		else:
-			from ptyprocess import PtyProcess
 
 		self.process = PtyProcess.spawn(command, cwd=cwd)
 		self.pid = self.process.pid
@@ -25,15 +38,14 @@ class TtyProcess:
 	def _read(self, callback: Callable[[str], None]) -> None:
 		while not self.closed:
 			try:
-				if os.name != 'nt':
-					line = self.process.read().decode('utf-8')
-				else:
-					line = self.process.read()
+				line = self.process.read()
+  
+				if os.name == 'nt':
 					line = line.replace('[0m[0K', '')
 					line = line.replace('[0K[?25l', '')
 					line = line.replace('[0K[?25h', '')
 					line = line.replace('[0K', '')
-				
+
 				if not line:
 					core.log_info("Nothing to read from process, closing")
 					break
@@ -162,20 +174,20 @@ class TerminalProcess (Terminal):
 
 
 class Line:
-	def ui(self, max_line_length) -> ui.Block:
+	def ui(self, max_line_length) -> ui.div:
 		pass
 
-_color_for_type = {
-	"console": "primary",
-	"stderr": "red",
-	"stdout": "primary",
+_css_for_type = {
+	"console": css.label,
+	"stderr": css.label_redish,
+	"stdout": css.label,
 
-	"debugger.error": "red-secondary",
-	"debugger.info": "secondary",
-	"debugger.output": "secondary",
+	"debugger.error": css.label_redish_secondary,
+	"debugger.info": css.label_secondary,
+	"debugger.output": css.label_secondary,
 }
 
-class LineSourceComponent (ui.Inline):
+class LineSourceComponent (ui.span):
 	def __init__(self, name: str, line: Optional[int], text_width: int, on_clicked_source):
 		super().__init__()
 		self.on_clicked_source = on_clicked_source
@@ -183,15 +195,15 @@ class LineSourceComponent (ui.Inline):
 		self.line = line
 		self.text_width = text_width
 
-	def render(self) -> ui.Inline.Children:
+	def render(self) -> ui.span.Children:
 		if self.line:
 			source_text = "{}@{}".format(self.name, self.line)
 		else:
 			source_text = self.name
 		return [
-			ui.Button(self.on_clicked_source, [
-				ui.Label(source_text, width=self.text_width, align=1, color='secondary')
-			])
+			ui.click(self.on_clicked_source)[
+				ui.text(source_text, css=css.label_secondary_padding)
+			]
 		]
 
 class StandardLine (Line):
@@ -202,7 +214,7 @@ class StandardLine (Line):
 		self.text = ""
 		self.source = None #type: Optional[dap.Source]
 		self.line = None #type: Optional[int]
-		self.color = _color_for_type.get(type, "secondary")
+		self.css = _css_for_type.get(type, css.label_secondary)
 		self.on_clicked_source = on_clicked_source
 
 	def append(self, text: str):
@@ -218,9 +230,7 @@ class StandardLine (Line):
 				self.source = source
 				self.line = line
 
-	
-
-	def ui(self, layout, max_line_length) -> [ui.Block]:
+	def ui(self, layout, max_line_length) -> [ui.div]:
 		span_lines = []
 		spans = []
 		leftover_line_length = max_line_length
@@ -241,27 +251,26 @@ class StandardLine (Line):
 		while span_offset < len(self.text):
 			if leftover_line_length <= 0:
 				add_name_and_line_if_needed(0)
-				span_lines.append(ui.block(*spans))
+				span_lines.append(ui.div(height=3.0)[spans])
 				spans = []
 				leftover_line_length = max_line_length
 
 			text = self.text[span_offset:span_offset + leftover_line_length]
 			span_offset += len(text)
-			spans.append(ui.Label(text, color=self.color))
+			#spans.append(ui.text(text, color=self.color))
+			spans.append(ui.text(text, css=self.css))
 			leftover_line_length -= len(text)
 
-
 		add_name_and_line_if_needed(leftover_line_length)
-		span_lines.append(ui.block(*spans))
+		span_lines.append(ui.div(height=3)[spans])
 
 		if len(span_lines) == 1:
 			return span_lines
 
 		span_lines.reverse()
 		return span_lines
- 
 
-class TerminalComponent (ui.Block):
+class TerminalComponent (ui.div):
 	def __init__(self, terminal: Terminal) -> None:
 		super().__init__()
 		self.terminal = terminal
@@ -305,13 +314,13 @@ class TerminalComponent (ui.Block):
 	def render(self):
 		lines = []
 		height = 0
-		max_height = int(self.layout.height() / 1.525) - 2.0
+		max_height = int(self.layout.height() / 3) - 1.0
 		count = len(self.terminal.lines)
 		start = 0
 		from ..components.layout import console_panel_width
 
 		width = console_panel_width(self.layout)
-		max_line_length = int(width / self.layout.em_width())
+		max_line_length = int(width)
 		if count > max_height:
 			start = self.start_line
 
@@ -327,17 +336,21 @@ class TerminalComponent (ui.Block):
 		if self.terminal.writeable():
 			label = self.terminal.writeable_prompt()
 			offset = (max_line_length - len(label)) * self.layout.em_width() - 2.0
-			input = ui.Button(self.on_input, items=[
-				ui.Img(ui.Images.shared.right),
-				ui.Label(label, color="secondary"),
-			])
+			
+			lines.append(
+				ui.click(self.on_input)[
+					ui.icon(ui.Images.shared.right),
+					ui.text(label, css=css.label_secondary_padding),
+				]
+			)
 			if self.terminal.can_escape_input():
-				mode_toggle = ui.Button(self.on_toggle_input_mode, items = [
-					ui.Label('\\esc', width=offset, align=1, color=["primary", "secondary"][self.terminal.escape_input]),
+				mode_toggle = ui.click(self.on_toggle_input_mode)[
+					#ui.text('\\esc', width=offset, align=1, color=["primary", "secondary"][self.terminal.escape_input]),
+					ui.text('\\esc'),
+				]
+				
+				lines.append(ui.div()[
+					mode_toggle
 				])
-				lines.append(ui.block(input, mode_toggle))
-			else:
-				lines.append(ui.block(input))
-		
-		return lines
 
+		return lines

@@ -1,94 +1,62 @@
 from ..typecheck import *
+from ..import core
+from . import view_drag_select
 
 import sublime
 import sublime_plugin
-import threading
 
-from .. import core
-from . import view_drag_select
+class CommandPaletteInputCommand:
+	running_command = None #type: Optional[CommandPaletteInputCommand]
 
-command_id = 0
-command_data = {}
-sublime_command_visible = False
-is_running_input = False
+	def __init__(self, window, input, on_cancel):
+		self.window = window
+		self.input = input
 
-class DebuggerInputCommand(sublime_plugin.WindowCommand):
-	def run(self, command_id, **args):
-		global is_running_input
-		is_running_input = False
-		run_main = command_data[command_id][1]
-		run_not_main = command_data[command_id][2]
-		if run_not_main:
-			run_not_main(**args)
-		def call():
-			run_main(**args)
-		core.call_soon_threadsafe(call)
+		def _on_cancel():
+			CommandPaletteInputCommand.running_command = None
+			if on_cancel: on_cancel()
+		
+		input._on_cancel_internal = _on_cancel
 
-	def input(self, args):
-		return command_data[args["command_id"]][0]
-	def is_visible(self):
-		return sublime_command_visible
+		# if you don't clear the text then the debugger_input command can't be found in the command pallete....
+		self.window.run_command("show_overlay", {
+			"overlay": "command_palette",
+			"text": "",
+		})
 
-def on_view_drag_select(event):
-	if is_running_input:
-		window = sublime.active_window()
-		window.run_command("hide_overlay", {
+		self.hide_overlay()
+
+		CommandPaletteInputCommand.running_command = self
+
+		self.window.run_command("show_overlay", {
+			"overlay": "command_palette",
+			"command": "debugger_input",
+		})
+
+	def hide_overlay(self):
+		self.window.run_command("hide_overlay", {
 			"overlay": "command_palette",
 		})
 
-view_drag_select.add(on_view_drag_select)
-def run_input_command(input, run, on_cancel=None, run_not_main=None):
-	global command_id
-	command_id += 1
-	current_command = command_id
-	command_data[current_command] = [input, run, run_not_main]
+class DebuggerInputCommand(sublime_plugin.WindowCommand):
+	def __init__(self, window):
+		super().__init__(window)
+		view_drag_select.add(self.on_view_drag_select)
 
-	window = sublime.active_window()
-	def on_cancel_internal():
-		def cb():
-			# since we are async here we don't want to hide the panel if a new one was presented
-			if current_command == command_id:
-				window.run_command("hide_overlay", {
-						"overlay": "command_palette",
-					})
-		#when we do this while a command is closing it crashes sublime
-		sublime.set_timeout(cb, 0)
-		global is_running_input
-		is_running_input = False
+	def input(self, args):
+		input = CommandPaletteInputCommand.running_command.input
+		CommandPaletteInputCommand.running_command = None
+		return input
 
-	input._on_cancel_internal = on_cancel_internal
-	if on_cancel:
-		input._on_cancel = on_cancel
+	def is_visible(self):
+		return CommandPaletteInputCommand.running_command != None
 
-	def cb():
-		global sublime_command_visible
-		sublime_command_visible = True
-		
-		# if you don't clear the text then the debugger_input command can't be found in the command pallete....
-		window.run_command("show_overlay", {
-				"overlay": "command_palette",
-				"text": "",
-			}
-		)
-		window.run_command("hide_overlay", {
-				"overlay": "command_palette",
-			}
-		)
-		global is_running_input
-		is_running_input = True
-		window.run_command("show_overlay", {
-				"overlay": "command_palette",
-				"command": "debugger_input",
-				"args": {
-					"command_id" : command_id
-				}
-			}
-		)
-		sublime_command_visible = False
-	sublime.set_timeout(cb, 0)
+	def on_view_drag_select(self, event):
+		if CommandPaletteInputCommand.running_command != None:
+			CommandPaletteInputCommand.running_command.hide_overlay()
 
 class InputListItem:
-	def __init__(self, run, text, name = None):
+	def __init__(self, run, text, name=None):
 		self.text = text
 		self.run = run
 		self.name = name
@@ -96,21 +64,19 @@ class InputListItem:
 class InputList(sublime_plugin.ListInputHandler):
 	id = 0
 
-	def __init__(self, values: List[InputListItem], placeholder=None, index=0, on_cancel=None, arg_name="list"):
+	def __init__(self, values: List[InputListItem], placeholder=None, index=0):
 		super().__init__()
 		self._next_input = None
 		self.values = values
 		self._placeholder = placeholder
 		self.index = index
-		self._on_cancel = on_cancel
 		self._on_cancel_internal = None
-
 		self.arg_name = "list_{}".format(InputList.id)
 		InputList.id += 1
-	def run (self):
-		def on_run(**args):
-			pass
-		run_input_command(self, on_run)
+
+	def run(self):
+		CommandPaletteInputCommand(sublime.active_window(), self, None)
+
 	def name(self):
 		return self.arg_name
 
@@ -142,8 +108,6 @@ class InputList(sublime_plugin.ListInputHandler):
 	def cancel(self):
 		if self._on_cancel_internal:
 			self._on_cancel_internal()
-		if self._on_cancel:
-			self._on_cancel()
 
 	def description(self, value, text):
 		return self.values[value].name or self.values[value].text
@@ -156,11 +120,11 @@ class InputEnable (Protocol):
 
 class InputText(sublime_plugin.TextInputHandler):
 	id = 0
-	def __init__(self, run=None, placeholder=None, initial=None, on_cancel=None, enable_when_active: Optional[InputEnable]=None):
+
+	def __init__(self, run=None, placeholder=None, initial=None, enable_when_active: Optional[InputEnable] = None):
 		super().__init__()
 		self._placeholder = placeholder
 		self._initial = initial
-		self._on_cancel = on_cancel
 		self._on_cancel_internal = None
 		self._run = run
 		self._enable = enable_when_active
@@ -174,11 +138,13 @@ class InputText(sublime_plugin.TextInputHandler):
 	
 	def initial_text(self):
 		return self._initial
+	
 	def next_input(self, args):
 		if callable(self._run):
 			core.call_soon_threadsafe(self._run, args[self.arg_name])
 			return None
 		return self._run
+
 	def name(self):
 		return self.arg_name
 
@@ -187,19 +153,16 @@ class InputText(sublime_plugin.TextInputHandler):
 			self._enable.disable()
 		if self._on_cancel_internal:
 			self._on_cancel_internal()
-		if self._on_cancel:
-			self._on_cancel()
 
-	def run (self):
+	def run(self):
 		if self._enable:
 			self._enable.disable()
-		def on_run(**args):
-			pass
-		run_input_command(self, on_run)
+
+		CommandPaletteInputCommand(sublime.active_window(), self, None)
 
 def InputListItemCheckedText(run: Callable[[str], None], name: str, description: str, value: Optional[str]):
 	if value:
-		input_name ="● {}: {}".format(name, value)
+		input_name = "● {}: {}".format(name, value)
 	else:
 		input_name = "○ {}: {}".format(name, description)
 
@@ -215,7 +178,7 @@ def InputListItemCheckedText(run: Callable[[str], None], name: str, description:
 
 def InputListItemChecked(run: Callable[[], None], true: str, false: str, value: bool):
 	if value:
-		input_name ="● {}".format(true)
+		input_name = "● {}".format(true)
 	else:
 		input_name = "○ {}".format(false)
 

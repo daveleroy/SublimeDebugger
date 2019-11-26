@@ -1,14 +1,13 @@
 from ..typecheck import *
-
-from .. import ui
+from ..import ui
+from . import css
 
 STOPPED = 0
 RUNNING = 1
 PAUSED = 2
 LOADING = 3
 
-
-class DebuggerPanelCallbacks:
+class DebuggerPanelCallbacks(Protocol):
 	def on_play(self) -> None:
 		...
 	def on_resume(self) -> None:
@@ -26,9 +25,8 @@ class DebuggerPanelCallbacks:
 	def on_settings(self) -> None:
 		...
 
-
-class DebuggerPanel(ui.Block):
-	def __init__(self, callbacks: DebuggerPanelCallbacks, breakpoints: ui.Block) -> None:
+class DebuggerPanel(ui.div):
+	def __init__(self, callbacks: DebuggerPanelCallbacks, breakpoints: ui.div) -> None:
 		super().__init__()
 		self.state = STOPPED
 		self.callbacks = callbacks
@@ -39,84 +37,40 @@ class DebuggerPanel(ui.Block):
 		self.state = state
 		self.dirty()
 
-	def render(self) -> ui.Block.Children:
-		buttons = [] #type: List[ui.Block]
-
-		play = False
-		stop = False
-		pause = False
-		controls = False
-
-		if self.state == RUNNING:
-			stop = True
-			play = True
-			pause = True
-			controls = True
-
-		if self.state == PAUSED:
-			stop = True
-			play = True
-			pause = False
-			controls = True
-
-		if self.state == STOPPED:
-			stop = False
-			play = True
-			controls = False
-
-		if self.state == LOADING:
-			stop = True
-			play = True
-			controls = False
-
-		items = [DebuggerItem(self.callbacks.on_settings, ui.Img(ui.Images.shared.settings))]
-
-		if play:
-			items.append(
-				DebuggerItem(self.callbacks.on_play, ui.Img(ui.Images.shared.play))
-			)
-		else:
-			items.append(
-				DebuggerItem(self.callbacks.on_play, ui.Img(ui.Images.shared.play))
-			)
-
-		items.append(
-			DebuggerItem(self.callbacks.on_stop, ui.Img(ui.Images.shared.stop), ui.Img(ui.Images.shared.stop_disable))
-		)
-
-		if not controls:
-			items.append(
-				DebuggerItem(self.callbacks.on_pause, ui.Img(ui.Images.shared.pause_disable))
-			)
-		elif pause:
-			items.append(
-				DebuggerItem(self.callbacks.on_pause, ui.Img(ui.Images.shared.pause))
-			)
-		else:
-			items.append(
-				DebuggerItem(self.callbacks.on_resume, ui.Img(ui.Images.shared.resume))
-			)
-
-		items.extend([
-			DebuggerItem(self.callbacks.on_step_over, ui.Img(ui.Images.shared.down), ui.Img(ui.Images.shared.down_disable)),
-			DebuggerItem(self.callbacks.on_step_out, ui.Img(ui.Images.shared.left), ui.Img(ui.Images.shared.left_disable)),
-			DebuggerItem(self.callbacks.on_step_in, ui.Img(ui.Images.shared.right), ui.Img(ui.Images.shared.right_disable)),
-		])
-			
-
-		items_new = []
-		for item in items:
-			items_new.append(item)
-		return [
-			ui.block(*items_new),
-			ui.Panel(items= [self.breakpoints]),
+	def render(self) -> ui.div.Children:
+		buttons = [] #type: List[ui.span]
+		items = [
+			DebuggerItem(self.callbacks.on_settings, ui.Images.shared.settings),
+			DebuggerItem(self.callbacks.on_play, ui.Images.shared.play),
+			DebuggerItem(self.callbacks.on_stop, ui.Images.shared.stop, ui.Images.shared.stop_disable),
 		]
 
+		if self.state == STOPPED or self.state == LOADING:
+			items.append(DebuggerItem(self.callbacks.on_pause, ui.Images.shared.pause_disable))
+		elif self.state == PAUSED:
+			items.append(DebuggerItem(self.callbacks.on_resume, ui.Images.shared.resume))
+		else:
+			items.append(DebuggerItem(self.callbacks.on_resume, ui.Images.shared.pause))
 
-class DebuggerItem (ui.Inline):
-	def __init__(self, callback: Callable[[], None], enabled_image: ui.Img, disabled_image: Optional[ui.Img] = None) -> None:
+		items.extend([
+			DebuggerItem(self.callbacks.on_step_over, ui.Images.shared.down, ui.Images.shared.down_disable),
+			DebuggerItem(self.callbacks.on_step_out, ui.Images.shared.left, ui.Images.shared.left_disable),
+			DebuggerItem(self.callbacks.on_step_in, ui.Images.shared.right, ui.Images.shared.right_disable),
+		])
+
+		return [
+			ui.div()[
+				ui.div(height=3.5)[items],
+				ui.div(width=30, height=100, css=css.rounded_panel)[
+					self.breakpoints,
+				],
+			]
+		]
+
+class DebuggerItem (ui.span):
+	def __init__(self, callback: Callable[[], None], enabled_image: ui.Image, disabled_image: Optional[ui.Image] = None) -> None:
 		super().__init__()
-		
+
 		if not callback.enabled() and disabled_image:
 			self.image = disabled_image
 		else:
@@ -124,10 +78,11 @@ class DebuggerItem (ui.Inline):
 
 		self.callback = callback
 
-
-	def render(self) -> ui.Inline.Children:
+	def render(self) -> ui.span.Children:
 		return [
-			ui.Padding(ui.Button(self.callback, items=[self.image]), left=0.6, right=0.6, top=0.0, bottom=0.0)
+			ui.span(css=css.padding)[
+				ui.click(self.callback)[
+					ui.icon(self.image),
+				]
+			]
 		]
-
-

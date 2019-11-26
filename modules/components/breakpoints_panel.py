@@ -1,23 +1,22 @@
-from .. typecheck import *
-from .. import ui
-from .. import core
-
-from .. debugger.breakpoints import (
+from ..typecheck import *
+from ..import ui
+from ..import core
+from ..debugger.breakpoints import (
 	Breakpoints,
 	IBreakpoint,
 	SourceBreakpoint,
-	DataBreakpoint, 
-	FunctionBreakpoint, 
+	DataBreakpoint,
+	FunctionBreakpoint,
 	ExceptionBreakpointsFilter,
 )
 
 from .layout import breakpoints_panel_width
+from .import css
 
 import os
 import sublime
-import functools
 
-class BreakpointsPanel(ui.Block):
+class BreakpointsPanel(ui.div):
 	def __init__(self, breakpoints: Breakpoints) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
@@ -63,42 +62,30 @@ class BreakpointsPanel(ui.Block):
 
 		assert False, "unreachable"
 
-	def item(self, item: Any, image, name: str, tag: str, enabled: bool):
-		if item == self.selected:
-			color  = 'primary'
-		else:
-			color  = 'secondary'
-
-		toggle_button = ui.Button(on_click=functools.partial(self.on_toggle, item), items=[
-			ui.Img(image),
-		])
-
-		if tag:
-			if len(tag) > 4:
-				width = 4
-			else:
-				width = 3
-			fileAndLine =  ui.Button(on_click=functools.partial(self.on_select, item), items=[
-				# line number
-				ui.Padding(ui.Box(ui.Label(tag, color=color, width=width)), left=0.5, right=0.5),
-				# filename
-				ui.Label(name, color=color, padding_left=0.25, width=13.6, align=0),
-			])
-		else:
-			fileAndLine =  ui.Button(on_click=functools.partial(self.on_select, item), items=[
-				# filename
-				ui.Label(name, color=color, padding_left=0.25, width=13.6, align=0),
-			])
-		return ui.Padding(ui.block(toggle_button, fileAndLine), top=0.1, bottom=0.1)
-
-	def render(self) -> ui.Block.Children:
-		items = [] #type: List[ui.Block]
+	def render(self) -> ui.div.Children:
+		items = [] #type: List[ui.div]
 
 		for breakpoints in (self.breakpoints.filters, self.breakpoints.function, self.breakpoints.data, self.breakpoints.source):
 			for breakpoint in breakpoints: #type: ignore
-				i = self.item(breakpoint, breakpoint.image, breakpoint.name, breakpoint.tag, breakpoint.enabled)
-				items.append(i)
+				if breakpoint.tag:
+					tag_and_name = [
+						ui.span(css=css.button)[
+							ui.text(breakpoint.tag, css=css.label),
+						],
+						ui.text(breakpoint.name, css=css.label_secondary_padding),
+					]
+				else:
+					tag_and_name = [
+						ui.text(breakpoint.name, css=css.label_secondary),
+					]
 
-		return [
-			ui.Table(items)
-		]
+				items.append(ui.div(height=3)[
+					ui.click(lambda breakpoint=breakpoint: self.on_toggle(breakpoint))[
+						ui.icon(breakpoint.image),
+					],
+					ui.click(lambda breakpoint=breakpoint: self.on_select(breakpoint))[
+						tag_and_name
+					]
+				])
+
+		return items

@@ -1,6 +1,6 @@
 from ..typecheck import *
 if TYPE_CHECKING:
-	from .client import DebugAdapterClient
+	from .client import Client
 
 
 __T = TypeVar('__T')
@@ -33,7 +33,7 @@ class Error(Exception):
 
 
 class Thread:
-	def __init__(self, client: 'DebugAdapterClient', id: int, name: str) -> None:
+	def __init__(self, client: 'Client', id: int, name: str) -> None:
 		self.client = client
 		self.id = id
 		self.name = name
@@ -86,14 +86,14 @@ class StackFrame:
 
 
 class Scope:
-	def __init__(self, client: 'DebugAdapterClient', name: str, variablesReference: int, expensive: bool) -> None:
+	def __init__(self, client: 'Client', name: str, variablesReference: int, expensive: bool) -> None:
 		self.client = client
 		self.name = name
 		self.variablesReference = variablesReference
 		self.expensive = expensive
 
 	@staticmethod
-	def from_json(client: 'DebugAdapterClient', json: dict) -> 'Scope':
+	def from_json(client: 'Client', json: dict) -> 'Scope':
 		return Scope(
 			client,
 			json['name'],
@@ -103,7 +103,7 @@ class Scope:
 
 
 class Variable:
-	def __init__(self, client: 'DebugAdapterClient', name: str, value: str, variablesReference: int, containerVariablesReference: int = 0, evaluateName: Optional[str] = None) -> None:
+	def __init__(self, client: 'Client', name: str, value: str, variablesReference: int, containerVariablesReference: int = 0, evaluateName: Optional[str] = None) -> None:
 		self.client = client
 		self.name = name
 		self.value = value
@@ -112,7 +112,7 @@ class Variable:
 		self.evaluateName = evaluateName
 
 	@staticmethod
-	def from_json(client: 'DebugAdapterClient', json: dict) -> 'Variable':
+	def from_json(client: 'Client', json: dict) -> 'Variable':
 		return Variable(
 			client,
 			json['name'],

@@ -1,22 +1,16 @@
 from ..typecheck import *
+from ..import core, ui, dap
+from ..debugger.debugger import DebuggerStateful, ThreadStateful
+
+from .layout import callstack_panel_width
+from .import css
 
 import os
 
-from .. import core, ui, dap
-
-from ..debugger.debugger import (
-	DebuggerStateful,
-	ThreadStateful
-)
-
-from .layout import callstack_panel_width
-
-
-class CallStackPanel (ui.Block):
+class CallStackPanel (ui.div):
 	def __init__(self) -> None:
 		super().__init__()
 		self.threads = [] #type: List[ThreadStateful]
-		self.thread_components = [] #type: List[ThreadComponent]
 
 	def update(self, debugger: DebuggerStateful, threads: List[ThreadStateful]) -> None:
 		self.threads = threads
@@ -25,23 +19,17 @@ class CallStackPanel (ui.Block):
 			thread.on_dirty = self.dirty
 		self.dirty()
 
-	def render(self) -> ui.Block.Children:
-		self.thread_components = []
-		for thread in self.threads:
-			item = ThreadComponent(self, thread)
-			self.thread_components.append(item)
-		return [
-			ui.Table(items=self.thread_components)
-		]
+	def render(self) -> ui.div.Children:
+		return list(map(lambda thread: ThreadComponent(self, thread, show_thread_name=len(self.threads) > 1), self.threads))
 
 
-class ThreadComponent (ui.Block):
-	def __init__(self, panel: CallStackPanel, thread: ThreadStateful) -> None:
+class ThreadComponent (ui.div):
+	def __init__(self, panel: CallStackPanel, thread: ThreadStateful, show_thread_name: bool) -> None:
 		super().__init__()
-		assert isinstance(thread, ThreadStateful)
 		self.panel = panel
 		self.thread = thread
 		self.fetched = False
+		self.show_thread_name = show_thread_name
 		self.debugger = panel.debugger
 
 	def on_select_thread(self) -> None:
@@ -51,91 +39,87 @@ class ThreadComponent (ui.Block):
 		if self.thread.expanded:
 			self.thread.collapse()
 		else:
-			self.thread.expand();
+			self.thread.expand()
 
 	def on_selected_frame_at(self, index: int) -> None:
 		self.thread.debugger.select_threadstateful(self.thread, self.thread.frames[index])
 
-	def render(self) -> ui.Block.Children:
-		max_length = callstack_panel_width(self.layout) - 6
-		if self.thread.stopped:
-			item = ui.block(
-				ui.Button(self.toggle, items=[
-					ui.Img((ui.Images.shared.close, ui.Images.shared.open)[self.thread.expanded]),
-				]),
-				ui.Button(self.on_select_thread, items=[
-					ui.Box(
-						ui.Padding(ui.Img(ui.Images.shared.thread_running), left=0.8, right=0.8)
-					),
-					ui.Label(self.thread.name, padding_left=0.8),
-				]),
-			)
-		else:
-			item = ui.block(
-				ui.Button(self.on_select_thread, items=[
-					ui.Padding(ui.Box(
-						ui.Padding(ui.Img(ui.Images.shared.thread_running), left=0.8, right=0.8)
-					), left= ui.size.WIDTH),
-					ui.Label(self.thread.name, padding_left=0.8, width=max_length, align=0),
-				]),
-			)
+	def render(self) -> ui.div.Children:
+		width = callstack_panel_width(self.layout)
 
-		item = ui.Padding(item, top=0.1, bottom=0.1)
-		items = [item] #type: List[ui.Block]
-
-		frames = [] #type: List[ui.Block]
-		selected_index = -1
-	
+		frames = [] #type: List[ui.div]
+		selected_item = None
 		for index, frame in enumerate(self.thread.frames):
-			if self.thread == self.debugger.selected_threadstateful and not self.debugger.selected_thread_explicitly and frame == self.debugger.selected_frame:
-				selected_index = index
-
 			def on_click(index=index):
 				self.on_selected_frame_at(index)
-			component = ui.Padding(StackFrameComponent(frame, on_click), top=0.1, bottom=0.2)
+			component = StackFrameComponent(frame, on_click, width=width)
 			frames.append(component)
+			if self.thread == self.debugger.selected_threadstateful and not self.debugger.selected_thread_explicitly and frame == self.debugger.selected_frame:
+				selected_item = component
 
-		table = ui.Table(items=frames, selected_index=selected_index)
-		items.append(table)
+		if selected_item:
+			selected_item.add_class(css.selected.class_name)
 
-		if self.debugger.selected_threadstateful == self.thread and selected_index == -1:
-			item.add_class('selected_stack_frame')
+		if not self.show_thread_name:
+			return frames
 
-		return items
+		if self.thread.stopped:
+			item = ui.div(height=3.0, width=width)[
+				ui.click(self.toggle)[
+					ui.icon(ui.Images.shared.open if self.thread.expanded else ui.Images.shared.close),
+				],
+				ui.click(self.on_select_thread)[
+					ui.span(height=0, css=css.button)[
+						ui.icon(ui.Images.shared.thread_running),
+					],
+					ui.text(self.thread.name, css=css.label_padding),
+				],
+			]
+		else:
+			item = ui.div(height=3.0, width=width)[
+				ui.click(self.on_select_thread)[
+					ui.span(height=0, css=css.button)[
+						ui.icon(ui.Images.shared.thread_running),
+					],
+					ui.text(self.thread.name, css=css.label_padding),
+				],
+			]
+
+		if not selected_item:
+			item.add_class(css.selected.class_name)
+
+		return [
+			item,
+			ui.div()[
+				frames
+			]
+		]
 
 
-class StackFrameComponent (ui.Block):
-	def __init__(self, frame: dap.StackFrame, on_click: Callable[[], None]) -> None:
-		super().__init__()
+class StackFrameComponent (ui.div):
+	def __init__(self, frame: dap.StackFrame, on_click: Callable[[], None], width: float) -> None:
+		super().__init__(width=width)
 		self.frame = frame
 		self.on_click = on_click
 
-	def render(self) -> ui.Block.Children:
+	def render(self) -> ui.div.Children:
 		frame = self.frame
 		name = os.path.basename(frame.file)
 		if frame.presentation == dap.StackFrame.subtle:
-			color = "secondary"
+			label_padding = css.label_secondary_padding
 		else:
-			color = "primary"
+			label_padding = css.label_padding
 
-		assert self.layout
-		emWidth = self.layout.em_width()
-		padding_left = 0.8
-		padding_right = 0.8
-		max_length = callstack_panel_width(self.layout) - padding_left - padding_right - 5
-		name_length = len(name) * emWidth
+		file_and_line = ui.click(self.on_click)[
+			ui.span(css=css.button)[
+				ui.text(str(frame.line), css=css.label),
+			],
+			ui.text(name, css=label_padding),
+			ui.text(frame.name, css=css.label_secondary_padding),
+		]
 
-		if name_length > max_length:
-			name_length = max_length
-
-		max_length -= name_length
-		frame_length = max_length
-
-		fileAndLine = ui.Button(on_click=self.on_click, items=[
-			ui.Box(
-				ui.Label(str(frame.line), width=3, color=color),
-			),
-			ui.Label(name, width=name_length, padding_left=padding_left, padding_right=padding_right, color=color, align=0),
-			ui.Label(frame.name, width=frame_length, color="secondary", align=0),
-		])
-		return [ui.block(fileAndLine)]
+		return [
+			ui.div(height=3.0, css=css.icon_sized_spacer)[
+				file_and_line,
+			]
+		]

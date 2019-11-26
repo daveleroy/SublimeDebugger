@@ -1,6 +1,4 @@
 import sys
-import threading
-import sublime
 
 module_starts_with = __package__ + '.'
 
@@ -11,22 +9,16 @@ for m in modules_to_remove:
 if modules_to_remove:
 	print("removed old modules: {}".format(modules_to_remove))
 
-from .modules.typecheck import Set
-from .modules import ui
-from .modules import core
-from .modules.core import *
-
-from .modules.libs.asyncio import * 
-
 # import all the commands so that sublime sees them
-from .modules.commands import *
 from .modules.debugger.commands import DebuggerCommand
-from .modules.debugger.output_panel import *
-from .modules.debugger.debugger_interface import *
+from .modules.debugger.view_selected_source import DebuggerReplaceContentsCommand, DebuggerShowLineCommand
 from .modules.debugger.build.build import DebuggerBuildExecCommand
 
-from .modules.ui import ViewEventsListener
-from .modules.ui import DebuggerInputCommand
+from .modules.ui.input import DebuggerInputCommand
+from .modules.ui.events import ViewEventsListener
+
+from .modules.debugger.output_panel import *
+
 
 # try:
 # 	dir_path = os.path.dirname(os.path.realpath(__file__))

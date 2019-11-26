@@ -1,16 +1,16 @@
-from ..typecheck import *
+from .. typecheck import *
 from .. import core
-from .. import ui 
+from .. import ui
 from .. import dap
-from ..debugger.breakpoints import Breakpoints
-from ..debugger.watch import Watch, WatchView
+from .. debugger.breakpoints import Breakpoints
+from .. debugger.watch import Watch, WatchView
 
-from .variable_component import VariableStateful, VariableStatefulComponent
-from .layout import variables_panel_width
+from . variable_component import VariableStateful, VariableStatefulComponent
+from . layout import variables_panel_width
 
 import sublime
 
-class VariablesPanel (ui.Block):
+class VariablesPanel (ui.div):
 	def __init__(self, breakpoints: Breakpoints, watch: Watch) -> None:
 		super().__init__()
 		self.scopes = [] #type: List[dap.Scope]
@@ -38,13 +38,11 @@ class VariablesPanel (ui.Block):
 		except dap.Error as e:
 			pass
 
-
 		expression = variable.variable.evaluateName or variable.variable.name
 		value = variable.variable.value or ""
 
 		def on_edit_variable(value: str):
 			variable.set_value(value)
-
 		def copy_value():
 			sublime.set_clipboard(value)
 		def copy_expr():
@@ -54,9 +52,9 @@ class VariablesPanel (ui.Block):
 		
 		items = [
 			ui.InputListItem(
-				ui.InputText (
+				ui.InputText(
 					on_edit_variable,
-					"editing a variable", 
+					"editing a variable",
 				),
 				"Edit Variable",
 			),
@@ -93,12 +91,8 @@ class VariablesPanel (ui.Block):
 
 		ui.InputList(items).run()
 
-	def render(self) -> ui.Block.Children:
-		items = [
-			self.watch_view
-		] #type: List[ui.Block]
-
-		scopes_items = [] #type: List[ui.Block]
+	def render(self) -> ui.div.Children:
+		scopes_items = [] #type: List[ui.div]
 
 		# expand the first scope only
 		first = True
@@ -114,6 +108,7 @@ class VariablesPanel (ui.Block):
 
 			scopes_items.append(component)
 
-		items.append(ui.Table(items=scopes_items))
-
-		return items
+		return [
+			self.watch_view,
+			ui.div()[scopes_items]
+		]

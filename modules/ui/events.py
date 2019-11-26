@@ -1,9 +1,8 @@
-from ..typecheck import *
+from .. typecheck import *
+from .. import core
 
 import sublime
 import sublime_plugin
-
-from .. import core
 
 class GutterEvent:
 	def __init__(self, view: sublime.View, line: int, button: int = 0) -> None:

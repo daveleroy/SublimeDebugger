@@ -9,11 +9,12 @@ from ..libs import asyncio
 
 from ..debugger.util import get_setting
 
- 	
 if int(sublime.version()) < 4000:
 	_phantom_text = " \u200b\u200b\u200b\u200b\u200b"
+	_panel_position = 7
 else:
-	_phantom_text = "      "
+	_phantom_text = "        "
+	_panel_position = 10
 
 class OutputPhantomsPanel:
 	panels = {} #type: Dict[int, OutputPhantomsPanel]
@@ -53,11 +54,11 @@ class OutputPhantomsPanel:
 		return self.window.active_panel() != 'output.{}'.format(self.name)
 
 	def hack_to_get_view_to_not_freak_out_when_you_click_on_the_edge(self):
-		self.view.set_viewport_position((7, 0), animate=False)
+		self.view.set_viewport_position((_panel_position, 0), animate=False)
 		@core.coroutine
 		def later():
 			yield from asyncio.sleep(0)
-			self.view.set_viewport_position((7, 0), animate=False)
+			self.view.set_viewport_position((_panel_position, 0), animate=False)
 		core.run(later())
 
 	def show(self) -> None:

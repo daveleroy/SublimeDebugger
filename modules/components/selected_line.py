@@ -1,31 +1,30 @@
-from ..typecheck import *
+from .. typecheck import *
+from .. import ui
+from . import css
 
 import sublime
 
-from .. import ui
 
-
-class UnderlineComponent(ui.Block):
+class UnderlineComponent(ui.div):
 	def __init__(self) -> None:
 		super().__init__()
 
-	def height(self, layout: ui.Layout) -> float:
-		return 0.05
-
-	def render(self) -> ui.Block.Children:
+	def render(self) -> ui.div.Children:
 		return [
-			ui.HorizontalSpacer(1000)
+			ui.div(width=1000, height=0.15, css=css.selected),
 		]
 
 
-class SelectedLineText(ui.Block):
+class SelectedLineText(ui.div):
 	def __init__(self, text: str) -> None:
 		super().__init__()
 		self.text = text
 
-	def render(self) -> ui.Block.Children:
+	def render(self) -> ui.div.Children:
 		return [
-			ui.Padding(ui.block(ui.Label(self.text)), left=1, top=-0.125)
+			ui.div(width=25, height=2.5)[
+				ui.text(self.text, css=css.selected_text),
+			],
 		]
 
 

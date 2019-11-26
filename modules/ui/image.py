@@ -1,22 +1,16 @@
 from ..typecheck import *
+from ..import core
+from . layout import Layout
 
 import sublime
+import base64
+import os
 
-from .. import core
-from .component import Component, Inline
-from .layout import Layout
-from .size import HEIGHT, WIDTH
+def _path_for_image(name): #type: (str) -> str
+	return os.path.join('Packages', core.current_package_name(), 'images', name)
 
-def _image_to_data(path: str) -> bytes:
-	p = '{}/../{}'.format(sublime.packages_path(), path)
-	f = open(p, 'rb')
-	r = f.read()
-	f.close()
-	return r
-
-
-def _b64_data_from_image_data(png_data: bytes) -> str:
-	import base64
+def _data_image_png_b64_png_from_resource(path: str) -> str:
+	png_data = sublime.load_binary_resource(path)
 	return "data:image/png;base64,{}".format(base64.b64encode(png_data).decode('ascii'))
 
 
@@ -62,28 +56,9 @@ class Image:
 		if file in Image.cached:
 			return Image.cached[file]
 		else:
-			data = _b64_data_from_image_data(_image_to_data(file))
+			data = _data_image_png_b64_png_from_resource(file)
 			Image.cached[file] = data
 			return data
-
-
-class Img (Inline):
-	def __init__(self, image: Image) -> None:
-		super().__init__()
-		self.image = image
-
-	def width(self, layout: Layout) -> float:
-		return WIDTH
-
-	def height(self, layout: Layout) -> float:
-		return HEIGHT
-
-	def html(self, layout: Layout) -> str:
-		return '''<img class="{}" src="{}">'''.format(self.className, self.image.data(layout))
-
-
-def _path_for_image(name): #type: (str) -> str
-	return 'Packages/{}/images/{}'.format(core.current_package_name(), name)
 
 
 class Images:
