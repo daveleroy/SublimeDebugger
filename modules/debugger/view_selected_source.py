@@ -59,7 +59,6 @@ class ViewSelectedSourceProvider:
 
 		self.updating = core.run(navigate_async(source, line), on_error=on_error)
 
-
 	def clear(self):
 		if self.updating:
 			self.updating.cancel()
@@ -107,9 +106,12 @@ class ViewSelectedSourceProvider:
 		else:
 			raise core.Error('source has no reference or path')
 
+		yield from core.wait_for_view_to_load(view)
+		# @FIXME why does running debugger_show_line right away not work for views that are not already open? We waited for the view to be loaded
+		from ..libs import asyncio
+		yield from asyncio.sleep(0.15)
 		view.run_command("debugger_show_line", {
-			'line' : line - 1,
-			'move_cursor' : move_cursor
+			'line': line - 1,
+			'move_cursor': move_cursor
 		})
-
 		return view
