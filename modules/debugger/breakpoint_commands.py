@@ -20,27 +20,23 @@ class BreakpointCommandsProvider(core.Disposables):
 		self += self.debugger.state_changed.add(self.on_debugger_state_change)
 
 	def view_gutter_clicked(self, event: ui.GutterEvent):
-		file = self.project.source_file(event.view) 
+		file = self.project.source_file(event.view)
 		if not file:
 			return
 		line = event.line + 1
 
 		if event.button == 1:
-			bp = self.breakpoints.source.get_breakpoint(file, line)
-			if bp:
-				self.breakpoints.source.remove(bp)
-			else:
-				self.breakpoints.source.add_breakpoint(file, line)
+			self.toggle_file_line(file, line)
 			return
 
 		if event.button == 2:
 			line = event.line + 1
 			self.edit_breakpoints_at_line(file, line)
-			return		
+			return
 
 	def clear_run_to_line(self):
 		if self.run_to_line_breakpoint:
-			self.breakpoints.remove_breakpoint(self.run_to_line_breakpoint)
+			self.breakpoints.source.remove(self.run_to_line_breakpoint)
 			self.run_to_line_breakpoint = None
 	
 	def run_to_current_line(self):
@@ -56,13 +52,17 @@ class BreakpointCommandsProvider(core.Disposables):
 		if self.debugger.state != DebuggerStateful.running:
 			self.clear_run_to_line()
 
-	def toggle_current_line(self):
-		file, line = self.project.current_file_line()
-		bp = self.breakpoints.source.get_breakpoint(file, line)
-		if bp:
-			self.breakpoints.source.remove(bp)
+	def toggle_file_line(self, file: str, line: int):
+		bps = self.breakpoints.source.get_breakpoints_on_line(file, line)
+		if bps:
+			for bp in bps:
+				self.breakpoints.source.remove(bp)
 		else:
 			self.breakpoints.source.add_breakpoint(file, line)
+	
+	def toggle_current_line(self):
+		file, line = self.project.current_file_line()
+		self.toggle_file_line(file, line)
 
 	def toggle_current_line_column(self):
 		file, line, column = self.project.current_file_line_column()
@@ -80,7 +80,7 @@ class BreakpointCommandsProvider(core.Disposables):
 			self.breakpoints.source.edit(breakpoints[0]).run()
 			return
 
-		items = [] 
+		items = []
 		for breakpoint in breakpoints:
 			items.append(
 				ui.InputListItem(
@@ -90,4 +90,3 @@ class BreakpointCommandsProvider(core.Disposables):
 			)
 
 		ui.InputList(items).run()
-
