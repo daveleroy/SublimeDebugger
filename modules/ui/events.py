@@ -68,12 +68,3 @@ class ViewEventsListener(sublime_plugin.EventListener):
 	def on_activated(self, view: sublime.View) -> None:
 		view_activated.post(view)
 
-
-def _is_coord_on_gutter_or_empy_line(view: sublime.View, x: int, y: int) -> bool:
-	original_pt = view.window_to_text((x, y))
-	if view.rowcol(original_pt)[1] != 0:
-		return False
-	adjusted_pt = view.window_to_text((x + int(view.em_width() / 2), y))
-	if adjusted_pt != original_pt:
-		return False
-	return True

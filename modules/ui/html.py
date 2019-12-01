@@ -50,20 +50,17 @@ class element(Component):
 		return max(width_max, width) + self.padding_width
 
 class span (element):
-	Children = Sequence['span']
+	Children = Optional[Union[Sequence['span'], 'span']]
 
 	def __init__(self, width: Optional[float] = None, height: Optional[float] = None, css: Optional[css] = None) -> None:
 		super().__init__(True, width, height, css)
-		self._items = [] #type: span.Children
+		self._items = None #type: span.Children
 	
-	def render(self) -> Sequence['span']:
+	def render(self) -> 'span.Children':
 		return self._items
 	
 	def __getitem__(self, values: 'span.Children'):
-		if isinstance(values, Component):
-			self._items = (values,)
-		else:
-			self._items = values
+		self._items = values
 		return self
 
 	def html(self, layout: Layout) -> str:
@@ -74,20 +71,17 @@ class span (element):
 		return html
 
 class div (element):
-	Children = Union[Sequence['div'], Sequence['span']]
+	Children = Optional[Union[Sequence['div'], Sequence['span'], 'div', 'span']]
 
 	def __init__(self, width: Optional[float] = None, height: Optional[float] = None, css: Optional[css] = None) -> None:
 		super().__init__(False, width, height, css)
-		self._items = [] #type: div.Children
+		self._items = None #type: div.Children
 
 	def render(self) -> 'div.Children':
 		return self._items
 
 	def __getitem__(self, values: 'div.Children'):
-		if isinstance(values, Component):
-			self._items = (values,)
-		else:
-			self._items = values
+		self._items = values
 		return self
 
 	def html(self, layout: Layout) -> str:
@@ -104,14 +98,12 @@ class div (element):
 
 # uses an img tag to force the width of the phantom to be the width of the item being rendered
 class phantom_sizer (div):
-	def __init__(self, item: Component) -> None:
+	def __init__(self, item: Union[div, span]) -> None:
 		super().__init__()
 		self.item = item
 
 	def render(self) -> div.Children:
-		return [
-			self.item
-		]
+		return self.item
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)

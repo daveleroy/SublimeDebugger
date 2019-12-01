@@ -1,6 +1,6 @@
 from ..typecheck import *
 from ..import core
-from . html import div, phantom_sizer, Component
+from . html import div, span, phantom_sizer, Component
 from . layout import Layout
 from . css import css
 from . image import view_background_lightness
@@ -16,7 +16,7 @@ class SyntaxHighlightedText:
 		self.language = language
 
 class LayoutComponent (Layout):
-	def __init__(self, item: 'Component') -> None:
+	def __init__(self, item: Union[div, span]) -> None:
 		assert item.layout is None, 'item is already added to a layout'
 		self.on_click_handlers = {} #type: Dict[int, Callable]
 		self.on_click_handlers_id = 0
@@ -64,7 +64,15 @@ class LayoutComponent (Layout):
 	def render_component_tree(self, item: 'Component') -> None:
 		item.requires_render = False
 		self.remove_component_children(item)
-		item.children = item.render()
+		children = item.render()
+
+		if children is None:
+			item.children = []
+		elif isinstance(children, Component):
+			item.children = (children, )
+		else:
+			item.children = children
+
 		self.add_component_children(item)
 
 		for child in item.children:

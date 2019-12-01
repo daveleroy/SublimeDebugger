@@ -56,8 +56,8 @@ class css:
 
 		css_string = '.{} {{'.format(self.class_name)
 
-		additional_width = 0
-		additional_height = 0
+		additional_width = 0.0
+		additional_height = 0.0
 
 		if not padding_top is None:
 			css_string += 'padding-top:{}rem;'.format(padding_top)

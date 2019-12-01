@@ -17,7 +17,7 @@ class Component:
 	def removed(self) -> None:
 		...
 
-	def render(self) -> components:
+	def render(self) -> Optional[Union[Sequence['Component'], 'Component']]:
 		...
 
 	def height(self, layout: Layout) -> float:
