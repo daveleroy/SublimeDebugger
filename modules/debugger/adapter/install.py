@@ -13,10 +13,13 @@ def _adapters_path() -> str:
 	return os.path.join(core.current_package(), 'data', 'debug_adapters')
 
 class AdapterInstall:
-	@property
-	def installed(self) -> bool: ...
+	
 	@core.coroutine
 	def install(self, log: core.Logger) -> core.awaitable[None]: ...
+	
+
+	@property
+	def installed(self) -> bool: ...
 	def snippets(self) -> core.awaitable[list]: ...
 
 class VSCodeAdapterInstall:
@@ -53,13 +56,15 @@ class VSCodeAdapterInstall:
 
 			with open(vscode_package_file, "rb") as file:
 				j = sublime.decode_value(file.read().decode('utf-8'))
+				version = j.get('version')
 				for debugger in j.get('contributes', {}).get('debuggers', []):
 					snippets.extend(debugger.get('configurationSnippets', []))
 
 			with open(snippets_output_file, 'w') as file:
 				sublime_adapter_info = {
 					'configurationSnippets': snippets,
-				} 
+					'version': version
+				}
 				content = json.dumps(sublime_adapter_info)
 
 				# strip out unescaped stuff
@@ -112,15 +117,16 @@ class VSCodeAdapterInstall:
 		log_info('done')
 		os.remove(archive_name)
 
+# https://stackoverflow.com/questions/29967487/get-progress-back-from-shutil-file-copy-thread
 def copyfileobj(fsrc, fdst, log_info, total, length=128*1024):
-    copied = 0
-    while True:
-        buf = fsrc.read(length)
-        if not buf:
-            break
-        fdst.write(buf)
-        copied += len(buf)
-        log_info("{:.2f} mb {}%".format(copied/1024/1024, int(copied/total*100)))
+	copied = 0
+	while True:
+		buf = fsrc.read(length)
+		if not buf:
+			break
+		fdst.write(buf)
+		copied += len(buf)
+		log_info("{:.2f} mb {}%".format(copied/1024/1024, int(copied/total*100)))
 
 # Fix for long file paths on windows not being able to be extracted from a zip file
 # Fix for extracted files losing their permission flags

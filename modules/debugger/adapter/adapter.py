@@ -41,7 +41,7 @@ class Adapter:
 				raise core.Error("unhandled adapter install type")
 
 		json = _expand_variables_and_platform(json, variables)
-		self.command = json['command']		
+		self.command = json['command']
 		self.type = type
 		self.hover_word_seperators = json.get('hover_word_seperators')
 		self.hover_word_regex_match = json.get('hover_word_regex_match')

@@ -33,7 +33,17 @@ def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None
 
 
 def add_configuration(adapters: Dict[str, Adapter]):
-	values = []
+	def insert_custom():
+		core.run(insert_snippet(sublime.active_window(), {
+				'name': '<NAME>',
+				'type': '<CUSTOM>',
+				'request': 'launch|attach'
+			}))
+
+	values = [
+		ui.InputListItem(insert_custom, 'Create Custom Configuration')
+	]
+
 	for name, adapter in adapters.items():
 		snippets = adapter.snippets
 		for snippet in adapter.snippets:
@@ -41,17 +51,10 @@ def add_configuration(adapters: Dict[str, Adapter]):
 				insert = snippet.get('body', '{ error: no body field}')
 				core.run(insert_snippet(sublime.active_window(), insert))
 
-			values.append(ui.InputListItem(snippet.get('label', 'label'), insert))
+			values.append(ui.InputListItem(insert, snippet.get('label', 'label')))
 
-	def insert_custom():
-		core.run(insert_snippet(sublime.active_window(), {
-				'name': 'NAME', 
-				'type': 'CUSTOM', 
-				'request': 'attach'
-			}))
 
-	values.append(ui.InputListItem(insert_custom, 'Other: Custom'))
-	ui.InputList(values, placeholder="choose a configuration type").run()
+	return ui.InputList(values, placeholder="choose a configuration type")
 
 
 
@@ -60,7 +63,6 @@ def select_configuration(debugger: 'DebuggerInterface'):
 	for c in debugger.configurations:
 		values.append(ui.InputListItemChecked(lambda c=c: debugger.changeConfiguration(c), c.name, c.name, c == debugger.configuration))
 	
-	values.append(ui.InputListItem(lambda: add_configuration(debugger.adapters), "Add Configuration"))
+	values.append(ui.InputListItem(add_configuration(debugger.adapters), "Add Configuration"))
 
-	ui.InputList(values, "Add or Select Configuration").run()
-
+	return ui.InputList(values, "Add or Select Configuration")
