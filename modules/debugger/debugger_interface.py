@@ -10,7 +10,6 @@ import types
 
 from .. import core, ui, dap
 
-from ..components.variable_component import VariableStateful, VariableStatefulComponent
 from ..components.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
 from ..components.breakpoints_panel import BreakpointsPanel
 from ..components.callstack_panel import CallStackPanel
@@ -161,12 +160,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		self.window = window
 		self.disposeables = [] #type: List[Any]
-		
-		self.breakpoints = Breakpoints()
-
-		self.callstack_panel = CallStackPanel()
-		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
-		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
 
 		def on_state_changed(state: int) -> None:
 			if state == DebuggerStateful.stopped:
@@ -192,9 +185,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 			elif state == DebuggerStateful.stopping or state == DebuggerStateful.starting:
 				self.debugger_panel.setState(LOADING)
-
-		def on_scopes(scopes: List[dap.Scope]) -> None:
-			self.variables_panel.set_scopes(scopes)
 
 		def on_selected_frame(thread: Optional[dap.Thread], frame: Optional[dap.StackFrame]) -> None:
 			if frame and thread and frame.source:
@@ -231,16 +221,16 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			terminals.update(list)
 
 		self.debugger = DebuggerStateful(
-			self.breakpoints,
 			on_state_changed=on_state_changed,
-			on_scopes=on_scopes,
 			on_output=on_output,
 			on_selected_frame=on_selected_frame,
 			on_threads_stateful=on_threads_stateful,
 			on_terminals=on_terminals)
 
-
-		self.variables_panel = VariablesPanel(self.breakpoints, self.debugger.watch)
+		self.callstack_panel = CallStackPanel()
+		self.breakpoints_panel = BreakpointsPanel(self.debugger.breakpoints)
+		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
+		self.variables_panel = VariablesPanel(self.debugger.variables, self.debugger.watch)
 		self.source_provider = ViewSelectedSourceProvider(self.project, self.debugger)
 
 		self.panel = OutputPhantomsPanel(window, 'Debugger')
@@ -260,15 +250,17 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		phantom_location = self.panel.phantom_location()
 		phantom_view = self.panel.phantom_view()
 
-		callstack_panel_item = TabbedPanelItem(id(self.callstack_panel), self.callstack_panel, "Call Stack", 0)
-		variables_panel_item = TabbedPanelItem(id(self.variables_panel), self.variables_panel, "Variables", 1)
-
 		self.terminal = DebuggerTerminal(
+			self.debugger,
 			on_run_command=self.on_run_command,
 			on_clicked_source=self.on_navigate_to_source
 		)
+
 		terminal_component = TerminalComponent(self.terminal)
 		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
+		callstack_panel_item = TabbedPanelItem(id(self.callstack_panel), self.callstack_panel, "Call Stack", 0)
+		
+		variables_panel_item = TabbedPanelItem(id(self.variables_panel), self.variables_panel, "Variables", 1)
 		modules_panel = TabbedPanelItem(id(self.debugger.modules), ModulesView(self.debugger.modules), "Modules", 1)
 		sources_panel = TabbedPanelItem(id(self.debugger.sources), SourcesView(self.debugger.sources, self.source_provider.navigate), "Sources", 1)
 
@@ -279,9 +271,9 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		])
 		self.panels = Panels(phantom_view, phantom_location + 1, 3)
 		self.panels.add([
+			terminal_panel_item,
 			callstack_panel_item,
 			variables_panel_item,
-			terminal_panel_item,
 			modules_panel,
 			sources_panel
 		])
@@ -291,7 +283,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 		self.disposeables.append(self.source_provider)
 
-		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.debugger, self.breakpoints)
+		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.debugger, self.debugger.breakpoints)
 		self.disposeables.append(self.breakpoints_provider)
 
 	def load_settings_and_configurations(self) -> None:
@@ -366,7 +358,6 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 		for d in self.disposeables:
 			d.dispose()
 
-		self.breakpoints.dispose()
 		if self.debugger:
 			self.debugger.dispose()
 		del DebuggerInterface.instances[self.window.id()]
@@ -425,7 +416,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 			try:
 				if not self.configuration:
 					self.terminal.log_error("Add or select a configuration to begin debugging")
-					select_configuration(self)
+					select_configuration(self).run()
 					return
 
 				configuration = self.configuration
@@ -493,19 +484,19 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 	@command()
 	def add_function_breakpoint(self):
-		self.breakpoints.function.add_command()
+		self.debugger.breakpoints.function.add_command()
 	
 	@command()
 	def add_watch_expression(self):
 		self.debugger.watch.add_command()
 
 	def load_data(self):
-		self.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
+		self.debugger.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
 		self.debugger.watch.load_json(self.persistance.json.get('watch', []))
 
 	@command()
 	def save_data(self):
-		self.persistance.json['breakpoints'] = self.breakpoints.into_json()
+		self.persistance.json['breakpoints'] = self.debugger.breakpoints.into_json()
 		self.persistance.json['watch'] = self.debugger.watch.into_json()
 		self.persistance.save_to_file()
 
@@ -524,7 +515,7 @@ class DebuggerInterface (DebuggerPanelCallbacks):
 
 	@command()
 	def change_configuration(self) -> None:
-		select_configuration(self)
+		select_configuration(self).run()
 
 	def error(self, value: str):
 		self.terminal.log_error(value)

@@ -2,12 +2,13 @@ from ..typecheck import *
 
 from ..import dap, ui, core
 
-from ..components.variable_component import VariableStatefulComponent, VariableStateful
+from .variables import Variable, VariableComponent
 from .terminal import TerminalStandard, Line, LineSourceComponent
+from .debugger import DebuggerStateful
 
 class VariableLine(Line):
-	def __init__(self, variable: dap.Variable, source: Optional[dap.Source], line: Optional[int], on_clicked_source: Callable[[], None])  -> None:
-		self.variable = VariableStateful(variable, None)
+	def __init__(self, variable: Variable, source: Optional[dap.Source], line: Optional[int], on_clicked_source: Callable[[], None]) -> None:
+		self.variable = variable
 		self.source = source
 		self.line = line
 		self.on_clicked_source = on_clicked_source
@@ -16,22 +17,22 @@ class VariableLine(Line):
 		source_item = None
 		if self.source:
 			variable_length = len(self.variable.name) + len(self.variable.value)
-			text_width =  (max_width - variable_length) * layout.em_width() - 1.5
-		
+			text_width = (max_width - variable_length) * layout.em_width() - 1.5
 
 			source_item = LineSourceComponent(self.source.name, self.line, text_width, self.on_clicked_source)
 
-		component = VariableStatefulComponent(self.variable, itemRight=source_item)
+		component = VariableComponent(self.variable, item_right=source_item)
 
 		# @FIXME this doesn't really work if there are multiple components being drawn for the same variable
 		self.variable.on_dirty = component.dirty
 		return [component]
 
 class DebuggerTerminal (TerminalStandard):
-	def __init__(self, on_run_command: Callable[[str], None], on_clicked_source: Callable[[dap.Source, Optional[int]], None]):
+	def __init__(self, debugger: DebuggerStateful, on_run_command: Callable[[str], None], on_clicked_source: Callable[[dap.Source, Optional[int]], None]):
 		super().__init__("Debugger Console")
 		self.on_run_command = on_run_command
 		self.on_clicked_source = on_clicked_source
+		self.debugger = debugger
 
 	def writeable(self) -> bool:
 		return True
@@ -55,7 +56,6 @@ class DebuggerTerminal (TerminalStandard):
 					self.append_variable(variable, event.source, event.line)
 
 			# this could make variable messages appear out of order. Do we care??
-			 
 			core.run(appendVariabble())
 		else:
 			self.append_text(event.category, event.text, event.source, event.line)
@@ -66,7 +66,7 @@ class DebuggerTerminal (TerminalStandard):
 	def append_variable(self, variable: dap.Variable, source: Optional[dap.Source], line: Optional[int]):
 		def on_clicked_source():
 			self.on_clicked_source(source, line)
-		self.lines.append(VariableLine(variable, source, line, on_clicked_source))
+		self.lines.append(VariableLine(Variable(self.debugger, variable), source, line, on_clicked_source))
 		self.on_updated()
 
 	def append_text(self, type: str, text: str, source: Optional[dap.Source], line: Optional[int]):

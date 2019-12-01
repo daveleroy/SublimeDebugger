@@ -7,7 +7,7 @@ from ..import core, ui, dap
 from .debugger import DebuggerStateful
 from .debugger_project import DebuggerProject
 
-from ..components.variable_component import VariableStateful, VariableStatefulComponent
+from .variables import Variable, VariableComponent
 
 # Provides support for showing debug information when an expression is hovered
 # sends the hovered word to the debug adapter to evaluate and shows a popup with the result
@@ -63,10 +63,8 @@ class ViewHoverProvider(core.Disposables):
 			def on_close() -> None:
 				event.view.erase_regions('selected_hover')
 
-			variableState = VariableStateful(variable, None)
-			component = VariableStatefulComponent(variableState)
-			variableState.on_dirty = component.dirty
-			variableState.expand()
+			component = VariableComponent(Variable(self.debugger, variable))
+			component.toggle_expand()
 			ui.Popup(component, event.view, word.a, on_close=on_close)
 
 		# errors trying to evaluate a hover expression should be ignored

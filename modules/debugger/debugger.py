@@ -28,7 +28,7 @@ from .build import build
 from .modules import Modules
 from .sources import Sources
 from .watch import Watch
-
+from .variables import Variables
 
 class DebuggerStateful(dap.ClientEventsListener):
 	stopped = 0
@@ -38,18 +38,17 @@ class DebuggerStateful(dap.ClientEventsListener):
 	starting = 3
 	stopping = 4
 
-	def __init__(self,
-			breakpoints: Breakpoints,
-			on_state_changed: Callable[[int], None],
-			on_scopes: Callable[[List[dap.Scope]], None],
-			on_output: Callable[[dap.OutputEvent], None],
-			on_selected_frame: Callable[[Optional[dap.Thread], Optional[dap.StackFrame]], None],
-			on_threads_stateful: Callable[[List[ThreadStateful]], None],
-			on_terminals: Callable[[List[Terminal]], None],
-		) -> None:
+	def __init__(
+		self,
+		on_state_changed: Callable[[int], None],
+		on_output: Callable[[dap.OutputEvent], None],
+		on_selected_frame: Callable[[Optional[dap.Thread], Optional[dap.StackFrame]], None],
+		on_threads_stateful: Callable[[List[ThreadStateful]], None],
+		on_terminals: Callable[[List[Terminal]], None],
+	) -> None:
+
 		self.on_state_changed = on_state_changed
 		self.on_threads_stateful = on_threads_stateful
-		self.on_scopes = on_scopes
 		self.on_output = on_output
 		self.on_selected_frame = on_selected_frame
 		self.on_terminals = on_terminals
@@ -72,8 +71,6 @@ class DebuggerStateful(dap.ClientEventsListener):
 
 		self.disposeables = [] #type: List[Any]
 
-		self.breakpoints = breakpoints
-		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
 
 		def on_send_data_breakpoints(data_breakpoints):
 			core.run(self.set_data_breakpoints())
@@ -90,18 +87,20 @@ class DebuggerStateful(dap.ClientEventsListener):
 
 			core.run(self.adapter.SetExceptionBreakpoints(filters))
 
-		breakpoints.data.on_send.add(on_send_data_breakpoints)
-		breakpoints.function.on_send.add(on_send_function_breakpoints)
-		breakpoints.filters.on_send.add(on_send_filters)
-		breakpoints.source.on_send.add(self.on_send_source_breakpoint)
+		self.breakpoints = Breakpoints()
+		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
+		self.breakpoints.data.on_send.add(on_send_data_breakpoints)
+		self.breakpoints.function.on_send.add(on_send_function_breakpoints)
+		self.breakpoints.filters.on_send.add(on_send_filters)
+		self.breakpoints.source.on_send.add(self.on_send_source_breakpoint)
 
 		self.state_changed = core.Event() #type: core.Event[int]
 		self.modules = Modules()
 		self.sources = Sources()
+		self.variables = Variables()
 
 		def on_added_watch(expr: Watch.Expression):
-			if self.adapter:
-				core.run(self.watch.evaluate_expression(self.adapter, self.selected_frame, expr))
+			core.run(self.watch.evaluate_expression(self, self.selected_frame, expr))
 
 		self.watch = Watch(on_added_watch)
 					
@@ -115,6 +114,7 @@ class DebuggerStateful(dap.ClientEventsListener):
 	def dispose(self) -> None:
 		self.force_stop_adapter()
 		self.dispose_terminals()
+		self.breakpoints.dispose()
 		for disposeable in self.disposeables:
 			disposeable.dispose()
 
@@ -353,9 +353,9 @@ class DebuggerStateful(dap.ClientEventsListener):
 		self.breakpoints_for_id = {}
 
 		self.on_threads_stateful(self.threads_stateful)
-		self.on_scopes([])
 		self.on_selected_frame(None, None)
 
+		self.variables.clear_session_data()
 		self.modules.clear_session_date()
 		self.sources.clear_session_date()
 		self.breakpoints.clear_session_data()
@@ -369,33 +369,47 @@ class DebuggerStateful(dap.ClientEventsListener):
 			self.process = None
 		self.state = DebuggerStateful.stopped
 
+	def require_running(self):
+		if not self.adapter:
+			raise core.Error('debugger not running')
+
 	@core.coroutine
 	def resume(self) -> core.awaitable[None]:
-		assert self.adapter, 'debugger not running'
+		self.require_running()
+		assert self.adapter
+
 		yield from self.adapter.Resume(self._thread_for_command())
 
 	@core.coroutine
 	def pause(self) -> core.awaitable[None]:
-		assert self.adapter, 'debugger not running'
+		self.require_running()
+		assert self.adapter
+
 		yield from self.adapter.Pause(self._thread_for_command())
 
 	@core.coroutine
 	def step_over(self) -> core.awaitable[None]:
-		assert self.adapter, 'debugger not running'
+		self.require_running()
+		assert self.adapter
+
 		yield from self.adapter.StepOver(self._thread_for_command())
 		self.selected_frame = None
 		self.selected_thread_explicitly = False
 
 	@core.coroutine
 	def step_in(self) -> core.awaitable[None]:
-		assert self.adapter, 'debugger not running'
+		self.require_running()
+		assert self.adapter
+
 		yield from self.adapter.StepIn(self._thread_for_command())
 		self.selected_frame = None
 		self.selected_thread_explicitly = False
 
 	@core.coroutine
 	def step_out(self) -> core.awaitable[None]:
-		assert self.adapter, 'debugger not running'
+		self.require_running()
+		assert self.adapter
+
 		yield from self.adapter.StepOut(self._thread_for_command())
 		self.selected_frame = None
 		self.selected_thread_explicitly = False
@@ -403,8 +417,9 @@ class DebuggerStateful(dap.ClientEventsListener):
 	@core.coroutine
 	def evaluate(self, command: str) -> core.awaitable[None]:
 		self.info(command)
-		if not self.adapter:
-			raise core.Error('debugger not running')
+
+		self.require_running()
+		assert self.adapter
 
 		response = yield from self.adapter.Evaluate(command, self.selected_frame, "repl")
 		event = dap.OutputEvent("console", response.result, response.variablesReference)
@@ -495,13 +510,20 @@ class DebuggerStateful(dap.ClientEventsListener):
 		elif isinstance(self.selected_frame, ThreadStateful) and self.selected_frame.frames:
 			frame = self.selected_frame.frames[0]
 		else:
-			self.on_scopes([])
+			self.variables.update(self, [])
 			return
 
 		self.on_selected_frame(self.selected_threadstateful, frame)
 
-		core.run(self.adapter.GetScopes(frame), self.on_scopes)
-		core.run(self.watch.evaluate(self.adapter, self.selected_frame))
+		core.run(self.get_scopes(frame))
+		core.run(self.watch.evaluate(self, self.selected_frame))
+	
+	@core.coroutine
+	def get_scopes(self, frame: dap.StackFrame) -> core.awaitable:
+		if not self.adapter: return
+
+		scopes = yield from self.adapter.GetScopes(frame)
+		self.variables.update(self, scopes)
 
 	def select_threadstateful(self, thread: ThreadStateful, frame: Optional[dap.StackFrame]):
 		self.selected_threadstateful = thread
