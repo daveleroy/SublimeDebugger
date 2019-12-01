@@ -47,7 +47,7 @@ def add_configuration(adapters: Dict[str, Adapter]):
 	for name, adapter in adapters.items():
 		snippets = adapter.snippets
 		for snippet in adapter.snippets:
-			def insert():
+			def insert(snippet=snippet):
 				insert = snippet.get('body', '{ error: no body field}')
 				core.run(insert_snippet(sublime.active_window(), insert))
 
