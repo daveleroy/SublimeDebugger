@@ -1,0 +1,11 @@
+{
+    "command": [
+        "node",
+        "${package}/data/debug_adapters/vscode-node-debug2/extension/out/src/nodeDebug.js"
+    ],
+    "installation": {
+        "name": "vscode-node-debug2",
+        "url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/node-debug2/latest/vspackage",
+        "format": "zip"
+    }
+}

@@ -45,6 +45,7 @@
 		"python" : "${package}/debug_adapters/python.json",
 		"go" : "${package}/debug_adapters/go.json",
 		"php" : "${package}/debug_adapters/php.json",
+		"nodejs" : "${package}/debug_adapters/nodejs.json",
 	}
 }
 
