@@ -55,10 +55,10 @@ class span (element):
 	def __init__(self, width: Optional[float] = None, height: Optional[float] = None, css: Optional[css] = None) -> None:
 		super().__init__(True, width, height, css)
 		self._items = None #type: span.Children
-	
+
 	def render(self) -> 'span.Children':
 		return self._items
-	
+
 	def __getitem__(self, values: 'span.Children'):
 		self._items = values
 		return self
@@ -88,7 +88,7 @@ class div (element):
 		inner = self.html_inner(layout)
 		h = self.height(layout) - self.padding_height
 		w = self.width(layout) - self.padding_width
-		
+
 		if self.children and self.children[0].is_inline:
 			html = '<div class= "{} {}" style="height:{}rem;width:{}rem;line-height:{}rem"><img style="height:2.5rem;">{}</div>'.format(div_inline_css.class_name, self.className, h, w, h, inner)
 		else:
@@ -159,14 +159,18 @@ class icon (span):
 class code(span):
 	def __init__(self, text: str, language: str = 'c++') -> None:
 		super().__init__()
-		self.text = text
+		self.text = text.replace("\n", "")
+		self.text_html = html_escape(self.text)
 		self.language = language
 
 	def added(self, layout: Layout) -> str:
 		self.highlight = layout.syntax_highlight(self.text, self.language)
 
 	def width(self, layout: Layout) -> float:
-		return len(self.text) * layout.em_width()
+		return len(self.text) + self.padding_width
 
-	def html_inner(self, layout: Layout) -> str:
-		return self.highlight.html or self.highlight.text
+	def html(self, layout: Layout) -> str:
+		h = self.height(layout)
+		text_html = self.highlight.html or self.text_html
+		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, text_html)
+		return html

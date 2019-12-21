@@ -88,7 +88,7 @@ class LayoutComponent (Layout):
 	def render(self) -> bool:
 		if not self.requires_render:
 			return False
-		
+
 		self.on_click_handlers = {}
 		self.requires_render = False
 

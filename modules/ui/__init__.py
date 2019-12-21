@@ -27,7 +27,6 @@ import os
 from ..libs import asyncio
 
 
-
 _update_timer = None #type: Optional[Timer]
 
 
