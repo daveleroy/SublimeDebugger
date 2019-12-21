@@ -1,11 +1,13 @@
-from ..typecheck import *
-from ..import ui
+from ...typecheck import *
+from ...import ui
+
 from . import css
 
 STOPPED = 0
 RUNNING = 1
 PAUSED = 2
 LOADING = 3
+
 
 class DebuggerPanelCallbacks(Protocol):
 	def on_play(self) -> None:
@@ -25,6 +27,7 @@ class DebuggerPanelCallbacks(Protocol):
 	def on_settings(self) -> None:
 		...
 
+
 class DebuggerPanel(ui.div):
 	def __init__(self, callbacks: DebuggerPanelCallbacks, breakpoints: ui.div) -> None:
 		super().__init__()
@@ -32,7 +35,7 @@ class DebuggerPanel(ui.div):
 		self.callbacks = callbacks
 		self.name = ''
 		self.breakpoints = breakpoints
-	
+
 	def setState(self, state: int) -> None:
 		self.state = state
 		self.dirty()
@@ -40,22 +43,22 @@ class DebuggerPanel(ui.div):
 	def render(self) -> ui.div.Children:
 		buttons = [] #type: List[ui.span]
 		items = [
-			DebuggerItem(self.callbacks.on_settings, ui.Images.shared.settings),
-			DebuggerItem(self.callbacks.on_play, ui.Images.shared.play),
-			DebuggerItem(self.callbacks.on_stop, ui.Images.shared.stop, ui.Images.shared.stop_disable),
+			DebuggerCommandButton(self.callbacks.on_settings, ui.Images.shared.settings),
+			DebuggerCommandButton(self.callbacks.on_play, ui.Images.shared.play),
+			DebuggerCommandButton(self.callbacks.on_stop, ui.Images.shared.stop, ui.Images.shared.stop_disable),
 		]
 
 		if self.state == STOPPED or self.state == LOADING:
-			items.append(DebuggerItem(self.callbacks.on_pause, ui.Images.shared.pause_disable))
+			items.append(DebuggerCommandButton(self.callbacks.on_pause, ui.Images.shared.pause_disable))
 		elif self.state == PAUSED:
-			items.append(DebuggerItem(self.callbacks.on_resume, ui.Images.shared.resume))
+			items.append(DebuggerCommandButton(self.callbacks.on_resume, ui.Images.shared.resume))
 		else:
-			items.append(DebuggerItem(self.callbacks.on_resume, ui.Images.shared.pause))
+			items.append(DebuggerCommandButton(self.callbacks.on_resume, ui.Images.shared.pause))
 
 		items.extend([
-			DebuggerItem(self.callbacks.on_step_over, ui.Images.shared.down, ui.Images.shared.down_disable),
-			DebuggerItem(self.callbacks.on_step_out, ui.Images.shared.left, ui.Images.shared.left_disable),
-			DebuggerItem(self.callbacks.on_step_in, ui.Images.shared.right, ui.Images.shared.right_disable),
+			DebuggerCommandButton(self.callbacks.on_step_over, ui.Images.shared.down, ui.Images.shared.down_disable),
+			DebuggerCommandButton(self.callbacks.on_step_out, ui.Images.shared.left, ui.Images.shared.left_disable),
+			DebuggerCommandButton(self.callbacks.on_step_in, ui.Images.shared.right, ui.Images.shared.right_disable),
 		])
 
 		return [
@@ -67,7 +70,8 @@ class DebuggerPanel(ui.div):
 			]
 		]
 
-class DebuggerItem (ui.span):
+
+class DebuggerCommandButton (ui.span):
 	def __init__(self, callback: Callable[[], None], enabled_image: ui.Image, disabled_image: Optional[ui.Image] = None) -> None:
 		super().__init__()
 

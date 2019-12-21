@@ -1,5 +1,5 @@
-from .. typecheck import *
-from .. import ui
+from ... typecheck import *
+from ... import ui
 from . import css
 
 import sublime

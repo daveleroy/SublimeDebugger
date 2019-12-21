@@ -1,4 +1,4 @@
-from ..import ui
+from ...import ui
 
 button = ui.css(padding_left=1, padding_right=1, padding_top=0.7, padding_bottom=0.4, background_color='var(--segment-color)', raw='''
 	border-radius: 0.75rem;
@@ -39,3 +39,5 @@ table_inset = ui.css(padding_left=2)
 
 selected = ui.css(background_color='color(var(--accent) alpha(0.2))', raw='border-radius:0.5rem;')
 selected_text = ui.css(color='color(var(--accent) alpha(0.75))', padding_left=1, padding_right=1, raw='position: relative; top:-0.2rem;')
+
+modified_label = ui.css(color='var(--secondary)', padding_left=3)

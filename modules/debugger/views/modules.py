@@ -1,36 +1,12 @@
-from ..typecheck import *
-from ..import dap
-from ..import core
-from ..import ui
-from ..components import css
+from ...typecheck import *
+from ...import dap
+from ...import core
+from ...import ui
 
-class Modules:
-	def __init__(self):
-		self.expanded = {} #type: Dict[int, bool]
-		self.modules = [] #type: List[dap.Module]
-		self.on_updated = core.Event() #type: core.Event[None]
+from ..debugger_session import Modules
 
-	def toggle_expanded(self, id) -> None:
-		expanded = self.expanded.get(id, False)
-		self.expanded[id] = not expanded
-		self.on_updated()
+from . import css
 
-	def on_module_event(self, event: dap.ModuleEvent) -> None:
-		if event.reason == dap.ModuleEvent.new:
-			self.modules.append(event.module)
-			self.on_updated()
-			return
-		if event.reason == dap.ModuleEvent.removed:
-			# FIXME: NOT IMPLEMENTED
-			return
-		if event.reason == dap.ModuleEvent.changed:
-			# FIXME: NOT IMPLEMENTED
-			return
-
-	def clear_session_date(self) -> None:
-		self.expanded.clear()
-		self.modules.clear()
-		self.on_updated()
 
 class ModulesView(ui.div):
 	def __init__(self, modules: Modules):
@@ -42,8 +18,6 @@ class ModulesView(ui.div):
 
 	def removed(self):
 		self.on_updated_handle.dispose()
-
-
 
 	def render(self) -> ui.div.Children:
 		items = []

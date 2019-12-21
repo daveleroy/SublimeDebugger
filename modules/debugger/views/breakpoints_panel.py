@@ -1,7 +1,7 @@
-from ..typecheck import *
-from ..import ui
-from ..import core
-from ..debugger.breakpoints import (
+from ...typecheck import *
+from ...import ui
+from ...import core
+from ..breakpoints import (
 	Breakpoints,
 	IBreakpoint,
 	SourceBreakpoint,
@@ -15,6 +15,7 @@ from .import css
 
 import os
 import sublime
+
 
 class BreakpointsPanel(ui.div):
 	def __init__(self, breakpoints: Breakpoints) -> None:

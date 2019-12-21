@@ -1,8 +1,8 @@
 from .. typecheck import *
 from .. import core, ui, dap
-from .. components.selected_line import SelectedLine
+from .views.selected_line import SelectedLine
 
-from .debugger import DebuggerStateful
+from .debugger_session import DebuggerSession
 from .debugger_project import DebuggerProject
 
 import sublime
@@ -23,7 +23,7 @@ class DebuggerReplaceContentsCommand(sublime_plugin.TextCommand):
 		self.view.sel().clear()
 
 class ViewSelectedSourceProvider:
-	def __init__(self, project: DebuggerProject, debugger: DebuggerStateful):
+	def __init__(self, project: DebuggerProject, debugger: DebuggerSession):
 		self.debugger = debugger
 		self.project = project
 		self.updating = None #type: Optional[Any]
@@ -48,6 +48,7 @@ class ViewSelectedSourceProvider:
 	def navigate(self, source: dap.Source, line: int = 1):
 		if self.updating:
 			self.updating.cancel()
+
 		def on_error(error):
 			if error is not core.CancelledError:
 				core.log_error(error)
@@ -70,7 +71,7 @@ class ViewSelectedSourceProvider:
 		if self.selected_frame_line:
 			self.selected_frame_line.dispose()
 			self.selected_frame_line = None
-	
+
 	def clear_generated_view(self):
 		if self.generated_view:
 			self.generated_view.close()

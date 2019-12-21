@@ -1,612 +1,496 @@
 from ..typecheck import *
 
 import sublime
+import sublime_plugin
+import os
+import subprocess
+import re
+import json
+import types
 
-from .. import core, dap
+from .. import core, ui, dap
 
-from ..dap.transport import (
-	Process,
-	StdioTransport
+from .autocomplete import Autocomplete
+
+from .util import WindowSettingsCallback, get_setting
+from .config import PersistedData
+
+from .help import help_menu
+
+from .debugger_session import (
+	DebuggerSession,
+	Modules,
+	Sources,
+	Variables,
+	Watch,
+	Threads
 )
 
-from .terminal import Terminal, TerminalProcess, TerminalStandard
-
-from .adapter import (
-	ConfigurationExpanded,
-	Adapter
+from .debugger_project import (
+	DebuggerProject
 )
+
 from .breakpoints import (
 	Breakpoints,
-	SourceBreakpoint,
-)
-from .thread import (
-	ThreadStateful
 )
 
-from .build import build
+from .adapter import (
+	Configuration,
+	ConfigurationExpanded,
+	Adapter,
+	install_adapters_menu,
+	select_configuration,
+)
 
-from .modules import Modules
-from .sources import Sources
-from .watch import Watch
-from .variables import Variables
+from .output_panel import OutputPhantomsPanel
 
-class DebuggerStateful(dap.ClientEventsListener):
-	stopped = 0
-	paused = 1
-	running = 2
+from .terminal import TerminalComponent
+from .debugger_terminal import DebuggerTerminal
+from .view_hover import ViewHoverProvider
+from .view_selected_source import ViewSelectedSourceProvider
+from .breakpoint_commands import BreakpointCommandsProvider
 
-	starting = 3
-	stopping = 4
+from .views.modules import ModulesView
+from .views.sources import SourcesView
+from .views.callstack import CallStackView
 
-	def __init__(
-		self,
-		on_state_changed: Callable[[int], None],
-		on_output: Callable[[dap.OutputEvent], None],
-		on_selected_frame: Callable[[Optional[dap.Thread], Optional[dap.StackFrame]], None],
-		on_threads_stateful: Callable[[List[ThreadStateful]], None],
-		on_terminals: Callable[[List[Terminal]], None],
-	) -> None:
+from .views.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
+from .views.breakpoints_panel import BreakpointsPanel
+from .views.variables_panel import VariablesPanel
+from .views.tabbed_panel import Panels, TabbedPanel, TabbedPanelItem
+from .views.selected_line import SelectedLine
 
-		self.on_state_changed = on_state_changed
-		self.on_threads_stateful = on_threads_stateful
-		self.on_output = on_output
-		self.on_selected_frame = on_selected_frame
-		self.on_terminals = on_terminals
+from .watch import WatchView
 
-		self.adapter = None #type: Optional[dap.Client]
-		self.process = None #type: Optional[Process]
-		self.launching_async = None
 
-		self.launch_request = True
+class Debugger (DebuggerPanelCallbacks):
 
-		self.selected_frame = None #type: Optional[Union[dap.StackFrame, ThreadStateful]]
-		self.selected_thread_explicitly = False
-		self.selected_threadstateful = None #type: Optional[ThreadStateful]
+	instances = {} #type: Dict[int, Debugger]
 
-		self.threads_stateful = [] #type: List[ThreadStateful]
-		self.threads_stateful_from_id = {} #type: Dict[int, ThreadStateful]
+	@staticmethod
+	def should_auto_open_in_window(window: sublime.Window) -> bool:
+		data = window.project_data()
+		if not data:
+			return False
+		if "settings" not in data:
+			return False
+		if "debug.configurations" not in data["settings"]:
+			return False
+		return True
 
-		self.terminals = [] #type: List[Terminal]
-		self._state = DebuggerStateful.stopped
+	@staticmethod
+	def for_window(window: sublime.Window, create: bool = False) -> 'Optional[Debugger]':
+		global instances
+		instance = Debugger.instances.get(window.id())
+		if not instance and create:
+			try:
+				main = Debugger(window)
+				Debugger.instances[window.id()] = main
+				return main
+			except dap.Error as e:
+				core.log_exception()
+		if create:
+			instance.show()
+		return instance
 
+	def refresh_phantoms(self) -> None:
+		ui.reload()
+
+	@core.require_main_thread
+	def __init__(self, window: sublime.Window) -> None:
+
+		# ensure we are being run inside a sublime project
+		# if not prompt the user to create one
+		while True:
+			data = window.project_data()
+			project_name = window.project_file_name()
+			while not data or not project_name:
+				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
+				if r:
+					window.run_command('save_project_and_workspace_as')
+				else:
+					raise core.Error("Debugger must be run inside a sublime project")
+
+			# ensure we have debug configurations added to the project file
+			data.setdefault('settings', {}).setdefault('debug.configurations', [])
+			window.set_project_data(data)
+			break
+		self.project = DebuggerProject(window)
+
+		autocomplete = Autocomplete.create_for_window(window)
+
+		self.window = window
 		self.disposeables = [] #type: List[Any]
 
+		def on_state_changed(state: int) -> None:
+			if state == DebuggerSession.stopped:
+				self.debugger_panel.setState(STOPPED)
+				self.show_console_panel()
+			elif state == DebuggerSession.running:
+				self.debugger_panel.setState(RUNNING)
+			elif state == DebuggerSession.paused:
+				self.debugger_panel.setState(PAUSED)
 
-		def on_send_data_breakpoints(data_breakpoints):
-			core.run(self.set_data_breakpoints())
+				if get_setting(self.panel.phantom_view(), 'bring_window_to_front_on_pause', False):
+					# is there a better way to bring sublime to the front??
+					# this probably doesn't work for most people. subl needs to be in PATH
+					# ignore any errors
+					try:
+						subprocess.call(["subl"])
+					except Exception:
+						pass
 
-		def on_send_function_breakpoints(function_breakpoints):
-			core.run(self.set_function_breakpoints())
-		
-		def on_send_filters(filters):
-			if not self.adapter: return
-			filters = []
-			for f in filters:
-				if f.enabled:
-					filters.append(f.dap.id)
+				self.show_call_stack_panel()
 
-			core.run(self.adapter.SetExceptionBreakpoints(filters))
+			elif state == DebuggerSession.stopping or state == DebuggerSession.starting:
+				self.debugger_panel.setState(LOADING)
 
-		self.breakpoints = Breakpoints()
-		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
-		self.breakpoints.data.on_send.add(on_send_data_breakpoints)
-		self.breakpoints.function.on_send.add(on_send_function_breakpoints)
-		self.breakpoints.filters.on_send.add(on_send_filters)
-		self.breakpoints.source.on_send.add(self.on_send_source_breakpoint)
+		def on_selected_frame(frame: Optional[dap.StackFrame]) -> None:
+			if frame and frame.source:
+				self.source_provider.select(frame.source, frame.line, self.debugger.callstack.selected_thread.stopped_reason)
+			else:
+				self.source_provider.clear()
 
-		self.state_changed = core.Event() #type: core.Event[int]
+		def on_output(event: dap.OutputEvent) -> None:
+			self.terminal.program_output(self.debugger.adapter, event)
+
+
+		from .diff import DiffCollection
+		from .terminal import Terminal
+		def on_terminal_added(terminal: Terminal):
+			component = TerminalComponent(terminal)
+
+			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, component.action_buttons())
+			def on_modified():
+				self.panels.modified(panel)
+
+			terminal.on_updated.add(on_modified)
+
+			self.panels.add([panel])
+
+		def on_terminal_removed(terminal: Terminal):
+			self.panels.remove(id(terminal))
+
+		terminals = DiffCollection(on_terminal_added, on_terminal_removed)
+
+		def on_terminals(list: Any):
+			terminals.update(list)
+
 		self.modules = Modules()
 		self.sources = Sources()
 		self.variables = Variables()
+		self.threads = Threads()
+		self.watch = Watch()
+		self.breakpoints = Breakpoints()
 
-		def on_added_watch(expr: Watch.Expression):
-			core.run(self.watch.evaluate_expression(self, self.selected_frame, expr))
+		self.debugger = DebuggerSession(
+			breakpoints=self.breakpoints,
+			modules=self.modules,
+			sources=self.sources,
+			threads=self.threads,
+			watch=self.watch,
+			variables=self.variables,
+			on_state_changed=on_state_changed,
+			on_output=on_output,
+			on_selected_frame=on_selected_frame,
+			on_terminals=on_terminals)
 
-		self.watch = Watch(on_added_watch)
-					
-	def dispose_terminals(self):
-		for terminal in self.terminals:
-			terminal.dispose()
+		self.breakpoints_panel = BreakpointsPanel(self.debugger.breakpoints)
+		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
+		self.variables_panel = VariablesPanel(self.debugger.variables, self.debugger.watch)
+		self.terminal = DebuggerTerminal(
+			self.debugger,
+			on_run_command=self.on_run_command,
+			on_clicked_source=self.on_navigate_to_source
+		)
 
-		self.terminals = []
-		self.on_terminals(self.terminals)
+		self.source_provider = ViewSelectedSourceProvider(self.project, self.debugger)
+		self.view_hover_provider = ViewHoverProvider(self.project, self.debugger)
+		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.debugger, self.debugger.breakpoints)
+
+		self.panel = OutputPhantomsPanel(window, 'Debugger')
+		self.panel.show()
+
+		self.disposeables.extend([
+			self.panel,
+		])
+
+		self.persistance = PersistedData(project_name)
+		self.load_data()
+		self.load_settings_and_configurations()
+		self.disposeables.append(
+			WindowSettingsCallback(self.window, self.on_settings_updated)
+		)
+
+		phantom_location = self.panel.phantom_location()
+		phantom_view = self.panel.phantom_view()
+
+		terminal_component = TerminalComponent(self.terminal)
+		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
+		callstack_panel_item = TabbedPanelItem(id(self.debugger.callstack), CallStackView(self.debugger), "Call Stack", 0)
+
+		variables_panel_item = TabbedPanelItem(id(self.variables_panel), self.variables_panel, "Variables", 1)
+		modules_panel = TabbedPanelItem(id(self.debugger.modules), ModulesView(self.debugger.modules), "Modules", 1)
+		sources_panel = TabbedPanelItem(id(self.debugger.sources), SourcesView(self.debugger.sources, self.source_provider.navigate), "Sources", 1)
+
+		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(project_name)))
+
+		self.disposeables.extend([
+			ui.Phantom(self.debugger_panel, phantom_view, sublime.Region(phantom_location, phantom_location), sublime.LAYOUT_INLINE),
+		])
+		self.panels = Panels(phantom_view, phantom_location + 1, 3)
+		self.panels.add([
+			terminal_panel_item,
+			callstack_panel_item,
+			variables_panel_item,
+			modules_panel,
+			sources_panel
+		])
+		def on_terminal_updated():
+			 self.panels.modified(terminal_panel_item)
+		self.terminal.on_updated.add(on_terminal_updated)
+
+		self.disposeables.append(self.view_hover_provider)
+		self.disposeables.append(self.source_provider)
+		self.disposeables.append(self.breakpoints_provider)
+
+	def load_settings_and_configurations(self) -> None:
+
+		# logging settings
+		core.log_configure(
+			log_info=get_setting(self.window.active_view(), 'log_info', False),
+			log_errors=get_setting(self.window.active_view(), 'log_errors', True),
+			log_exceptions=get_setting(self.window.active_view(), 'log_exceptions', True),
+		)
+
+		# configuration settings
+		variables = self.project.extract_variables()
+		adapters = {}
+
+		def load_adapter(adapter_name, adapter_json):
+			adapter_json = sublime.expand_variables(adapter_json, variables)
+
+			# if its a string then it points to a json file with configuration in it
+			# otherwise it is the configuration
+			try:
+				if isinstance(adapter_json, str):
+					with open(adapter_json) as json_data:
+						adapter_json = json.load(json_data,)
+			except Exception as e:
+				core.display('Failed when opening debug adapter configuration file {}'.format(e))
+				core.log_exception()
+
+			try:
+				adapter = Adapter(adapter_name, adapter_json, variables)
+				adapters[adapter.type] = adapter
+			except core.Error as e:
+				core.display('There was an error creating an Adapter {}'.format(e))
+				core.log_exception()
+
+		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters', {}).items():
+			load_adapter(adapter_name, adapter_json)
+
+		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters_custom', {}).items():
+			load_adapter(adapter_name, adapter_json)
+
+		configurations = []
+		configurations_json = [] #type: list
+		data = self.window.project_data()
+		if data:
+			configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
+
+		for index, configuration_json in enumerate(configurations_json):
+			configuration = Configuration.from_json(configuration_json)
+			configuration.index = index
+			configurations.append(configuration)
+
+		self.adapters = adapters
+		self.configurations = configurations
+		self.configuration = self.persistance.load_configuration_option(configurations)
+
+		self.panel.ui_scale = get_setting(self.panel.phantom_view(), 'ui_scale', 12)
+
+	def on_settings_updated(self) -> None:
+		print('Settings were udpdated: reloading configuations')
+		self.load_settings_and_configurations()
+
+	def show(self) -> None:
+		self.panel.show()
+
+	def show_console_panel(self) -> None:
+		self.panels.show(id(self.terminal))
+
+	def show_call_stack_panel(self) -> None:
+		self.panels.show(id(self.debugger.callstack))
+
+	def changeConfiguration(self, configuration: Configuration):
+		self.configuration = configuration
+		self.persistance.save_configuration_option(configuration)
 
 	def dispose(self) -> None:
-		self.force_stop_adapter()
-		self.dispose_terminals()
-		self.breakpoints.dispose()
-		for disposeable in self.disposeables:
-			disposeable.dispose()
+		self.save_data()
+		for d in self.disposeables:
+			d.dispose()
 
-	@property
-	def state(self) -> int:
-		return self._state
+		if self.debugger:
+			self.debugger.dispose()
+		del Debugger.instances[self.window.id()]
 
-	@state.setter
-	def state(self, state: int) -> None:
-		if self._state == state:
-			return
+	def run_async(self, awaitable: core.awaitable[None]):
+		def on_error(e: Exception) -> None:
+			self.terminal.log_error(str(e))
+		core.run(awaitable, on_error=on_error)
 
-		self._state = state
-		self.on_state_changed(state)
-		self.state_changed()
+	def on_navigate_to_source(self, source: dap.Source, line: int):
+		self.source_provider.navigate(source, line)
 
-	def launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None) -> core.awaitable[None]:
-		if self.launching_async:
-			self.launching_async.cancel()
+	def command(enabled: Optional[int]=None, disabled: Optional[int]=None):
+		def wrap(f):
+			@property
+			def wrapper(self):
+				class command:
+					def __init__(self, debugger, enabled, disabled, f):
+						self.f = f
+						self.debugger = debugger
+						self._enabled = enabled
+						self._disabled = disabled
 
-		self.dispose_terminals()
-		self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart))
+					def __call__(self, *args, **kw):
+						return self.f(self.debugger)
+
+					def enabled(self):
+						if self._enabled is not None:
+							if self.debugger.debugger.state != self._enabled:
+								return False
+						if self._disabled is not None:
+							if self.debugger.debugger.state == self._disabled:
+								return False
+
+						return True
+
+				return command(self, enabled, disabled, f)
+			return wrapper
+		return wrap
+
+	@command()
+	def on_play(self) -> None:
+		self.panel.show()
+		self.run_async(self._on_play())
+
+	@command()
+	def on_play_no_debug(self) -> None:
+		self.panel.show()
+		self.run_async(self._on_play(no_debug=True))
+
+	@core.coroutine
+	def _on_play(self, no_debug=False) -> core.awaitable[None]:
+		self.show_console_panel()
+		self.terminal.clear()
+		self.terminal.log_info('Console cleared...')
 		try:
-			yield from self.launching_async
-		except core.Error as e:
-			self.launching_async = None
-			core.log_exception(e)
-			self.error("... an error occured, " + str(e))
-			self.force_stop_adapter()
-		except core.CancelledError:
-			self.launching_async = None
-			self.info("... canceled")
-			self.force_stop_adapter()
+			if not self.configuration:
+				self.terminal.log_error("Add or select a configuration to begin debugging")
+				select_configuration(self).run()
+				return
 
-		self.launching_async = None
+			configuration = self.configuration
 
-	def _launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None) -> core.awaitable[None]:
-		if self.state != DebuggerStateful.stopped:
-			yield from self.stop()
+			adapter_configuration = self.adapters.get(configuration.type)
+			if not adapter_configuration:
+				raise core.Error('Unable to find debug adapter with the type name "{}"'.format(configuration.type))
 
-		assert self.state == DebuggerStateful.stopped, "debugger not in stopped state?"
-		self.state = DebuggerStateful.starting
-		self.adapter_configuration = adapter_configuration
-		self.configuration = configuration
-
-		if not adapter_configuration.installed:
-			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
-
-		if 'sublime_debugger_build' in configuration.all:
-			self.info('running build...')
-			terminal = TerminalStandard('Build Results')
-			self.terminals.append(terminal)
-			self.on_terminals(self.terminals)
-			yield from build.run(sublime.active_window(), terminal.write_stdout, configuration.all['sublime_debugger_build'])
-			self.info('... finished running build')
-
-		# dont monitor stdout the StdioTransport uses it
-		self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.info)
-		transport = StdioTransport(self.process)
-
-		adapter = dap.Client(
-			transport,
-			self
-		)
-		self.adapter = adapter
-
-		self.info("starting debugger... ")
-
-		# this is a bit of a weird case. Initialized will happen at some point in time
-		# it depends on when the debug adapter chooses it is ready for configuration information
-		# when it does happen we can then add all the breakpoints and complete the configuration
-		@core.coroutine
-		def Initialized() -> core.awaitable[None]:
-			try:
-				yield from adapter.Initialized()
-			except Exception as e:
-				self.error("there was waiting for initialized from debugger {}".format(e))
-			try:
-				yield from self.AddBreakpoints()
-			except Exception as e:
-				self.error("there was an error adding breakpoints {}".format(e))
-			try:
-				if self.capabilities.supportsFunctionBreakpoints:
-					yield from self.set_function_breakpoints()
-
-				elif len(self.breakpoints.function.breakpoints) > 0:
-					self.error("debugger doesn't support function breakpoints")
-			except Exception as e:
-				self.error("there was an error adding function breakpoints {}".format(e))
-			try:
-				if self.capabilities.supportsConfigurationDoneRequest:
-					yield from adapter.ConfigurationDone()
-			except Exception as e:
-				self.error("there was an error in configuration done {}".format(e))
-		core.run(Initialized())
-
-		self.capabilities = yield from adapter.Initialize()
-
-		filters = self.capabilities.exceptionBreakpointFilters or []
-		self.breakpoints.filters.update(filters)
-
-		if configuration.request == 'launch':
-			self.launch_request = True
-			yield from adapter.Launch(configuration.all, restart)
-		elif configuration.request == 'attach':
-			self.launch_request = False
-			yield from adapter.Attach(configuration.all, restart)
-		else:
-			raise core.Error('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
-
-		# get the baseline threads after launch/attach
-		# according to https://microsoft.github.io/debug-adapter-protocol/overview
-		self.refresh_threads()
-
-		# At this point we are running?
-		self.state = DebuggerStateful.running
-
-	def _refresh_state(self) -> None:
-		thread = self._selected_or_first_thread()
-		if thread and thread.stopped:
-			self.state = DebuggerStateful.paused
-		else:
-			self.state = DebuggerStateful.running
-	
-	@core.coroutine
-	def AddBreakpoints(self) -> core.awaitable[None]:
-		assert self.adapter
-
-		requests = [] #type: List[core.awaitable[dict]]
-
-		filters = []
-		for filter in self.breakpoints.filters:
-			if filter.enabled:
-				filters.append(filter.dap.id)
-
-		requests.append(self.adapter.SetExceptionBreakpoints(filters))
-
-		bps = {} #type: Dict[str, List[SourceBreakpoint]]
-		for breakpoint in self.breakpoints.source:
-			if breakpoint.file in bps:
-				bps[breakpoint.file].append(breakpoint)
-			else:
-				bps[breakpoint.file] = [breakpoint]
-
-		for file, filebreaks in bps.items():
-			requests.append(self.on_send_breakpoints_for_file(file, filebreaks))
-
-		if self.capabilities.supportsDataBreakpoints:
-			requests.append(self.set_data_breakpoints())
-
-		if requests:
-			yield from core.asyncio.wait(requests)
-
-	@core.coroutine
-	def set_function_breakpoints(self) -> core.awaitable[None]:
-		if not self.adapter:
-			return
-		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.function))
-		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
-		results = yield from self.adapter.SetFunctionBreakpoints(dap_breakpoints)
-		for result, b in zip(results, breakpoints):
-			self.breakpoints.function.set_result(b, result)
-	
-	@core.coroutine
-	def set_data_breakpoints(self) -> core.awaitable[None]:
-		if not self.adapter: return
-		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.data))
-		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
-		results = yield from self.adapter.SetDataBreakpointsRequest(dap_breakpoints)
-		for result, b in zip(results, breakpoints):
-			self.breakpoints.data.set_result(b, result)
-
-	@core.coroutine
-	def on_send_breakpoints_for_file(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[None]:
-		if not self.adapter:
+		except Exception as e:
+			core.log_exception()
+			core.display(e)
 			return
 
-		enabled_breakpoints = list(filter(lambda b: b.enabled, breakpoints))
-		dap_breakpoints = list(map(lambda b: b.dap, enabled_breakpoints))
-
-		try:
-			results = yield from self.adapter.SetBreakpointsFile(file, dap_breakpoints)
-
-			if len(results) != len(enabled_breakpoints):
-				raise dap.Error(True, 'expected #breakpoints to match results')
-
-			for result, b in zip(results, enabled_breakpoints):
-				self.breakpoints.source.set_result(b, result)
-				if result.id:
-					self.breakpoints_for_id[result.id] = b
-		
-		except dap.Error as e:
-			for b in enabled_breakpoints:
-				self.breakpoints.source.set_result(b, dap.BreakpointResult.failed)
-
-	def on_send_source_breakpoint(self, breakpoint: SourceBreakpoint) -> None:
-		if not self.adapter:
-			return
-		file = breakpoint.file
-		core.run(self.on_send_breakpoints_for_file(file, self.breakpoints.source.breakpoints_for_file(file)))
-
-	def stop(self) -> core.awaitable[None]:
-		# the adapter isn't stopping and stop is called again we force stop it
-		if not self.adapter or self.state == DebuggerStateful.stopping:
-			self.force_stop_adapter()
-			return
-
-		self.state = DebuggerStateful.stopping
-
-		# this seems to be what the spec says to do in the overview
-		# https://microsoft.github.io/debug-adapter-protocol/overview
-		if self.launch_request:
-			if self.capabilities.supportsTerminateRequest:
-				try:
-					yield from self.adapter.Terminate()
-				except dap.Error as e:
-					yield from self.adapter.Disconnect()
-			else:
-				yield from self.adapter.Disconnect()
-
-		else:
-			yield from self.adapter.Disconnect()
-
-		self.force_stop_adapter()
-
-	def force_stop_adapter(self) -> None:
-		if self.launching_async:
-			self.launching_async.cancel()
-
-		self.selected_frame = None
-		self.selected_thread_explicitly = False
-		self.selected_threadstateful = None
-
-		self.threads_stateful_from_id = {}
-		self.threads_stateful = []
-		self.breakpoints_for_id = {}
-
-		self.on_threads_stateful(self.threads_stateful)
-		self.on_selected_frame(None, None)
-
-		self.variables.clear_session_data()
-		self.modules.clear_session_date()
-		self.sources.clear_session_date()
-		self.breakpoints.clear_session_data()
-		self.watch.clear_session_data()
-
-		if self.adapter:
-			self.adapter.dispose()
-			self.adapter = None
-		if self.process:
-			self.process.dispose()
-			self.process = None
-		self.state = DebuggerStateful.stopped
-
-	def require_running(self):
-		if not self.adapter:
-			raise core.Error('debugger not running')
-
-	@core.coroutine
-	def resume(self) -> core.awaitable[None]:
-		self.require_running()
-		assert self.adapter
-
-		yield from self.adapter.Resume(self._thread_for_command())
-
-	@core.coroutine
-	def pause(self) -> core.awaitable[None]:
-		self.require_running()
-		assert self.adapter
-
-		yield from self.adapter.Pause(self._thread_for_command())
-
-	@core.coroutine
-	def step_over(self) -> core.awaitable[None]:
-		self.require_running()
-		assert self.adapter
-
-		yield from self.adapter.StepOver(self._thread_for_command())
-		self.selected_frame = None
-		self.selected_thread_explicitly = False
-
-	@core.coroutine
-	def step_in(self) -> core.awaitable[None]:
-		self.require_running()
-		assert self.adapter
-
-		yield from self.adapter.StepIn(self._thread_for_command())
-		self.selected_frame = None
-		self.selected_thread_explicitly = False
-
-	@core.coroutine
-	def step_out(self) -> core.awaitable[None]:
-		self.require_running()
-		assert self.adapter
-
-		yield from self.adapter.StepOut(self._thread_for_command())
-		self.selected_frame = None
-		self.selected_thread_explicitly = False
-
-	@core.coroutine
-	def evaluate(self, command: str) -> core.awaitable[None]:
-		self.info(command)
-
-		self.require_running()
-		assert self.adapter
-
-		response = yield from self.adapter.Evaluate(command, self.selected_frame, "repl")
-		event = dap.OutputEvent("console", response.result, response.variablesReference)
-		self.on_output(event)
-
-	def info(self, string: str) -> None:
-		output = dap.OutputEvent("debugger.info", string + '\n', 0)
-		self.on_output(output)
-
-	def log_output(self, string: str) -> None:
-		output = dap.OutputEvent("debugger.output", string + '\n', 0)
-		self.on_output(output)
-
-	def error(self, string: str) -> None:
-		output = dap.OutputEvent("debugger.error", string + '\n', 0)
-		self.on_output(output)
-
-	# after a successfull launch/attach, stopped event, thread event we request all threads
-	# see https://microsoft.github.io/debug-adapter-protocol/overview
-	def refresh_threads(self) -> None:
-		@core.coroutine
-		def refresh_threads() -> core.awaitable[None]:
-			threads = yield from self.adapter.GetThreads()
-			self._update_threads(threads)
-		core.run(refresh_threads())
-
-	def _update_threads(self, threads: List[dap.Thread]) -> None:
-		self.threads_stateful = []
-		threads_stateful_from_id = {}
-
-		for thread in threads:
-			if thread.id in self.threads_stateful_from_id:
-				thread_stateful = self.threads_stateful_from_id[thread.id]
-				self.threads_stateful.append(thread_stateful)
-				thread_stateful.update_name(thread.name)
-			
-			else:
-				thread_stateful = ThreadStateful(self, thread.id, thread.name, self.adapter.allThreadsStopped)
-				self.threads_stateful_from_id[thread.id] = thread_stateful
-				self.threads_stateful.append(thread_stateful)
-			
-			threads_stateful_from_id[thread_stateful.id] = thread_stateful
-
-		self.threads_stateful_from_id = threads_stateful_from_id
-		self.update_selection_if_needed()
-		self.on_threads_stateful(self.threads_stateful)
-
-	def _thread_for_command(self) -> ThreadStateful:
-		thread = self._selected_or_first_thread()
-		if not thread:
-			raise core.Error('No thread to run command')
-		return thread
-
-	def _selected_or_first_thread(self) -> Optional[ThreadStateful]:
-		if self.selected_threadstateful:
-			return self.selected_threadstateful
-		if self.threads_stateful:
-			return self.threads_stateful[0]
-		return None
-
-	def update_selection_if_needed(self, reload_scopes=True) -> None:
-		old_frame = self.selected_frame
-
-		# deselect the thread if it has been removed
-		if self.selected_threadstateful:
-			if not self.selected_threadstateful.id in self.threads_stateful_from_id:
-				self.selected_threadstateful = None
-				self.selected_frame = None
-				self.selected_thread_explicitly = False
-
-		if not self.selected_threadstateful and self.threads_stateful:
-			self.selected_threadstateful = self.threads_stateful[0]
-			self.selected_threadstateful.expand()
-
-		if not self.selected_frame and self.selected_threadstateful and self.selected_threadstateful.frames:
-			self.selected_frame = self.selected_threadstateful.frames[0]
-
-		self.on_threads_stateful(self.threads_stateful)
-
-		if (old_frame is not self.selected_frame) and reload_scopes:
-			self.reload_scopes()
-
-	def reload_scopes(self):
-		frame = None
-		if isinstance(self.selected_frame, dap.StackFrame):
-			frame = self.selected_frame
-			
-		elif isinstance(self.selected_frame, ThreadStateful) and self.selected_frame.frames:
-			frame = self.selected_frame.frames[0]
-		else:
-			self.variables.update(self, [])
-			return
-
-		self.on_selected_frame(self.selected_threadstateful, frame)
-
-		core.run(self.get_scopes(frame))
-		core.run(self.watch.evaluate(self, self.selected_frame))
-	
-	@core.coroutine
-	def get_scopes(self, frame: dap.StackFrame) -> core.awaitable:
-		if not self.adapter: return
-
-		scopes = yield from self.adapter.GetScopes(frame)
-		self.variables.update(self, scopes)
-
-	def select_threadstateful(self, thread: ThreadStateful, frame: Optional[dap.StackFrame]):
-		self.selected_threadstateful = thread
-		self.selected_threadstateful.fetch_if_needed()
-		if frame:
-			self.selected_frame = frame
-			self.selected_thread_explicitly = False
-		else:
-			self.selected_frame = None
-			self.selected_thread_explicitly = True
-
-		self.update_selection_if_needed(reload_scopes=False)
-		self.reload_scopes()
-
-	def _threadstateful_for_id(self, id: int) -> ThreadStateful:
-		if id in self.threads_stateful_from_id:
-			return self.threads_stateful_from_id[id]
-		thread = ThreadStateful(self, id, None, self.adapter.allThreadsStopped)
-		thread.stopped_text = ""
-		return thread
-
-	def on_breakpoint_event(self, event: dap.BreakpointEvent):
-		b = self.breakpoints_for_id.get(event.result.id)
-		if b:
-			self.breakpoints.source.set_result(b, event.result)
-
-	def on_module_event(self, event: dap.ModuleEvent):
-		self.modules.on_module_event(event)
-
-	def on_loaded_source_event(self, event: dap.LoadedSourceEvent):
-		self.sources.on_loaded_source_event(event)
-
-	def on_output_event(self, event: dap.OutputEvent):
-		self.on_output(event)
-
-	def on_threads_event(self, event: dap.ThreadEvent) -> None:
-		self.refresh_threads()
-
-	def on_stopped_event(self, event: dap.StoppedEvent):
-		self.refresh_threads()
-
-		event_thread = self._threadstateful_for_id(event.threadId)
-		event_thread.on_stopped(event.text)
-		if event_thread == self.selected_threadstateful:
-			self.selected_frame = None
-			self.selected_thread_explicitly = False
-
-		if event.allThreadsStopped:
-			self.selected_frame = None
-			self.selected_thread_explicitly = False
-			for thread in self.threads_stateful:
-				if event_thread is not thread:
-					thread.on_stopped(event.text)
-
-		self._refresh_state()
-
-	def on_continued_event(self, event: dap.ContinuedEvent):
-		event_thread = self._threadstateful_for_id(event.threadId)
-		event_thread.on_continued()
-
-		if event.allThreadsContinued:
-			self.selected_frame = None
-			self.selected_thread_explicitly = False
-			self.on_selected_frame(None, None)
-
-			for thread in self.threads_stateful:
-				if event_thread is not thread:
-					thread.on_continued()
-
-		elif event_thread == self.selected_threadstateful:
-			self.selected_frame = None
-			self.selected_thread_explicitly = False
-			self.on_selected_frame(None, None)
-
-		self._refresh_state()
-
-	def on_terminated_event(self, event: dap.TerminatedEvent):
-		self.force_stop_adapter()
-		if event.restart:
-			core.run(self.launch(self.adapter_configuration, self.configuration, event.restart))
-
-	def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> int: # pid
-		terminal = TerminalProcess(request.cwd, request.args)
-		self.terminals.append(terminal)
-		self.on_terminals(self.terminals)
-		return terminal.pid()
+		variables = self.project.extract_variables()
+		configuration_expanded = ConfigurationExpanded(configuration, variables)
+		yield from self.debugger.launch(adapter_configuration, configuration_expanded, no_debug=no_debug)
+
+	@command(disabled=DebuggerSession.stopped)
+	def on_stop(self) -> None:
+		self.run_async(self.debugger.stop())
+
+	@command(enabled=DebuggerSession.paused)
+	def on_resume(self) -> None:
+		self.run_async(self.debugger.resume())
+
+	@command(enabled=DebuggerSession.running)
+	def on_pause(self) -> None:
+		self.run_async(self.debugger.pause())
+
+	@command(enabled=DebuggerSession.paused)
+	def on_step_over(self) -> None:
+		self.run_async(self.debugger.step_over())
+
+	@command(enabled=DebuggerSession.paused)
+	def on_step_in(self) -> None:
+		self.run_async(self.debugger.step_in())
+
+	@command(enabled=DebuggerSession.paused)
+	def on_step_out(self) -> None:
+		self.run_async(self.debugger.step_out())
+
+	def on_run_command(self, command: str) -> None:
+		self.run_async(self.debugger.evaluate(command))
+
+	@command(disabled=DebuggerSession.stopped)
+	def on_input_command(self) -> None:
+		label = "Input Debugger Command"
+		def run(value: str):
+			if value:
+				self.run_async(self.debugger.evaluate(value))
+				self.on_input_command()
+
+		input = ui.InputText(run, label, enable_when_active=Autocomplete.for_window(self.window))
+		input.run()
+
+	@command()
+	def toggle_breakpoint(self):
+		self.breakpoints_provider.toggle_current_line()
+
+	@command()
+	def toggle_column_breakpoint(self):
+		self.breakpoints_provider.toggle_current_line_column()
+
+	@command()
+	def add_function_breakpoint(self):
+		self.debugger.breakpoints.function.add_command()
+
+	@command()
+	def add_watch_expression(self):
+		self.debugger.watch.add_command()
+
+	def load_data(self):
+		self.debugger.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
+		self.debugger.watch.load_json(self.persistance.json.get('watch', []))
+
+	@command()
+	def save_data(self):
+		self.persistance.json['breakpoints'] = self.debugger.breakpoints.into_json()
+		self.persistance.json['watch'] = self.debugger.watch.into_json()
+		self.persistance.save_to_file()
+
+	@command(enabled=DebuggerSession.paused)
+	def run_to_current_line(self) -> None:
+		self.breakpoints_provider.run_to_current_line()
+
+	@command()
+	def on_settings(self) -> None:
+		help_menu(self).run()
+
+	@command()
+	def install_adapters(self) -> None:
+		self.show_console_panel()
+		install_adapters_menu(self.adapters.values(), self).run()
+
+	@command()
+	def change_configuration(self) -> None:
+		select_configuration(self).run()
+
+	def error(self, value: str):
+		self.terminal.log_error(value)
+
+	def info(self, value: str):
+		self.terminal.log_info(value)

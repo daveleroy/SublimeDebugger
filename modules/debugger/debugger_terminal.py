@@ -4,7 +4,7 @@ from ..import dap, ui, core
 
 from .variables import Variable, VariableComponent
 from .terminal import TerminalStandard, Line, LineSourceComponent
-from .debugger import DebuggerStateful
+from .debugger_session import DebuggerSession
 
 class VariableLine(Line):
 	def __init__(self, variable: Variable, source: Optional[dap.Source], line: Optional[int], on_clicked_source: Callable[[], None]) -> None:
@@ -22,13 +22,10 @@ class VariableLine(Line):
 			source_item = LineSourceComponent(self.source.name, self.line, text_width, self.on_clicked_source)
 
 		component = VariableComponent(self.variable, item_right=source_item)
-
-		# @FIXME this doesn't really work if there are multiple components being drawn for the same variable
-		self.variable.on_dirty = component.dirty
 		return [component]
 
 class DebuggerTerminal (TerminalStandard):
-	def __init__(self, debugger: DebuggerStateful, on_run_command: Callable[[str], None], on_clicked_source: Callable[[dap.Source, Optional[int]], None]):
+	def __init__(self, debugger: DebuggerSession, on_run_command: Callable[[str], None], on_clicked_source: Callable[[dap.Source, Optional[int]], None]):
 		super().__init__("Debugger Console")
 		self.on_run_command = on_run_command
 		self.on_clicked_source = on_clicked_source

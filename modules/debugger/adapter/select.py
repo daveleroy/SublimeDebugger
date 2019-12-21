@@ -10,7 +10,7 @@ import sublime
 import json
 
 if TYPE_CHECKING:
-	from ..debugger.debugger_interface import DebuggerInterface
+	from ..debugger.debugger import Debugger
 
 def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None]:
 	content = json.dumps(snippet, indent="\t")
@@ -58,7 +58,7 @@ def add_configuration(adapters: Dict[str, Adapter]):
 
 
 
-def select_configuration(debugger: 'DebuggerInterface'):
+def select_configuration(debugger: 'Debugger'):
 	values = []
 	for c in debugger.configurations:
 		values.append(ui.InputListItemChecked(lambda c=c: debugger.changeConfiguration(c), c.name, c.name, c == debugger.configuration))

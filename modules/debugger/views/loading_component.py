@@ -1,6 +1,5 @@
-from ..typecheck import *
-
-from .. import ui
+from ...typecheck import *
+from ...import ui
 
 
 class LoadingComponent (ui.Inline):

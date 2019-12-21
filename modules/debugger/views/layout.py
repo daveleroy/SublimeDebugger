@@ -1,6 +1,5 @@
-from ..typecheck import *
-
-from .. import ui
+from ...typecheck import *
+from ...import ui
 
 VARIABLE_PANEL_MIN_WIDTH = 75
 PANEL_MIN_WIDTH = 100

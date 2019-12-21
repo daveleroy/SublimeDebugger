@@ -2,7 +2,7 @@ from .. typecheck import *
 from .. import ui
 from .. import core
 
-from .debugger_interface import DebuggerInterface
+from .debugger import Debugger
 from .util import get_setting
 
 import sublime

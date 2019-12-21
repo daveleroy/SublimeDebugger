@@ -1,13 +1,10 @@
-from .. typecheck import *
-from .. import core
-from .. import ui
-from .. import dap
-from .. debugger.breakpoints import Breakpoints
-from .. debugger.watch import Watch, WatchView
-from .. debugger.variables import Variables, VariableComponent
-from . layout import variables_panel_width
+from ... typecheck import *
+from ... import ui
+from ..watch import Watch, WatchView
+from ..variables import Variables, VariableComponent
 
 import sublime
+
 
 class VariablesView (ui.div):
 	def __init__(self, variables: Variables) -> None:
@@ -20,6 +17,7 @@ class VariablesView (ui.div):
 		if variables:
 			variables[0].toggle_expand()
 		return variables
+
 
 class VariablesPanel (ui.div):
 	def __init__(self, variables: Variables, watch: Watch) -> None:

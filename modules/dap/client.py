@@ -30,7 +30,7 @@ class ClientEventsListener (Protocol):
 		...
 	def on_loaded_source_event(self, event: LoadedSourceEvent):
 		...
-	def on_output_event(event: OutputEvent):
+	def on_output_event(self, event: OutputEvent):
 		...
 	def on_terminated_event(self, event: TerminatedEvent):
 		...
@@ -70,18 +70,21 @@ class Client:
 		yield from self.send_request_asyc('stepIn', {
 			'threadId': thread.id
 		})
+		self._continued(thread.id, False)
 
 	@core.coroutine
 	def StepOut(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('stepOut', {
 			'threadId': thread.id
 		})
+		self._continued(thread.id, False)
 
 	@core.coroutine
 	def StepOver(self, thread: Thread) -> core.awaitable[None]:
 		yield from self.send_request_asyc('next', {
 			'threadId': thread.id
 		})
+		self._continued(thread.id, False)
 
 	@core.coroutine
 	def Resume(self, thread: Thread) -> core.awaitable[None]:
@@ -105,7 +108,7 @@ class Client:
 	def Restart(self) -> core.awaitable[None]:
 		yield from self.send_request_asyc('restart', {
 		})
-	
+
 	@core.coroutine
 	def Terminate(self, restart: bool = False) -> core.awaitable[None]:
 		yield from self.send_request_asyc('terminate', {
@@ -148,6 +151,17 @@ class Client:
 		frames = []
 		for frame in body['stackFrames']:
 			frame = StackFrame.from_json(thread, frame)
+			frames.append(frame)
+		return frames
+
+	@core.coroutine
+	def StackTrace(self, threadId: int) -> core.awaitable[List[StackFrame]]:
+		body = yield from self.send_request_asyc('stackTrace', {
+			"threadId": threadId,
+		})
+		frames = []
+		for frame in body['stackFrames']:
+			frame = StackFrame.from_json(None, frame)
 			frames.append(frame)
 		return frames
 
@@ -229,20 +243,26 @@ class Client:
 		return Capabilities.from_json(response)
 
 	@core.coroutine
-	def Launch(self, config: dict, restart: Optional[Any]) -> core.awaitable[None]:
-		if restart:
+	def Launch(self, config: dict, restart: Optional[Any], no_debug: bool) -> core.awaitable[None]:
+		if restart or no_debug:
 			config = config.copy()
+		if restart:
 			config["__restart"] = restart
+		if no_debug:
+			config["noDebug"] = True
 
 		yield from self.send_request_asyc('launch', config)
 		# the spec says to grab the baseline threads here?
 		self.is_running = True
 
 	@core.coroutine
-	def Attach(self, config: dict, restart: Optional[Any]) -> core.awaitable[None]:
-		if restart:
+	def Attach(self, config: dict, restart: Optional[Any], no_debug: bool) -> core.awaitable[None]:
+		if restart or no_debug:
 			config = config.copy()
+		if restart:
 			config["__restart"] = restart
+		if no_debug:
+			config["noDebug"] = True
 
 		yield from self.send_request_asyc('attach', config)
 		# the spec says to grab the baseline threads here?
@@ -310,7 +330,7 @@ class Client:
 	def _on_continued(self, body: dict) -> None:
 		threadId = body['threadId']
 		self._continued(threadId, body.get('allThreadsContinued', True))
-	
+
 	def _continued(self, threadId: int, allThreadsContinued: bool) -> None:
 		if allThreadsContinued:
 			self.allThreadsStopped = False

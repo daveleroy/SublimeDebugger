@@ -1,7 +1,11 @@
-from ..typecheck import *
-from ..import ui
+from ...typecheck import *
+from ...import ui
+
 from .layout import pages_panel_width
 from .import css
+
+import sublime
+
 
 class TabbedPanelItem:
 	def __init__(self, id: int, item: ui.div, name: str, index: int = 0, buttons: List[Tuple[ui.Image, Callable]] = []):
@@ -14,12 +18,13 @@ class TabbedPanelItem:
 		self.column = -1
 		self.row = -1
 
+
 class TabbedPanel(ui.div):
 	def __init__(self, items: List[TabbedPanelItem], selected_index: int) -> None:
 		super().__init__()
 		self.items = items
 		self.selected_index = selected_index
-	
+
 	def update(self, items: List[TabbedPanelItem]):
 		self.items = items
 		if len(items) < self.selected_index:
@@ -54,14 +59,15 @@ class TabbedPanel(ui.div):
 			],
 		]
 
+
 class Tab (ui.span):
 	def __init__(self, item: TabbedPanelItem, selected: bool) -> None:
 		super().__init__(height=3.5, css=css.tab_panel_selected if selected else css.tab_panel)
-		
+
 		if not selected and item.modified:
 			self.items = [
 				ui.text(item.name.upper(), css=css.label_secondary),
-				ui.text('◯', css=css.label_secondary)
+				ui.text('◯', css=css.modified_label),
 			]
 		else:
 			self.items = [
@@ -70,3 +76,52 @@ class Tab (ui.span):
 
 	def render(self) -> ui.span.Children:
 		return self.items
+
+
+class Panels:
+	def __init__(self, view: sublime.View, phantom_location: int, columns: int):
+		self.panels = [] #type: List[TabbedPanelItem]
+		self.pages = [] #type: List[TabbedPanel]
+		self.columns = columns
+
+		for i in range(0, columns):
+			pages = TabbedPanel([], 0)
+			self.pages.append(pages)
+			phantom = ui.Phantom(pages, view, sublime.Region(phantom_location + i, phantom_location + i), sublime.LAYOUT_INLINE)
+
+	def add(self, panels: List[TabbedPanelItem]):
+		self.panels.extend(panels)
+		self.layout()
+
+	def modified(self, panel: TabbedPanelItem):
+		column = panel.column
+		row = panel.row
+		if row >= 0 and column >= 0:
+			self.pages[column].modified(row)
+
+	def remove(self, id: int):
+		for item in self.panels:
+			if item.id == id:
+				self.panels.remove(item)
+				self.layout()
+				return
+
+	def show(self, id: int):
+		for panel in self.panels:
+			if panel.id == id:
+				column = panel.column
+				row = panel.row
+				self.pages[column].show(row)
+
+	def layout(self):
+		items = [] #type: Any
+		for i in range(0, self.columns):
+			items.append([])
+
+		for panel in self.panels:
+			panel.column = panel.index % self.columns
+			panel.row = len(items[panel.column])
+			items[panel.column].append(panel)
+
+		for i in range(0, self.columns):
+			self.pages[i].update(items[i])

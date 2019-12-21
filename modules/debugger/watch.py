@@ -2,12 +2,12 @@ from ..typecheck import *
 from ..import dap
 from ..import core
 from ..import ui
-from ..components import css
+from .views import css
 
 from .variables import EvaluateReference, Variable, VariableComponent
 
 if TYPE_CHECKING:
-	from .debugger import DebuggerStateful
+	from .debugger_session import DebuggerSession
 
 class Watch:
 	class Expression:
@@ -27,10 +27,10 @@ class Watch:
 				json['value'],
 			)
 
-	def __init__(self, on_added: Callable[['Watch.Expression'], None]):
+	def __init__(self):
 		self.expressions = [] #type: List[Watch.Expression]
 		self.on_updated = core.Event() #type: core.Event[None]
-		self.on_added = on_added
+		self.on_added = core.Event() #type: core.Event[Watch.Expression]
 
 	def load_json(self, json: list):
 		self.expressions = list(map(lambda j: Watch.Expression.from_json(j), json))
@@ -53,38 +53,38 @@ class Watch:
 		ui.InputText(add, "Expression to watch").run()
 
 	@core.coroutine
-	def evaluate(self, debugger: 'DebuggerStateful', frame: dap.StackFrame) -> core.awaitable[None]:
+	def evaluate(self, session: 'DebuggerSession', frame: dap.StackFrame) -> core.awaitable[None]:
 		results = [] #type: List[core.awaitable[dap.EvaluateResponse]]
 		for expression in self.expressions:
-			results.append(debugger.adapter.Evaluate(expression.value, frame, "watch"))
+			results.append(session.client.Evaluate(expression.value, frame, "watch"))
 
 		from ..libs import asyncio
 		evaluations = yield from asyncio.gather(*results, return_exceptions=True)
 		for expression, evaluation in zip(self.expressions, evaluations):
-			self.evaluated(debugger, expression, evaluation)
+			self.evaluated(session, expression, evaluation)
 		self.on_updated()
 
 	@core.coroutine
-	def evaluate_expression(self, debugger: 'DebuggerStateful', frame: dap.StackFrame, expression: 'Watch.Expression') -> core.awaitable[None]:
+	def evaluate_expression(self, session: 'DebuggerSession', frame: dap.StackFrame, expression: 'Watch.Expression') -> core.awaitable[None]:
 		try:
-			result = yield from debugger.adapter.Evaluate(expression.value, frame, "watch")
-			self.evaluated(debugger, expression, result)
+			result = yield from session.client.Evaluate(expression.value, frame, "watch")
+			self.evaluated(session, expression, result)
 		except dap.Error as result:
-			self.evaluated(debugger, expression, result)
+			self.evaluated(session, expression, result)
 		self.on_updated()
 
-	def evaluated(self, debugger: 'DebuggerStateful', expression: 'Watch.Expression', evaluation: Union[dap.Error, dap.EvaluateResponse]):
+	def evaluated(self, session: 'DebuggerSession', expression: 'Watch.Expression', evaluation: Union[dap.Error, dap.EvaluateResponse]):
 		if isinstance(evaluation, dap.Error):
 				expression.message = str(evaluation)
 		else:
-			expression.evaluate_response = Variable(debugger, EvaluateReference(expression.value, evaluation))
+			expression.evaluate_response = Variable(session, EvaluateReference(expression.value, evaluation))
 
-	def clear_session_data(self):
+	def clear_session_data(self, session: 'DebuggerSession'):
 		for expression in self.expressions:
 			expression.message = None
 			expression.evaluate_response = None
 		self.on_updated()
-	
+
 	def edit(self, expression: 'Watch.Expression') -> ui.InputList:
 		def remove():
 			self.expressions.remove(expression)
@@ -104,7 +104,7 @@ class WatchView(ui.div):
 
 	def added(self, layout: ui.Layout):
 		self.on_updated_handle = self.provider.on_updated.add(self.dirty)
-	
+
 	def removed(self):
 		self.on_updated_handle.dispose()
 

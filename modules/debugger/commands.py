@@ -1,7 +1,6 @@
 from ..typecheck import *
 from ..import core
-from .debugger_interface import DebuggerInterface
-from .debugger import DebuggerStateful
+from .debugger import Debugger
 
 import sublime
 import sublime_plugin
@@ -16,7 +15,7 @@ import json
 }
 """
 
-# window.run_command("debugger_run", {"action": "generate_commands"})
+# window.run_command("debugger", {"action": "generate_commands"})
 
 actions_window = [
 	{
@@ -29,7 +28,7 @@ actions_window = [
 		"caption": "Quit",
 		"run": lambda window, debugger: debugger.dispose(),
 	},
-	{	"caption": "-" },
+	{	"caption": "-"	},
 	{
 		"action": "install_adapters",
 		"caption": "Install Adapters",
@@ -42,7 +41,7 @@ actions_window = [
 		"command": lambda window, debugger: debugger.change_configuration,
 		"opens": True,
 	},
-	{	"caption": "-" },
+	{	"caption": "-"	},
 	{
 		"action": "start",
 		"caption": "Start",
@@ -50,11 +49,17 @@ actions_window = [
 		"opens": True
 	},
 	{
+		"action": "start_no_debug",
+		"caption": "Start (No Debug)",
+		"command": lambda window, debugger: debugger.on_play_no_debug,
+		"opens": True
+	},
+	{
 		"action": "stop",
 		"caption": "Stop",
 		"command": lambda window, debugger: debugger.on_stop,
 	},
-	{	"caption": "-" },
+	{	"caption": "-"	},
 	{
 		"action": "pause",
 		"caption": "Pause",
@@ -85,7 +90,7 @@ actions_window = [
 		"caption": "Run Command",
 		"command": lambda window, debugger: debugger.on_input_command,
 	},
-	{	"caption": "-" },
+	{	"caption": "-"	},
 	{
 		"action": "add_function_breakpoint",
 		"caption": "Add Function Breakpoint",
@@ -96,7 +101,7 @@ actions_window = [
 		"caption": "Add Watch Expression",
 		"command": lambda window, debugger: debugger.add_watch_expression,
 	},
-	{	"caption": "-" },
+	{	"caption": "-"	},
 	{
 		"action": "save_data",
 		"caption": "Save Breakpoints/Watch Expressions/...",
@@ -111,7 +116,7 @@ actions_window = [
 
 
 actions_context = [
-	{	"caption": "-" },
+	{	"caption": "-"	},
 	{
 		"action": "toggle_breakpoint",
 		"caption": "Toggle Breakpoint",
@@ -127,7 +132,7 @@ actions_context = [
 		"caption": "Run To Cursor",
 		"command": lambda window, debugger: debugger.run_to_current_line,
 	},
-	{	"caption": "-" },
+	{	"caption": "-"	},
 ]
 
 actions_window_map = {} #type: Dict[str, Dict[str, Any]]
@@ -143,37 +148,34 @@ class DebuggerCommand (sublime_plugin.WindowCommand):
 			generate_commands_and_menus()
 			return
 
-		core.call_soon_threadsafe(self.run_main, actions_window_map[action])
+		action = actions_window_map[action]
+		debugger = Debugger.for_window(self.window, create=action.get('opens', False))
 
-	def run_main(self, action: dict):
-		debugger_interface = DebuggerInterface.for_window(self.window, create=action.get('opens', False))
-		
 		command = action.get('command')
 		if command:
-			result = command(self.window, debugger_interface)
+			result = command(self.window, debugger)
 			result()
 
 		run = action.get('run')
 		if run:
-			run(self.window, debugger_interface)
+			run(self.window, debugger)
 
 	def is_enabled(self, action: str): #type: ignore
 		if action == "generate_commands":
 			return True
 		action_item = actions_window_map[action]
-		
 
 		opens = action_item.get('opens', False)
 		if opens:
 			return True
 
-		debugger_interface = DebuggerInterface.for_window(self.window)
-		if not debugger_interface:
+		debugger = Debugger.for_window(self.window)
+		if not debugger:
 			return False
 
 		command = action_item.get('command')
 		if command:
-			result = command(self.window, debugger_interface)
+			result = command(self.window, debugger)
 			return result.enabled()
 
 		return True
@@ -184,39 +186,38 @@ class DebuggerCommand (sublime_plugin.WindowCommand):
 
 		action_item = actions_window_map[action]
 		opens = action_item.get('opens', False)
-		return opens or DebuggerInterface.for_window(self.window) != None
+		return opens or Debugger.for_window(self.window) != None
 
 
 def generate_commands_and_menus():
 	current_package = core.current_package()
-	
+
 	preferences = {
 		"caption": "Preferences: Debugger Settings",
 		"command": "edit_settings",
 		"args": {
-		  "base_file": "${packages}/Debugger/debugger.sublime-settings"
+			"base_file": "${packages}/Debugger/debugger.sublime-settings"
 		}
 	}
 	settings = {
 		"caption": "Settings",
 		"command": "edit_settings",
 		"args": {
-		  "base_file": "${packages}/Debugger/debugger.sublime-settings"
+			"base_file": "${packages}/Debugger/debugger.sublime-settings"
 		}
 	}
-
 
 	def generate_commands(actions, commands, prefix="", include_seperators=True):
 		for action in actions:
 			if action['caption'] == '-':
 				if include_seperators:
-					commands.append({"caption" : action['caption']})
+					commands.append({"caption": action['caption']})
 				continue
 
 			commands.append(
 				{
-					"caption" : prefix + action['caption'],
-					"command" : "debugger",
+					"caption": prefix + action['caption'],
+					"command": "debugger",
 					"args": {
 						"action": action['action'],
 					}
@@ -230,37 +231,33 @@ def generate_commands_and_menus():
 
 	# hidden command used for gathering input from the command palette 
 	input = {
-		"caption" : "_",
-		"command" : "debugger_input"
+		"caption": "_",
+		"command": "debugger_input"
 	}
 	commands_palette.append(input)
-	
+
 	with open(current_package + '/Commands/Commands.sublime-commands', 'w') as file:
 		json.dump(commands_palette, file, indent=4, separators=(',', ': '))
-
 
 	commands_menu = []
 	generate_commands(actions_window, commands_menu)
 	commands_menu.insert(2, settings)
 
-	main = [{ 
-		"caption": "Debugger", 
-		"id": "debugger", 
-		"children" : commands_menu}
+	main = [{
+		"caption": "Debugger",
+		"id": "debugger",
+		"children": commands_menu}
 	]
 	with open(current_package + '/Commands/Main.sublime-menu', 'w') as file:
 		json.dump(main, file, indent=4, separators=(',', ': '))
 
 	print('Generating commands')
 
-
 	commands_context = []
 	generate_commands(actions_context, commands_context)
 
 	with open(current_package + '/Commands/Context.sublime-menu', 'w') as file:
 		json.dump(commands_context, file, indent=4, separators=(',', ': '))
-
-
 
 	keymap_commands = []
 
@@ -270,8 +267,8 @@ def generate_commands_and_menus():
 
 		keymap_commands.append(
 			{
-				"keys" : action.get('keys', "UNBOUND"),
-				"command" : "debugger",
+				"keys": action.get('keys', "UNBOUND"),
+				"command": "debugger",
 				"args": {
 					"action": action['action'],
 				}
@@ -280,5 +277,3 @@ def generate_commands_and_menus():
 
 	with open(current_package + '/Commands/Default.sublime-keymap', 'w') as file:
 		json.dump(keymap_commands, file, indent=4, separators=(',', ': '))
-
-		

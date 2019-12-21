@@ -259,6 +259,11 @@ class TerminatedEvent:
 		return TerminatedEvent(json.get('restart'))
 
 
+class ContinueResponse:
+	def __init__(self, json) -> None:
+		self.allThreadsContinued = json.get('allThreadsContinued', True)
+
+
 class ContinuedEvent:
 	def __init__(self, threadId: int, allThreadsContinued: bool) -> None:
 		self.threadId = threadId

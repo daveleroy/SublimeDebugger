@@ -48,9 +48,9 @@ class AutocompleteEventListener(sublime_plugin.EventListener):
 
 	@core.coroutine
 	def get_completions(self, view: sublime.View, text: str) -> core.awaitable[None]:
-		from ..debugger.debugger_interface import DebuggerInterface
+		from ..debugger.debugger import Debugger
 		window = view.window()
-		m = DebuggerInterface.for_window(window)
+		m = Debugger.for_window(window)
 		if not m:
 			return
 		adapter = m.debugger.adapter

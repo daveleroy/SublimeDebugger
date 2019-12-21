@@ -2,12 +2,9 @@ from ..typecheck import *
 from ..import core
 from ..import dap
 from ..import ui
-from ..components import css
+from .views import css
 
 import sublime
-
-if TYPE_CHECKING:
-	from .debugger import DebuggerStateful
 
 class VariableReference (Protocol):
 	@property
@@ -48,8 +45,8 @@ class ScopeReference:
 		return ""
 
 class Variable:
-	def __init__(self, debugger: 'DebuggerStateful', reference: VariableReference) -> None:
-		self.debugger = debugger
+	def __init__(self, session: 'DebuggerSession', reference: VariableReference) -> None:
+		self.session = session
 		self.reference = reference
 		self.fetched = None #type: Optional[core.awaitable[List[Variable]]]
 
@@ -63,8 +60,8 @@ class Variable:
 
 	@core.coroutine
 	def fetch(self):
-		variables = yield from self.debugger.adapter.GetVariables(self.reference.variablesReference)
-		return [Variable(self.debugger, v) for v in variables]
+		variables = yield from self.session.adapter.GetVariables(self.reference.variablesReference)
+		return [Variable(self.session, v) for v in variables]
 
 	@core.coroutine
 	def children(self) -> core.awaitable[List['Variable']]:
@@ -77,37 +74,87 @@ class Variable:
 	def has_children(self) -> bool:
 		return self.reference.variablesReference != 0
 
+
+class Variables:
+	def __init__(self):
+		self.variables = [] #type: List[Variable]
+		self.on_updated = core.Event() #type: core.Event
+
+	def update(self, session: 'DebuggerSession', scopes: List[dap.Scope]):
+		self.variables = [Variable(session, ScopeReference(scope)) for scope in scopes]
+		self.on_updated()
+
+	def clear_session_data(self):
+		self.variables.clear()
+		self.on_updated()
+
+
+class VariableComponentState:
+	def __init__(self):
+		self._expanded = {}
+		self._number_expanded = {}
+
+	def is_expanded(self, variable: Variable) -> bool:
+		return self._expanded.get(id(variable), False)
+
+	def set_expanded(self, variable: Variable, value: bool):
+		self._expanded[id(variable)] = value
+
+	def number_expanded(self, variable: Variable) -> int:
+		return self._number_expanded.get(id(variable), 20)
+
+	def set_number_expanded(self, variable: Variable, value: int):
+		self._number_expanded[id(variable)] = value
+
+
+class VariableComponent (ui.div):
+	def __init__(self, variable: Variable, syntax_highlight=True, item_right: Optional[ui.span] = None, state=VariableComponentState()) -> None:
+		super().__init__()
+		self.variable = variable
+		self.syntax_highlight = syntax_highlight
+		self.state = state
+		self.item_right = item_right or ui.span()
+		self.variable_children = [] #type: List[Variable]
+
+	def on_edit(self) -> None:
+		core.run(self.edit_variable())
+
 	@core.coroutine
-	def edit_variable(self, on_updated: Callable[[], None]) -> core.awaitable[None]:
-		if not isinstance(self.reference, dap.Variable):
+	def edit_variable(self) -> core.awaitable[None]:
+		if not isinstance(self.variable.reference, dap.Variable):
 			raise core.Error("Not able to set value of this item")
 
-		variable = self.reference
-		assert self.debugger.adapter
-
+		variable = self.variable.reference
+		session = self.variable.session
 		info = None #type: Optional[dap.DataBreakpointInfoResponse]
 		expression = variable.evaluateName or variable.name
 		value = variable.value or ""
 
+		if session.capabilities.supportsDataBreakpoints:
+			info = yield from session.client.DataBreakpointInfoRequest(variable)
+
 		@core.coroutine
 		def on_edit_variable_async(value: str):
 			try:
-				self.reference = yield from self.debugger.adapter.setVariable(self.reference, value)
-				self.fetched = None
-				on_updated()
+				self.variable.reference = yield from session.client.setVariable(variable, value)
+				self.variable.fetched = None
+				self.dirty()
 			except core.Error as e:
 				core.log_exception()
 				core.display(e)
 
 		def on_edit_variable(value: str):
 			core.run(on_edit_variable_async(value))
+
 		def copy_value():
 			sublime.set_clipboard(value)
+
 		def copy_expr():
 			sublime.set_clipboard(expression)
+
 		def add_watch():
-			self.debugger.watch.add(expression)
-		
+			session.watch.add(expression)
+
 		items = [
 			ui.InputListItem(
 				ui.InputText(
@@ -129,7 +176,7 @@ class Variable:
 				"Add Variable To Watch",
 			),
 		]
-			
+
 		if info and info.id:
 			types = info.accessTypes or [""]
 			labels = {
@@ -137,9 +184,10 @@ class Variable:
 				dap.DataBreakpoint.readWrite: "Break On Value Read or Write",
 				dap.DataBreakpoint.read: "Break On Value Read",
 			}
+
 			def on_add_data_breakpoint(accessType: str):
 				assert info
-				self.debugger.breakpoints.data.add(info, accessType or None)
+				session.breakpoints.data.add(info, accessType or None)
 
 			for acessType in types:
 				items.append(ui.InputListItem(
@@ -149,54 +197,6 @@ class Variable:
 
 		ui.InputList(items, '{} {}'.format(variable.name, variable.value)).run()
 
-
-class Variables:
-	def __init__(self):
-		self.variables = [] #type: List[Variable]
-		self.on_updated = core.Event() #type: core.Event
-
-	def update(self, debugger: 'DebuggerStateful', scopes: List[dap.Scope]):
-		self.variables = [Variable(debugger, ScopeReference(scope)) for scope in scopes]
-		self.on_updated()
-
-	def clear_session_data(self):
-		self.variables.clear()
-		self.on_updated()
-
-
-class VariableComponentState:
-	def __init__(self):
-		self._expanded = {}
-		self._number_expanded = {}
-
-	def is_expanded(self, variable: Variable) -> bool:
-		return self._expanded.get(id(variable), False)
-	
-	def set_expanded(self, variable: Variable, value: bool):
-		self._expanded[id(variable)] = value
-
-	def number_expanded(self, variable: Variable) -> int:
-		return self._number_expanded.get(id(variable), 20)
-
-	def set_number_expanded(self, variable: Variable, value: int):
-		self._number_expanded[id(variable)] = value
-
-class VariableComponent (ui.div):
-	def __init__(self, variable: Variable, syntax_highlight=True, item_right: Optional[ui.span] = None, state=VariableComponentState()) -> None:
-		super().__init__()
-		self.variable = variable
-		self.syntax_highlight = syntax_highlight
-		self.state = state
-		self.item_right = item_right or ui.span()
-		self.variable_children = [] #type: List[Variable]
-
-	def on_edit(self) -> None:
-		@core.coroutine
-		def on_edit():
-			yield from self.variable.edit_variable(self.dirty)
-
-		core.run(on_edit())
-
 	def toggle_expand(self) -> None:
 		@core.coroutine
 		def fetch():
@@ -204,7 +204,7 @@ class VariableComponent (ui.div):
 			self.variable_children = yield from self.variable.children()
 			self.dirty()
 		core.run(fetch())
-	
+
 	def show_more(self) -> None:
 		count = self.state.number_expanded(self.variable)
 		self.state.set_number_expanded(self.variable, count + 20)

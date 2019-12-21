@@ -4,7 +4,7 @@ import re
 
 from ..import core, ui, dap
 
-from .debugger import DebuggerStateful
+from .debugger_session import DebuggerSession
 from .debugger_project import DebuggerProject
 
 from .variables import Variable, VariableComponent
@@ -15,7 +15,7 @@ from .variables import Variable, VariableComponent
 # for treating things like $word keeping the $ as part of the word
 
 class ViewHoverProvider(core.Disposables):
-	def __init__(self, project: DebuggerProject, debugger: DebuggerStateful) -> None:
+	def __init__(self, project: DebuggerProject, debugger: DebuggerSession) -> None:
 		super().__init__()
 		self.debugger = debugger
 		self.project = project
@@ -25,7 +25,7 @@ class ViewHoverProvider(core.Disposables):
 		if not self.project.is_source_file(event.view):
 			return
 
-		if self.debugger.state == DebuggerStateful.stopped:
+		if self.debugger.state == DebuggerSession.stopped:
 			return
 
 		core.run(self.on_hover(event))

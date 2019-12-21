@@ -1,9 +1,11 @@
-from .. typecheck import *
-from .. import core, ui, dap
-from .. components import css
-from . autocomplete import Autocomplete
+from ..typecheck import *
+from ..import core, ui, dap
+from .views import css
+from .autocomplete import Autocomplete
 
-import os, threading, re
+import os
+import threading
+import re
 import sublime
 
 
@@ -310,7 +312,7 @@ class TerminalComponent (ui.div):
 		max_height = int(self.layout.height() / 3) - 1.0
 		count = len(self.terminal.lines)
 		start = 0
-		from ..components.layout import console_panel_width
+		from .views.layout import console_panel_width
 
 		width = console_panel_width(self.layout)
 		max_line_length = int(width)
@@ -329,7 +331,7 @@ class TerminalComponent (ui.div):
 		if self.terminal.writeable():
 			label = self.terminal.writeable_prompt()
 			offset = (max_line_length - len(label)) * self.layout.em_width() - 2.0
-			
+
 			lines.append(
 				ui.click(self.on_input)[
 					ui.icon(ui.Images.shared.right),
@@ -341,7 +343,7 @@ class TerminalComponent (ui.div):
 					#ui.text('\\esc', width=offset, align=1, color=["primary", "secondary"][self.terminal.escape_input]),
 					ui.text('\\esc'),
 				]
-				
+
 				lines.append(ui.div()[
 					mode_toggle
 				])

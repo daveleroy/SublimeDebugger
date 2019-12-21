@@ -2,7 +2,7 @@ from .. typecheck import *
 from .. import ui
 
 if TYPE_CHECKING:
-	from .debugger_interface import DebuggerInterface
+	from .debugger import Debugger
 
 import webbrowser
 
@@ -11,7 +11,7 @@ from .adapter import (
 	select_configuration,
 )
 
-def help_menu(debugger: 'DebuggerInterface') -> ui.InputList:
+def help_menu(debugger: 'Debugger') -> ui.InputList:
 	def about():
 		webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger/blob/master/docs/setup.md")
 	
