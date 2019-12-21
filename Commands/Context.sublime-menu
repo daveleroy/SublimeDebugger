@@ -3,25 +3,25 @@
         "caption": "-"
     },
     {
+        "caption": "Toggle Breakpoint",
+        "command": "debugger",
         "args": {
             "action": "toggle_breakpoint"
-        },
-        "caption": "Toggle Breakpoint",
-        "command": "debugger"
+        }
     },
     {
+        "caption": "Toggle Column Breakpoint",
+        "command": "debugger",
         "args": {
             "action": "toggle_column_breakpoint"
-        },
-        "caption": "Toggle Column Breakpoint",
-        "command": "debugger"
+        }
     },
     {
+        "caption": "Run To Cursor",
+        "command": "debugger",
         "args": {
             "action": "run_to_current_line"
-        },
-        "caption": "Run To Cursor",
-        "command": "debugger"
+        }
     },
     {
         "caption": "-"
