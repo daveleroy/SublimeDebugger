@@ -9,32 +9,32 @@ import sublime
 
 
 def shutdown() -> None:
-	def on_main():
-		print('shutting down: {}'.format(DebuggerInterface.instances))
-		for key, instance in dict(DebuggerInterface.instances).items():
-			print(instance)
-			instance.dispose()
-		DebuggerInterface.instances = {}
-		ui.shutdown()
+	global instances
+	print('shutting down: {}'.format(Debugger.instances))
+	for key, instance in dict(Debugger.instances).items():
+		print(instance)
+		instance.dispose()
+	Debugger.instances = {}
+	ui.shutdown()
 
-	core.shutdown(on_main)
-	
 
 def startup() -> None:
-	def on_main():
-		print('Starting up')
-		ui.startup()
-		was_opened_at_startup = set() #type: Set[int]
+	ui.startup()
+	was_opened_at_startup = set() #type: Set[int]
 
-		def on_view_activated(view: sublime.View) -> None:
-			# there is probabaly a better way to filter out things like output panels and stuff
-			if not view.file_name():
-				return
-			window = view.window()
-			if get_setting(view, 'open_at_startup', False) and (not window.id() in was_opened_at_startup) and DebuggerInterface.should_auto_open_in_window(window):
-				was_opened_at_startup.add(window.id())
-				DebuggerInterface.for_window(window, create=True)
+	def on_view_activated(view: sublime.View) -> None:
+		# there is probabaly a better way to filter out things like output panels and stuff
+		if not view.file_name():
+			return
+		window = view.window()
+		if get_setting(view, 'open_at_startup', False) and (not window.id() in was_opened_at_startup) and Debugger.should_auto_open_in_window(window):
+			was_opened_at_startup.add(window.id())
+			Debugger.for_window(window, create=True)
 
-		ui.view_activated.add(on_view_activated)
+	ui.view_activated.add(on_view_activated)
 
-	core.startup(on_main, __package__.split('.', 1)[0])
+	# open for active view at least
+	window = sublime.active_window()
+	view = window and window.active_view()
+	if view:
+		on_view_activated(view)

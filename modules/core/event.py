@@ -32,17 +32,3 @@ class Event (Generic[T]):
 	def post(self, *data: T) -> None:
 		for h in self.handlers:
 			h.callback(*data)
-
-
-'''
-	will dispatch events on the main thread if called from a background thread
-	in our case we used it to make sublime events dispatch on our main thread
-'''
-class EventDispatchMain(Event[T], Generic[T]):
-	def _post(self, data: T) -> None:
-		for h in self.handlers:
-			h.callback(data)
-
-	def post(self, data: T) -> None:
-		call_soon_threadsafe(self._post, data)
-

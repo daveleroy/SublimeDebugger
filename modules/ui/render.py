@@ -49,10 +49,9 @@ def schedule_render() -> None:
 		return
 
 	_render_scheduled = True
-	core.run(render_scheduled())
+	core.call_soon(render_scheduled)
 
 
-@core.coroutine
 def render_scheduled() -> None:
 	global _render_scheduled
 	perform_render()
@@ -62,41 +61,20 @@ def render_scheduled() -> None:
 def perform_render() -> None:
 	_renderables.extend(_renderables_add)
 
-	renderables_to_update = [] #type: List[Renderable]
-	renderables_to_clear = [] #type: List[Renderable]
-
 	for r in _renderables_remove:
 		_renderables.remove(r)
-		renderables_to_clear.append(r)
 
-	_renderables_add.clear()
 	_renderables_remove.clear()
 
 	for r in _renderables:
-		if r.render():
-			renderables_to_update.append(r)
-
-	if not renderables_to_update and not renderables_to_clear:
-		return
-
-	# after we generated the html we need to to update the sublime phantoms
-	# if we don't do this on the sublime main thread we will get flickering
-	def on_sublime_thread() -> None:
-		for r in renderables_to_update:
-			r.render_sublime()
-
-		for r in renderables_to_clear:
-			r.clear_sublime()
-
-	sublime.set_timeout(on_sublime_thread, 0)
-
+		r.render()
 
 def update() -> None:
 	for item in _renderables:
 		item.update()
 
 
-class Renderable:
+class Renderable(Protocol):
 	def force_dirty(self) -> None:
 		assert False
 
@@ -106,11 +84,6 @@ class Renderable:
 	def render(self) -> bool:
 		assert False
 
-	def render_sublime(self) -> None:
-		assert False
-
-	def clear_sublime(self) -> None:
-		assert False
 
 class Phantom(LayoutView, Renderable):
 	id = 0
@@ -133,24 +106,18 @@ class Phantom(LayoutView, Renderable):
 		_renderables_add.append(self)
 
 	def render(self) -> bool:
-		if super().render() or not self.cachedPhantom:
+		regions = self.view.get_regions(self.region_id)
+		if regions and (super().render() or not self.cachedPhantom):
+			self.cachedPhantom = sublime.Phantom(regions[0], self.html, self.layout, self.on_navigate)
+			self.set.update([self.cachedPhantom])
 			return True
 		return False
 
-	def render_sublime(self) -> None:
-		regions = self.view.get_regions(self.region_id)
-		if regions:
-			self.cachedPhantom = sublime.Phantom(regions[0], self.html, self.layout, self.on_navigate)
-			self.set.update([self.cachedPhantom])
-
-	def clear_sublime(self) -> None:
-		self.set.update([])
-
 	def dispose(self) -> None:
 		super().dispose()
-		_renderables_remove.append(self)
 		self.view.erase_regions(self.region_id)
-		schedule_render()
+		_renderables_remove.append(self)
+		self.set.update([])
 
 
 class Popup(LayoutView, Renderable):
@@ -161,7 +128,7 @@ class Popup(LayoutView, Renderable):
 		self.max_height = 500
 		self.max_width = 1000
 		self.render()
-		
+
 		view.show_popup(
 			self.html,
 			location=location,
@@ -182,16 +149,12 @@ class Popup(LayoutView, Renderable):
 
 	def render(self) -> bool:
 		if super().render() or not self.html:
+			self.view.update_popup(self.html)
 			return True
 		return False
-
-	def render_sublime(self) -> None:
-		self.view.update_popup(self.html)
-
-	def clear_sublime(self) -> None:
-		if not self.is_hidden:
-			self.view.hide_popup()
 
 	def dispose(self) -> None:
 		super().dispose()
 		_renderables_remove.append(self)
+		if not self.is_hidden:
+			self.view.hide_popup()

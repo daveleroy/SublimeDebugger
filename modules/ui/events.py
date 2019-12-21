@@ -18,14 +18,14 @@ class HoverEvent:
 
 
 # all these events are dispatched from sublime's main thread to our own main loop
-view_loaded = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
-view_activated = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
-view_text_hovered = core.EventDispatchMain() #type: core.EventDispatchMain[HoverEvent]
-view_gutter_hovered = core.EventDispatchMain() #type: core.EventDispatchMain[GutterEvent]
-view_gutter_clicked = core.EventDispatchMain() #type: core.EventDispatchMain[GutterEvent]
-view_selection_modified = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
-view_modified = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
-view_drag_select = core.EventDispatchMain() #type: core.EventDispatchMain[sublime.View]
+view_loaded = core.Event() #type: core.Event[sublime.View]
+view_activated = core.Event() #type: core.Event[sublime.View]
+view_text_hovered = core.Event() #type: core.Event[HoverEvent]
+view_gutter_hovered = core.Event() #type: core.Event[GutterEvent]
+view_gutter_clicked = core.Event() #type: core.Event[GutterEvent]
+view_selection_modified = core.Event() #type: core.Event[sublime.View]
+view_modified = core.Event() #type: core.Event[sublime.View]
+view_drag_select = core.Event() #type: core.Event[sublime.View]
 
 
 class ViewEventsListener(sublime_plugin.EventListener):
@@ -67,4 +67,3 @@ class ViewEventsListener(sublime_plugin.EventListener):
 
 	def on_activated(self, view: sublime.View) -> None:
 		view_activated.post(view)
-

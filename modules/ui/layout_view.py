@@ -107,14 +107,10 @@ class LayoutComponent (Layout):
 	def dispose(self) -> None:
 		self.remove_component(self.item)
 
-	def on_navigate_main(self, path: str):
+	def on_navigate(self, path: str) -> None:
 		id = int(path)
 		if id in self.on_click_handlers:
 			self.on_click_handlers[id]()
-
-	def on_navigate(self, path: str) -> None:
-		# ensure this gets dispatched on our main thread not sublime's
-		core.call_soon_threadsafe(self.on_navigate_main, path)
 
 	def register_on_click_handler(self, callback: 'Callable') -> str:
 		self.on_click_handlers_id += 1
@@ -164,25 +160,19 @@ class LayoutView (LayoutComponent):
 	def run_syntax_highlight(self) -> None:
 		if not self._highlighter:
 			return
-		event = threading.Event()
 
-		def run():
-			for item in self._unhighlightedSyntaxHighlightedTexts:
-				cache = self._syntaxHighlightCache.setdefault(item.language, {})
-				if item.text in cache:
-					item.html = cache[item.text]
-				else:
-					try:
-						item.html = self._highlighter.syntax_highlight(item.text, item.language, inline=True)
-						cache[item.text] = item.html
-					except:
-						core.log_exception()
-					
-			self._unhighlightedSyntaxHighlightedTexts = []
-			event.set()
+		for item in self._unhighlightedSyntaxHighlightedTexts:
+			cache = self._syntaxHighlightCache.setdefault(item.language, {})
+			if item.text in cache:
+				item.html = cache[item.text]
+			else:
+				try:
+					item.html = self._highlighter.syntax_highlight(item.text, item.language, inline=True)
+					cache[item.text] = item.html
+				except:
+					core.log_exception()
 
-		sublime.set_timeout(run)
-		event.wait(0.5)
+		self._unhighlightedSyntaxHighlightedTexts = []
 
 	def update(self) -> None:
 		font_size = self.view.settings().get('font_size') or 12

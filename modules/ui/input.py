@@ -15,7 +15,7 @@ class CommandPaletteInputCommand:
 		def _on_cancel():
 			CommandPaletteInputCommand.running_command = None
 			if on_cancel: on_cancel()
-		
+
 		input._on_cancel_internal = _on_cancel
 
 		# if you don't clear the text then the debugger_input command can't be found in the command pallete....
@@ -92,7 +92,7 @@ class InputList(sublime_plugin.ListInputHandler):
 	def confirm(self, value):
 		run = self.values[value].run
 		if callable(run):
-			core.call_soon_threadsafe(run)
+			run()
 		else:
 			self._next_input = run
 		return value
@@ -135,13 +135,13 @@ class InputText(sublime_plugin.TextInputHandler):
 		if self._enable:
 			self._enable.enable()
 		return self._placeholder
-	
+
 	def initial_text(self):
 		return self._initial
-	
+
 	def next_input(self, args):
 		if callable(self._run):
-			core.call_soon_threadsafe(self._run, args[self.arg_name])
+			self._run(args[self.arg_name])
 			return None
 		return self._run
 
