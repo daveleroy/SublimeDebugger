@@ -19,7 +19,7 @@ def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dic
 		json = json.copy()
 		for key, value in platform.items():
 			json[key] = value
-	
+
 	if variables is not None:
 		return sublime.expand_variables(json, variables)
 
@@ -43,6 +43,7 @@ class Adapter:
 		json = _expand_variables_and_platform(json, variables)
 		self.command = json['command']
 		self.type = type
+		self.version = 0
 		self.hover_word_seperators = json.get('hover_word_seperators')
 		self.hover_word_regex_match = json.get('hover_word_regex_match')
 		self.snippets = [] #type: List[dict]
@@ -57,7 +58,9 @@ class Adapter:
 	def load_installation_if_needed(self) -> None:
 		if not self.installer:
 			return
-		self.snippets = self.installer.snippets()
+		info = self.installer.installed_info()
+		self.snippets = info.snippets
+		self.version = info.version
 
 	@core.coroutine
 	def install(self, log: core.Logger) -> core.awaitable[None]:
@@ -80,14 +83,19 @@ def install_adapters_menu(adapters: Sequence[Adapter], log: core.Logger):
 					yield from adapter.install(log)
 				except core.Error as e:
 					log.error("Failed Installing Adapter: {}".format(e))
-			
+
 			core.run(install())
+
+		name = adapter.installer.name
+		if adapter.version:
+			name += '\t'
+			name += str(adapter.version)
 
 		items.append(
 			ui.InputListItemChecked(
-				lambda adapter=adapter: install(adapter), 
-				adapter.installer.name, 
-				adapter.installer.name, 
+				lambda adapter=adapter: install(adapter),
+				name,
+				name,
 				adapter.installed
 			)
 		)

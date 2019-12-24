@@ -9,18 +9,25 @@ import urllib.request
 import json
 import sublime
 
+
 def _adapters_path() -> str:
 	return os.path.join(core.current_package(), 'data', 'debug_adapters')
 
+
 class AdapterInstall:
-	
 	@core.coroutine
 	def install(self, log: core.Logger) -> core.awaitable[None]: ...
-	
 
 	@property
 	def installed(self) -> bool: ...
-	def snippets(self) -> core.awaitable[list]: ...
+	def installed_info(self) -> 'AdapterInstalledInformation': ...
+
+
+class AdapterInstalledInformation:
+	def __init__(self, version: int, snippets: list):
+		self.version = version
+		self.snippets = snippets
+
 
 class VSCodeAdapterInstall:
 	def __init__(self, name: str, url: str) -> None:
@@ -36,13 +43,15 @@ class VSCodeAdapterInstall:
 	def installed(self) -> bool:
 		return os.path.isfile(os.path.join(self.path, 'sublime_debugger.json'))
 
-	def snippets(self) -> core.awaitable[list]:
+	def installed_info(self) -> AdapterInstalledInformation:
 		snippets_output_file = os.path.join(self.path, 'sublime_debugger.json')
 		snippets_file_exists = os.path.isfile(snippets_output_file)
 		if snippets_file_exists:
 			with open(snippets_output_file) as file:
-				return json.load(file)['configurationSnippets']
-		return []
+				j = json.load(file)
+				return AdapterInstalledInformation(j.get('version', 0), j['configurationSnippets'])
+
+		return AdapterInstalledInformation(0, [])
 
 	@core.coroutine
 	def install(self, log: core.Logger) -> core.awaitable[None]:
