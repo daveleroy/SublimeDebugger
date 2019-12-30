@@ -6,6 +6,7 @@ from .variables import Variable, VariableComponent
 from .terminal import TerminalStandard, Line, LineSourceComponent
 from .debugger_session import DebuggerSession
 
+
 class VariableLine(Line):
 	def __init__(self, variable: Variable, source: Optional[dap.Source], line: Optional[int], on_clicked_source: Callable[[], None]) -> None:
 		self.variable = variable
@@ -23,6 +24,7 @@ class VariableLine(Line):
 
 		component = VariableComponent(self.variable, item_right=source_item)
 		return [component]
+
 
 class DebuggerTerminal (TerminalStandard):
 	def __init__(self, debugger: DebuggerSession, on_run_command: Callable[[str], None], on_clicked_source: Callable[[dap.Source, Optional[int]], None]):

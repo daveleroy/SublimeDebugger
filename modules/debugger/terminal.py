@@ -25,6 +25,10 @@ except ImportError:
 	# this stuff is broken on > 4000 until the packages are 3.8 compatible
 	SUPPORTED = False
 
+# from https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
+ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+
+
 class TtyProcess:
 	def __init__(self, command: List[str], on_output: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, cwd=None) -> None:
 		print('Starting process: {}'.format(command))
@@ -40,12 +44,14 @@ class TtyProcess:
 	def _read(self, callback: Callable[[str], None]) -> None:
 		while not self.closed:
 			try:
-				line = self.process.read()
-				if not line:
+				characters = self.process.read()
+				if not characters:
 					core.log_info("Nothing to read from process, closing")
 					break
 
-				core.call_soon_threadsafe(callback, line)
+				#this isn't perfect we can easily miss some escapes since characters could span part of a single escape sequence...
+				characters = ansi_escape.sub('', characters)
+				core.call_soon_threadsafe(callback, characters)
 			except EOFError as err:
 				break
 			except Exception as err:
@@ -71,6 +77,7 @@ class TtyProcess:
 		except Exception as e:
 			core.log_exception(e)
 
+
 class Terminal:
 	def __init__(self, name: str):
 		self.lines = [] #type: List[Line]
@@ -86,7 +93,7 @@ class Terminal:
 	def clicked_source(self, source: dap.Source, line: Optional[int]) -> None:
 		pass
 
-	def _append(self, type: str, text: str, source: Optional[dap.Source] = None, source_line: Optional[int] = None):	
+	def _append(self, type: str, text: str, source: Optional[dap.Source] = None, source_line: Optional[int] = None):
 		lines = text.splitlines(keepends=True)
 		for line in lines:
 			if self.new_line or not self.lines or not isinstance(self.lines[-1], StandardLine):
@@ -108,7 +115,7 @@ class Terminal:
 				last.endline(self.line_regex)
 				self.new_line = True
 		self.on_updated.post()
-	
+
 	def clear(self) -> None:
 		self.lines = []
 		self.on_updated()
@@ -125,6 +132,7 @@ class Terminal:
 	def dispose(self):
 		pass
 
+
 class TerminalStandard(Terminal):
 	def __init__(self, name: str) -> None:
 		super().__init__(name)
@@ -134,6 +142,7 @@ class TerminalStandard(Terminal):
 
 	def write_stderr(self, text: str):
 		self._append('stderr', text)
+
 
 class TerminalProcess (Terminal):
 	def __init__(self, cwd: str, args: List[str]) -> None:
@@ -149,18 +158,18 @@ class TerminalProcess (Terminal):
 
 	def writeable(self) -> bool:
 		return True
-	
+
 	def writeable_prompt(self) -> str:
 		if self.escape_input:
-			return "click to write a line to stdin"
-		return "click to write escaped input to stdin"
+			return "click to write escaped input to stdin"
+		return "click to write a line to stdin"
 
 	def write(self, text: str):
 		if self.escape_input:
 			text = text.encode('utf-8').decode("unicode_escape")
 
 		self.process.write(text + '\n')
-	
+
 	def can_escape_input(self) -> bool:
 		return True
 
@@ -169,8 +178,9 @@ class TerminalProcess (Terminal):
 
 
 class Line:
-	def ui(self, max_line_length) -> ui.div:
+	def ui(self, max_line_length) -> [ui.div]:
 		pass
+
 
 _css_for_type = {
 	"console": css.label,
@@ -181,6 +191,7 @@ _css_for_type = {
 	"debugger.info": css.label_secondary,
 	"debugger.output": css.label_secondary,
 }
+
 
 class LineSourceComponent (ui.span):
 	def __init__(self, name: str, line: Optional[int], text_width: int, on_clicked_source):
@@ -201,9 +212,11 @@ class LineSourceComponent (ui.span):
 			]
 		]
 
+
 class StandardLine (Line):
 	stdout = 0
 	stderr = 1
+
 	def __init__(self, type: str, on_clicked_source: Callable[[dap.Source, Optional[int]], None]) -> None:
 		self.type = type
 		self.text = ""
@@ -229,7 +242,7 @@ class StandardLine (Line):
 		span_lines = []
 		spans = []
 		leftover_line_length = max_line_length
-		
+
 		# if we have a name/line put it to the right of the first line
 		if self.source:
 			leftover_line_length -= 15
@@ -265,6 +278,7 @@ class StandardLine (Line):
 		span_lines.reverse()
 		return span_lines
 
+
 class TerminalComponent (ui.div):
 	def __init__(self, terminal: Terminal) -> None:
 		super().__init__()
@@ -283,7 +297,7 @@ class TerminalComponent (ui.div):
 			self.on_input()
 
 		ui.InputText(run, label, enable_when_active=Autocomplete.for_window(sublime.active_window())).run()
-	
+
 	def on_toggle_input_mode(self):
 		self.terminal.escape_input = not self.terminal.escape_input
 		self.dirty()
@@ -329,23 +343,26 @@ class TerminalComponent (ui.div):
 		lines.reverse()
 
 		if self.terminal.writeable():
-			label = self.terminal.writeable_prompt()
-			offset = (max_line_length - len(label)) * self.layout.em_width() - 2.0
+			input_line = []
+			if self.terminal.can_escape_input():
+				if self.terminal.escape_input:
+					text = 'esc'
+				else:
+					text = 'line'
 
-			lines.append(
+				mode_toggle = ui.span(css=css.button)[ui.click(self.on_toggle_input_mode)[
+					ui.text(text, css=css.label_secondary),
+				]]
+
+				input_line.append(mode_toggle)
+
+			label = self.terminal.writeable_prompt()
+			input_line.append(
 				ui.click(self.on_input)[
 					ui.icon(ui.Images.shared.right),
 					ui.text(label, css=css.label_secondary_padding),
 				]
 			)
-			if self.terminal.can_escape_input():
-				mode_toggle = ui.click(self.on_toggle_input_mode)[
-					#ui.text('\\esc', width=offset, align=1, color=["primary", "secondary"][self.terminal.escape_input]),
-					ui.text('\\esc'),
-				]
-
-				lines.append(ui.div()[
-					mode_toggle
-				])
+			lines.append(ui.div()[input_line])
 
 		return lines

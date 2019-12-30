@@ -7,7 +7,6 @@ from ..dap.transport import (
 )
 
 from .terminal import Terminal, TerminalProcess, TerminalStandard
-
 from .adapter import (
 	ConfigurationExpanded,
 	Adapter
@@ -20,6 +19,7 @@ from .breakpoints import (
 from .build import build
 from .variables import Variables
 from .watch import Watch
+from .debugger_terminals import Terminals
 
 import sublime
 
@@ -40,10 +40,10 @@ class DebuggerSession(dap.ClientEventsListener):
 		modules: 'Modules',
 		watch: Watch,
 		variables: Variables,
+		terminals: Terminals,
 		on_state_changed: Callable[[int], None],
 		on_output: Callable[[dap.OutputEvent], None],
 		on_selected_frame: Callable[[Optional[dap.StackFrame]], None],
-		on_terminals: Callable[[List[Terminal]], None],
 	) -> None:
 
 		self.state_changed = core.Event() #type: core.Event[int]
@@ -53,7 +53,7 @@ class DebuggerSession(dap.ClientEventsListener):
 		self.callstack = threads
 		self.callstack.on_selected_frame.add(lambda frame: self.load_frame(frame))
 
-		self.terminals = [] #type: List[Terminal]
+		self.terminals = terminals
 		self.terminals_updated = core.Event() #type: core.Event[None]
 
 		self.breakpoints = breakpoints
@@ -68,7 +68,6 @@ class DebuggerSession(dap.ClientEventsListener):
 		self.on_state_changed = on_state_changed
 		self.on_output = on_output
 		self.on_selected_frame = on_selected_frame
-		self.on_terminals = on_terminals
 
 		self.adapter = None #type: Optional[dap.Client]
 		self.process = None #type: Optional[Process]
@@ -81,11 +80,7 @@ class DebuggerSession(dap.ClientEventsListener):
 		self.disposeables = [] #type: List[Any]
 
 	def dispose_terminals(self):
-		for terminal in self.terminals:
-			terminal.dispose()
-
-		self.terminals = []
-		self.on_terminals(self.terminals)
+		self.terminals.clear_session_data(self)
 
 	def dispose(self) -> None:
 		self.force_stop_adapter()
@@ -441,14 +436,16 @@ class DebuggerSession(dap.ClientEventsListener):
 		self._refresh_state()
 
 	def on_terminated_event(self, event: dap.TerminatedEvent):
-		self.force_stop_adapter()
+		self.force_stop_awdapter()
 		if event.restart:
 			core.run(self.launch(self.adapter_configuration, self.configuration, event.restart))
 
 	def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> int: # pid
-		terminal = TerminalProcess(request.cwd, request.args)
-		self.terminals.append(terminal)
-		self.on_terminals(self.terminals)
+		try:
+			return self.terminals.on_terminal_request(self, request)
+		except core.Error as e:
+			self.error(str(e))
+			raise e
 
 
 class Sources:

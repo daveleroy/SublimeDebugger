@@ -9,6 +9,11 @@
 	// Sets the entire scale of the UI
 	"ui_scale" : 11,
 
+	// Which external terminal should be used when an adapter requests an external terminal
+	// "platform" (default) uses Terminal on MacOS, CMD (Not tested) on Windows, (Unimplemented) on Linux
+	// "terminus" Opens a new terminal view using terminus. The terminus package must be installed https://github.com/randy3k/Terminus
+	"external_terminal": "platform",
+
 	// hide the status bar of the window when the debugger panel is open
 	"hide_status_bar": false,
 

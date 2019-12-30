@@ -23,9 +23,9 @@ from .debugger_session import (
 	Sources,
 	Variables,
 	Watch,
-	Threads
+	Threads,
+	Terminals
 )
-
 from .debugger_project import (
 	DebuggerProject
 )
@@ -155,7 +155,6 @@ class Debugger (DebuggerPanelCallbacks):
 			self.terminal.program_output(self.debugger.adapter, event)
 
 
-		from .diff import DiffCollection
 		from .terminal import Terminal
 		def on_terminal_added(terminal: Terminal):
 			component = TerminalComponent(terminal)
@@ -171,17 +170,15 @@ class Debugger (DebuggerPanelCallbacks):
 		def on_terminal_removed(terminal: Terminal):
 			self.panels.remove(id(terminal))
 
-		terminals = DiffCollection(on_terminal_added, on_terminal_removed)
-
-		def on_terminals(list: Any):
-			terminals.update(list)
-
 		self.modules = Modules()
 		self.sources = Sources()
 		self.variables = Variables()
 		self.threads = Threads()
 		self.watch = Watch()
 		self.breakpoints = Breakpoints()
+		self.terminals = Terminals()
+		self.terminals.on_terminal_added.add(on_terminal_added)
+		self.terminals.on_terminal_removed.add(on_terminal_removed)
 
 		self.debugger = DebuggerSession(
 			breakpoints=self.breakpoints,
@@ -190,10 +187,10 @@ class Debugger (DebuggerPanelCallbacks):
 			threads=self.threads,
 			watch=self.watch,
 			variables=self.variables,
+			terminals=self.terminals,
 			on_state_changed=on_state_changed,
 			on_output=on_output,
-			on_selected_frame=on_selected_frame,
-			on_terminals=on_terminals)
+			on_selected_frame=on_selected_frame)
 
 		self.breakpoints_panel = BreakpointsPanel(self.debugger.breakpoints)
 		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
@@ -262,6 +259,8 @@ class Debugger (DebuggerPanelCallbacks):
 			log_errors=get_setting(self.window.active_view(), 'log_errors', True),
 			log_exceptions=get_setting(self.window.active_view(), 'log_exceptions', True),
 		)
+
+		self.terminals.external_terminal_kind = get_setting(self.window.active_view(), 'external_terminal', 'platform')
 
 		# configuration settings
 		variables = self.project.extract_variables()
