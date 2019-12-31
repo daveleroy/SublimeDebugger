@@ -436,7 +436,7 @@ class DebuggerSession(dap.ClientEventsListener):
 		self._refresh_state()
 
 	def on_terminated_event(self, event: dap.TerminatedEvent):
-		self.force_stop_awdapter()
+		self.force_stop_adapter()
 		if event.restart:
 			core.run(self.launch(self.adapter_configuration, self.configuration, event.restart))
 

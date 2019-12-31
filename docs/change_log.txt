@@ -3,6 +3,20 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.2.0
+• Support for column breakpoints (requires adapter support)
+• Support for data breakpoints (requires adapter support, currently only lldb?)
+• Left-click gutter now toggles breakpoints, right-clicking a breakpoint allows editing/advanced options
+• Watch expressions
+• Loaded Modules/Sources panels
+• Adds Node debug adapter (@appelgriebsch)
+• External terminal support. Terminal on Mac (Needs support for Windows/Linux) or Sublime's Terminus package.
+• Integrated terminal now strips ascii control sequences 
+• Settings button
+• Show currently installed version of an adapter, show download progress when installing an adapter
+• Fixes issues that sometimes occurred installing/reinstalling adapters
+• Fixes issues with reloading plugin
+
 Whats new in version 0.1.8
 • Fixes core not defined error
 
