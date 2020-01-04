@@ -247,8 +247,10 @@ class DebuggerSession(dap.ClientEventsListener):
 			return
 		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.function))
 
-		if breakpoints and not self.capabilities.supportsFunctionBreakpoints:
-			self.error("This debugger doesn't support function breakpoints")
+		if not self.capabilities.supportsFunctionBreakpoints:
+			# only show error message if the user tried to set a function breakpoint when they are not supported
+			if breakpoints:
+				self.error("This debugger doesn't support function breakpoints")
 			return
 
 		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
