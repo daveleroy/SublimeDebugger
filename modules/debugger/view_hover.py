@@ -55,7 +55,7 @@ class ViewHoverProvider(core.Disposables):
 			word_string = x.group()
 
 		try:
-			response = yield from self.debugger.adapter.Evaluate(word_string, self.debugger.selected_frame, 'hover')
+			response = yield from self.debugger.adapter.Evaluate(word_string, self.debugger.callstack.selected_frame, 'hover')
 			yield from core.asyncio.sleep(0.25)
 			variable = dap.Variable(self.debugger.adapter, "", response.result, response.variablesReference)
 			event.view.add_regions('selected_hover', [word], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
