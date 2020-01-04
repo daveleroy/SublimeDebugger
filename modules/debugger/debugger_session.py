@@ -573,12 +573,6 @@ class Threads:
 		self.on_selected_thread(thread)
 
 	def on_stopped_event(self, client: dap.Client, stopped: dap.StoppedEvent):
-		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
-		thread = self.getThread(client, stopped.threadId, )
-		thread.clear()
-		thread.stopped = True
-		thread.stopped_reason = stopped.text
-
 		if stopped.allThreadsStopped:
 			self.all_threads_stopped = True
 			self.all_threads_stopped_reason = stopped.text
@@ -587,6 +581,12 @@ class Threads:
 				thread.clear()
 				thread.stopped = True
 				thread.stopped_reason = stopped.text
+
+		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
+		thread = self.getThread(client, stopped.threadId, )
+		thread.clear()
+		thread.stopped = True
+		thread.stopped_reason = stopped.text
 
 		if self.selected_thread is None:
 			self.selected_explicitly = False
@@ -614,14 +614,14 @@ class Threads:
 		self.on_updated()
 
 	def on_continued_event(self, client: dap.Client, continued: dap.ContinuedEvent):
-		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
-		thread = self.getThread(client, continued.threadId)
-		thread.stopped = False
-
 		if continued.allThreadsContinued:
 			self.all_threads_stopped = False
 			for thread in self.threads:
 				thread.stopped = False
+
+		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
+		thread = self.getThread(client, continued.threadId)
+		thread.stopped = False
 
 		if continued.allThreadsContinued or thread is self.selected_thread:
 			self.selected_explicitly = False
