@@ -52,7 +52,7 @@ class DebuggerSession(dap.ClientEventsListener):
 		self.variables = variables
 		self.callstack = threads
 		self.callstack.on_selected_frame.add(lambda frame: self.load_frame(frame))
-
+		self.callstack.on_selected_thread.add(lambda thread: self._refresh_state())
 		self.terminals = terminals
 		self.terminals_updated = core.Event() #type: core.Event[None]
 
@@ -513,6 +513,9 @@ class Thread:
 
 	@core.coroutine
 	def children(self):
+		if not self.stopped:
+			return []
+
 		if self._children:
 			return self._children
 		self._children = core.run(self.client.StackTrace(self.id))
@@ -528,7 +531,9 @@ class Threads:
 		self.threads_for_id = {}
 		self.on_updated = core.Event() #type: core.Event[None]
 		self.on_selected_frame = core.Event() #type: core.Event[Optional[dap.StackFrame]]
+		self.on_selected_thread = core.Event() #type: core.Event[Optional[Thread]]
 		self.all_threads_stopped = False
+		self.all_threads_stopped_reason = ''
 
 		self.selected_explicitly = False
 		self.selected_thread = None
@@ -547,6 +552,7 @@ class Threads:
 			return t
 		else:
 			t = Thread(id, "??", client, self.all_threads_stopped)
+			t.stopped_reason = self.all_threads_stopped_reason
 			self.threads_for_id[id] = t
 			return t
 
@@ -557,18 +563,34 @@ class Threads:
 		self.on_updated()
 		if frame:
 			self.on_selected_frame(frame)
+		self.on_selected_thread(thread)
 
 	def on_stopped_event(self, client: dap.Client, stopped: dap.StoppedEvent):
-		thread = self.getThread(client, stopped.threadId)
+		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
+		thread = self.getThread(client, stopped.threadId, )
+		thread.clear()
+		thread.stopped = True
+		thread.stopped_reason = stopped.text
+
+		if stopped.allThreadsStopped:
+			self.all_threads_stopped = True
+			self.all_threads_stopped_reason = stopped.text
+
+			for thread in self.threads:
+				thread.clear()
+				thread.stopped = True
+				thread.stopped_reason = stopped.text
 
 		if self.selected_thread is None:
 			self.selected_explicitly = False
 			self.selected_thread = thread
 			self.selected_frame = None
+
+			self.on_selected_thread(thread)
 			self.on_selected_frame(None)
 
 			@core.coroutine
-			def run():
+			def run(thread=thread):
 				children = yield from thread.children()
 				if children and not self.selected_frame and not self.selected_explicitly and self.selected_thread is thread:
 					self.selected_frame = children[0]
@@ -576,34 +598,24 @@ class Threads:
 					self.on_selected_frame(self.selected_frame)
 			core.run(run())
 
-		if stopped.allThreadsStopped:
-			self.all_threads_stopped = True
-			for thread in self.threads:
-				thread.clear()
-				thread.stopped = True
-				thread.stopped_reason = stopped.text
-		else:
-			thread.clear()
-			thread.stopped = True
-			thread.stopped_reason = stopped.text
-
 		self.on_updated()
 
 	def on_continued_event(self, client: dap.Client, continued: dap.ContinuedEvent):
+		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
 		thread = self.getThread(client, continued.threadId)
-
-		if continued.allThreadsContinued or thread is self.selected_thread:
-			self.selected_explicitly = False
-			self.selected_thread = None
-			self.selected_frame = None
-			self.on_selected_frame(None)
+		thread.stopped = False
 
 		if continued.allThreadsContinued:
 			self.all_threads_stopped = False
 			for thread in self.threads:
 				thread.stopped = False
-		else:
-			thread.stopped = False
+
+		if continued.allThreadsContinued or thread is self.selected_thread:
+			self.selected_explicitly = False
+			self.selected_thread = None
+			self.selected_frame = None
+			self.on_selected_thread(None)
+			self.on_selected_frame(None)
 
 		self.on_updated()
 
