@@ -600,7 +600,13 @@ class Threads:
 			def run(thread=thread):
 				children = yield from thread.children()
 				if children and not self.selected_frame and not self.selected_explicitly and self.selected_thread is thread:
-					self.selected_frame = children[0]
+					def first_non_subtle_frame(frames: List[dap.StackFrame]):
+						for frame in frames:
+							if frame.presentation != dap.StackFrame.subtle:
+								return frame
+						return frames[0]
+
+					self.selected_frame = first_non_subtle_frame(children)
 					self.on_updated()
 					self.on_selected_frame(self.selected_frame)
 			core.run(run())
