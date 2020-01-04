@@ -12,6 +12,7 @@ class ModulesView(ui.div):
 	def __init__(self, modules: Modules):
 		super().__init__()
 		self.modules = modules
+		self.expanded = {}
 
 	def added(self, layout: ui.Layout):
 		self.on_updated_handle = self.modules.on_updated.add(self.dirty)
@@ -19,13 +20,24 @@ class ModulesView(ui.div):
 	def removed(self):
 		self.on_updated_handle.dispose()
 
+	def is_expanded(self, module: dap.Module) -> bool:
+		return self.expanded.get(module.id, False)
+
+	def toggle_expanded(self, module: dap.Module):
+		if self.is_expanded(module):
+			self.expanded[module.id] = False
+		else:
+			self.expanded[module.id] = True
+
+		self.dirty()
+
 	def render(self) -> ui.div.Children:
 		items = []
 		for module in self.modules.modules:
-			is_expanded = self.modules.expanded.get(module.id, False)
+			is_expanded = self.is_expanded(module)
 			image_toggle = ui.Images.shared.open if is_expanded else ui.Images.shared.close
 			item = ui.div()[
-				ui.click(lambda module=module: self.modules.toggle_expanded(module.id))[
+				ui.click(lambda module=module: self.toggle_expanded(module))[
 					ui.icon(image_toggle),
 				],
 				ui.text(module.name)

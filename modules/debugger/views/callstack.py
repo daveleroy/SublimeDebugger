@@ -48,13 +48,14 @@ class CallStackView (ui.div):
 		if self.debugger.callstack.selected_thread:
 			self.state.set_expanded(self.debugger.callstack.selected_thread, True)
 
-		return [ThreadView(self.debugger, thread, self.state) for thread in threads]
+		return [ThreadView(self.debugger, thread, self.state, len(threads) == 1) for thread in threads]
 
 
 class ThreadView (ui.div):
-	def __init__(self, debugger: DebuggerSession, thread: Thread, state: State):
+	def __init__(self, debugger: DebuggerSession, thread: Thread, state: State, hide_name: bool):
 		super().__init__()
 		self.debugger = debugger
+		self.hide_name = hide_name
 		self.thread = thread
 		self.state = state
 		self.frames = []
@@ -62,8 +63,7 @@ class ThreadView (ui.div):
 
 	@core.coroutine
 	def fetch(self):
-		is_expanded = self.state.is_expanded(self.thread)
-		if not is_expanded:
+		if not self.state.is_expanded(self.thread):
 			return []
 
 		self.frames = yield from self.thread.children()
@@ -99,6 +99,7 @@ class ThreadView (ui.div):
 			]
 		else:
 			thread_item = ui.div(height=3.0, width=width)[
+				ui.icon(ui.Images.shared.loading),
 				ui.click(self.on_select_thread)[
 					ui.span(height=0, css=css.button)[
 						ui.icon(ui.Images.shared.thread_running),
@@ -109,6 +110,9 @@ class ThreadView (ui.div):
 
 		if not self.debugger.callstack.selected_frame and self.debugger.callstack.selected_thread is self.thread:
 			thread_item.add_class(css.selected.class_name)
+
+		if self.hide_name:
+			thread_item = ui.div()
 
 		if is_expanded:
 			return [
@@ -142,8 +146,10 @@ class StackFrameComponent (ui.div):
 			ui.span(css=css.button)[
 				ui.text(str(frame.line), css=css.label),
 			],
-			ui.text(name, css=label_padding),
-			ui.text(frame.name, css=css.label_secondary_padding),
+			ui.text_align(self._width, [
+				ui.text(name, css=label_padding),
+				ui.text(frame.name, css=css.label_secondary_padding),
+			])
 		]
 
 		return [
