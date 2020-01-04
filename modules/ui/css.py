@@ -22,7 +22,7 @@ body {
 .light {
 	--panel-color: color(var(--background) blend(black 92%));
 	--segment-color: color(var(--background) blend(black 87%));
-	
+
 	--text-color: var(--foreground);
 	--label-color: var(--text-color);
 
@@ -84,10 +84,13 @@ class css:
 		self.padding_height = additional_height
 		self.padding_width = additional_width
 
+
 div_inline_css = css(
 	padding_top=-0.8,
 	padding_bottom=0.8
 )
+
+none_css = css()
 
 icon_css = css(raw='''
 	position: relative;

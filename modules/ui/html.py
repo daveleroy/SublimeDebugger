@@ -2,7 +2,7 @@ from ..typecheck import *
 from . component import Component
 from . layout import Layout
 from . image import Image
-from . css import css, div_inline_css, icon_css
+from . css import css, div_inline_css, icon_css, none_css
 
 
 class element(Component):
@@ -12,10 +12,12 @@ class element(Component):
 		self._width = width
 		self.is_inline = is_inline
 		if css:
+			self.css = css
 			self.className = css.class_name
 			self.padding_height = css.padding_height
 			self.padding_width = css.padding_width
 		else:
+			self.css = none_css
 			self.padding_height = 0
 			self.padding_width = 0
 
@@ -127,7 +129,15 @@ class text (span):
 	def __init__(self, text: str, width: Optional[float] = None, height: Optional[float] = None, css: Optional[css] = None) -> None:
 		super().__init__(width, height, css)
 		self.text = text.replace("\u0000", "\\u0000")
-		self.text_html = html_escape(self.text)
+
+	@property
+	def text(self) -> str:
+		return self._text
+
+	@text.setter
+	def text(self, text: str):
+		self._text = text.replace("\u0000", "\\u0000")
+		self.text_html = html_escape(self._text)
 
 	def width(self, layout: Layout) -> float:
 		return len(self.text) + self.padding_width

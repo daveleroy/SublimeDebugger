@@ -91,7 +91,8 @@ class Images:
 		self.right_disable = Image.named_light_dark('step_into_disabled.png')
 
 		self.thread = Image.named_light_dark('thread_stopped.png')
+		self.loading = Image.named_light_dark('loading_disabled.png')
 		self.thread_running = Image.named_light_dark('thread_running.png')
 
-		self.open = Image.named_light_dark('open.png')
-		self.close = Image.named_light_dark('close.png')
+		self.open = Image.named_light_dark('open_disabled.png')
+		self.close = Image.named_light_dark('close_disabled.png')

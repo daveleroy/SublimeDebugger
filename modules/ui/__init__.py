@@ -21,7 +21,7 @@ from .layout import *
 from .component import *
 from .image import *
 from .input import *
-
+from .align import text_align
 import os
 
 from ..libs import asyncio
