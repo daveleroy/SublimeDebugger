@@ -34,7 +34,7 @@ def log_info(*args) -> None:
 		return
 	print(*args)
 
-T = TypeVar('T')
+
 class Logger(Protocol):
 	def error(self, value: str):
 		...

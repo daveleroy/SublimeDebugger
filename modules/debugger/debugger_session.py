@@ -24,7 +24,7 @@ from .debugger_terminals import Terminals
 import sublime
 
 
-class DebuggerSession(dap.ClientEventsListener):
+class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	stopped = 0
 	paused = 1
 	running = 2
@@ -132,6 +132,11 @@ class DebuggerSession(dap.ClientEventsListener):
 		self.state = DebuggerSession.starting
 		self.adapter_configuration = adapter_configuration
 		self.configuration = configuration
+
+		if not adapter_configuration.installed:
+			install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
+			if sublime.ok_cancel_dialog(install, 'Install'):
+				yield from adapter_configuration.install(self)
 
 		if not adapter_configuration.installed:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
@@ -379,12 +384,12 @@ class DebuggerSession(dap.ClientEventsListener):
 		event = dap.OutputEvent("console", response.result, response.variablesReference)
 		self.on_output(event)
 
-	def info(self, string: str) -> None:
-		output = dap.OutputEvent("debugger.info", string + '\n', 0)
-		self.on_output(output)
-
 	def log_output(self, string: str) -> None:
 		output = dap.OutputEvent("debugger.output", string + '\n', 0)
+		self.on_output(output)
+
+	def info(self, string: str) -> None:
+		output = dap.OutputEvent("debugger.info", string + '\n', 0)
 		self.on_output(output)
 
 	def error(self, string: str) -> None:
