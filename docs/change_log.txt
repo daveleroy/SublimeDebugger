@@ -3,6 +3,14 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.2.1
+• Debugging with a single thread now just displays the stack frames without the thread header
+• When launching a configuration and the adapter is not installed offer to install it
+• When auto selecting a stack frame prefer the first none suble stack frame
+• Fixes callstack layout when encountering long stack frame names
+• Fixes various issues with multi threaded debugging
+• Fixes hover providers
+
 Whats new in version 0.2.0
 • Support for column breakpoints (requires adapter support)
 • Support for data breakpoints (requires adapter support, currently only lldb?)
