@@ -20,7 +20,7 @@ class VariableLine(Line):
 			variable_length = len(self.variable.name) + len(self.variable.value)
 			text_width = (max_width - variable_length) * layout.em_width() - 1.5
 
-			source_item = LineSourceComponent(self.source.name, self.line, text_width, self.on_clicked_source)
+			source_item = LineSourceComponent(self.source.name or '??', self.line, text_width, self.on_clicked_source)
 
 		component = VariableComponent(self.variable, item_right=source_item)
 		return [component]
@@ -42,9 +42,9 @@ class DebuggerTerminal (TerminalStandard):
 	def write(self, text: str):
 		self.on_run_command(text)
 
-	def program_output(self, client: dap.Client, event: dap.OutputEvent):
+	def program_output(self, client: Optional[dap.Client], event: dap.OutputEvent):
 		variablesReference = event.variablesReference
-		if variablesReference:
+		if variablesReference and client:
 			# this seems to be what vscode does it ignores the actual message here.
 			# Some of the messages are junk like "output" that we probably don't want to display
 			@core.coroutine
@@ -64,7 +64,8 @@ class DebuggerTerminal (TerminalStandard):
 
 	def append_variable(self, variable: dap.Variable, source: Optional[dap.Source], line: Optional[int]):
 		def on_clicked_source():
-			self.on_clicked_source(source, line)
+			if source:
+				self.on_clicked_source(source, line)
 		self.lines.append(VariableLine(Variable(self.debugger, variable), source, line, on_clicked_source))
 		self.on_updated()
 

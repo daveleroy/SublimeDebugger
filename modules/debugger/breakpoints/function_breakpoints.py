@@ -3,10 +3,11 @@ from ... import core
 from ... import ui
 from ... import dap
 
+
 class FunctionBreakpoint:
-	def __init__(self, dap: dap.FunctionBreakpoint, enabled: bool = True) -> None:
+	def __init__(self, breakpoint: dap.FunctionBreakpoint, enabled: bool = True) -> None:
 		self.enabled = enabled
-		self.dap = dap
+		self.dap = breakpoint
 		self.result = None #type: Optional[dap.BreakpointResult]
 
 	def into_json(self) -> dict:
@@ -34,7 +35,7 @@ class FunctionBreakpoint:
 	@property
 	def tag(self) -> Optional[str]:
 		return 'ƒn'
-	
+
 	@property
 	def name(self):
 		return self.dap.name
@@ -53,6 +54,7 @@ class FunctionBreakpoint:
 			return self.result.verified
 		return True
 
+
 class FunctionBreakpoints:
 	def __init__(self):
 		self.breakpoints = [] #type: List[FunctionBreakpoint]
@@ -61,10 +63,10 @@ class FunctionBreakpoints:
 
 	def __iter__(self):
 		return iter(self.breakpoints)
-	
+
 	def into_json(self) -> list:
 		return list(map(lambda b: b.into_json(), self.breakpoints))
-	
+
 	def load_json(self, json: list):
 		self.breakpoints = list(map(lambda j: FunctionBreakpoint.from_json(j), json))
 		self.on_updated(self.breakpoints)
@@ -74,7 +76,7 @@ class FunctionBreakpoints:
 			breakpoint.result = None
 		self.updated(send=False)
 
-	def updated(self, send: bool=True):
+	def updated(self, send: bool = True):
 		self.on_updated(self.breakpoints)
 		if send:
 			self.on_send(self.breakpoints)
@@ -127,9 +129,9 @@ class FunctionBreakpoints:
 				"Breaks when hit count condition is met",
 				breakpoint.dap.hitCondition,
 			),
-			ui.InputListItemChecked (
+			ui.InputListItemChecked(
 				toggle_enabled,
-				"Enabled", 
+				"Enabled",
 				"Disabled",
 				breakpoint.enabled,
 			),
@@ -137,7 +139,7 @@ class FunctionBreakpoints:
 				remove,
 				"Remove"
 			),
-		], placeholder= "Edit Breakpoint on function {}".format(breakpoint.name))
+		], placeholder="Edit Breakpoint on function {}".format(breakpoint.name))
 
 	def add_command(self) -> None:
 		ui.InputText(self.add, "Name of function to break on").run()
@@ -145,7 +147,7 @@ class FunctionBreakpoints:
 	def add(self, name: str):
 		self.breakpoints.append(
 			FunctionBreakpoint(
-				dap=dap.FunctionBreakpoint(name, None, None), 
+				dap.FunctionBreakpoint(name, None, None),
 				enabled=True
 			)
 		)

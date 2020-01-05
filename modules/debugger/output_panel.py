@@ -9,12 +9,8 @@ from ..libs import asyncio
 
 from ..debugger.util import get_setting
 
-if int(sublime.version()) < 4000:
-	_phantom_text = " \u200b\u200b\u200b\u200b\u200b"
-	_panel_position = 7
-else:
-	_phantom_text = "        "
-	_panel_position = 10
+_phantom_text = " \u200F\u200F\u200F\u200F\u200F"
+_panel_position = 7
 
 class OutputPhantomsPanel:
 	panels = {} #type: Dict[int, OutputPhantomsPanel]
@@ -82,7 +78,7 @@ class OutputPhantomsPanel:
 
 	@property
 	def ui_scale(self) -> float:
-		return self.view.settings().get('font_size', 12)
+		return self.view.settings().get('font_size', 12) #type: ignore
 
 	@ui_scale.setter
 	def ui_scale(self, value: float) -> None:

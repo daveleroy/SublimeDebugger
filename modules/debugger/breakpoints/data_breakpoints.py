@@ -3,9 +3,10 @@ from ... import core
 from ... import ui
 from ... import dap
 
+
 class DataBreakpoint:
-	def __init__(self, dap: dap.DataBreakpoint, info: dap.DataBreakpointInfoResponse, enabled: bool):
-		self.dap = dap
+	def __init__(self, breakpoint: dap.DataBreakpoint, info: dap.DataBreakpointInfoResponse, enabled: bool):
+		self.dap = breakpoint
 		self.info = info
 		self.enabled = True
 		self.result = None #type: Optional[dap.BreakpointResult]
@@ -47,6 +48,7 @@ class DataBreakpoint:
 			json['enabled']
 		)
 
+
 class DataBreakpoints:
 	def __init__(self):
 		self.breakpoints = [] #type: List[DataBreakpoint]
@@ -56,11 +58,11 @@ class DataBreakpoints:
 	def __iter__(self):
 		return iter(self.breakpoints)
 
-	def updated(self, send: bool=True):
+	def updated(self, send: bool = True):
 		self.on_updated(self.breakpoints)
 		if send:
 			self.on_send(self.breakpoints)
-	
+
 	def clear_session_data(self):
 		self.breakpoints = list(filter(lambda b: b.info.canPersist, self.breakpoints))
 		self.updated(send=False)
@@ -102,9 +104,9 @@ class DataBreakpoints:
 				"Breaks when hit count condition is met",
 				breakpoint.dap.hitCondition,
 			),
-			ui.InputListItemChecked (
+			ui.InputListItemChecked(
 				toggle_enabled,
-				"Enabled", 
+				"Enabled",
 				"Disabled",
 				breakpoint.enabled,
 			),
@@ -118,8 +120,8 @@ class DataBreakpoints:
 		assert info.id, "this info request has no id"
 		self.breakpoints.append(
 			DataBreakpoint(
-				dap=dap.DataBreakpoint(info.id, type, None, None), 
-				info=info, 
+				dap.DataBreakpoint(info.id, type, None, None),
+				info,
 				enabled=True
 			)
 		)

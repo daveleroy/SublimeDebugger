@@ -25,8 +25,7 @@ class Terminals:
 		self.external_terminals = [] #type: List[ExternalTerminal]
 		self.external_terminal_kind = 'platform'
 
-	def create_terminal(self, request: dap.RunInTerminalRequest):
-		terminal = TerminalProcess(request.cwd, request.args)
+	def add(self, session: 'DebuggerSession', terminal: Terminal):
 		self.terminals.append(terminal)
 		self.on_terminal_added(terminal)
 
@@ -49,16 +48,18 @@ class Terminals:
 
 		raise core.Error('unknown external terminal type "{}"'.format(self.external_terminal_kind))
 
-	def on_terminal_request(self, session: 'DebuggerSession', request: dap.RunInTerminalRequest) -> dict:
+	def on_terminal_request(self, session: 'DebuggerSession', request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
 		if request.kind == 'integrated':
-			return self.create_terminal(request).pid()
+			terminal = TerminalProcess(request.cwd, request.args)
+			self.add(session, terminal)
+			return dap.RunInTerminalResponse(processId=None, shellProcessId=terminal.pid())
 
 		if request.kind == 'external':
 			external_terminal = self.external_terminal(session, request)
 			self.external_terminals.append(external_terminal)
-			return {}
+			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
 
-		return dap.Error(True, "unknown terminal kind requested '{}'".format(request.kind))
+		raise dap.Error(True, "unknown terminal kind requested '{}'".format(request.kind))
 
 	def clear_session_data(self, session: 'DebuggerSession'):
 		for terminal in self.terminals:

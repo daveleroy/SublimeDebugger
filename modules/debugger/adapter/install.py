@@ -69,7 +69,7 @@ class VSCodeAdapterInstall:
 				for debugger in j.get('contributes', {}).get('debuggers', []):
 					snippets.extend(debugger.get('configurationSnippets', []))
 
-			with open(snippets_output_file, 'w') as file:
+			with open(snippets_output_file, 'w') as snippets_file:
 				sublime_adapter_info = {
 					'configurationSnippets': snippets,
 					'version': version
@@ -80,7 +80,7 @@ class VSCodeAdapterInstall:
 				# FIXME this isn't correct... but good enough for now...
 				content = content.replace('^\\\"', '')
 				content = content.replace('\\\"', '')
-				file.write(content)
+				snippets_file.write(content)
 
 			log.info('Finished Installing adapter: {}'.format(self.name))
 		except Exception as e:

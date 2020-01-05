@@ -35,31 +35,7 @@ def create_future():
 def run_in_executor(func, *args):
 	return asyncio.futures.wrap_future(sublime_event_loop_executor.submit(func, *args), loop=sublime_event_loop)
 
-def all_methods(decorator):
-	def decorate(cls):
-		for attribute in cls.__dict__:
-			if callable(getattr(cls, attribute)):
-				setattr(cls, attribute, decorator(getattr(cls, attribute)))
-		return cls
-	return decorate
-
-'''decorator for requiring that a function must be run in the background'''
-def require_main_thread(function):
-	def wrapper(*args, **kwargs):
-		assert_main_thread()
-		return function(*args, **kwargs)
-	return wrapper
-
-
-def auto_run(function):
-	def wrapper(*args, **kwargs):
-		function = function(*args, **kwargs)
-		core.run(function)
-		return coroutine
-	return wrapper
-
-
-def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: Callable[[Exception], None] = None) -> asyncio.Future:
+def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: Callable[[Exception], None] = None) -> future:
 	task = asyncio.ensure_future(awaitable, loop=sublime_event_loop)
 
 	def done(task) -> None:
@@ -81,12 +57,6 @@ def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: 
 
 	task.add_done_callback(done)
 	return task
-
-def assert_main_thread() -> None:
-	assert is_main_thred(), 'expecting main thread'
-
-def is_main_thred() -> bool:
-	return isinstance(threading.current_thread(), threading._MainThread)
 
 def display(msg: 'Any') -> None:
 	sublime.error_message('{}'.format(msg))

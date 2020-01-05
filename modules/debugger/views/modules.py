@@ -12,7 +12,7 @@ class ModulesView(ui.div):
 	def __init__(self, modules: Modules):
 		super().__init__()
 		self.modules = modules
-		self.expanded = {}
+		self.expanded = {} #type: Dict[Any, bool]
 
 	def added(self, layout: ui.Layout):
 		self.on_updated_handle = self.modules.on_updated.add(self.dirty)
@@ -37,7 +37,7 @@ class ModulesView(ui.div):
 			is_expanded = self.is_expanded(module)
 			image_toggle = ui.Images.shared.open if is_expanded else ui.Images.shared.close
 			item = ui.div()[
-				ui.click(lambda module=module: self.toggle_expanded(module))[
+				ui.click(lambda module=module: self.toggle_expanded(module))[ #type: ignore
 					ui.icon(image_toggle),
 				],
 				ui.text(module.name)

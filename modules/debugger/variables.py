@@ -6,6 +6,9 @@ from .views import css
 
 import sublime
 
+if TYPE_CHECKING:
+	from .debugger_session import DebuggerSession
+
 class VariableReference (Protocol):
 	@property
 	def name(self) -> str:
@@ -48,7 +51,7 @@ class Variable:
 	def __init__(self, session: 'DebuggerSession', reference: VariableReference) -> None:
 		self.session = session
 		self.reference = reference
-		self.fetched = None #type: Optional[core.awaitable[List[Variable]]]
+		self.fetched = None #type: Optional[core.future]
 
 	@property
 	def name(self) -> str:
@@ -60,7 +63,7 @@ class Variable:
 
 	@core.coroutine
 	def fetch(self):
-		variables = yield from self.session.adapter.GetVariables(self.reference.variablesReference)
+		variables = yield from self.session.client.GetVariables(self.reference.variablesReference)
 		return [Variable(self.session, v) for v in variables]
 
 	@core.coroutine

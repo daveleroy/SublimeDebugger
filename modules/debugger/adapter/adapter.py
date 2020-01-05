@@ -64,10 +64,12 @@ class Adapter:
 
 	@core.coroutine
 	def install(self, log: core.Logger) -> core.awaitable[None]:
+		if not self.installer:
+			return
 		yield from self.installer.install(log)
 		self.load_installation_if_needed()
 
-def install_adapters_menu(adapters: Sequence[Adapter], log: core.Logger):
+def install_adapters_menu(adapters: Iterable[Adapter], log: core.Logger):
 	items = []
 	for adapter in adapters:
 		if not adapter.installer:
@@ -93,7 +95,7 @@ def install_adapters_menu(adapters: Sequence[Adapter], log: core.Logger):
 
 		items.append(
 			ui.InputListItemChecked(
-				lambda adapter=adapter: install(adapter),
+				lambda adapter=adapter: install(adapter), #type: ignore
 				name,
 				name,
 				adapter.installed

@@ -89,14 +89,13 @@ class Debugger (DebuggerPanelCallbacks):
 				return main
 			except dap.Error as e:
 				core.log_exception()
-		if create:
+		if instance and create:
 			instance.show()
 		return instance
 
 	def refresh_phantoms(self) -> None:
 		ui.reload()
 
-	@core.require_main_thread
 	def __init__(self, window: sublime.Window) -> None:
 
 		# ensure we are being run inside a sublime project
@@ -147,7 +146,9 @@ class Debugger (DebuggerPanelCallbacks):
 
 		def on_selected_frame(frame: Optional[dap.StackFrame]) -> None:
 			if frame and frame.source:
-				self.source_provider.select(frame.source, frame.line, self.debugger.callstack.selected_thread.stopped_reason)
+				thread = self.debugger.callstack.selected_thread
+				assert thread
+				self.source_provider.select(frame.source, frame.line, thread.stopped_reason)
 			else:
 				self.source_provider.clear()
 
@@ -340,12 +341,12 @@ class Debugger (DebuggerPanelCallbacks):
 			self.terminal.log_error(str(e))
 		core.run(awaitable, on_error=on_error)
 
-	def on_navigate_to_source(self, source: dap.Source, line: int):
-		self.source_provider.navigate(source, line)
+	def on_navigate_to_source(self, source: dap.Source, line: Optional[int]):
+		self.source_provider.navigate(source, line or 1)
 
 	def command(enabled: Optional[int]=None, disabled: Optional[int]=None):
 		def wrap(f):
-			@property
+			@property #type: ignore
 			def wrapper(self):
 				class command:
 					def __init__(self, debugger, enabled, disabled, f):

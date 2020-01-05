@@ -6,6 +6,7 @@ from ... import dap
 import sublime
 import os
 
+
 # note: Breakpoint lines are 1 based (sublime lines are 0 based)
 class SourceBreakpoint:
 	next_id = 0
@@ -130,7 +131,7 @@ class SourceBreakpointView:
 		column = self.breakpoint.column
 
 		p = self.view.text_point(line - 1, 0)
-		
+
 		self.view.add_regions(self.breakpoint.region_name, [sublime.Region(p, p)], scope=self.breakpoint.scope(), icon=image.file, flags=sublime.HIDDEN)
 
 		if column and self.breakpoint.dap.column:
@@ -142,6 +143,7 @@ class SourceBreakpointView:
 		if self.column_phantom:
 			self.column_phantom.dispose()
 			self.column_phantom = None
+
 
 class SourceBreakpoints:
 	def __init__(self) -> None:

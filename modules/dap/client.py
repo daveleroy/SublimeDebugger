@@ -41,10 +41,10 @@ class ClientEventsListener (Protocol):
 	def on_threads_event(self, event: ThreadEvent):
 		...
 	# reverse requests
-	def on_run_in_terminal(self, request: RunInTerminalRequest) -> int: # pid
+	def on_run_in_terminal(self, request: RunInTerminalRequest) -> RunInTerminalResponse:
 		...
 
-@core.all_methods(core.require_main_thread)
+
 class Client:
 	def __init__(
 		self,
@@ -150,7 +150,7 @@ class Client:
 		})
 		frames = []
 		for frame in body['stackFrames']:
-			frame = StackFrame.from_json(thread, frame)
+			frame = StackFrame.from_json(frame)
 			frames.append(frame)
 		return frames
 
@@ -161,7 +161,7 @@ class Client:
 		})
 		frames = []
 		for frame in body['stackFrames']:
-			frame = StackFrame.from_json(None, frame)
+			frame = StackFrame.from_json(frame)
 			frames.append(frame)
 		return frames
 
@@ -411,10 +411,11 @@ class Client:
 
 	def handle_reverse_request_run_in_terminal(self, request: dict):
 		command = RunInTerminalRequest.from_json(request['arguments'])
-		pid = self.events.on_run_in_terminal(command)
-		self.send_response(request, {
-			'processId': pid
-		})
+		try:
+			response = self.events.on_run_in_terminal(command)
+			self.send_response(request, response.into_json())
+		except core.Error as e:
+			self.send_response(request, {}, error=str(e))
 
 	def handle_reverse_request(self, request: dict):
 		command = request['command']
@@ -422,7 +423,7 @@ class Client:
 			self.handle_reverse_request_run_in_terminal(request)
 			return
 
-		self.send_response(request, {}, error = "request not supported by client: {}".format(command))
+		self.send_response(request, {}, error="request not supported by client: {}".format(command))
 
 	def recieved_msg(self, data: dict) -> None:
 		t = data['type']
@@ -453,23 +454,23 @@ class Client:
 			self.handle_reverse_request(data)
 
 		if t == 'event':
-			body = data.get('body', {})
+			event_body = data.get('body', {})
 			event = data['event']
 			if event == 'initialized':
 				return core.call_soon(self._on_initialized)
 			if event == 'output':
-				return core.call_soon(self.events.on_output_event, OutputEvent.from_json(body))
+				return core.call_soon(self.events.on_output_event, OutputEvent.from_json(event_body))
 			if event == 'continued':
-				return core.call_soon(self._on_continued, body)
+				return core.call_soon(self._on_continued, event_body)
 			if event == 'stopped':
-				return core.call_soon(self._on_stopped, body)
+				return core.call_soon(self._on_stopped, event_body)
 			if event == 'terminated':
-				return core.call_soon(self._on_terminated, body)
+				return core.call_soon(self._on_terminated, event_body)
 			if event == 'thread':
-				return core.call_soon(self.events.on_threads_event, ThreadEvent.from_json(body))
+				return core.call_soon(self.events.on_threads_event, ThreadEvent.from_json(event_body))
 			if event == 'breakpoint':
-				return core.call_soon(self.events.on_breakpoint_event, BreakpointEvent.from_json(body))
+				return core.call_soon(self.events.on_breakpoint_event, BreakpointEvent.from_json(event_body))
 			if event == 'module':
-				return core.call_soon(self.events.on_module_event, ModuleEvent(body))
+				return core.call_soon(self.events.on_module_event, ModuleEvent(event_body))
 			if event == 'loadedSource':
-				return core.call_soon(self.events.on_loaded_source_event, LoadedSourceEvent(body))
+				return core.call_soon(self.events.on_loaded_source_event, LoadedSourceEvent(event_body))

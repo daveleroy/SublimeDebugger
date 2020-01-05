@@ -1,28 +1,36 @@
 from ..typecheck import *
 
 if TYPE_CHECKING:
-	from . component import Component
+	from . html import element
+
+
+class SyntaxHighlightedText:
+	def __init__(self, text: str, language: str) -> None:
+		self.html = None #type: Optional[str]
+		self.text = text
+		self.language = language
+
 
 class Layout:
 	def dirty(self) -> None:
 		...
-	def remove_component_children(self, item: 'Component') -> None:
+	def remove_component_children(self, item: 'element') -> None:
 		...
-	def remove_component(self, item: 'Component') -> None:
+	def remove_component(self, item: 'element') -> None:
 		...
-	def add_component_children(self, item: 'Component') -> None:
+	def add_component_children(self, item: 'element') -> None:
 		...
-	def add_component(self, item: 'Component') -> None:
+	def add_component(self, item: 'element') -> None:
 		...
-	def render_component_tree(self, item: 'Component') -> None:
+	def render_component_tree(self, item: 'element') -> None:
 		...
-	def render_component(self, item: 'Component') -> None:
+	def render_component(self, item: 'element') -> None:
 		...
 	def run_syntax_highlight(self) -> None:
 		...
 	def render(self) -> bool:
 		...
-	def syntax_highlight(self, text: str, language: str) -> str:
+	def syntax_highlight(self, text: str, language: str) -> SyntaxHighlightedText:
 		...
 	def dispose(self) -> None:
 		...

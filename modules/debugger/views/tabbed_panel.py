@@ -49,7 +49,7 @@ class TabbedPanel(ui.div):
 
 		tabs = [] #type: List[ui.span]
 		for index, item in enumerate(self.items):
-			tabs.append(ui.click(lambda index=index: self.show(index))[
+			tabs.append(ui.click(lambda index=index: self.show(index))[ #type: ignore
 				Tab(item, index == self.selected_index)
 			])
 		return [

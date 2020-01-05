@@ -38,21 +38,25 @@ class CommandPaletteInputCommand:
 			"overlay": "command_palette",
 		})
 
+
 class DebuggerInputCommand(sublime_plugin.WindowCommand):
 	def __init__(self, window):
 		super().__init__(window)
 		view_drag_select.add(self.on_view_drag_select)
 
 	def input(self, args):
+		if not CommandPaletteInputCommand.running_command:
+			raise core.Error("expected running_command")
+
 		input = CommandPaletteInputCommand.running_command.input
 		CommandPaletteInputCommand.running_command = None
 		return input
 
 	def is_visible(self):
-		return CommandPaletteInputCommand.running_command != None
+		return CommandPaletteInputCommand.running_command is not None
 
 	def on_view_drag_select(self, event):
-		if CommandPaletteInputCommand.running_command != None:
+		if CommandPaletteInputCommand.running_command is not None:
 			CommandPaletteInputCommand.running_command.hide_overlay()
 
 class InputListItem:

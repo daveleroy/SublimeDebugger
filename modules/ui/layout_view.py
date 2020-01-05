@@ -1,7 +1,7 @@
 from ..typecheck import *
 from ..import core
-from . html import div, span, phantom_sizer, Component
-from . layout import Layout
+from . html import div, span, phantom_sizer, element
+from . layout import Layout, SyntaxHighlightedText
 from . css import css
 from . image import view_background_lightness
 
@@ -9,11 +9,6 @@ import os
 import sublime
 import threading
 
-class SyntaxHighlightedText:
-	def __init__(self, text: str, language: str) -> None:
-		self.html = None #type: Optional[str]
-		self.text = text
-		self.language = language
 
 class LayoutComponent (Layout):
 	def __init__(self, item: Union[div, span]) -> None:
@@ -26,7 +21,7 @@ class LayoutComponent (Layout):
 		self.dirty()
 
 	def __getitem__(self, values: 'div.Children'):
-		if isinstance(values, Component):
+		if isinstance(values, element):
 			self.item = phantom_sizer(div()[values])
 		else:
 			self.item = phantom_sizer(div()[values])
@@ -40,35 +35,35 @@ class LayoutComponent (Layout):
 		self.requires_render = True
 		schedule_render()
 
-	def remove_component_children(self, item: 'Component') -> None:
+	def remove_component_children(self, item: element) -> None:
 		for child in item.children:
 			assert child.layout
 			child.layout.remove_component(child)
 
 		item.children = []
 
-	def remove_component(self, item: 'Component') -> None:
+	def remove_component(self, item: element) -> None:
 		self.remove_component_children(item)
 		item.removed()
 		item.layout = None
 
-	def add_component_children(self, item: 'Component') -> None:
+	def add_component_children(self, item: element) -> None:
 		for item in item.children:
 			self.add_component(item)
 
-	def add_component(self, item: 'Component') -> None:
+	def add_component(self, item: element) -> None:
 		assert not item.layout, 'This item already has a layout?'
 		item.layout = self
 		item.added(self)
 
-	def render_component_tree(self, item: 'Component') -> None:
+	def render_component_tree(self, item: element) -> None:
 		item.requires_render = False
 		self.remove_component_children(item)
 		children = item.render()
 
 		if children is None:
 			item.children = []
-		elif isinstance(children, Component):
+		elif isinstance(children, element):
 			item.children = (children, )
 		else:
 			item.children = children
@@ -78,7 +73,7 @@ class LayoutComponent (Layout):
 		for child in item.children:
 			self.render_component_tree(child)
 
-	def render_component(self, item: 'Component') -> None:
+	def render_component(self, item: element) -> None:
 		if item.requires_render:
 			self.render_component_tree(item)
 		else:
@@ -101,8 +96,8 @@ class LayoutComponent (Layout):
 
 		return True
 
-	def syntax_highlight(self, text: str, language: str) -> str:
-		return self.text
+	def syntax_highlight(self, text: str, language: str) -> SyntaxHighlightedText:
+		return SyntaxHighlightedText(text, language)
 
 	def dispose(self) -> None:
 		self.remove_component(self.item)
@@ -119,7 +114,7 @@ class LayoutComponent (Layout):
 		return str(id)
 
 class LayoutView (LayoutComponent):
-	def __init__(self, item: 'Component', view: sublime.View) -> None:
+	def __init__(self, item: Union[div, span], view: sublime.View) -> None:
 		super().__init__(item)
 		self.view = view
 		self._width = 0.0
@@ -128,10 +123,10 @@ class LayoutView (LayoutComponent):
 		self._em_width = 1.0
 		self.update()
 		self._highlighter = None
-		self._unhighlightedSyntaxHighlightedTexts = []
+		self._unhighlightedSyntaxHighlightedTexts = [] #type: List[SyntaxHighlightedText]
 		self._syntaxHighlightCache = {} #type: dict
 		try:
-			from mdpopups import SublimeHighlight
+			from mdpopups import SublimeHighlight #type: ignore
 			scheme = view.settings().get('color_scheme')
 			self._highlighter = SublimeHighlight(scheme)
 		except ImportError as e:

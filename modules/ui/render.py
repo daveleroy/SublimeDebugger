@@ -1,13 +1,11 @@
 from ..typecheck import *
 from .. import core
-from . html import div, Component, phantom_sizer
+from . html import span, div, element, phantom_sizer
 from . layout_view import LayoutView
 
 import sublime
 import threading
 
-if TYPE_CHECKING:
-	from .component import Component
 
 class Timer:
 	def __init__(self, callback: Callable[[], None], interval: float, repeat: bool) -> None:
@@ -88,7 +86,7 @@ class Renderable(Protocol):
 class Phantom(LayoutView, Renderable):
 	id = 0
 
-	def __init__(self, component: 'Component', view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
+	def __init__(self, component: Union[span, div], view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
 		super().__init__(component, view)
 		self.cachedPhantom = None #type: Optional[sublime.Phantom]
 		self.region = region
@@ -121,7 +119,7 @@ class Phantom(LayoutView, Renderable):
 
 
 class Popup(LayoutView, Renderable):
-	def __init__(self, component: 'Component', view: sublime.View, location: int = -1, on_close: Optional[Callable[[], None]] = None) -> None:
+	def __init__(self, component: Union[span, div], view: sublime.View, location: int = -1, on_close: Optional[Callable[[], None]] = None) -> None:
 		super().__init__(component, view)
 		self.on_close = on_close
 		self.location = location

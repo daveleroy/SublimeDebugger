@@ -58,7 +58,7 @@ class ThreadView (ui.div):
 		self.hide_name = hide_name
 		self.thread = thread
 		self.state = state
-		self.frames = []
+		self.frames = [] #type: List[dap.StackFrame]
 		core.run(self.fetch())
 
 	@core.coroutine
@@ -118,7 +118,7 @@ class ThreadView (ui.div):
 			return [
 				thread_item,
 				ui.div()[
-					[StackFrameComponent(self.debugger, frame, lambda frame=frame: self.on_select_frame(frame), width=width) for frame in self.frames]
+					[StackFrameComponent(self.debugger, frame, lambda frame=frame: self.on_select_frame(frame), width=width) for frame in self.frames] #type: ignore
 				]
 			]
 		else:

@@ -18,7 +18,6 @@ from .html import div, span, text, icon, click, code
 from .css import css
 
 from .layout import *
-from .component import *
 from .image import *
 from .input import *
 from .align import text_align

@@ -57,10 +57,10 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.terminals_updated = core.Event() #type: core.Event[None]
 
 		self.breakpoints = breakpoints
-		self.breakpoints_for_id = {} #type: Dict[int, Breakpoint]
-		self.breakpoints.data.on_send.add(lambda _: core.run(self.set_data_breakpoints()))
-		self.breakpoints.function.on_send.add(lambda _: core.run(self.set_function_breakpoints()))
-		self.breakpoints.filters.on_send.add(lambda _: core.run(self.set_exception_breakpoint_filters()))
+		self.breakpoints_for_id = {} #type: Dict[int, SourceBreakpoint]
+		self.breakpoints.data.on_send.add(self.on_send_data_breakpoints)
+		self.breakpoints.function.on_send.add(self.on_send_function_breakpoints)
+		self.breakpoints.filters.on_send.add(self.on_send_filters)
 		self.breakpoints.source.on_send.add(self.on_send_source_breakpoint)
 
 		self.watch = watch
@@ -71,7 +71,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 		self.adapter = None #type: Optional[dap.Client]
 		self.process = None #type: Optional[Process]
-		self.launching_async = None
+		self.launching_async = None #type: Optional[core.future]
 
 		self.launch_request = True
 
@@ -144,8 +144,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if 'sublime_debugger_build' in configuration.all:
 			self.info('running build...')
 			terminal = TerminalStandard('Build Results')
-			self.terminals.append(terminal)
-			self.on_terminals(self.terminals)
+			self.terminals.add(self, terminal)
 			yield from build.run(sublime.active_window(), terminal.write_stdout, configuration.all['sublime_debugger_build'])
 			self.info('... finished running build')
 
@@ -227,7 +226,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 				bps[breakpoint.file] = [breakpoint]
 
 		for file, filebreaks in bps.items():
-			requests.append(self.on_send_breakpoints_for_file(file, filebreaks))
+			requests.append(self.set_breakpoints_for_file(file, filebreaks))
 
 		if self.capabilities.supportsDataBreakpoints:
 			requests.append(self.set_data_breakpoints())
@@ -239,8 +238,8 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	def set_exception_breakpoint_filters(self) -> core.awaitable[None]:
 		if not self.adapter:
 			return
-		filters = []
-		for f in filters:
+		filters = [] #type: List[str]
+		for f in self.breakpoints.filters:
 			if f.enabled:
 				filters.append(f.dap.id)
 
@@ -274,7 +273,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			self.breakpoints.data.set_result(b, result)
 
 	@core.coroutine
-	def on_send_breakpoints_for_file(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[None]:
+	def set_breakpoints_for_file(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[None]:
 		if not self.adapter:
 			return
 
@@ -296,11 +295,18 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			for b in enabled_breakpoints:
 				self.breakpoints.source.set_result(b, dap.BreakpointResult.failed)
 
+	def on_send_data_breakpoints(self, any):
+		core.run(self.set_data_breakpoints())
+
+	def on_send_function_breakpoints(self, any):
+		core.run(self.set_function_breakpoints())
+
+	def on_send_filters(self, any):
+		core.run(self.set_exception_breakpoint_filters())
+
 	def on_send_source_breakpoint(self, breakpoint: SourceBreakpoint) -> None:
-		if not self.adapter:
-			return
 		file = breakpoint.file
-		core.run(self.on_send_breakpoints_for_file(file, self.breakpoints.source.breakpoints_for_file(file)))
+		core.run(self.set_breakpoints_for_file(file, self.breakpoints.source.breakpoints_for_file(file)))
 
 	def stop(self) -> core.awaitable[None]:
 		# the adapter isn't stopping and stop is called again we force stop it
@@ -401,7 +407,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	def refresh_threads(self) -> None:
 		@core.coroutine
 		def refresh_threads() -> core.awaitable[None]:
-			threads = yield from self.adapter.GetThreads()
+			threads = yield from self.client.GetThreads()
 			self.callstack.update(threads)
 		core.run(refresh_threads())
 
@@ -447,7 +453,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if event.restart:
 			core.run(self.launch(self.adapter_configuration, self.configuration, event.restart))
 
-	def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> int: # pid
+	def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
 		try:
 			return self.terminals.on_terminal_request(self, request)
 		except core.Error as e:
@@ -513,7 +519,7 @@ class Thread:
 		self.name = name
 		self.stopped = stopped
 		self.stopped_reason = ""
-		self._children = None
+		self._children = None #type: Optional[core.future]
 
 	def has_children(self) -> bool:
 		return self.stopped

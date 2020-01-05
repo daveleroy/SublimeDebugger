@@ -52,6 +52,8 @@ class Set(Generic):
 class Sequence(Generic):
     pass
 
+class Iterable(Generic):
+    pass
 
 class NamedTuple(Generic):
     pass
@@ -60,3 +62,9 @@ class NamedTuple(Generic):
 class TypeVar:
     def __init__(self, name: str) -> None:
         pass
+
+
+def overload(func):
+    def overload(*args, **kwds):
+        raise NotImplementedError
+    return overload

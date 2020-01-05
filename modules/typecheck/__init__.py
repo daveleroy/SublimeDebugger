@@ -1,9 +1,7 @@
-
-# this is for mypy we want typing for mypy but sublime doesnt have it
+# this is for mypy
 # we add our own stubs so we don't need to escape types
 try:
 	from typing import *
-	from typing_extensions import Protocol
-
+	from typing_extensions import Protocol #type: ignore
 except:
 	from .typing import * #type: ignore

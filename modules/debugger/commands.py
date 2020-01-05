@@ -133,7 +133,7 @@ actions_context = [
 		"command": lambda window, debugger: debugger.run_to_current_line,
 	},
 	{	"caption": "-"	},
-]
+] #type: List[Dict[str, Any]]
 
 actions_window_map = {} #type: Dict[str, Dict[str, Any]]
 for actions in (actions_window, actions_context):
@@ -148,15 +148,15 @@ class DebuggerCommand (sublime_plugin.WindowCommand):
 			generate_commands_and_menus()
 			return
 
-		action = actions_window_map[action]
-		debugger = Debugger.for_window(self.window, create=action.get('opens', False))
+		action_item = actions_window_map[action]
+		debugger = Debugger.for_window(self.window, create=action_item.get('opens', False))
 
-		command = action.get('command')
+		command = action_item.get('command')
 		if command:
 			result = command(self.window, debugger)
 			result()
 
-		run = action.get('run')
+		run = action_item.get('run')
 		if run:
 			run(self.window, debugger)
 
@@ -224,7 +224,7 @@ def generate_commands_and_menus():
 				}
 			)
 
-	commands_palette = []
+	commands_palette = [] #type: List[Any]
 	generate_commands(actions_window, commands_palette, prefix="Debugger: ", include_seperators=False)
 
 	commands_palette.insert(0, preferences)
@@ -239,7 +239,7 @@ def generate_commands_and_menus():
 	with open(current_package + '/Commands/Commands.sublime-commands', 'w') as file:
 		json.dump(commands_palette, file, indent=4, separators=(',', ': '))
 
-	commands_menu = []
+	commands_menu = [] #type: List[Any]
 	generate_commands(actions_window, commands_menu)
 	commands_menu.insert(2, settings)
 
@@ -253,7 +253,7 @@ def generate_commands_and_menus():
 
 	print('Generating commands')
 
-	commands_context = []
+	commands_context = [] #type: List[Any]
 	generate_commands(actions_context, commands_context)
 
 	with open(current_package + '/Commands/Context.sublime-menu', 'w') as file:

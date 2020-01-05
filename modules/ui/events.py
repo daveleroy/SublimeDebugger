@@ -33,16 +33,16 @@ class ViewEventsListener(sublime_plugin.EventListener):
 	# detects clicks on the gutter
 	# if a click is detected we then reselect the previous selection
 	# This means that a click in the gutter no longer selects that line
-	def on_text_command(self, view: sublime.View, cmd: str, args: dict) -> None:
+	def on_text_command(self, view: sublime.View, cmd: str, args: dict) -> Any:
 		if (cmd == 'drag_select' or cmd == 'context_menu') and 'event' in args:
 			event = args['event']
 
-			view_x, view_y = view.layout_to_window(view.viewport_position())
+			view_x, view_y = view.layout_to_window(view.viewport_position()) #type: ignore
 
 			x = event['x']
 			y = event['y']
 
-			margin = view.settings().get("margin")
+			margin = view.settings().get("margin") or 0
 			offset = x - view_x
 
 			view.window().run_command("hide_overlay")

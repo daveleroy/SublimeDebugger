@@ -9,7 +9,7 @@ import sublime
 import sublime_plugin
 
 class DebuggerShowLineCommand(sublime_plugin.TextCommand):
-	def run(self, edit, line: int, move_cursor: bool):
+	def run(self, edit, line: int, move_cursor: bool): #type: ignore
 		a = self.view.text_point(line, 0)
 		region = sublime.Region(a, a)
 		self.view.show_at_center(region)
@@ -18,7 +18,7 @@ class DebuggerShowLineCommand(sublime_plugin.TextCommand):
 			self.view.sel().add(region)
 
 class DebuggerReplaceContentsCommand(sublime_plugin.TextCommand):
-	def run(self, edit, characters) -> None:
+	def run(self, edit, characters):
 		self.view.replace(edit, sublime.Region(0, self.view.size()), characters)
 		self.view.sel().clear()
 

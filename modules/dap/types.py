@@ -47,8 +47,7 @@ class StackFrame:
 	label = 2
 	subtle = 3
 
-	def __init__(self, thread: Thread, id: int, file: str, name: str, line: int, presentation: int, source: Optional['Source']) -> None:
-		self.thread = thread
+	def __init__(self, id: int, file: str, name: str, line: int, presentation: int, source: Optional['Source']) -> None:
 		self.id = id
 		self.name = name
 		self.file = file
@@ -57,7 +56,7 @@ class StackFrame:
 		self.source = source
 
 	@staticmethod
-	def from_json(thread: Thread, frame: dict) -> 'StackFrame':
+	def from_json(frame: dict) -> 'StackFrame':
 		file = '??'
 		source_json = frame.get('source')
 		source = None #type: Optional[Source]
@@ -75,7 +74,6 @@ class StackFrame:
 			presentation = StackFrame.normal
 
 		return StackFrame(
-			thread,
 			frame['id'],
 			file,
 			frame['name'],
@@ -286,8 +284,8 @@ class OutputEvent:
 			source = Source.from_json(source)
 
 		return OutputEvent(
-			category, 
-			json['output'], 
+			category,
+			json['output'],
 			json.get('variablesReference', 0),
 			source,
 			json.get('line'))
@@ -304,27 +302,40 @@ class RunInTerminalRequest:
 	@staticmethod
 	def from_json(json) -> 'RunInTerminalRequest':
 		return RunInTerminalRequest(
-			json.get('kind', 'integrated'), 
-			json.get('title', 'No Title'), 
+			json.get('kind', 'integrated'),
+			json.get('title', 'No Title'),
 			json['cwd'],
 			json['args'],
 			json.get('env', {})
 		)
 
 
+class RunInTerminalResponse:
+	def __init__(self, processId: Optional[int], shellProcessId: Optional[int]) -> None:
+		self.processId = processId
+		self.shellProcessId = shellProcessId
+
+	def into_json(self) -> dict:
+		return {
+			'processId': self.processId,
+			'shellProcessId': self.shellProcessId,
+		}
+
+
 class DataBreakpoint:
 	read = 'read'
 	write = 'write'
-	readWrite ='readWrite'
+	readWrite = 'readWrite'
 
 	def __init__(self, id: str, accessType: Optional[str], condition: Optional[str], hitCondition: Optional[str]) -> None:
 		self.id = id
 		self.accessType = accessType
 		self.condition = condition
 		self.hitCondition = hitCondition
+
 	def into_json(self) -> dict:
 		return {
-			'dataId': self.id,
+			'processId': self.id,
 			'accessType': self.accessType,
 			'condition': self.condition,
 			'hitCondition': self.hitCondition,
@@ -348,8 +359,8 @@ class DataBreakpointInfoResponse:
 	@staticmethod
 	def from_json(json) -> 'DataBreakpointInfoResponse':
 		return DataBreakpointInfoResponse(
-			json.get('dataId'), 
-			json.get('description', 'no data description'), 
+			json.get('dataId'),
+			json.get('description', 'no data description'),
 			json.get('accessTypes', []),
 			json.get('canPersist', False),
 		)
@@ -371,8 +382,8 @@ class FunctionBreakpoint:
 	@staticmethod
 	def from_json(json) -> 'FunctionBreakpoint':
 		return FunctionBreakpoint(
-			json.get('name'), 
-			json.get('condition'), 
+			json.get('name'),
+			json.get('condition'),
 			json.get('hitCondition'),
 		)
 
@@ -394,8 +405,8 @@ class SourceBreakpoint:
 	@staticmethod
 	def from_json(json) -> 'SourceBreakpoint':
 		return SourceBreakpoint(
-			json.get('line'), 
-			json.get('column'), 
+			json.get('line'),
+			json.get('column'),
 			json.get('condition'),
 			json.get('hitCondition'),
 			json.get('logMessage'),
@@ -416,14 +427,13 @@ def _remove_empty(dict: dict):
 	for key, value in dict.items():
 		if value is None:
 			rm.append(key)
-	
+
 	for key in rm:
 		del dict[key]
 
 	return dict
 
 class BreakpointResult:
-	
 	def __init__(self, verified: bool, line: Optional[int], column: Optional[int], message: Optional[str], id = None) -> None:
 		self.verified = verified
 		self.line = line

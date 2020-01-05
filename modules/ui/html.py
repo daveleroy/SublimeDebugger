@@ -1,13 +1,15 @@
 from ..typecheck import *
-from . component import Component
 from . layout import Layout
 from . image import Image
 from . css import css, div_inline_css, icon_css, none_css
 
 
-class element(Component):
+class element:
 	def __init__(self, is_inline: bool, width: Optional[float], height: Optional[float], css: Optional[css]) -> None:
 		super().__init__()
+		self.layout = None #type: Optional[Layout]
+		self.children = [] #type: Sequence[element]
+		self.requires_render = True
 		self._height = height
 		self._width = width
 		self.is_inline = is_inline
@@ -18,6 +20,7 @@ class element(Component):
 			self.padding_width = css.padding_width
 		else:
 			self.css = none_css
+			self.className = none_css.class_name
 			self.padding_height = 0
 			self.padding_width = 0
 
@@ -51,6 +54,34 @@ class element(Component):
 
 		return max(width_max, width) + self.padding_width
 
+	def add_class(self, name: str) -> None:
+		self.className += ' '
+		self.className += name
+
+	def dirty(self):
+		if self.layout:
+			self.layout.dirty()
+		self.requires_render = True
+
+	def html_inner(self, layout: Layout) -> str:
+		html = []
+		for child in self.children:
+			html.append(child.html(layout))
+		return ''.join(html)
+
+	def html(self, layout: Layout) -> str:
+		...
+
+	def added(self, layout: Layout) -> None:
+		...
+
+	def removed(self) -> None:
+		...
+
+	def render(self) -> Optional[Union[Sequence['element'], 'element']]:
+		...
+
+
 class span (element):
 	Children = Optional[Union[Sequence['span'], 'span']]
 
@@ -71,6 +102,7 @@ class span (element):
 		w = self.width(layout)
 		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, inner)
 		return html
+
 
 class div (element):
 	Children = Optional[Union[Sequence['div'], Sequence['span'], 'div', 'span']]
@@ -173,7 +205,7 @@ class code(span):
 		self.text_html = html_escape(self.text)
 		self.language = language
 
-	def added(self, layout: Layout) -> str:
+	def added(self, layout: Layout) -> None:
 		self.highlight = layout.syntax_highlight(self.text, self.language)
 
 	def width(self, layout: Layout) -> float:

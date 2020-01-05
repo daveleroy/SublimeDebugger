@@ -56,7 +56,7 @@ class AutocompleteEventListener(sublime_plugin.EventListener):
 		adapter = m.debugger.adapter
 		if not adapter:
 			return
-		self.completions = yield from adapter.Completions(text, len(text) + 1, m.debugger.selected_frame)
+		self.completions = yield from adapter.Completions(text, len(text) + 1, m.debugger.callstack.selected_frame)
 		view.run_command("hide_auto_complete")
 		view.run_command("auto_complete", {
 			'disable_auto_insert': True,

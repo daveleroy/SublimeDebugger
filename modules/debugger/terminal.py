@@ -11,11 +11,11 @@ import sublime
 
 try:
 	if core.platform.windows:
-		from winpty import PtyProcess
+		from winpty import PtyProcess  #type: ignore
 	else:
-		from ptyprocess import PtyProcess as _PtyProcess
+		from ptyprocess import PtyProcess as _PtyProcess  #type: ignore
 
-		class PtyProcess(_PtyProcess):
+		class PtyProcess(_PtyProcess):  #type: ignore
 			def read(self):
 				return super().read().decode('utf-8')
 
@@ -69,7 +69,7 @@ class TtyProcess:
 		if self.on_close:
 			core.call_soon_threadsafe(self.on_close)
 		self.closed = True
-		self.process.close(force=True)
+		self.process.close(force=True,)
 
 	def dispose(self) -> None:
 		try:
@@ -83,7 +83,7 @@ class Terminal:
 		self.lines = [] #type: List[Line]
 		self.new_line = True
 		self._name = name
-		self.on_updated = core.Event()
+		self.on_updated = core.Event() #type: core.Event[None]
 		self.line_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
 		self.escape_input = True
 
@@ -105,6 +105,7 @@ class Terminal:
 				self.new_line = False
 
 			last = self.lines[-1]
+			assert isinstance(last, StandardLine)
 
 			if source:
 				last.source = source
@@ -147,8 +148,8 @@ class TerminalStandard(Terminal):
 class TerminalProcess (Terminal):
 	def __init__(self, cwd: str, args: List[str]) -> None:
 		super().__init__("Terminal")
-		cwd = cwd or None # turn "" into None
-		self.process = TtyProcess(args, on_output=self.on_process_output, cwd = cwd)
+		directory = cwd or None # turn "" into None
+		self.process = TtyProcess(args, on_output=self.on_process_output, cwd=directory)
 
 	def pid(self) -> int:
 		return self.process.pid
@@ -178,7 +179,7 @@ class TerminalProcess (Terminal):
 
 
 class Line:
-	def ui(self, max_line_length) -> [ui.div]:
+	def ui(self, layout, max_line_length) -> List[ui.div]:
 		pass
 
 
@@ -232,15 +233,15 @@ class StandardLine (Line):
 		if line_regex:
 			match = line_regex.match(self.text)
 			if match:
-				source = dap.Source(None, match.group(1), 0, 0, None, None)
+				source = dap.Source(None, match.group(1), 0, 0, None, [])
 				line = int(match.group(2))
 				self.text = match.group(4)
 				self.source = source
 				self.line = line
 
-	def ui(self, layout, max_line_length) -> [ui.div]:
-		span_lines = []
-		spans = []
+	def ui(self, layout, max_line_length) -> List[ui.div]:
+		span_lines = [] #type: List[ui.div]
+		spans = [] #type: List[ui.span]
 		leftover_line_length = max_line_length
 
 		# if we have a name/line put it to the right of the first line
@@ -251,9 +252,10 @@ class StandardLine (Line):
 			if not span_lines and self.source:
 				size = (padding + 15) * layout.em_width()
 				def on_clicked_source():
+					assert self.source
 					self.on_clicked_source(self.source, self.line)
 
-				spans.append(LineSourceComponent(self.source.name, self.line, size, on_clicked_source))
+				spans.append(LineSourceComponent(self.source.name or '??', self.line, size, on_clicked_source))
 
 		span_offset = 0
 		while span_offset < len(self.text):
@@ -321,6 +323,7 @@ class TerminalComponent (ui.div):
 		self.terminal.clear()
 
 	def render(self):
+		assert self.layout
 		lines = []
 		height = 0
 		max_height = int(self.layout.height() / 3) - 1.0

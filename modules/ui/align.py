@@ -4,7 +4,7 @@ from . css import css
 
 
 def text_align(width, values: Sequence[text]) -> span:
-	items = []
+	items = [] #type: List[text]
 	for text in values:
 		css = text.css
 		string = text.text

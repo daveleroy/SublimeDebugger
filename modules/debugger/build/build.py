@@ -1,8 +1,8 @@
 
 import sublime
-import Default
+import Default #type: ignore
 
-from ... import core
+from ...import core
 
 on_finished_futures = {}
 on_output_callbacks = {}
@@ -18,10 +18,11 @@ def run(window: sublime.Window, on_output_callback, args) -> core.awaitable[None
 	on_output_callbacks[id] = on_output_callback
 	print(args)
 	window.run_command("debugger_build_exec", {
-		"id": id, 
+		"id": id,
 		"args": args,
 	})
 	return future
+
 
 class DebuggerBuildExecCommand(Default.exec.ExecCommand):
 	def run(self, id, args):
@@ -54,4 +55,3 @@ class DebuggerBuildExecCommand(Default.exec.ExecCommand):
 		future = self.future()
 		if future:
 			future.cancel()
-

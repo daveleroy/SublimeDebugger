@@ -1,13 +1,10 @@
-from ..typecheck import (
-	List,
-	Callable,
-	Optional,
-	Any
-)
+from ..typecheck import *
+from ..import core
+from ..import ui
 
 import sublime
-from .. import core
-from .. import ui
+import re
+
 
 class SettingsChangedCallbabck:
 	id = 0
@@ -27,7 +24,7 @@ class SettingsChangedCallbabck:
 class WindowSettingsCallback:
 	def __init__(self, window: sublime.Window, on_changed: Callable[[], None]):
 		self.window = window
-		self.settings_changed_callback = None
+		self.settings_changed_callback = None #type: Optional[SettingsChangedCallbabck]
 		self.on_changed = on_changed
 		self.on_view_updated = ui.view_activated.add(self.on_update_settings_view)
 		

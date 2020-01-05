@@ -9,6 +9,7 @@ from .variables import EvaluateReference, Variable, VariableComponent
 if TYPE_CHECKING:
 	from .debugger_session import DebuggerSession
 
+
 class Watch:
 	class Expression:
 		def __init__(self, value: str):
@@ -81,7 +82,7 @@ class Watch:
 
 	def clear_session_data(self, session: 'DebuggerSession'):
 		for expression in self.expressions:
-			expression.message = None
+			expression.message = ''
 			expression.evaluate_response = None
 		self.on_updated()
 
@@ -133,7 +134,6 @@ class WatchExpressionView(ui.div):
 	def render(self) -> ui.div.Children:
 		if self.expression.evaluate_response:
 			component = VariableComponent(self.expression.evaluate_response)
-			self.expression.evaluate_response.on_dirty = component.dirty
 			return [component]
 
 		return [

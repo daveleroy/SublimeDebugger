@@ -1,9 +1,10 @@
 from ... typecheck import *
 from ... import core
-from ... import ui 
+from ... import ui
 from ... import dap
 
 import sublime
+
 
 class ExceptionBreakpointsFilter:
 	def __init__(self, dap: dap.ExceptionBreakpointsFilter, enabled: bool):
@@ -38,6 +39,7 @@ class ExceptionBreakpointsFilter:
 			json['enabled']
 		)
 
+
 class ExceptionBreakpointsFilters:
 	def __init__(self) -> None:
 		self.filters = {} #type: Dict[str, ExceptionBreakpointsFilter]
@@ -46,25 +48,25 @@ class ExceptionBreakpointsFilters:
 
 	def __iter__(self):
 		return iter(self.filters.values())
-	
+
 	def into_json(self) -> list:
 		return list(map(lambda b: b.into_json(), self.filters.values()))
-	
+
 	def load_json(self, json: list):
 		filters = list(map(lambda j: ExceptionBreakpointsFilter.from_json(j), json))
 		self.filters = {}
 		for filter in filters:
 			self.filters[filter.dap.id] = filter
 		self.on_updated(self.filters.values())
-	
+
 	def edit(self, breakpoint: ExceptionBreakpointsFilter):
 		def toggle_enabled():
 			self.toggle(breakpoint)
 
 		return ui.InputList([
-			ui.InputListItemChecked (
+			ui.InputListItemChecked(
 				toggle_enabled,
-				"Enabled", 
+				"Enabled",
 				"Disabled",
 				breakpoint.enabled,
 			),
