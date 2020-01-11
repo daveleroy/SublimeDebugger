@@ -8,7 +8,7 @@
                   "name": "Python Debug",
                   "type": "python",
                   "request": "launch",
-                  "program": "${workspaceFolder}/test.py",
+                  "program": "${workspaceFolder}/main.py",
             },
       ]
 }

@@ -2,44 +2,6 @@
 <!DOCTYPE html>
 <html>
 <body>
-x
-<p id="done_element"></p>
-
-<script>
-	document.getElementById("done_element").innerHTML = "Running";
-	
-	let integer = 25;
-	let string = "string"
-	let array = [1, 2, 3, "One", "Two", "Three"]
-
-	let object = {
-		a: 1,
-		b: "Two",
-		c: [1, 2, 3]
-	} 
-
-	try {
-		throw "A test exception";
-	}
-	catch (e) {
-	}
-	function SomeFunction(argument) {
-		console.log(integer)
-		console.log(string)
-		console.log(array)
-		console.log(object)
-	}
-	function SomeOuterFunctions(argument) {
-		console.log(integer)
-		console.log(string)
-		console.log(array)
-		SomeFunction()
-	}
-
-	SomeOuterFunctions()
-
-	document.getElementById("done_element").innerHTML = "Done";
-</script> 
-
+<script src="./test.js"></script>
 </body>
 </html>

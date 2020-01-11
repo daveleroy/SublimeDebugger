@@ -10,6 +10,12 @@
 		"debug.configurations":
 		[
 			{
+				"request": "launch", 
+				"name": "Node test", 
+				"type": "node",
+				"program": "${project_path}/test.js"
+			},
+			{
 				"file": "${project_path}/index.html",
 				"name": "Chrome Debug",
 				"request": "launch",

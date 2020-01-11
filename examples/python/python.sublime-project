@@ -13,7 +13,7 @@
 				"name": "Python Debug",
 				"type": "python",
 				"request": "launch",
-				"program": "${project_path}/test.py",
+				"program": "${project_path}/main.py",
 				"debugOptions" : {
 					"RedirectOutput": true,
 				}

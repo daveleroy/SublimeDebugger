@@ -7,15 +7,37 @@
 	],
 	"settings":
 	{
+		// "debug.external_terminal":"terminus",
 		"debug.configurations":
-		[
+			[
+			{
+				"sublime_build": {
+					"cmd": "clang++ -std=c++14 -g main.cpp",
+					"shell": true,
+				},
+				"args": [], 
+				"type": "lldb",
+				"cwd": "${project_path}", 
+				"request": "launch",
+				"program": "${project_path}/a.out", 
+				"name": "Launch (Compile)",
+			},
 			{
 				"args": [], 
 				"type": "lldb",
 				"cwd": "${project_path}", 
-				"request": "launch", 
-				"program": "${project_path}/main", 
-				"name": "Launch"
+				"request": "launch",
+				"terminal": "external",
+				"program": "${project_path}/a.out", 
+				"name": "Launch (external)",
+			},
+			{
+				"args": [], 
+				"type": "lldb",
+				"cwd": "${project_path}", 
+				"request": "launch",
+				"program": "${project_path}/a.out", 
+				"name": "Launch",
 			},
 		]
 	},
