@@ -124,7 +124,9 @@ class Debugger (DebuggerPanelCallbacks):
 		def on_state_changed(state: int) -> None:
 			if state == DebuggerSession.stopped:
 				self.debugger_panel.setState(STOPPED)
-				self.show_console_panel()
+				if self.debugger.stopped_reason != DebuggerSession.stopped_reason_build_failed:
+					self.show_console_panel()
+
 			elif state == DebuggerSession.running:
 				self.debugger_panel.setState(RUNNING)
 			elif state == DebuggerSession.paused:
@@ -167,6 +169,7 @@ class Debugger (DebuggerPanelCallbacks):
 			terminal.on_updated.add(on_modified)
 
 			self.panels.add([panel])
+			self.panels.show(id(terminal))
 
 		def on_terminal_removed(terminal: Terminal):
 			self.panels.remove(id(terminal))

@@ -16,7 +16,6 @@ def run(window: sublime.Window, on_output_callback, args) -> core.awaitable[None
 	future = core.create_future()
 	on_finished_futures[id] = future
 	on_output_callbacks[id] = on_output_callback
-	print(args)
 	window.run_command("debugger_build_exec", {
 		"id": id,
 		"args": args,
@@ -38,7 +37,8 @@ class DebuggerBuildExecCommand(Default.exec.ExecCommand):
 		super().finish(proc)
 		future = self.future()
 		if future:
-			future.set_result(None)
+			exit_code = proc.exit_code() or 0
+			future.set_result(exit_code)
 
 	def future(self):
 		future = on_finished_futures.get(self._id)

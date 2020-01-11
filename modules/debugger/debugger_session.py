@@ -30,7 +30,14 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	running = 2
 
 	starting = 3
-	stopping = 4
+	stopping = 4	
+
+	stopped_reason_build_failed=0
+	stopped_reason_launch_error=1
+	stopped_reason_dispose=2
+	stopped_reason_cancel=3
+	stopped_reason_terminated_event=4
+	stopped_reason_manual=5
 
 	def __init__(
 		self,
@@ -83,7 +90,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.terminals.clear_session_data(self)
 
 	def dispose(self) -> None:
-		self.force_stop_adapter()
+		self.stop_forced(reason=DebuggerSession.stopped_reason_dispose)
 		self.dispose_terminals()
 		self.breakpoints.dispose()
 		for disposeable in self.disposeables:
@@ -108,18 +115,19 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			self.launching_async.cancel()
 
 		self.dispose_terminals()
-		self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart, no_debug))
 		try:
+			self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart, no_debug))
 			yield from self.launching_async
 		except core.Error as e:
 			self.launching_async = None
 			core.log_exception(e)
 			self.error("... an error occured, " + str(e))
-			self.force_stop_adapter()
+			self.stop_forced(reason=DebuggerSession.stopped_reason_launch_error)
+			raise e
 		except core.CancelledError:
 			self.launching_async = None
 			self.info("... canceled")
-			self.force_stop_adapter()
+			self.stop_forced(reason=DebuggerSession.stopped_reason_cancel)
 
 		self.launching_async = None
 
@@ -141,12 +149,17 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if not adapter_configuration.installed:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
 
-		if 'sublime_debugger_build' in configuration.all:
+		if 'sublime_build' in configuration.all:
 			self.info('running build...')
 			terminal = TerminalStandard('Build Results')
 			self.terminals.add(self, terminal)
-			yield from build.run(sublime.active_window(), terminal.write_stdout, configuration.all['sublime_debugger_build'])
-			self.info('... finished running build')
+			exit_code = yield from build.run(sublime.active_window(), terminal.write_stdout, configuration.all['sublime_build'])
+			if exit_code != 0:
+				self.error('... build failed: exit code {}'.format(exit_code))
+				self.stop_forced(reason=DebuggerSession.stopped_reason_build_failed)
+				return
+			else:
+				self.info('... finished running build')
 
 		# dont monitor stdout the StdioTransport uses it
 		self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.info)
@@ -311,7 +324,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	def stop(self) -> core.awaitable[None]:
 		# the adapter isn't stopping and stop is called again we force stop it
 		if not self.adapter or self.state == DebuggerSession.stopping:
-			self.force_stop_adapter()
+			self.stop_forced(reason=DebuggerSession.stopped_reason_manual)
 			return
 
 		self.state = DebuggerSession.stopping
@@ -330,9 +343,9 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		else:
 			yield from self.adapter.Disconnect()
 
-		self.force_stop_adapter()
+		self.stop_forced(DebuggerSession.stopped_reason_manual)
 
-	def force_stop_adapter(self) -> None:
+	def stop_forced(self, reason) -> None:
 		if self.launching_async:
 			self.launching_async.cancel()
 
@@ -449,7 +462,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self._refresh_state()
 
 	def on_terminated_event(self, event: dap.TerminatedEvent):
-		self.force_stop_adapter()
+		self.stop_forced(reason=DebuggerSession.stopped_reason_terminated_event)
 		if event.restart:
 			core.run(self.launch(self.adapter_configuration, self.configuration, event.restart))
 

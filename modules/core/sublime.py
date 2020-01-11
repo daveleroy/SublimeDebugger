@@ -27,9 +27,7 @@ def wait_for_view_to_load(view: sublime.View):
 		def loaded_view(v: sublime.View) -> None:
 			if view.id() == v.id():
 				future_view.set_result(view)
-				handle.dispose()
 
 		handle = ui.view_loaded.add(loaded_view)
-
 		yield from future_view
 		handle.dispose()

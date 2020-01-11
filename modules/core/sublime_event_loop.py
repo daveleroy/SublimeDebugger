@@ -43,7 +43,9 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 		raise NotImplementedError
 
 	def call_soon(self, callback, *args):
-		return self.call_later(0, callback, *args)
+		handle = Handle(callback, args)
+		sublime.set_timeout(handle, 0)
+		return handle
 
 	def call_later(self, delay, callback, *args):
 		handle = Handle(callback, args)
