@@ -364,6 +364,8 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if self.process:
 			self.process.dispose()
 			self.process = None
+
+		self.stopped_reason = reason
 		self.state = DebuggerSession.stopped
 
 	@property
@@ -559,7 +561,6 @@ class Threads:
 		self.on_selected_frame = core.Event() #type: core.Event[Optional[dap.StackFrame]]
 		self.on_selected_thread = core.Event() #type: core.Event[Optional[Thread]]
 		self.all_threads_stopped = False
-		self.all_threads_stopped_reason = ''
 
 		self.selected_explicitly = False
 		self.selected_thread = None
@@ -578,7 +579,6 @@ class Threads:
 			return t
 		else:
 			t = Thread(id, "??", client, self.all_threads_stopped)
-			t.stopped_reason = self.all_threads_stopped_reason
 			self.threads_for_id[id] = t
 			return t
 
@@ -594,12 +594,10 @@ class Threads:
 	def on_stopped_event(self, client: dap.Client, stopped: dap.StoppedEvent):
 		if stopped.allThreadsStopped:
 			self.all_threads_stopped = True
-			self.all_threads_stopped_reason = stopped.text
 
 			for thread in self.threads:
 				thread.clear()
 				thread.stopped = True
-				thread.stopped_reason = stopped.text
 
 		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
 		thread = self.getThread(client, stopped.threadId, )
@@ -637,10 +635,12 @@ class Threads:
 			self.all_threads_stopped = False
 			for thread in self.threads:
 				thread.stopped = False
+				thread.stopped_reason = ""
 
 		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
 		thread = self.getThread(client, continued.threadId)
 		thread.stopped = False
+		thread.stopped_reason = ""
 
 		if continued.allThreadsContinued or thread is self.selected_thread:
 			self.selected_explicitly = False

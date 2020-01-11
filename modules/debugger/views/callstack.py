@@ -95,6 +95,7 @@ class ThreadView (ui.div):
 						ui.icon(ui.Images.shared.thread_running),
 					],
 					ui.text(self.thread.name, css=css.label_padding),
+					ui.text(self.thread.stopped_reason, css=css.label_secondary),
 				],
 			]
 		else:
@@ -105,6 +106,7 @@ class ThreadView (ui.div):
 						ui.icon(ui.Images.shared.thread_running),
 					],
 					ui.text(self.thread.name, css=css.label_padding),
+					ui.text(self.thread.stopped_reason, css=css.label_secondary),
 				],
 			]
 
@@ -146,9 +148,9 @@ class StackFrameComponent (ui.div):
 			ui.span(css=css.button)[
 				ui.text(str(frame.line), css=css.label),
 			],
-			ui.text_align(self._width, [
+			ui.text_align(self._width - 3, [
 				ui.text(name, css=label_padding),
-				ui.text(frame.name, css=css.label_secondary_padding),
+				ui.text(frame.name, css=css.label_secondary),
 			])
 		]
 

@@ -150,7 +150,7 @@ class Debugger (DebuggerPanelCallbacks):
 			if frame and frame.source:
 				thread = self.debugger.callstack.selected_thread
 				assert thread
-				self.source_provider.select(frame.source, frame.line, thread.stopped_reason)
+				self.source_provider.select(frame.source, frame.line, thread.stopped_reason or "Stopped")
 			else:
 				self.source_provider.clear()
 
