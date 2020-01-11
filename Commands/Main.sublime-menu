@@ -1,149 +1,139 @@
 [
     {
-        "caption": "Debugger",
         "id": "debugger",
         "children": [
             {
-                "caption": "Open",
-                "command": "debugger",
                 "args": {
                     "action": "open"
-                }
+                },
+                "command": "debugger",
+                "caption": "Open"
             },
             {
-                "caption": "Quit",
-                "command": "debugger",
                 "args": {
                     "action": "quit"
-                }
+                },
+                "command": "debugger",
+                "caption": "Quit"
             },
             {
-                "caption": "Settings",
-                "command": "edit_settings",
                 "args": {
-                    "base_file": "${packages}/Debugger/debugger.sublime-settings"
-                }
+                    "action": "open_settings"
+                },
+                "command": "debugger",
+                "caption": "Settings"
             },
             {
                 "caption": "-"
             },
             {
-                "caption": "Install Adapters",
-                "command": "debugger",
                 "args": {
                     "action": "install_adapters"
-                }
+                },
+                "command": "debugger",
+                "caption": "Install Adapters"
             },
             {
-                "caption": "Add or Change Configuration",
-                "command": "debugger",
                 "args": {
                     "action": "change_configuration"
-                }
+                },
+                "command": "debugger",
+                "caption": "Add or Select Configuration"
             },
             {
                 "caption": "-"
             },
             {
-                "caption": "Start",
-                "command": "debugger",
                 "args": {
-                    "action": "start"
-                }
+                    "action": "on_play"
+                },
+                "command": "debugger",
+                "caption": "Start"
             },
             {
-                "caption": "Start (No Debug)",
-                "command": "debugger",
                 "args": {
-                    "action": "start_no_debug"
-                }
+                    "action": "on_play_no_debug"
+                },
+                "command": "debugger",
+                "caption": "Start (no debug)"
             },
             {
-                "caption": "Stop",
-                "command": "debugger",
                 "args": {
-                    "action": "stop"
-                }
+                    "action": "on_stop"
+                },
+                "command": "debugger",
+                "caption": "Stop"
             },
             {
                 "caption": "-"
             },
             {
-                "caption": "Pause",
-                "command": "debugger",
                 "args": {
-                    "action": "pause"
-                }
+                    "action": "on_resume"
+                },
+                "command": "debugger",
+                "caption": "Resume"
             },
             {
-                "caption": "Continue",
-                "command": "debugger",
                 "args": {
-                    "action": "continue"
-                }
+                    "action": "on_pause"
+                },
+                "command": "debugger",
+                "caption": "Pause"
             },
             {
-                "caption": "Step Over",
-                "command": "debugger",
                 "args": {
-                    "action": "step_over"
-                }
+                    "action": "on_step_over"
+                },
+                "command": "debugger",
+                "caption": "Step Over"
             },
             {
-                "caption": "Step In",
-                "command": "debugger",
                 "args": {
-                    "action": "step_in"
-                }
+                    "action": "on_step_in"
+                },
+                "command": "debugger",
+                "caption": "Step In"
             },
             {
-                "caption": "Step Out",
-                "command": "debugger",
                 "args": {
-                    "action": "step_out"
-                }
-            },
-            {
-                "caption": "Run Command",
+                    "action": "on_step_out"
+                },
                 "command": "debugger",
-                "args": {
-                    "action": "run_command"
-                }
+                "caption": "Step Out"
             },
             {
                 "caption": "-"
             },
             {
-                "caption": "Add Function Breakpoint",
+                "args": {
+                    "action": "on_input_command"
+                },
                 "command": "debugger",
+                "caption": "Run Command"
+            },
+            {
                 "args": {
                     "action": "add_function_breakpoint"
-                }
+                },
+                "command": "debugger",
+                "caption": "Add Function Breakpoint"
             },
             {
-                "caption": "Add Watch Expression",
-                "command": "debugger",
                 "args": {
                     "action": "add_watch_expression"
-                }
-            },
-            {
-                "caption": "-"
-            },
-            {
-                "caption": "Save Breakpoints/Watch Expressions/...",
+                },
                 "command": "debugger",
+                "caption": "Add Watch Expression"
+            },
+            {
                 "args": {
                     "action": "save_data"
-                }
-            },
-            {
-                "caption": "Refresh Phantoms",
+                },
                 "command": "debugger",
-                "args": {
-                    "action": "refresh_phantoms"
-                }
+                "caption": "Force Save"
             }
-        ]
+        ],
+        "caption": "Debugger"
     }
 ]

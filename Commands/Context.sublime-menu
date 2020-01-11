@@ -3,27 +3,33 @@
         "caption": "-"
     },
     {
-        "caption": "Toggle Breakpoint",
-        "command": "debugger",
-        "args": {
-            "action": "toggle_breakpoint"
-        }
-    },
-    {
-        "caption": "Toggle Column Breakpoint",
-        "command": "debugger",
-        "args": {
-            "action": "toggle_column_breakpoint"
-        }
-    },
-    {
-        "caption": "Run To Cursor",
-        "command": "debugger",
-        "args": {
-            "action": "run_to_current_line"
-        }
+        "caption": "-"
     },
     {
         "caption": "-"
+    },
+    {
+        "caption": "-"
+    },
+    {
+        "args": {
+            "action": "toggle_breakpoint"
+        },
+        "command": "debugger",
+        "caption": "Toggle Breakpoint"
+    },
+    {
+        "args": {
+            "action": "toggle_column_breakpoint"
+        },
+        "command": "debugger",
+        "caption": "Toggle Column Breakpoint"
+    },
+    {
+        "args": {
+            "action": "run_to_current_line"
+        },
+        "command": "debugger",
+        "caption": "Run To Selected Line"
     }
 ]

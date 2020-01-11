@@ -54,7 +54,7 @@ from .views.modules import ModulesView
 from .views.sources import SourcesView
 from .views.callstack import CallStackView
 
-from .views.debugger_panel import DebuggerPanel, DebuggerPanelCallbacks, STOPPED, PAUSED, RUNNING, LOADING
+from .views.debugger_panel import DebuggerPanel, STOPPED, PAUSED, RUNNING, LOADING
 from .views.breakpoints_panel import BreakpointsPanel
 from .views.variables_panel import VariablesPanel
 from .views.tabbed_panel import Panels, TabbedPanel, TabbedPanelItem
@@ -63,9 +63,13 @@ from .views.selected_line import SelectedLine
 from .watch import WatchView
 
 
-class Debugger (DebuggerPanelCallbacks):
+class Debugger:
 
 	instances = {} #type: Dict[int, Debugger]
+
+	@staticmethod
+	def get(window: sublime.Window, run: bool = False) -> 'Optional[Debugger]':
+		return Debugger.for_window(window, run)
 
 	@staticmethod
 	def should_auto_open_in_window(window: sublime.Window) -> bool:
@@ -347,44 +351,6 @@ class Debugger (DebuggerPanelCallbacks):
 	def on_navigate_to_source(self, source: dap.Source, line: Optional[int]):
 		self.source_provider.navigate(source, line or 1)
 
-	def command(enabled: Optional[int]=None, disabled: Optional[int]=None):
-		def wrap(f):
-			@property #type: ignore
-			def wrapper(self):
-				class command:
-					def __init__(self, debugger, enabled, disabled, f):
-						self.f = f
-						self.debugger = debugger
-						self._enabled = enabled
-						self._disabled = disabled
-
-					def __call__(self, *args, **kw):
-						return self.f(self.debugger)
-
-					def enabled(self):
-						if self._enabled is not None:
-							if self.debugger.debugger.state != self._enabled:
-								return False
-						if self._disabled is not None:
-							if self.debugger.debugger.state == self._disabled:
-								return False
-
-						return True
-
-				return command(self, enabled, disabled, f)
-			return wrapper
-		return wrap
-
-	@command()
-	def on_play(self) -> None:
-		self.panel.show()
-		self.run_async(self._on_play())
-
-	@command()
-	def on_play_no_debug(self) -> None:
-		self.panel.show()
-		self.run_async(self._on_play(no_debug=True))
-
 	@core.coroutine
 	def _on_play(self, no_debug=False) -> core.awaitable[None]:
 		self.show_console_panel()
@@ -410,7 +376,6 @@ class Debugger (DebuggerPanelCallbacks):
 		variables = self.project.extract_variables()
 		configuration_expanded = ConfigurationExpanded(configuration, variables)
 
-	@command(disabled=DebuggerSession.stopped)
 		try:
 			yield from self.debugger.launch(adapter_configuration, configuration_expanded, no_debug=no_debug)
 		except core.Error as e:
@@ -420,33 +385,55 @@ class Debugger (DebuggerPanelCallbacks):
 				region = view.find('''"\s*debug.configurations''', 0)
 				if region:
 					view.show_at_center(region)
+
+
+	def is_paused(self):
+		return self.debugger.state == DebuggerSession.paused
+
+	def is_running(self):
+		return self.debugger.state == DebuggerSession.running
+
+	def is_stoppable(self):
+		return self.debugger.state != DebuggerSession.stopped
+
+	#
+	# commands
+	#
+	def open(self) -> None:
+		self.panel.show()
+
+	def quit(self) -> None:
+		self.dispose()
+
+	def on_play(self) -> None:
+		self.panel.show()
+		self.run_async(self._on_play())
+
+	def on_play_no_debug(self) -> None:
+		self.panel.show()
+		self.run_async(self._on_play(no_debug=True))
+
 	def on_stop(self) -> None:
 		self.run_async(self.debugger.stop())
 
-	@command(enabled=DebuggerSession.paused)
 	def on_resume(self) -> None:
 		self.run_async(self.debugger.resume())
 
-	@command(enabled=DebuggerSession.running)
 	def on_pause(self) -> None:
 		self.run_async(self.debugger.pause())
 
-	@command(enabled=DebuggerSession.paused)
 	def on_step_over(self) -> None:
 		self.run_async(self.debugger.step_over())
 
-	@command(enabled=DebuggerSession.paused)
 	def on_step_in(self) -> None:
 		self.run_async(self.debugger.step_in())
 
-	@command(enabled=DebuggerSession.paused)
 	def on_step_out(self) -> None:
 		self.run_async(self.debugger.step_out())
 
 	def on_run_command(self, command: str) -> None:
 		self.run_async(self.debugger.evaluate(command))
 
-	@command(disabled=DebuggerSession.stopped)
 	def on_input_command(self) -> None:
 		label = "Input Debugger Command"
 		def run(value: str):
@@ -457,46 +444,37 @@ class Debugger (DebuggerPanelCallbacks):
 		input = ui.InputText(run, label, enable_when_active=Autocomplete.for_window(self.window))
 		input.run()
 
-	@command()
 	def toggle_breakpoint(self):
 		self.breakpoints_provider.toggle_current_line()
 
-	@command()
 	def toggle_column_breakpoint(self):
 		self.breakpoints_provider.toggle_current_line_column()
 
-	@command()
 	def add_function_breakpoint(self):
 		self.debugger.breakpoints.function.add_command()
 
-	@command()
 	def add_watch_expression(self):
 		self.debugger.watch.add_command()
+
+	def run_to_current_line(self) -> None:
+		self.breakpoints_provider.run_to_current_line()
 
 	def load_data(self):
 		self.debugger.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
 		self.debugger.watch.load_json(self.persistance.json.get('watch', []))
 
-	@command()
 	def save_data(self):
 		self.persistance.json['breakpoints'] = self.debugger.breakpoints.into_json()
 		self.persistance.json['watch'] = self.debugger.watch.into_json()
 		self.persistance.save_to_file()
 
-	@command(enabled=DebuggerSession.paused)
-	def run_to_current_line(self) -> None:
-		self.breakpoints_provider.run_to_current_line()
-
-	@command()
 	def on_settings(self) -> None:
 		help_menu(self).run()
 
-	@command()
 	def install_adapters(self) -> None:
 		self.show_console_panel()
 		install_adapters_menu(self.adapters.values(), self).run()
 
-	@command()
 	def change_configuration(self) -> None:
 		select_configuration(self).run()
 
