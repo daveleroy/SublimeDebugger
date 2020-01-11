@@ -67,24 +67,24 @@ class Client:
 
 	@core.coroutine
 	def StepIn(self, thread: Thread) -> core.awaitable[None]:
+		self._continued(thread.id, False)
 		yield from self.send_request_asyc('stepIn', {
 			'threadId': thread.id
 		})
-		self._continued(thread.id, False)
 
 	@core.coroutine
 	def StepOut(self, thread: Thread) -> core.awaitable[None]:
+		self._continued(thread.id, False)
 		yield from self.send_request_asyc('stepOut', {
 			'threadId': thread.id
 		})
-		self._continued(thread.id, False)
 
 	@core.coroutine
 	def StepOver(self, thread: Thread) -> core.awaitable[None]:
+		self._continued(thread.id, False)
 		yield from self.send_request_asyc('next', {
 			'threadId': thread.id
 		})
-		self._continued(thread.id, False)
 
 	@core.coroutine
 	def Resume(self, thread: Thread) -> core.awaitable[None]:
