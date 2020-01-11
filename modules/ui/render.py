@@ -57,15 +57,26 @@ def render_scheduled() -> None:
 
 
 def perform_render() -> None:
+	
 	_renderables.extend(_renderables_add)
+	_renderables_add.clear()
 
 	for r in _renderables_remove:
 		_renderables.remove(r)
 
 	_renderables_remove.clear()
 
-	for r in _renderables:
-		r.render()
+	if False:
+		import cProfile
+		with cProfile.Profile() as pr:
+			for r in _renderables:
+				r.render()
+
+		pr.print_stats(sort='cumtime')
+	else:
+		for r in _renderables:
+			r.render()
+
 
 def update() -> None:
 	for item in _renderables:

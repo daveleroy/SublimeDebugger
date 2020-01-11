@@ -84,7 +84,7 @@ class LayoutComponent (Layout):
 		if not self.requires_render:
 			return False
 
-		self.on_click_handlers = {}
+		self.on_click_handlers.clear()
 		self.requires_render = False
 
 		if self.item:
@@ -155,7 +155,6 @@ class LayoutView (LayoutComponent):
 	def run_syntax_highlight(self) -> None:
 		if not self._highlighter:
 			return
-
 		for item in self._unhighlightedSyntaxHighlightedTexts:
 			cache = self._syntaxHighlightCache.setdefault(item.language, {})
 			if item.text in cache:
@@ -167,13 +166,13 @@ class LayoutView (LayoutComponent):
 				except:
 					core.log_exception()
 
-		self._unhighlightedSyntaxHighlightedTexts = []
+		self._unhighlightedSyntaxHighlightedTexts.clear()
 
 	def update(self) -> None:
 		font_size = self.view.settings().get('font_size') or 12
 		lightness = view_background_lightness(self.view)
 		size = self.view.viewport_extent()
-		em_width = self.view.em_width()
+		em_width = self.view.em_width() or 1
 		width = size[0] / em_width
 		height = size[1] / em_width
 		em_width = (self.view.em_width() or 12) / font_size
