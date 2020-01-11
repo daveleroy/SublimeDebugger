@@ -1,4 +1,6 @@
 from ..typecheck import *
+from ..import core
+
 if TYPE_CHECKING:
 	from .client import Client
 
@@ -18,7 +20,7 @@ def json_from_array(into_json: Callable[[__T], dict], array: List[__T]) -> list:
 		json.append(into_json(item))
 	return json
 
-class Error(Exception):
+class Error(core.Error):
 	def __init__(self, showUser: bool, format: str):
 		super().__init__(format)
 		self.showUser = showUser

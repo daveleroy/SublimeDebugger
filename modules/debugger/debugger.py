@@ -409,9 +409,17 @@ class Debugger (DebuggerPanelCallbacks):
 
 		variables = self.project.extract_variables()
 		configuration_expanded = ConfigurationExpanded(configuration, variables)
-		yield from self.debugger.launch(adapter_configuration, configuration_expanded, no_debug=no_debug)
 
 	@command(disabled=DebuggerSession.stopped)
+		try:
+			yield from self.debugger.launch(adapter_configuration, configuration_expanded, no_debug=no_debug)
+		except core.Error as e:
+			if sublime.ok_cancel_dialog("Error Launching Configuration\n\n{}".format(str(e)), 'Open Project'):
+				project_name = self.window.project_file_name()
+				view = yield from core.sublime_open_file_async(self.window, project_name)
+				region = view.find('''"\s*debug.configurations''', 0)
+				if region:
+					view.show_at_center(region)
 	def on_stop(self) -> None:
 		self.run_async(self.debugger.stop())
 
