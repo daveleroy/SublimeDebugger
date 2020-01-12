@@ -12,7 +12,7 @@ if modules_to_remove:
 # import all the commands so that sublime sees them
 from .modules.debugger.commands import DebuggerCommand
 from .modules.debugger.view_selected_source import DebuggerReplaceContentsCommand, DebuggerShowLineCommand
-from .modules.debugger.build.build import DebuggerBuildExecCommand
+from .modules.debugger.terminals.terminal_build import DebuggerBuildExecCommand
 
 from .modules.ui.input import DebuggerInputCommand
 from .modules.ui.events import ViewEventsListener

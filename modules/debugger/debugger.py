@@ -44,8 +44,13 @@ from .adapter import (
 
 from .output_panel import OutputPhantomsPanel
 
-from .terminal import TerminalComponent
-from .debugger_terminal import DebuggerTerminal
+from .terminals import (
+	Terminal,
+	TerminalProcess,
+	TermianlDebugger,
+	TerminalView,
+)
+
 from .view_hover import ViewHoverProvider
 from .view_selected_source import ViewSelectedSourceProvider
 from .breakpoint_commands import BreakpointCommandsProvider
@@ -161,10 +166,8 @@ class Debugger:
 		def on_output(event: dap.OutputEvent) -> None:
 			self.terminal.program_output(self.debugger.adapter, event)
 
-
-		from .terminal import Terminal
 		def on_terminal_added(terminal: Terminal):
-			component = TerminalComponent(terminal)
+			component = TerminalView(terminal, self.on_navigate_to_source)
 
 			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, component.action_buttons())
 			def on_modified():
@@ -203,10 +206,9 @@ class Debugger:
 		self.breakpoints_panel = BreakpointsPanel(self.debugger.breakpoints)
 		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
 		self.variables_panel = VariablesPanel(self.debugger.variables, self.debugger.watch)
-		self.terminal = DebuggerTerminal(
+		self.terminal = TermianlDebugger(
 			self.debugger,
 			on_run_command=self.on_run_command,
-			on_clicked_source=self.on_navigate_to_source
 		)
 
 		self.source_provider = ViewSelectedSourceProvider(self.project, self.debugger)
@@ -230,7 +232,7 @@ class Debugger:
 		phantom_location = self.panel.phantom_location()
 		phantom_view = self.panel.phantom_view()
 
-		terminal_component = TerminalComponent(self.terminal)
+		terminal_component = TerminalView(self.terminal, self.on_navigate_to_source)
 		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
 		callstack_panel_item = TabbedPanelItem(id(self.debugger.callstack), CallStackView(self.debugger), "Call Stack", 0)
 

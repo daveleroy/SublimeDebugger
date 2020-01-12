@@ -3,13 +3,29 @@ import sublime
 import Default #type: ignore
 
 from ...import core
+from .terminal import Terminal
+
+
+
+class TerminalBuild(Terminal):
+	def __init__(self, arguments: dict):
+		super().__init__('Build Results')
+		self.future = run_build(sublime.active_window(), self.write_stdout, arguments)
+
+	def write_stdout(self, text: str):
+		self.add('stdout', text)
+
+	@core.coroutine
+	def wait(self) -> core.awaitable[int]:
+		r = yield from self.future
+		return r
 
 on_finished_futures = {}
 on_output_callbacks = {}
 id = 0
 
 @core.coroutine
-def run(window: sublime.Window, on_output_callback, args) -> core.awaitable[None]:
+def run_build(window: sublime.Window, on_output_callback, args) -> core.awaitable[int]:
 	global on_finished_futures
 	global id
 	id += 1
@@ -20,7 +36,20 @@ def run(window: sublime.Window, on_output_callback, args) -> core.awaitable[None
 		"id": id,
 		"args": args,
 	})
-	return future
+
+	try:
+		exit_code = yield from future
+		return exit_code
+
+	except core.CancelledError as e:
+		core.log_info("Cancel build")
+		window.run_command("debugger_build_exec", {
+			"id": id,
+			"args": {
+				"kill": True
+			},
+		})
+		raise e
 
 
 class DebuggerBuildExecCommand(Default.exec.ExecCommand):

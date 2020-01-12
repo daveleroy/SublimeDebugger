@@ -5,8 +5,10 @@ from ..dap.transport import (
 	Process,
 	StdioTransport
 )
-
-from .terminal import Terminal, TerminalProcess, TerminalStandard
+from .terminals import (
+	Terminal, 
+	TerminalBuild,
+)
 from .adapter import (
 	ConfigurationExpanded,
 	Adapter
@@ -16,7 +18,6 @@ from .breakpoints import (
 	SourceBreakpoint,
 )
 
-from .build import build
 from .variables import Variables
 from .watch import Watch
 from .debugger_terminals import Terminals
@@ -151,9 +152,11 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 		if 'sublime_build' in configuration.all:
 			self.info('running build...')
-			terminal = TerminalStandard('Build Results')
+
+			terminal = TerminalBuild(configuration.all['sublime_build'])
 			self.terminals.add(self, terminal)
-			exit_code = yield from build.run(sublime.active_window(), terminal.write_stdout, configuration.all['sublime_build'])
+
+			exit_code = yield from terminal.wait()
 			if exit_code != 0:
 				self.error('... build failed: exit code {}'.format(exit_code))
 				self.stop_forced(reason=DebuggerSession.stopped_reason_build_failed)

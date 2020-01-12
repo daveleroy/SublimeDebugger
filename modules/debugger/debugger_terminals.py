@@ -2,12 +2,14 @@ from ..typecheck import*
 from ..import core
 from ..import dap
 
-from .terminal import Terminal, TerminalProcess
-from .external_terminal import (
+from .terminals import (
 	ExternalTerminal,
-	TerminusExternalTerminal,
-	DefaultWindowsExternalTerminal,
-	DefaultMacExternalTerminal,
+	ExternalTerminalTerminus,
+	ExternalTerminalWindowsDefault,
+	ExternalTerminalMacDefault,
+
+	Terminal,
+	TerminalProcess,
 )
 
 if TYPE_CHECKING:
@@ -37,14 +39,14 @@ class Terminals:
 
 		if self.external_terminal_kind == 'platform':
 			if core.platform.osx:
-				return DefaultMacExternalTerminal(title, cwd, commands, env)
+				return ExternalTerminalMacDefault(title, cwd, commands, env)
 			if core.platform.windows:
-				return DefaultWindowsExternalTerminal(title, cwd, commands, env)
+				return ExternalTerminalWindowsDefault(title, cwd, commands, env)
 			if core.platform.linux:
 				raise core.Error('default terminal for linux not implemented')
 
 		if self.external_terminal_kind == 'terminus':
-			return TerminusExternalTerminal(title, cwd, commands, env)
+			return ExternalTerminalTerminus(title, cwd, commands, env)
 
 		raise core.Error('unknown external terminal type "{}"'.format(self.external_terminal_kind))
 

@@ -1,3 +1,29 @@
+# The code in this file was modified from https://github.com/microsoft/vscode/blob/master/src/vs/workbench/contrib/externalTerminal/node/externalTerminalService.ts
+
+# MIT License
+
+# Copyright (c) 2015 - present Microsoft Corporation
+
+# All rights reserved.
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from ...typecheck import *
 from ...import core
 
@@ -15,13 +41,13 @@ class ExternalTerminal(Protocol):
 		...
 
 
-class TerminusExternalTerminal(ExternalTerminal):
+class ExternalTerminalTerminus(ExternalTerminal):
 	id = 0
 
 	def __init__(self, title: str, cwd: str, commands: List[str], env: dict):
 		self.window = sublime.active_window()
-		self.tag = 'sublime_debugger_{}'.format(TerminusExternalTerminal.id)
-		TerminusExternalTerminal.id += 1
+		self.tag = 'sublime_debugger_{}'.format(ExternalTerminalTerminus.id)
+		ExternalTerminalTerminus.id += 1
 		self.window.run_command('terminus_open', {
 			'title': title,
 			'cwd': cwd,
@@ -30,7 +56,6 @@ class TerminusExternalTerminal(ExternalTerminal):
 			'auto_close': False,
 			'tag': self.tag
 		})
-		print(self.tag)
 
 	def dispose(self):
 		for view in self.window.views():
@@ -38,15 +63,15 @@ class TerminusExternalTerminal(ExternalTerminal):
 				view.close()
 
 
-# modified from https://github.com/microsoft/vscode/blob/master/src/vs/workbench/contrib/externalTerminal/node/externalTerminalService.ts
-class DefaultMacExternalTerminal(ExternalTerminal):
-	OSX_TERMINAL_SCRIPT = os.path.join(os.path.dirname(__file__), 'TerminalHelper.scpt')
+
+class ExternalTerminalMacDefault(ExternalTerminal):
+	OSX_TERMINAL_SCRIPT = os.path.join(os.path.dirname(__file__), 'scripts', 'TerminalHelper.scpt')
 	#OSX_ITERM_SCRIPT = os.path.join(os.path.dirname(__file__), 'iTermHelper.scpt')
 
 	def __init__(self, title: str, cwd: str, commands: List[str], env: dict):
 		args = [
 			"osascript",
-			DefaultMacExternalTerminal.OSX_TERMINAL_SCRIPT,
+			ExternalTerminalMacDefault.OSX_TERMINAL_SCRIPT,
 			'-t', title,
 		]
 		if cwd:
@@ -69,7 +94,7 @@ class DefaultMacExternalTerminal(ExternalTerminal):
 
 
 # modified from https://github.com/microsoft/vscode/blob/master/src/vs/workbench/contrib/externalTerminal/node/externalTerminalService.ts
-class DefaultWindowsExternalTerminal(ExternalTerminal):
+class ExternalTerminalWindowsDefault(ExternalTerminal):
 	def __init__(self, title: str, cwd: str, commands: List[str], env: dict):
 		if core.platform.is_64:
 		 	exec = 'C:\\Windows\\Sysnative\\cmd.exe'
