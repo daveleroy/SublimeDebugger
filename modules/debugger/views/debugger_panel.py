@@ -41,7 +41,7 @@ class DebuggerPanel(ui.div):
 		elif self.state == PAUSED:
 			items.append(DebuggerCommandButton(self.callbacks.on_resume, ui.Images.shared.resume))
 		else:
-			items.append(DebuggerCommandButton(self.callbacks.on_resume, ui.Images.shared.pause))
+			items.append(DebuggerCommandButton(self.callbacks.on_pause, ui.Images.shared.pause))
 
 		if self.callbacks.is_paused():
 			items.extend([
