@@ -3,56 +3,65 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.2.2
+- Show dialog with error message when launching fails (to match vscode)
+- In multi-threaded programs the reason for why a specific thread was stopped is now only displayed on that thread even if all threads were stopped
+- If running a build with `sublime_build` in the configuration don't start debugging if the build fails with an exit code
+- Fixes issue with pause not working
+- Fixes rendering performance regression
+- Fixes gutter icons on windows
+
+
 Whats new in version 0.2.1
-• Debugging with a single thread now just displays the stack frames without the thread header
-• When launching a configuration and the adapter is not installed offer to install it
-• When auto selecting a stack frame prefer the first none subtle stack frame
-• Fixes call stack layout when encountering long stack frame names
-• Fixes various issues with multi threaded debugging
-• Fixes hover providers
+- Debugging with a single thread now just displays the stack frames without the thread header
+- When launching a configuration and the adapter is not installed offer to install it
+- When auto selecting a stack frame prefer the first none subtle stack frame
+- Fixes call stack layout when encountering long stack frame names
+- Fixes various issues with multi threaded debugging
+- Fixes hover providers
 
 Whats new in version 0.2.0
-• Support for column breakpoints (requires adapter support)
-• Support for data breakpoints (requires adapter support, currently only lldb?)
-• Left-click gutter now toggles breakpoints, right-clicking a breakpoint allows editing/advanced options
-• Watch expressions
-• Loaded Modules/Sources panels
-• Adds Node debug adapter (@appelgriebsch)
-• External terminal support. Terminal on Mac (Needs support for Windows/Linux) or Sublime's Terminus package.
-• Integrated terminal now strips ascii control sequences 
-• Settings button
-• Show currently installed version of an adapter, show download progress when installing an adapter
-• Fixes issues that sometimes occurred installing/reinstalling adapters
-• Fixes issues with reloading plugin
+- Support for column breakpoints (requires adapter support)
+- Support for data breakpoints (requires adapter support, currently only lldb?)
+- Left-click gutter now toggles breakpoints, right-clicking a breakpoint allows editing/advanced options
+- Watch expressions
+- Loaded Modules/Sources panels
+- Adds Node debug adapter (@appelgriebsch)
+- External terminal support. Terminal on Mac (Needs support for Windows/Linux) or Sublime's Terminus package.
+- Integrated terminal now strips ascii control sequences 
+- Settings button
+- Show currently installed version of an adapter, show download progress when installing an adapter
+- Fixes issues that sometimes occurred installing/reinstalling adapters
+- Fixes issues with reloading plugin
 
 Whats new in version 0.1.8
-• Fixes core not defined error
+- Fixes core not defined error
 
 Whats new in version 0.1.7
-• Allow setting logging options in settings
-• Updated url for vscode-firefox-debugger (@appelgriebsch)
-• Fixes issue preventing Debugger: Install Adapters from being run from the command palette
-• Fixes issue where some debug adapters were failing to be fully unzipped on Windows because of long paths
+- Allow setting logging options in settings
+- Updated url for vscode-firefox-debugger (@appelgriebsch)
+- Fixes issue preventing Debugger: Install Adapters from being run from the command palette
+- Fixes issue where some debug adapters were failing to be fully unzipped on Windows because of long paths
 
 Whats new in version 0.1.6
-• Adds run to cursor command
-• Fixes issue preventing installing debug adapters
+- Adds run to cursor command
+- Fixes issue preventing installing debug adapters
 
 Whats new in version 0.1.5
-• Fixes issue that prevented debugging on windows
+- Fixes issue that prevented debugging on windows
 
 Whats new in version 0.1.4
-• New styling of panels and updated layout to better support temporary panels created for build results/integrated terminal (and in the future allow customizing the layout of the panels)
-• New console rendering code to support text wrapping and build results/integrated terminal
-• Support internal terminal requests to allow program input. Requires configuration changes to use this feature which depends on the adapter in question. (LLVM uses "terminal": "integrated")
-• Allow defining platform specific configuration settings with a top level object called "linux", "osx", or "windows" in your configuration. Same as vscode 
-• Fixes issue where hover providers/autocomplete/run command was not working for some debug adapters 
-• Fixes issue where using $file and other variables in a configuration had their values expanded when the debugger was opened not when the debugger was started
-• Fixes some wonkiness that occurred when stepping the debugger that caused it to not update correctly
+- New styling of panels and updated layout to better support temporary panels created for build results/integrated terminal (and in the future allow customizing the layout of the panels)
+- New console rendering code to support text wrapping and build results/integrated terminal
+- Support internal terminal requests to allow program input. Requires configuration changes to use this feature which depends on the adapter in question. (LLVM uses "terminal": "integrated")
+- Allow defining platform specific configuration settings with a top level object called "linux", "osx", or "windows" in your configuration. Same as vscode 
+- Fixes issue where hover providers/autocomplete/run command was not working for some debug adapters 
+- Fixes issue where using $file and other variables in a configuration had their values expanded when the debugger was opened not when the debugger was started
+- Fixes some wonkiness that occurred when stepping the debugger that caused it to not update correctly
 
 Whats new in version 0.1.3
-• When attempting to open the debugger in a window without a sublime project prompt the user to create one.
-• Fixes some other minor bugs and configuration issues
+- When attempting to open the debugger in a window without a sublime project prompt the user to create one.
+- Fixes some other minor bugs and configuration issues
 
 Whats new in version 0.1.0
-• Adds package control support
+- Adds package control support
