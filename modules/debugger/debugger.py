@@ -345,7 +345,7 @@ class Debugger:
 			self.debugger.dispose()
 		del Debugger.instances[self.window.id()]
 
-	def run_async(self, awaitable: core.awaitable[None]):
+	def run_async(self, awaitable: Awaitable[core.T]):
 		def on_error(e: Exception) -> None:
 			self.terminal.log_error(str(e))
 		core.run(awaitable, on_error=on_error)
@@ -353,8 +353,7 @@ class Debugger:
 	def on_navigate_to_source(self, source: dap.Source, line: Optional[int]):
 		self.source_provider.navigate(source, line or 1)
 
-	@core.coroutine
-	def _on_play(self, no_debug=False) -> core.awaitable[None]:
+	async def _on_play(self, no_debug=False) -> None:
 		self.show_console_panel()
 		self.terminal.clear()
 		self.terminal.log_info('Console cleared...')
@@ -379,11 +378,11 @@ class Debugger:
 		configuration_expanded = ConfigurationExpanded(configuration, variables)
 
 		try:
-			yield from self.debugger.launch(adapter_configuration, configuration_expanded, no_debug=no_debug)
+			await self.debugger.launch(adapter_configuration, configuration_expanded, no_debug=no_debug)
 		except core.Error as e:
 			if sublime.ok_cancel_dialog("Error Launching Configuration\n\n{}".format(str(e)), 'Open Project'):
 				project_name = self.window.project_file_name()
-				view = yield from core.sublime_open_file_async(self.window, project_name)
+				view = await core.sublime_open_file_async(self.window, project_name)
 				region = view.find('''"\s*debug.configurations''', 0)
 				if region:
 					view.show_at_center(region)

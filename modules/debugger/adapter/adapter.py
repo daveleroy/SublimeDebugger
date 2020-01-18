@@ -62,11 +62,10 @@ class Adapter:
 		self.snippets = info.snippets
 		self.version = info.version
 
-	@core.coroutine
-	def install(self, log: core.Logger) -> core.awaitable[None]:
+	async def install(self, log: core.Logger) -> None:
 		if not self.installer:
 			return
-		yield from self.installer.install(log)
+		await self.installer.install(log)
 		self.load_installation_if_needed()
 
 def install_adapters_menu(adapters: Iterable[Adapter], log: core.Logger):
@@ -79,10 +78,10 @@ def install_adapters_menu(adapters: Iterable[Adapter], log: core.Logger):
 			installer = adapter.installer
 			assert installer
 
-			def install():
+			async def install():
 				log.info("Installing Adapter: {}".format(installer.name))
 				try:
-					yield from adapter.install(log)
+					await adapter.install(log)
 				except core.Error as e:
 					log.error("Failed Installing Adapter: {}".format(e))
 

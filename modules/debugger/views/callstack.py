@@ -61,12 +61,11 @@ class ThreadView (ui.div):
 		self.frames = [] #type: List[dap.StackFrame]
 		core.run(self.fetch())
 
-	@core.coroutine
-	def fetch(self):
+	async def fetch(self):
 		if not self.state.is_expanded(self.thread):
 			return []
 
-		self.frames = yield from self.thread.children()
+		self.frames = await self.thread.children()
 		self.dirty()
 
 	def toggle_expand(self):
