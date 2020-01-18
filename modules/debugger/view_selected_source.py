@@ -37,10 +37,9 @@ class ViewSelectedSourceProvider:
 			if error is not core.CancelledError:
 				core.log_error(error)
 
-		@core.coroutine
-		def select_async(source: dap.Source, line: int, stopped_reason: str):
+		async def select_async(source: dap.Source, line: int, stopped_reason: str):
 			self.clear_selected()
-			view = yield from self.navigate_to_source(source, line)
+			view = await self.navigate_to_source(source, line)
 			self.selected_frame_line = SelectedLine(view, line, stopped_reason)
 
 		self.updating = core.run(select_async(source, line, stopped_reason), on_error=on_error)
@@ -53,10 +52,9 @@ class ViewSelectedSourceProvider:
 			if error is not core.CancelledError:
 				core.log_error(error)
 
-		@core.coroutine
-		def navigate_async(source: dap.Source, line: int):
+		async def navigate_async(source: dap.Source, line: int):
 			self.clear_generated_view()
-			yield from self.navigate_to_source(source, line, move_cursor=True)
+			await self.navigate_to_source(source, line, move_cursor=True)
 
 		self.updating = core.run(navigate_async(source, line), on_error=on_error)
 
@@ -80,8 +78,7 @@ class ViewSelectedSourceProvider:
 	def dispose(self):
 		self.clear()
 
-	@core.coroutine
-	def navigate_to_source(self, source: dap.Source, line: int, move_cursor: bool = False) -> core.awaitable[sublime.View]:
+	async def navigate_to_source(self, source: dap.Source, line: int, move_cursor: bool = False) -> sublime.View:
 		# if we aren't going to reuse the previous generated view
 		# or the generated view was closed (no buffer) throw it away
 		if not source.sourceReference or self.generated_view and not self.generated_view.buffer_id():
@@ -91,7 +88,7 @@ class ViewSelectedSourceProvider:
 			if not self.debugger.adapter:
 				raise core.Error('Debugger not running')
 
-			content = yield from self.debugger.adapter.GetSource(source)
+			content = await self.debugger.adapter.GetSource(source)
 
 			view = self.generated_view or self.project.window.new_file()
 			self.generated_view = view
@@ -103,14 +100,13 @@ class ViewSelectedSourceProvider:
 			view.set_read_only(True)
 			view.set_scratch(True)
 		elif source.path:
-			view = yield from core.sublime_open_file_async(self.project.window, source.path)
+			view = await core.sublime_open_file_async(self.project.window, source.path)
 		else:
 			raise core.Error('source has no reference or path')
 
-		yield from core.wait_for_view_to_load(view)
+		await core.wait_for_view_to_load(view)
 		# @FIXME why does running debugger_show_line right away not work for views that are not already open? We waited for the view to be loaded
-		from ..libs import asyncio
-		yield from asyncio.sleep(0.15)
+		await core.sleep(0.15)
 		view.run_command("debugger_show_line", {
 			'line': line - 1,
 			'move_cursor': move_cursor

@@ -61,16 +61,14 @@ class Variable:
 	def value(self) -> str:
 		return self.reference.value
 
-	@core.coroutine
-	def fetch(self):
-		variables = yield from self.session.client.GetVariables(self.reference.variablesReference)
+	async def fetch(self):
+		variables = await self.session.client.GetVariables(self.reference.variablesReference)
 		return [Variable(self.session, v) for v in variables]
 
-	@core.coroutine
-	def children(self) -> core.awaitable[List['Variable']]:
+	async def children(self) -> List['Variable']:
 		if not self.fetched:
 			self.fetched = core.run(self.fetch())
-		children = yield from self.fetched
+		children = await self.fetched
 		return children
 
 	@property
@@ -122,8 +120,7 @@ class VariableComponent (ui.div):
 	def on_edit(self) -> None:
 		core.run(self.edit_variable())
 
-	@core.coroutine
-	def edit_variable(self) -> core.awaitable[None]:
+	async def edit_variable(self) -> None:
 		if not isinstance(self.variable.reference, dap.Variable):
 			raise core.Error("Not able to set value of this item")
 
@@ -134,12 +131,11 @@ class VariableComponent (ui.div):
 		value = variable.value or ""
 
 		if session.capabilities.supportsDataBreakpoints:
-			info = yield from session.client.DataBreakpointInfoRequest(variable)
+			info = await session.client.DataBreakpointInfoRequest(variable)
 
-		@core.coroutine
-		def on_edit_variable_async(value: str):
+		async def on_edit_variable_async(value: str):
 			try:
-				self.variable.reference = yield from session.client.setVariable(variable, value)
+				self.variable.reference = await session.client.setVariable(variable, value)
 				self.variable.fetched = None
 				self.dirty()
 			except core.Error as e:
@@ -201,10 +197,9 @@ class VariableComponent (ui.div):
 		ui.InputList(items, '{} {}'.format(variable.name, variable.value)).run()
 
 	def toggle_expand(self) -> None:
-		@core.coroutine
-		def fetch():
+		async def fetch():
 			self.state.set_expanded(self.variable, not self.state.is_expanded(self.variable))
-			self.variable_children = yield from self.variable.children()
+			self.variable_children = await self.variable.children()
 			self.dirty()
 		core.run(fetch())
 

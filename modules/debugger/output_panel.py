@@ -5,7 +5,6 @@ import sublime_plugin
 
 from .. import core
 from .. import ui
-from ..libs import asyncio
 
 from ..debugger.util import get_setting
 
@@ -51,9 +50,8 @@ class OutputPhantomsPanel:
 
 	def hack_to_get_view_to_not_freak_out_when_you_click_on_the_edge(self):
 		self.view.set_viewport_position((_panel_position, 0), animate=False)
-		@core.coroutine
-		def later():
-			yield from asyncio.sleep(0)
+		async def later():
+			await core.sleep(0)
 			self.view.set_viewport_position((_panel_position, 0), animate=False)
 		core.run(later())
 

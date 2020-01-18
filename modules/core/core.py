@@ -3,15 +3,14 @@ from ..typecheck import *
 import sublime
 import threading
 import concurrent
+import asyncio
 
-from ..libs import asyncio
 from .log import log_exception
 from .error import Error
 from .sublime_event_loop import SublimeEventLoop
 
 T = TypeVar('T')
-
-awaitable = Generator[Any, Any, T]
+awaitable = Awaitable[T]
 coroutine = asyncio.coroutine
 future = asyncio.Future
 CancelledError = asyncio.CancelledError
@@ -34,6 +33,12 @@ def create_future():
 
 def run_in_executor(func, *args):
 	return asyncio.futures.wrap_future(sublime_event_loop_executor.submit(func, *args), loop=sublime_event_loop)
+
+def wait(fs: Iterable[awaitable[T]]):
+	return asyncio.wait(fs, loop=sublime_event_loop)
+
+def sleep(delay: float) -> Awaitable[None]:
+	return asyncio.sleep(delay, loop=sublime_event_loop)
 
 def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: Callable[[Exception], None] = None) -> future:
 	task = asyncio.ensure_future(awaitable, loop=sublime_event_loop)

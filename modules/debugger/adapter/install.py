@@ -15,8 +15,7 @@ def _adapters_path() -> str:
 
 
 class AdapterInstall:
-	@core.coroutine
-	def install(self, log: core.Logger) -> core.awaitable[None]: ...
+	async def install(self, log: core.Logger) -> None: ...
 
 	@property
 	def installed(self) -> bool: ...
@@ -53,11 +52,10 @@ class VSCodeAdapterInstall:
 
 		return AdapterInstalledInformation(0, [])
 
-	@core.coroutine
-	def install(self, log: core.Logger) -> core.awaitable[None]:
+	async def install(self, log: core.Logger) -> None:
 		try:
 			log.info('Installing adapter: {}'.format(self.name))
-			yield from core.run_in_executor(self.downalod_and_extract_blocking, log)
+			await core.run_in_executor(self.downalod_and_extract_blocking, log)
 
 			vscode_package_file = os.path.join(self.path, 'extension', 'package.json')
 			snippets_output_file = os.path.join(self.path, 'sublime_debugger.json')

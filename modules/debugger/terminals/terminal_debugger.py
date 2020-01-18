@@ -30,9 +30,8 @@ class TermianlDebugger (Terminal):
 		if variablesReference and client:
 			# this seems to be what vscode does it ignores the actual message here.
 			# Some of the messages are junk like "output" that we probably don't want to display
-			@core.coroutine
-			def appendVariabble() -> core.awaitable[None]:
-				variables = yield from client.GetVariables(variablesReference)
+			async def appendVariabble() -> None:
+				variables = await client.GetVariables(variablesReference)
 				for variable in variables:
 					variable.name = "" # this is what vs code does?
 					self.append_variable(variable, event.source, event.line)

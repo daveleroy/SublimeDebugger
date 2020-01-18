@@ -21,10 +21,6 @@ from .layout import *
 from .image import *
 from .input import *
 from .align import text_align
-import os
-
-from ..libs import asyncio
-
 
 _update_timer = None #type: Optional[Timer]
 

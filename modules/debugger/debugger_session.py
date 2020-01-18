@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core, dap
 
 from ..dap.transport import (
@@ -43,9 +45,9 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	def __init__(
 		self,
 		breakpoints: Breakpoints,
-		threads: 'Threads',
-		sources: 'Sources',
-		modules: 'Modules',
+		threads: Threads,
+		sources: Sources,
+		modules: Modules,
 		watch: Watch,
 		variables: Variables,
 		terminals: Terminals,
@@ -110,15 +112,14 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.on_state_changed(state)
 		self.state_changed()
 
-	@core.coroutine
-	def launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False) -> core.awaitable[None]:
+	async def launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False) -> None:
 		if self.launching_async:
 			self.launching_async.cancel()
 
 		self.dispose_terminals()
 		try:
 			self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart, no_debug))
-			yield from self.launching_async
+			await self.launching_async
 		except core.Error as e:
 			self.launching_async = None
 			core.log_exception(e)
@@ -132,10 +133,9 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 		self.launching_async = None
 
-	@core.coroutine
-	def _launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any], no_debug: bool) -> core.awaitable[None]:
+	async def _launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any], no_debug: bool) -> None:
 		if self.state != DebuggerSession.stopped:
-			yield from self.stop()
+			await self.stop()
 
 		assert self.state == DebuggerSession.stopped, "debugger not in stopped state?"
 		self.state = DebuggerSession.starting
@@ -145,7 +145,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if not adapter_configuration.installed:
 			install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
 			if sublime.ok_cancel_dialog(install, 'Install'):
-				yield from adapter_configuration.install(self)
+				await adapter_configuration.install(self)
 
 		if not adapter_configuration.installed:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
@@ -156,7 +156,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			terminal = TerminalBuild(configuration.all['sublime_build'])
 			self.terminals.add(self, terminal)
 
-			exit_code = yield from terminal.wait()
+			exit_code = await terminal.wait()
 			if exit_code != 0:
 				self.error('... build failed: exit code {}'.format(exit_code))
 				self.stop_forced(reason=DebuggerSession.stopped_reason_build_failed)
@@ -179,35 +179,34 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		# this is a bit of a weird case. Initialized will happen at some point in time
 		# it depends on when the debug adapter chooses it is ready for configuration information
 		# when it does happen we can then add all the breakpoints and complete the configuration
-		@core.coroutine
-		def Initialized() -> core.awaitable[None]:
+		async def Initialized() -> None:
 			try:
-				yield from adapter.Initialized()
+				await adapter.Initialized()
 			except Exception as e:
 				self.error("there was waiting for initialized from debugger {}".format(e))
 
 			try:
-				yield from self.add_breakpoints()
+				await self.add_breakpoints()
 			except Exception as e:
 				self.error("there was an error adding breakpoints {}".format(e))
 
 			try:
 				if self.capabilities.supportsConfigurationDoneRequest:
-					yield from adapter.ConfigurationDone()
+					await adapter.ConfigurationDone()
 			except Exception as e:
 				self.error("there was an error in configuration done {}".format(e))
 		core.run(Initialized())
 
-		self.capabilities = yield from adapter.Initialize()
+		self.capabilities = await adapter.Initialize()
 		# remove/add any exception breakpoint filters
 		self.breakpoints.filters.update(self.capabilities.exceptionBreakpointFilters or [])
 
 		if configuration.request == 'launch':
 			self.launch_request = True
-			yield from adapter.Launch(configuration.all, restart, no_debug)
+			await adapter.Launch(configuration.all, restart, no_debug)
 		elif configuration.request == 'attach':
 			self.launch_request = False
-			yield from adapter.Attach(configuration.all, restart, no_debug)
+			await adapter.Attach(configuration.all, restart, no_debug)
 		else:
 			raise core.Error('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
 
@@ -225,11 +224,10 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		else:
 			self.state = DebuggerSession.running
 
-	@core.coroutine
-	def add_breakpoints(self) -> core.awaitable[None]:
+	async def add_breakpoints(self) -> None:
 		assert self.adapter
 
-		requests = [] #type: List[core.awaitable[dict]]
+		requests = [] #type: List[Awaitable[Any]]
 
 		requests.append(self.set_exception_breakpoint_filters())
 		requests.append(self.set_function_breakpoints())
@@ -248,10 +246,9 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			requests.append(self.set_data_breakpoints())
 
 		if requests:
-			yield from core.asyncio.wait(requests)
+			await core.wait(requests)
 
-	@core.coroutine
-	def set_exception_breakpoint_filters(self) -> core.awaitable[None]:
+	async def set_exception_breakpoint_filters(self) -> None:
 		if not self.adapter:
 			return
 		filters = [] #type: List[str]
@@ -259,10 +256,9 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			if f.enabled:
 				filters.append(f.dap.id)
 
-		yield from self.adapter.SetExceptionBreakpoints(filters)
+		await self.adapter.SetExceptionBreakpoints(filters)
 
-	@core.coroutine
-	def set_function_breakpoints(self) -> core.awaitable[None]:
+	async def set_function_breakpoints(self) -> None:
 		if not self.adapter:
 			return
 		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.function))
@@ -274,22 +270,20 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			return
 
 		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
-		results = yield from self.adapter.SetFunctionBreakpoints(dap_breakpoints)
+		results = await self.adapter.SetFunctionBreakpoints(dap_breakpoints)
 		for result, b in zip(results, breakpoints):
 			self.breakpoints.function.set_result(b, result)
 
-	@core.coroutine
-	def set_data_breakpoints(self) -> core.awaitable[None]:
+	async def set_data_breakpoints(self) -> None:
 		if not self.adapter:
 			return
 		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.data))
 		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
-		results = yield from self.adapter.SetDataBreakpointsRequest(dap_breakpoints)
+		results = await self.adapter.SetDataBreakpointsRequest(dap_breakpoints)
 		for result, b in zip(results, breakpoints):
 			self.breakpoints.data.set_result(b, result)
 
-	@core.coroutine
-	def set_breakpoints_for_file(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[None]:
+	async def set_breakpoints_for_file(self, file: str, breakpoints: List[SourceBreakpoint]) -> None:
 		if not self.adapter:
 			return
 
@@ -297,7 +291,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		dap_breakpoints = list(map(lambda b: b.dap, enabled_breakpoints))
 
 		try:
-			results = yield from self.adapter.SetBreakpointsFile(file, dap_breakpoints)
+			results = await self.adapter.SetBreakpointsFile(file, dap_breakpoints)
 
 			if len(results) != len(enabled_breakpoints):
 				raise dap.Error(True, 'expected #breakpoints to match results')
@@ -324,7 +318,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		file = breakpoint.file
 		core.run(self.set_breakpoints_for_file(file, self.breakpoints.source.breakpoints_for_file(file)))
 
-	def stop(self) -> core.awaitable[None]:
+	async def stop(self):
 		# the adapter isn't stopping and stop is called again we force stop it
 		if not self.adapter or self.state == DebuggerSession.stopping:
 			self.stop_forced(reason=DebuggerSession.stopped_reason_manual)
@@ -337,14 +331,14 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if self.launch_request:
 			if self.capabilities.supportsTerminateRequest:
 				try:
-					yield from self.adapter.Terminate()
+					await self.adapter.Terminate()
 				except dap.Error as e:
-					yield from self.adapter.Disconnect()
+					await self.adapter.Disconnect()
 			else:
-				yield from self.adapter.Disconnect()
+				await self.adapter.Disconnect()
 
 		else:
-			yield from self.adapter.Disconnect()
+			await self.adapter.Disconnect()
 
 		self.stop_forced(DebuggerSession.stopped_reason_manual)
 
@@ -381,30 +375,24 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	def command_thread(self) -> dap.Thread:
 		return self.callstack.command_thread()
 
-	@core.coroutine
-	def resume(self) -> core.awaitable[None]:
-		yield from self.client.Resume(self.command_thread)
+	async def resume(self):
+		await self.client.Resume(self.command_thread)
 
-	@core.coroutine
-	def pause(self) -> core.awaitable[None]:
-		yield from self.client.Pause(self.command_thread)
+	async def pause(self):
+		await self.client.Pause(self.command_thread)
 
-	@core.coroutine
-	def step_over(self) -> core.awaitable[None]:
-		yield from self.client.StepOver(self.command_thread)
+	async def step_over(self):
+		await self.client.StepOver(self.command_thread)
 
-	@core.coroutine
-	def step_in(self) -> core.awaitable[None]:
-		yield from self.client.StepIn(self.command_thread)
+	async def step_in(self):
+		await self.client.StepIn(self.command_thread)
 
-	@core.coroutine
-	def step_out(self) -> core.awaitable[None]:
-		yield from self.client.StepOut(self.command_thread)
+	async def step_out(self):
+		await self.client.StepOut(self.command_thread)
 
-	@core.coroutine
-	def evaluate(self, command: str) -> core.awaitable[None]:
+	async def evaluate(self, command: str):
 		self.info(command)
-		response = yield from self.client.Evaluate(command, self.callstack.selected_frame, "repl")
+		response = await self.client.Evaluate(command, self.callstack.selected_frame, "repl")
 		event = dap.OutputEvent("console", response.result, response.variablesReference)
 		self.on_output(event)
 
@@ -423,9 +411,8 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	# after a successfull launch/attach, stopped event, thread event we request all threads
 	# see https://microsoft.github.io/debug-adapter-protocol/overview
 	def refresh_threads(self) -> None:
-		@core.coroutine
-		def refresh_threads() -> core.awaitable[None]:
-			threads = yield from self.client.GetThreads()
+		async def refresh_threads():
+			threads = await self.client.GetThreads()
 			self.callstack.update(threads)
 		core.run(refresh_threads())
 
@@ -435,9 +422,8 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			core.run(self.get_scopes(frame))
 			core.run(self.watch.evaluate(self, self.callstack.selected_frame))
 
-	@core.coroutine
-	def get_scopes(self, frame: dap.StackFrame) -> core.awaitable:
-		scopes = yield from self.client.GetScopes(frame)
+	async def get_scopes(self, frame: dap.StackFrame):
+		scopes = await self.client.GetScopes(frame)
 		self.variables.update(self, scopes)
 
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
@@ -542,10 +528,9 @@ class Thread:
 	def has_children(self) -> bool:
 		return self.stopped
 
-	@core.coroutine
-	def children(self):
+	def children(self) -> Awaitable[List[dap.StackFrame]]:
 		if not self.stopped:
-			return []
+			raise core.Error('Cannot get children of thread that is not stopped')
 
 		if self._children:
 			return self._children
@@ -616,9 +601,8 @@ class Threads:
 			self.on_selected_thread(thread)
 			self.on_selected_frame(None)
 
-			@core.coroutine
-			def run(thread=thread):
-				children = yield from thread.children()
+			async def run(thread=thread):
+				children = await thread.children()
 				if children and not self.selected_frame and not self.selected_explicitly and self.selected_thread is thread:
 					def first_non_subtle_frame(frames: List[dap.StackFrame]):
 						for frame in frames:

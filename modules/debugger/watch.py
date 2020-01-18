@@ -9,6 +9,7 @@ from .variables import EvaluateReference, Variable, VariableComponent
 if TYPE_CHECKING:
 	from .debugger_session import DebuggerSession
 
+import asyncio
 
 class Watch:
 	class Expression:
@@ -53,22 +54,19 @@ class Watch:
 
 		ui.InputText(add, "Expression to watch").run()
 
-	@core.coroutine
-	def evaluate(self, session: 'DebuggerSession', frame: dap.StackFrame) -> core.awaitable[None]:
-		results = [] #type: List[core.awaitable[dap.EvaluateResponse]]
+	async def evaluate(self, session: 'DebuggerSession', frame: dap.StackFrame) -> None:
+		results = [] #type: List[Awaitable[dap.EvaluateResponse]]
 		for expression in self.expressions:
 			results.append(session.client.Evaluate(expression.value, frame, "watch"))
 
-		from ..libs import asyncio
-		evaluations = yield from asyncio.gather(*results, return_exceptions=True)
+		evaluations = await asyncio.gather(*results, return_exceptions=True)
 		for expression, evaluation in zip(self.expressions, evaluations):
 			self.evaluated(session, expression, evaluation)
 		self.on_updated()
 
-	@core.coroutine
-	def evaluate_expression(self, session: 'DebuggerSession', frame: dap.StackFrame, expression: 'Watch.Expression') -> core.awaitable[None]:
+	async def evaluate_expression(self, session: 'DebuggerSession', frame: dap.StackFrame, expression: 'Watch.Expression') -> None:
 		try:
-			result = yield from session.client.Evaluate(expression.value, frame, "watch")
+			result = await session.client.Evaluate(expression.value, frame, "watch")
 			self.evaluated(session, expression, result)
 		except dap.Error as result:
 			self.evaluated(session, expression, result)

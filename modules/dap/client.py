@@ -19,8 +19,6 @@ from .. import core
 
 from .types import *
 from .transport import Transport
-from ..libs import asyncio
-
 
 class ClientEventsListener (Protocol):
 	# events
@@ -65,30 +63,26 @@ class Client:
 		print('disposing Debugger')
 		self.transport.dispose()
 
-	@core.coroutine
-	def StepIn(self, thread: Thread) -> core.awaitable[None]:
+	async def StepIn(self, thread: Thread) -> None:
 		self._continued(thread.id, False)
-		yield from self.send_request_asyc('stepIn', {
+		await self.send_request_asyc('stepIn', {
 			'threadId': thread.id
 		})
 
-	@core.coroutine
-	def StepOut(self, thread: Thread) -> core.awaitable[None]:
+	async def StepOut(self, thread: Thread) -> None:
 		self._continued(thread.id, False)
-		yield from self.send_request_asyc('stepOut', {
+		await self.send_request_asyc('stepOut', {
 			'threadId': thread.id
 		})
 
-	@core.coroutine
-	def StepOver(self, thread: Thread) -> core.awaitable[None]:
+	async def StepOver(self, thread: Thread) -> None:
 		self._continued(thread.id, False)
-		yield from self.send_request_asyc('next', {
+		await self.send_request_asyc('next', {
 			'threadId': thread.id
 		})
 
-	@core.coroutine
-	def Resume(self, thread: Thread) -> core.awaitable[None]:
-		body = yield from self.send_request_asyc('continue', {
+	async def Resume(self, thread: Thread) -> None:
+		body = await self.send_request_asyc('continue', {
 			'threadId': thread.id
 		})
 
@@ -98,32 +92,27 @@ class Client:
 		else:
 			self._continued(thread.id, True)
 
-	@core.coroutine
-	def Pause(self, thread: Thread) -> core.awaitable[None]:
-		yield from self.send_request_asyc('pause', {
+	async def Pause(self, thread: Thread) -> None:
+		await self.send_request_asyc('pause', {
 			'threadId': thread.id
 		})
 
-	@core.coroutine
-	def Restart(self) -> core.awaitable[None]:
-		yield from self.send_request_asyc('restart', {
+	async def Restart(self) -> None:
+		await self.send_request_asyc('restart', {
 		})
 
-	@core.coroutine
-	def Terminate(self, restart: bool = False) -> core.awaitable[None]:
-		yield from self.send_request_asyc('terminate', {
+	async def Terminate(self, restart: bool = False) -> None:
+		await self.send_request_asyc('terminate', {
 			"restart": restart
 		})
 
-	@core.coroutine
-	def Disconnect(self, restart: bool = False) -> core.awaitable[None]:
-		yield from self.send_request_asyc('disconnect', {
+	async def Disconnect(self, restart: bool = False) -> None:
+		await self.send_request_asyc('disconnect', {
 			"restart": restart
 		})
 
-	@core.coroutine
-	def GetThreads(self) -> core.awaitable[List[Thread]]:
-		response = yield from self.send_request_asyc('threads', None)
+	async def GetThreads(self) -> List[Thread]:
+		response = await self.send_request_asyc('threads', None)
 
 		threads = []
 		for thread in response['threads']:
@@ -132,9 +121,8 @@ class Client:
 
 		return threads
 
-	@core.coroutine
-	def GetScopes(self, frame: StackFrame) -> core.awaitable[List[Scope]]:
-		body = yield from self.send_request_asyc('scopes', {
+	async def GetScopes(self, frame: StackFrame) -> List[Scope]:
+		body = await self.send_request_asyc('scopes', {
 			"frameId": frame.id
 		})
 		scopes = []
@@ -143,9 +131,8 @@ class Client:
 			scopes.append(scope)
 		return scopes
 
-	@core.coroutine
-	def GetStackTrace(self, thread: Thread) -> core.awaitable[List[StackFrame]]:
-		body = yield from self.send_request_asyc('stackTrace', {
+	async def GetStackTrace(self, thread: Thread) -> List[StackFrame]:
+		body = await self.send_request_asyc('stackTrace', {
 			"threadId": thread.id,
 		})
 		frames = []
@@ -154,9 +141,8 @@ class Client:
 			frames.append(frame)
 		return frames
 
-	@core.coroutine
-	def StackTrace(self, threadId: int) -> core.awaitable[List[StackFrame]]:
-		body = yield from self.send_request_asyc('stackTrace', {
+	async def StackTrace(self, threadId: int) -> List[StackFrame]:
+		body = await self.send_request_asyc('stackTrace', {
 			"threadId": threadId,
 		})
 		frames = []
@@ -165,9 +151,8 @@ class Client:
 			frames.append(frame)
 		return frames
 
-	@core.coroutine
-	def GetSource(self, source: Source) -> core.awaitable[str]:
-		body = yield from self.send_request_asyc('source', {
+	async def GetSource(self, source: Source) -> str:
+		body = await self.send_request_asyc('source', {
 			'source': {
 				'path': source.path,
 				'sourceReference': source.sourceReference
@@ -176,17 +161,15 @@ class Client:
 		})
 		return body['content']
 
-	@core.coroutine
-	def Initialized(self) -> core.awaitable[None]:
-		yield from self._on_initialized_future
+	async def Initialized(self) -> None:
+		await self._on_initialized_future
 
-	@core.coroutine
-	def Evaluate(self, expression: str, frame: Optional[StackFrame], context: Optional[str]) -> core.awaitable[Optional[EvaluateResponse]]:
+	async def Evaluate(self, expression: str, frame: Optional[StackFrame], context: Optional[str]) -> Optional[EvaluateResponse]:
 		frameId = None #type: Optional[int]
 		if frame:
 			frameId = frame.id
 
-		response = yield from self.send_request_asyc("evaluate", {
+		response = await self.send_request_asyc("evaluate", {
 			"expression": expression,
 			"context": context,
 			"frameId": frameId,
@@ -198,13 +181,12 @@ class Client:
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
 		return EvaluateResponse(response["result"], response.get("variablesReference", 0))
 
-	@core.coroutine
-	def Completions(self, text: str, column: int, frame: Optional[StackFrame]) -> core.awaitable[List[CompletionItem]]:
+	async def Completions(self, text: str, column: int, frame: Optional[StackFrame]) -> List[CompletionItem]:
 		frameId = None
 		if frame:
 			frameId = frame.id
 
-		response = yield from self.send_request_asyc("completions", {
+		response = await self.send_request_asyc("completions", {
 			"frameId": frameId,
 			"text": text,
 			"column": column,
@@ -214,9 +196,8 @@ class Client:
 			items.append(CompletionItem.from_json(item))
 		return items
 
-	@core.coroutine
-	def setVariable(self, variable: Variable, value: str) -> core.awaitable[Variable]:
-		response = yield from self.send_request_asyc("setVariable", {
+	async def setVariable(self, variable: Variable, value: str) -> Variable:
+		response = await self.send_request_asyc("setVariable", {
 			"variablesReference": variable.containerVariablesReference,
 			"name": variable.name,
 			"value": value,
@@ -226,9 +207,8 @@ class Client:
 		variable.variablesReference = response.get('variablesReference', 0)
 		return variable
 
-	@core.coroutine
-	def Initialize(self) -> core.awaitable[Capabilities]:
-		response = yield from self.send_request_asyc("initialize", {
+	async def Initialize(self) -> Capabilities:
+		response = await self.send_request_asyc("initialize", {
 			"clientID": "sublime",
 			"clientName": "Sublime Text",
 			"adapterID": "python",
@@ -242,8 +222,7 @@ class Client:
 		)
 		return Capabilities.from_json(response)
 
-	@core.coroutine
-	def Launch(self, config: dict, restart: Optional[Any], no_debug: bool) -> core.awaitable[None]:
+	async def Launch(self, config: dict, restart: Optional[Any], no_debug: bool) -> None:
 		if restart or no_debug:
 			config = config.copy()
 		if restart:
@@ -251,12 +230,11 @@ class Client:
 		if no_debug:
 			config["noDebug"] = True
 
-		yield from self.send_request_asyc('launch', config)
+		await self.send_request_asyc('launch', config)
 		# the spec says to grab the baseline threads here?
 		self.is_running = True
 
-	@core.coroutine
-	def Attach(self, config: dict, restart: Optional[Any], no_debug: bool) -> core.awaitable[None]:
+	async def Attach(self, config: dict, restart: Optional[Any], no_debug: bool) -> None:
 		if restart or no_debug:
 			config = config.copy()
 		if restart:
@@ -264,41 +242,36 @@ class Client:
 		if no_debug:
 			config["noDebug"] = True
 
-		yield from self.send_request_asyc('attach', config)
+		await self.send_request_asyc('attach', config)
 		# the spec says to grab the baseline threads here?
 		self.is_running = True
 
-	@core.coroutine
-	def SetExceptionBreakpoints(self, filters: List[str]) -> core.awaitable[None]:
-		yield from self.send_request_asyc('setExceptionBreakpoints', {
+	async def SetExceptionBreakpoints(self, filters: List[str]) -> None:
+		await self.send_request_asyc('setExceptionBreakpoints', {
 			'filters': filters
 		})
 
-	@core.coroutine
-	def SetFunctionBreakpoints(self, breakpoints: List[FunctionBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
-		result = yield from self.send_request_asyc('setFunctionBreakpoints', {
+	async def SetFunctionBreakpoints(self, breakpoints: List[FunctionBreakpoint]) -> List[BreakpointResult]:
+		result = await self.send_request_asyc('setFunctionBreakpoints', {
 			"breakpoints": json_from_array(FunctionBreakpoint.into_json, breakpoints)
 		})
 		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
-	@core.coroutine
-	def DataBreakpointInfoRequest(self, variable: Variable) -> core.awaitable[DataBreakpointInfoResponse]:
-		result = yield from self.send_request_asyc('dataBreakpointInfo', {
+	async def DataBreakpointInfoRequest(self, variable: Variable) -> DataBreakpointInfoResponse:
+		result = await self.send_request_asyc('dataBreakpointInfo', {
 			"variablesReference": variable.containerVariablesReference,
 			"name": variable.name,
 		})
 		return DataBreakpointInfoResponse.from_json(result)
 
-	@core.coroutine
-	def SetDataBreakpointsRequest(self, breakpoints: List[DataBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
-		result = yield from self.send_request_asyc('setDataBreakpoints', {
+	async def SetDataBreakpointsRequest(self, breakpoints: List[DataBreakpoint]) -> List[BreakpointResult]:
+		result = await self.send_request_asyc('setDataBreakpoints', {
 			"breakpoints": json_from_array(DataBreakpoint.into_json, breakpoints)
 		})
 		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
-	@core.coroutine
-	def SetBreakpointsFile(self, file: str, breakpoints: List[SourceBreakpoint]) -> core.awaitable[List[BreakpointResult]]:
-		result = yield from self.send_request_asyc('setBreakpoints', {
+	async def SetBreakpointsFile(self, file: str, breakpoints: List[SourceBreakpoint]) -> List[BreakpointResult]:
+		result = await self.send_request_asyc('setBreakpoints', {
 			"source": {
 				"path": file
 			},
@@ -306,13 +279,11 @@ class Client:
 		})
 		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
 
-	@core.coroutine
-	def ConfigurationDone(self) -> core.awaitable[None]:
-		yield from self.send_request_asyc('configurationDone', None)
+	async def ConfigurationDone(self) -> None:
+		await self.send_request_asyc('configurationDone', None)
 
-	@core.coroutine
-	def GetVariables(self, variablesReference: int) -> core.awaitable[List[Variable]]:
-		response = yield from self.send_request_asyc('variables', {
+	async def GetVariables(self, variablesReference: int) -> List[Variable]:
+		response = await self.send_request_asyc('variables', {
 			"variablesReference": variablesReference
 		})
 		variables = []
@@ -375,8 +346,7 @@ class Client:
 		msg = json.loads(message)
 		self.recieved_msg(msg)
 
-	@core.coroutine
-	def send_request_asyc(self, command: str, args: dict) -> core.awaitable[dict]:
+	def send_request_asyc(self, command: str, args: Optional[dict]) -> Awaitable[dict]:
 		future = core.create_future()
 		self.seq += 1
 		request = {

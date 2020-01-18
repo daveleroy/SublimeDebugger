@@ -1,5 +1,4 @@
-from ..libs import asyncio
-
+import asyncio
 import sublime
 import threading
 
@@ -42,12 +41,12 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 	def _timer_handle_cancelled(self, handle):
 		raise NotImplementedError
 
-	def call_soon(self, callback, *args):
+	def call_soon(self, callback, *args, context=None):
 		handle = Handle(callback, args)
 		sublime.set_timeout(handle, 0)
 		return handle
 
-	def call_later(self, delay, callback, *args):
+	def call_later(self, delay, callback, *args, context=None):
 		handle = Handle(callback, args)
 		sublime.set_timeout(handle, delay * 1000)
 		return handle

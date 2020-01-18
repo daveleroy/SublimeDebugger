@@ -12,12 +12,12 @@ import json
 if TYPE_CHECKING:
 	from ..debugger import Debugger
 
-def insert_snippet(window: sublime.Window, snippet: dict) -> core.awaitable[None]:
+async def insert_snippet(window: sublime.Window, snippet: dict):
 	content = json.dumps(snippet, indent="\t")
 	content = content.replace('\\\\', '\\') # remove json encoded \ ...
 	project = window.project_file_name()
 	if project:
-		view = yield from core.sublime_open_file_async(window, project)
+		view = await core.sublime_open_file_async(window, project)
 		region = view.find('''"\s*debug.configurations\s*"\s*:\s*\[''', 0)
 		view.sel().clear()
 		view.sel().add(sublime.Region(region.b, region.b))
