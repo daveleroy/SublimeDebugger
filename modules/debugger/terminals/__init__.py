@@ -16,5 +16,5 @@ from .terminal_debugger  import (
 	TermianlDebugger,
 )
 from .terminal_build  import (
-	TerminalBuild,
+	TerminalCommand,
 )

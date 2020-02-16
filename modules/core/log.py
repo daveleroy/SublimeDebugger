@@ -40,3 +40,11 @@ class Logger(Protocol):
 		...
 	def info(self, value: str):
 		...
+
+class StdioLogger:
+	def error(self, value: str):
+		print('error:', value)
+	def info(self, value: str):
+		print('info:', value)
+
+stdio = StdioLogger()
