@@ -36,7 +36,7 @@ class ModulesView(ui.div):
 		for module in self.modules.modules:
 			is_expanded = self.is_expanded(module)
 			image_toggle = ui.Images.shared.open if is_expanded else ui.Images.shared.close
-			item = ui.div()[
+			item = ui.div(height=css.row_height)[
 				ui.click(lambda module=module: self.toggle_expanded(module))[ #type: ignore
 					ui.icon(image_toggle),
 				],

@@ -53,7 +53,7 @@ class TabbedPanel(ui.div):
 				Tab(item, index == self.selected_index)
 			])
 		return [
-			ui.div(height=3.5)[tabs],
+			ui.div(height=css.header_height)[tabs],
 			ui.div(width=pages_panel_width(self.layout), height=1000, css=css.rounded_panel)[
 				self.items[self.selected_index].item
 			],
@@ -62,7 +62,7 @@ class TabbedPanel(ui.div):
 
 class Tab (ui.span):
 	def __init__(self, item: TabbedPanelItem, selected: bool) -> None:
-		super().__init__(height=3.5, css=css.tab_panel_selected if selected else css.tab_panel)
+		super().__init__(height=css.header_height, css=css.tab_panel_selected if selected else css.tab_panel)
 
 		if not selected and item.modified:
 			self.items = [

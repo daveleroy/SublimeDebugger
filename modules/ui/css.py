@@ -1,13 +1,11 @@
 from .. typecheck import *
 
+CHARACTER_SIZE_REM = 1.6
+
 base_css = '''
 html {
-	font-size: 0.4rem;
 }
 body {
-	padding: 1px;
-	line-height: 1.0rem;
-	font-size: 1.6rem;
 }
 .dark {
 	--panel-color: color(var(--background) blend(black 90%));
@@ -28,6 +26,10 @@ body {
 
 	--primary: var(--text-color);
 	--secondary: color(var(--text-color) alpha(0.7));
+}
+span {
+}
+div {
 }
 a {
 	text-decoration: none;
@@ -60,16 +62,16 @@ class css:
 		additional_height = 0.0
 
 		if not padding_top is None:
-			css_string += 'padding-top:{}rem;'.format(padding_top)
+			css_string += 'padding-top:{}rem;'.format(padding_top/CHARACTER_SIZE_REM)
 			additional_height += padding_top
 		if not padding_bottom is None:
-			css_string += 'padding-bottom:{}rem;'.format(padding_bottom)
+			css_string += 'padding-bottom:{}rem;'.format(padding_bottom/CHARACTER_SIZE_REM)
 			additional_height += padding_bottom
 		if not padding_left is None:
-			css_string += 'padding-left:{}rem;'.format(padding_left)
+			css_string += 'padding-left:{}rem;'.format(padding_left/CHARACTER_SIZE_REM)
 			additional_width += padding_left
 		if not padding_right is None:
-			css_string += 'padding-right:{}rem;'.format(padding_right)
+			css_string += 'padding-right:{}rem;'.format(padding_right/CHARACTER_SIZE_REM)
 			additional_width += padding_right
 		if not background_color is None:
 			css_string += 'background-color:{};'.format(background_color)
@@ -86,14 +88,14 @@ class css:
 
 
 div_inline_css = css(
-	padding_top=-0.8,
-	padding_bottom=0.8
+	padding_top=-1.0,
+	padding_bottom=1.0
 )
 
 none_css = css()
 
 icon_css = css(raw='''
 	position: relative;
-	top:0.7rem;
+	top:0.5rem;
 	line-height:0;
 ''')

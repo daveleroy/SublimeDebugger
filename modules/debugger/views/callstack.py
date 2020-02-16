@@ -85,12 +85,12 @@ class ThreadView (ui.div):
 		is_expanded = self.state.is_expanded(self.thread)
 
 		if expandable:
-			thread_item = ui.div(height=3.0, width=width)[
+			thread_item = ui.div(height=css.row_height, width=width)[
 				ui.click(self.toggle_expand)[
 					ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close),
 				],
 				ui.click(self.on_select_thread)[
-					ui.span(height=0, css=css.button)[
+					ui.span(height=1.0, css=css.button)[
 						ui.icon(ui.Images.shared.thread_running),
 					],
 					ui.text(self.thread.name, css=css.label_padding),
@@ -98,10 +98,10 @@ class ThreadView (ui.div):
 				],
 			]
 		else:
-			thread_item = ui.div(height=3.0, width=width)[
+			thread_item = ui.div(height=css.row_height, width=width)[
 				ui.icon(ui.Images.shared.loading),
 				ui.click(self.on_select_thread)[
-					ui.span(height=0, css=css.button)[
+					ui.span(height=1.0, css=css.button)[
 						ui.icon(ui.Images.shared.thread_running),
 					],
 					ui.text(self.thread.name, css=css.label_padding),
@@ -154,7 +154,7 @@ class StackFrameComponent (ui.div):
 		]
 
 		return [
-			ui.div(height=3.0, css=css.icon_sized_spacer)[
+			ui.div(height=css.row_height, css=css.icon_sized_spacer)[
 				file_and_line,
 			]
 		]

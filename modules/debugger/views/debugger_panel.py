@@ -58,7 +58,7 @@ class DebuggerPanel(ui.div):
 
 		return [
 			ui.div()[
-				ui.div(height=3.5)[items],
+				ui.div(height=css.header_height)[items],
 				ui.div(width=30, height=100, css=css.rounded_panel)[
 					self.breakpoints,
 				],
