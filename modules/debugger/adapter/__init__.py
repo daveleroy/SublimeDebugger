@@ -1,3 +1,4 @@
-from .adapter import Adapter, install_adapters_menu
+from .adapter import Adapter, Adapters, ProcessTransport
 from .configuration import Configuration, ConfigurationExpanded
-from .select import select_configuration
+from . import vscode
+from ..adapters import *

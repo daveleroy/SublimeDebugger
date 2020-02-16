@@ -142,12 +142,12 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.adapter_configuration = adapter_configuration
 		self.configuration = configuration
 
-		if not adapter_configuration.installed:
+		if not adapter_configuration.installed_version:
 			install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
 			if sublime.ok_cancel_dialog(install, 'Install'):
 				await adapter_configuration.install(self)
 
-		if not adapter_configuration.installed:
+		if not adapter_configuration.installed_version:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
 
 		if 'sublime_build' in configuration.all:

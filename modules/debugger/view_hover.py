@@ -34,37 +34,23 @@ class ViewHoverProvider(core.Disposables):
 		if not self.debugger.adapter:
 			return
 
-		hover_word_seperators = self.debugger.adapter_configuration.hover_word_seperators
-		hover_word_regex_match = self.debugger.adapter_configuration.hover_word_regex_match
-
-		if hover_word_seperators:
-			word = event.view.expand_by_class(event.point, sublime.CLASS_WORD_START | sublime.CLASS_WORD_END, separators=hover_word_seperators)
-		else:
-			word = event.view.word(event.point)
-
-		word_string = event.view.substr(word)
-		if not word_string:
+		r = self.debugger.adapter_configuration.on_hover_provider(event.view, event.point)
+		if not r:
 			return
-
-		if hover_word_regex_match:
-			x = re.search(hover_word_regex_match, word_string)
-			if not x:
-				core.log_info("hover match discarded because it failed matching the hover pattern, ", word_string)
-				return
-			word_string = x.group()
-
+		word_string, region = r
+		
 		try:
 			response = await self.debugger.adapter.Evaluate(word_string, self.debugger.callstack.selected_frame, 'hover')
-			await core.asyncio.sleep(0.25)
-			variable = dap.Variable(self.debugger.adapter, "", response.result, response.variablesReference)
-			event.view.add_regions('selected_hover', [word], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
+			await core.sleep(0.25)
+			variable = dap.Variable("", response.result, response.variablesReference)
+			event.view.add_regions('selected_hover', [region], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
 
 			def on_close() -> None:
 				event.view.erase_regions('selected_hover')
 
 			component = VariableComponent(Variable(self.debugger, variable))
 			component.toggle_expand()
-			ui.Popup(component, event.view, word.a, on_close=on_close)
+			ui.Popup(component, event.view, region.a, on_close=on_close)
 
 		# errors trying to evaluate a hover expression should be ignored
 		except dap.Error as e:
