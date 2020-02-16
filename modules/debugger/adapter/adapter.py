@@ -1,104 +1,145 @@
 from ...typecheck import *
 from ...import core
 from ...import ui
-
-from .install import VSCodeAdapterInstall, AdapterInstall
+from ...dap import StdioTransport, Process
 
 import sublime
+import json
 
-def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dict:
-	platform = None #type: Optional[dict]
-	if core.platform.osx:
-		platform = json.get('osx')
-	elif core.platform.linux:
-		platform = json.get('linux')
-	elif core.platform.windows:
-		platform = json.get('windows')
-
-	if platform:
-		json = json.copy()
-		for key, value in platform.items():
-			json[key] = value
-
-	if variables is not None:
-		return sublime.expand_variables(json, variables)
-
-	return json
-
-class Adapter:
-	def __init__(self, type: str, json: dict, variables: dict) -> None:
-		json = _expand_variables_and_platform(json, None)
-		install_json = json.get('install')
-
-		variables = variables.copy()
-
-		self.installer = None
-		if install_json:
-			if install_json["type"] == "vscode":
-				self.installer = VSCodeAdapterInstall.from_json(_expand_variables_and_platform(install_json, variables))
-				variables["install_path"] = self.installer.path
-			else:
-				raise core.Error("unhandled adapter install type")
-
-		json = _expand_variables_and_platform(json, variables)
-		self.command = json['command']
-		self.type = type
-		self.version = 0
-		self.hover_word_seperators = json.get('hover_word_seperators')
-		self.hover_word_regex_match = json.get('hover_word_regex_match')
-		self.snippets = [] #type: List[dict]
-		self.load_installation_if_needed()
+class Adapter (Protocol):
+	@property
+	def type(self): ...
+	async def start(self, log: core.Logger): ...
 
 	@property
-	def installed(self) -> bool:
-		if self.installer:
-			return self.installer.installed
-		return True
+	def version(self) -> Optional[str]: ...
 
-	def load_installation_if_needed(self) -> None:
-		if not self.installer:
-			return
-		info = self.installer.installed_info()
-		self.snippets = info.snippets
-		self.version = info.version
+	@property
+	def configuration_snippets(self) -> Optional[list]: ...
 
-	async def install(self, log: core.Logger) -> None:
-		if not self.installer:
-			return
-		await self.installer.install(log)
-		self.load_installation_if_needed()
+	@property
+	def configuration_shema(self) -> Optional[dict]: ...
 
-def install_adapters_menu(adapters: Iterable[Adapter], log: core.Logger):
-	items = []
-	for adapter in adapters:
-		if not adapter.installer:
-			continue
+	@property
+	def is_installed(self) -> bool: ...
 
-		def install(adapter):
-			installer = adapter.installer
-			assert installer
+	async def install(self, log: core.Logger): ...
 
-			async def install():
-				log.info("Installing Adapter: {}".format(installer.name))
-				try:
-					await adapter.install(log)
-				except core.Error as e:
-					log.error("Failed Installing Adapter: {}".format(e))
+	def on_hover_provider(self, view: sublime.View, point: int) -> Optional[str]:
+		word = view.word(point)
+		word_string = word and view.substr(word)
+		if word_string:
+			return (word_string, word)
+		return None
 
-			core.run(install())
+class Adapters:
+	all: ClassVar[List[Adapter]]
 
-		name = adapter.installer.name
-		if adapter.version:
-			name += '\t'
-			name += str(adapter.version)
+	@staticmethod
+	def initialize():
+		Adapters.all = [klass() for klass in Adapter.__subclasses__()]
 
-		items.append(
-			ui.InputListItemChecked(
-				lambda adapter=adapter: install(adapter), #type: ignore
-				name,
-				name,
-				adapter.installed
+	@staticmethod
+	def get(type: str) -> Adapter:
+		for adapter in Adapters.all:
+			if type == adapter.type:
+				return adapter
+
+		raise core.Error(f'Unable to find debug adapter with the type name "{type}"')
+
+	@staticmethod
+	def install_menu(log: core.Logger = core.stdio):
+		items = []
+		for adapter in Adapters.all:
+			name = adapter.type
+			installed_version = adapter.installed_version
+			if installed_version:
+				name += '\t'
+				name += str(installed_version)
+
+			items.append(
+				ui.InputListItemChecked(
+					lambda adapter=adapter: core.run(adapter.install(log)), #type: ignore
+					name,
+					name,
+					installed_version != None
+				)
 			)
-		)
+		return ui.InputList(items, "Install Debug Adapters")
 
-	return ui.InputList(items, "Install Debug Adapters")
+	@staticmethod
+	async def _insert_snippet(window: sublime.Window, snippet: dict):
+		content = json.dumps(snippet, indent="\t")
+		content = content.replace('\\\\', '\\') # remove json encoded \ ...
+		project = window.project_file_name()
+		if project:
+			view = await core.sublime_open_file_async(window, project)
+			region = view.find('''"\s*debug.configurations\s*"\s*:\s*\[''', 0)
+			view.sel().clear()
+			view.sel().add(sublime.Region(region.b, region.b))
+			view.run_command('insert', {
+				'characters': '\n'
+			})
+			view.run_command('insert_snippet', {
+				'contents': content + ','
+			})
+		else:
+			sublime.set_clipboard(content)
+			core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
+
+	@staticmethod
+	def add_configuration():
+		def insert_custom(type: str, request: str):
+			core.run(Adapters._insert_snippet(sublime.active_window(), {
+					'name': 'request',
+					'type': 'type',
+					'request': 'launch|attach',
+					'<MORE>': '...'
+				}))
+
+		values = [
+			ui.InputListItem(insert_custom, 'Create Custom Configuration')
+		]
+
+		for adapter in Adapters.all:
+			snippet_input_items = []
+
+			for snippet in adapter.configuration_snippets or []:
+				def insert(snippet=snippet):
+					insert = snippet.get('body', '{ error: no body field}')
+					core.run(Adapters._insert_snippet(sublime.active_window(), insert))
+
+				snippet_input_items.append(ui.InputListItem(insert, snippet.get('label', 'label')))
+			
+			if not snippet_input_items:
+				snippet_input_items.append(ui.InputListItem(lambda: insert_custom(adapter.type, "launch"), 'launch'))
+				snippet_input_items.append(ui.InputListItem(lambda: insert_custom(adapter.type, "attach"), 'attach'))
+
+			values.append(ui.InputListItem(ui.InputList(snippet_input_items, "choose a snippet to insert"), adapter.type))
+
+		return ui.InputList(values, placeholder="choose a configuration type")
+
+
+	@staticmethod
+	def select_configuration(debugger: 'Debugger'):
+		values = []
+		for c in debugger.configurations:
+			values.append(ui.InputListItemChecked(lambda c=c: debugger.changeConfiguration(c), c.name, c.name, c == debugger.configuration)) #type: ignore
+
+		values.append(ui.InputListItem(Adapters.add_configuration(), "Add Configuration"))
+
+		return ui.InputList(values, "Add or Select Configuration")
+
+	@staticmethod
+	def recalculate_schema(self):
+		from .schema import save_schema
+		save_schema(Adapters.all)
+
+class ProcessTransport(StdioTransport):
+	def __init__(self, command: List[str], log: core.Logger):
+		self.proc = Process(command, on_stdout=None, on_stderr=log.info)
+		super().__init__(self.proc)
+
+	def dispose(self):
+		super().dispose()
+		self.proc.dispose()

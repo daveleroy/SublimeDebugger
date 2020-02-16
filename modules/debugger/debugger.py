@@ -15,8 +15,6 @@ from .autocomplete import Autocomplete
 from .util import WindowSettingsCallback, get_setting
 from .config import PersistedData
 
-from .help import help_menu
-
 from .debugger_session import (
 	DebuggerSession,
 	Modules,
@@ -29,19 +27,14 @@ from .debugger_session import (
 from .debugger_project import (
 	DebuggerProject
 )
-
 from .breakpoints import (
 	Breakpoints,
 )
-
 from .adapter import (
 	Configuration,
 	ConfigurationExpanded,
-	Adapter,
-	install_adapters_menu,
-	select_configuration,
+	Adapters,
 )
-
 from .output_panel import OutputPhantomsPanel
 
 from .terminals import (
@@ -50,6 +43,7 @@ from .terminals import (
 	TermianlDebugger,
 	TerminalView,
 )
+from .watch import WatchView
 
 from .view_hover import ViewHoverProvider
 from .view_selected_source import ViewSelectedSourceProvider
@@ -65,7 +59,6 @@ from .views.variables_panel import VariablesPanel
 from .views.tabbed_panel import Panels, TabbedPanel, TabbedPanelItem
 from .views.selected_line import SelectedLine
 
-from .watch import WatchView
 
 
 class Debugger:
@@ -123,12 +116,22 @@ class Debugger:
 			data.setdefault('settings', {}).setdefault('debug.configurations', [])
 			window.set_project_data(data)
 			break
-		self.project = DebuggerProject(window)
-
-		autocomplete = Autocomplete.create_for_window(window)
 
 		self.window = window
 		self.disposeables = [] #type: List[Any]
+
+		def on_project_configuration_updated():
+			print('on_project_configuration_updated')
+			self.terminals.external_terminal_kind = self.project.external_terminal_kind
+			self.configurations = self.project.configurations
+			self.configuration = self.persistance.load_configuration_option(self.configurations)
+
+		self.project = DebuggerProject(window)
+		self.disposeables.append(self.project)
+		self.project.on_updated.add(on_project_configuration_updated)
+		
+
+		autocomplete = Autocomplete.create_for_window(window)
 
 		def on_state_changed(state: int) -> None:
 			if state == DebuggerSession.stopped:
@@ -141,7 +144,7 @@ class Debugger:
 			elif state == DebuggerSession.paused:
 				self.debugger_panel.setState(PAUSED)
 
-				if get_setting(self.panel.phantom_view(), 'bring_window_to_front_on_pause', False):
+				if self.project.bring_window_to_front_on_pause:
 					# is there a better way to bring sublime to the front??
 					# this probably doesn't work for most people. subl needs to be in PATH
 					# ignore any errors
@@ -215,22 +218,13 @@ class Debugger:
 		self.view_hover_provider = ViewHoverProvider(self.project, self.debugger)
 		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.debugger, self.debugger.breakpoints)
 
-		self.panel = OutputPhantomsPanel(window, 'Debugger')
-		self.panel.show()
-
-		self.disposeables.extend([
-			self.panel,
-		])
 
 		self.persistance = PersistedData(project_name)
 		self.load_data()
-		self.load_settings_and_configurations()
-		self.disposeables.append(
-			WindowSettingsCallback(self.window, self.on_settings_updated)
-		)
+		on_project_configuration_updated()
 
-		phantom_location = self.panel.phantom_location()
-		phantom_view = self.panel.phantom_view()
+		phantom_location = self.project.panel_phantom_location()
+		phantom_view = self.project.panel_phantom_view()
 
 		terminal_component = TerminalView(self.terminal, self.on_navigate_to_source)
 		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
@@ -261,70 +255,8 @@ class Debugger:
 		self.disposeables.append(self.source_provider)
 		self.disposeables.append(self.breakpoints_provider)
 
-	def load_settings_and_configurations(self) -> None:
-
-		# logging settings
-		core.log_configure(
-			log_info=get_setting(self.window.active_view(), 'log_info', False),
-			log_errors=get_setting(self.window.active_view(), 'log_errors', True),
-			log_exceptions=get_setting(self.window.active_view(), 'log_exceptions', True),
-		)
-
-		self.terminals.external_terminal_kind = get_setting(self.window.active_view(), 'external_terminal', 'platform')
-
-		# configuration settings
-		variables = self.project.extract_variables()
-		adapters = {}
-
-		def load_adapter(adapter_name, adapter_json):
-			adapter_json = sublime.expand_variables(adapter_json, variables)
-
-			# if its a string then it points to a json file with configuration in it
-			# otherwise it is the configuration
-			try:
-				if isinstance(adapter_json, str):
-					with open(adapter_json) as json_data:
-						adapter_json = json.load(json_data,)
-			except Exception as e:
-				core.display('Failed when opening debug adapter configuration file {}'.format(e))
-				core.log_exception()
-
-			try:
-				adapter = Adapter(adapter_name, adapter_json, variables)
-				adapters[adapter.type] = adapter
-			except core.Error as e:
-				core.display('There was an error creating an Adapter {}'.format(e))
-				core.log_exception()
-
-		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters', {}).items():
-			load_adapter(adapter_name, adapter_json)
-
-		for adapter_name, adapter_json in get_setting(self.window.active_view(), 'adapters_custom', {}).items():
-			load_adapter(adapter_name, adapter_json)
-
-		configurations = []
-		configurations_json = [] #type: list
-		data = self.window.project_data()
-		if data:
-			configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
-
-		for index, configuration_json in enumerate(configurations_json):
-			configuration = Configuration.from_json(configuration_json)
-			configuration.index = index
-			configurations.append(configuration)
-
-		self.adapters = adapters
-		self.configurations = configurations
-		self.configuration = self.persistance.load_configuration_option(configurations)
-
-		self.panel.ui_scale = get_setting(self.panel.phantom_view(), 'ui_scale', 12)
-
-	def on_settings_updated(self) -> None:
-		print('Settings were udpdated: reloading configuations')
-		self.load_settings_and_configurations()
-
 	def show(self) -> None:
-		self.panel.show()
+		self.project.panel_show()
 
 	def show_console_panel(self) -> None:
 		self.panels.show(id(self.terminal))
@@ -360,14 +292,11 @@ class Debugger:
 		try:
 			if not self.configuration:
 				self.terminal.log_error("Add or select a configuration to begin debugging")
-				select_configuration(self).run()
+				Adapters.select_configuration(self).run()
 				return
 
 			configuration = self.configuration
-
-			adapter_configuration = self.adapters.get(configuration.type)
-			if not adapter_configuration:
-				raise core.Error('Unable to find debug adapter with the type name "{}"'.format(configuration.type))
+			adapter_configuration = Adapters.get(configuration.type)
 
 		except Exception as e:
 			core.log_exception()
@@ -401,17 +330,17 @@ class Debugger:
 	# commands
 	#
 	def open(self) -> None:
-		self.panel.show()
+		self.show()
 
 	def quit(self) -> None:
 		self.dispose()
 
 	def on_play(self) -> None:
-		self.panel.show()
+		self.show()
 		self.run_async(self._on_play())
 
 	def on_play_no_debug(self) -> None:
-		self.panel.show()
+		self.show()
 		self.run_async(self._on_play(no_debug=True))
 
 	def on_stop(self) -> None:
@@ -470,14 +399,28 @@ class Debugger:
 		self.persistance.save_to_file()
 
 	def on_settings(self) -> None:
-		help_menu(self).run()
+		import webbrowser
+		def about():
+			webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger/blob/master/docs/setup.md")
+		
+		def report_issue():
+			webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger/issues")
+
+		values = Adapters.select_configuration(debugger).values
+		values.extend([
+			ui.InputListItem(lambda: ..., ""),
+			ui.InputListItem(report_issue, "Report Issue"),
+			ui.InputListItem(about, "About/Getting Started"),
+		])
+
+		ui.InputList(values).run()
 
 	def install_adapters(self) -> None:
 		self.show_console_panel()
-		install_adapters_menu(self.adapters.values(), self).run()
+		Adapters.install_menu(log=self).run()
 
 	def change_configuration(self) -> None:
-		select_configuration(self).run()
+		Adapters.select_configuration(self).run()
 
 	def error(self, value: str):
 		self.terminal.log_error(value)
