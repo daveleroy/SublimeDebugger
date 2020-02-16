@@ -9,7 +9,7 @@ from ..dap.transport import (
 )
 from .terminals import (
 	Terminal, 
-	TerminalBuild,
+	TerminalCommand,
 )
 from .adapter import (
 	ConfigurationExpanded,
@@ -82,9 +82,8 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.adapter = None #type: Optional[dap.Client]
 		self.process = None #type: Optional[Process]
 		self.launching_async = None #type: Optional[core.future]
-
+		self.stop_requested = False
 		self.launch_request = True
-
 		self._state = DebuggerSession.stopped
 
 		self.disposeables = [] #type: List[Any]
@@ -93,7 +92,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.terminals.clear_session_data(self)
 
 	def dispose(self) -> None:
-		self.stop_forced(reason=DebuggerSession.stopped_reason_dispose)
+		self.clear_session()
 		self.dispose_terminals()
 		self.breakpoints.dispose()
 		for disposeable in self.disposeables:
@@ -124,18 +123,45 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			self.launching_async = None
 			core.log_exception(e)
 			self.error("... an error occured, " + str(e))
-			self.stop_forced(reason=DebuggerSession.stopped_reason_launch_error)
+			await self.stop_forced(reason=DebuggerSession.stopped_reason_launch_error)
 			raise e
 		except core.CancelledError:
 			self.launching_async = None
 			self.info("... canceled")
-			self.stop_forced(reason=DebuggerSession.stopped_reason_cancel)
+			await self.stop_forced(reason=DebuggerSession.stopped_reason_cancel)
 
 		self.launching_async = None
+
+
+	async def run_pre_debug_task(self) -> bool:
+		pre_debug_command = self.configuration.all.get('pre_debug_command')
+		if pre_debug_command:
+			self.info('running pre debug command...')
+			return await self.run_task(pre_debug_command)
+		return True
+
+	async def run_post_debug_task(self) -> bool:
+		post_debug_command = self.configuration.all.get('post_debug_command')
+		if post_debug_command:
+			self.info('running post debug command...')
+			return await self.run_task(post_debug_command)
+		return True
+
+	async def run_task(self, args: Dict[str, Any]) -> bool:
+		try:
+			terminal = TerminalCommand(args)
+			self.terminals.add(self, terminal)
+			await terminal.wait()
+			self.info('... finished')
+			return True
+		except Exception as e:
+			self.error(f'... failed: {e}')
+			return False
 
 	async def _launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any], no_debug: bool) -> None:
 		if self.state != DebuggerSession.stopped:
 			await self.stop()
+			return
 
 		assert self.state == DebuggerSession.stopped, "debugger not in stopped state?"
 		self.state = DebuggerSession.starting
@@ -150,23 +176,12 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if not adapter_configuration.installed_version:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
 
-		if 'sublime_build' in configuration.all:
-			self.info('running build...')
-
-			terminal = TerminalBuild(configuration.all['sublime_build'])
-			self.terminals.add(self, terminal)
-
-			exit_code = await terminal.wait()
-			if exit_code != 0:
-				self.error('... build failed: exit code {}'.format(exit_code))
-				self.stop_forced(reason=DebuggerSession.stopped_reason_build_failed)
-				return
-			else:
-				self.info('... finished running build')
+		if not await self.run_pre_debug_task():
+			await self.stop_forced(reason=DebuggerSession.stopped_reason_build_failed)
+			return
 
 		# dont monitor stdout the StdioTransport uses it
-		self.process = Process(adapter_configuration.command, on_stdout=None, on_stderr=self.info)
-		transport = StdioTransport(self.process)
+		transport = await adapter_configuration.start(log=self)
 
 		adapter = dap.Client(
 			transport,
@@ -319,30 +334,30 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		core.run(self.set_breakpoints_for_file(file, self.breakpoints.source.breakpoints_for_file(file)))
 
 	async def stop(self):
-		# the adapter isn't stopping and stop is called again we force stop it
-		if not self.adapter or self.state == DebuggerSession.stopping:
-			self.stop_forced(reason=DebuggerSession.stopped_reason_manual)
-			return
-
-		self.state = DebuggerSession.stopping
-
 		# this seems to be what the spec says to do in the overview
 		# https://microsoft.github.io/debug-adapter-protocol/overview
+
+		# If the stop is called multiple times then we call disconnect to forefully disconnect
+		if self.stop_requested:
+			await self.stop_forced(reason=DebuggerSession.stopped_reason_manual)
+			return
+
+		self.stop_requested = True
+
 		if self.launch_request:
 			if self.capabilities.supportsTerminateRequest:
 				try:
-					await self.adapter.Terminate()
+					await self.client.Terminate()
 				except dap.Error as e:
-					await self.adapter.Disconnect()
+					await self.client.Disconnect()
 			else:
-				await self.adapter.Disconnect()
+				await self.client.Disconnect()
 
 		else:
-			await self.adapter.Disconnect()
+			await self.client.Disconnect()
 
-		self.stop_forced(DebuggerSession.stopped_reason_manual)
-
-	def stop_forced(self, reason) -> None:
+		
+	def clear_session(self):
 		if self.launching_async:
 			self.launching_async.cancel()
 
@@ -361,8 +376,12 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if self.process:
 			self.process.dispose()
 			self.process = None
-
+			
+	async def stop_forced(self, reason) -> None:
 		self.stopped_reason = reason
+		self.state = DebuggerSession.stopping
+		self.clear_session()
+		await self.run_post_debug_task()
 		self.state = DebuggerSession.stopped
 
 	@property
@@ -413,7 +432,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	def refresh_threads(self) -> None:
 		async def refresh_threads():
 			threads = await self.client.GetThreads()
-			self.callstack.update(threads)
+			self.callstack.update(self.client, threads)
 		core.run(refresh_threads())
 
 	def load_frame(self, frame: Optional[dap.StackFrame]):
@@ -453,9 +472,12 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self._refresh_state()
 
 	def on_terminated_event(self, event: dap.TerminatedEvent):
-		self.stop_forced(reason=DebuggerSession.stopped_reason_terminated_event)
-		if event.restart:
-			core.run(self.launch(self.adapter_configuration, self.configuration, event.restart))
+		async def on_terminated_async():
+			await self.stop_forced(reason=DebuggerSession.stopped_reason_terminated_event)
+			if event.restart:
+				await self.launch(self.adapter_configuration, self.configuration, event.restart)
+
+		core.run(on_terminated_async())
 
 	def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
 		try:
@@ -561,7 +583,7 @@ class Threads:
 			return self.threads[0]
 		raise core.Error("No threads to run command")
 
-	def getThread(self, client: dap.Client, id: int):
+	def get_thread(self, client: dap.Client, id: int):
 		t = self.threads_for_id.get(id)
 		if t:
 			return t
@@ -588,7 +610,7 @@ class Threads:
 				thread.stopped = True
 
 		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
-		thread = self.getThread(client, stopped.threadId, )
+		thread = self.get_thread(client, stopped.threadId, )
 		thread.clear()
 		thread.stopped = True
 		thread.stopped_reason = stopped.text
@@ -625,7 +647,7 @@ class Threads:
 				thread.stopped_reason = ""
 
 		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
-		thread = self.getThread(client, continued.threadId)
+		thread = self.get_thread(client, continued.threadId)
 		thread.stopped = False
 		thread.stopped_reason = ""
 
@@ -640,10 +662,10 @@ class Threads:
 
 	# updates all the threads from the dap model
 	# @NOTE threads_for_id will retain all threads for the entire session even if they are removed
-	def update(self, threads: List[dap.Thread]):
+	def update(self, client: dap.Client, threads: List[dap.Thread]):
 		self.threads.clear()
 		for thread in threads:
-			t = self.getThread(thread.client, thread.id)
+			t = self.get_thread(client, thread.id)
 			t.name = thread.name
 			self.threads.append(t)
 

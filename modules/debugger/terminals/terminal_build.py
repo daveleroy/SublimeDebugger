@@ -5,82 +5,99 @@ import Default #type: ignore
 from ...import core
 from .terminal import Terminal
 
-
-
-class TerminalBuild(Terminal):
+class TerminalCommand(Terminal):
 	def __init__(self, arguments: dict):
-		super().__init__('Build Results')
-		self.future = run_build(sublime.active_window(), self.write_stdout, arguments)
+		name = arguments.get('name', arguments['cmd'])
+		super().__init__(name)
+		if 'name' in arguments:
+			del arguments['name']
+		self.exec = DebuggerExec(sublime.active_window(), self.write_stdout, arguments)
 
 	def write_stdout(self, text: str):
 		self.add('stdout', text)
 
-	@core.coroutine
-	def wait(self) -> core.awaitable[int]:
-		r = yield from self.future
-		return r
+	async def wait(self) -> None:
+		await self.exec.wait()
 
-on_finished_futures = {}
-on_output_callbacks = {}
 id = 0
+debugger_exec_for_id = {}
 
-@core.coroutine
-def run_build(window: sublime.Window, on_output_callback, args) -> core.awaitable[int]:
-	global on_finished_futures
-	global id
-	id += 1
-	future = core.create_future()
-	on_finished_futures[id] = future
-	on_output_callbacks[id] = on_output_callback
-	window.run_command("debugger_build_exec", {
-		"id": id,
-		"args": args,
-	})
+class DebuggerExec:
+	def __init__(self, window: sublime.Window, on_output, args):
+		global debugger_exec_for_id
+		global id
+		id += 1
+		debugger_exec_for_id[id] = self
 
-	try:
-		exit_code = yield from future
-		return exit_code
+		self.future = core.create_future()
+		self.on_output_callback = on_output
 
-	except core.CancelledError as e:
-		core.log_info("Cancel build")
-		window.run_command("debugger_build_exec", {
+		window.run_command("debugger_exec", {
 			"id": id,
-			"args": {
-				"kill": True
-			},
+			"args": args,
 		})
-		raise e
+
+		async def kill_if_canceled():
+			try:
+				await self.future
+			except core.CancelledError as e:
+				core.log_info("Cancel task")
+				window.run_command("debugger_exec", {
+					"id": id,
+					"args": {
+						"kill": True
+					},
+				})
+				raise e
+		core.run(kill_if_canceled())
+
+	def on_kill(self):
+		self.future.cancel()
+
+	def on_output(self, characters):
+		self.on_output_callback(characters)
+
+	def on_finished(self, exit_code):
+		if exit_code:
+			self.future.set_exception(core.Error("Command failed with exit_code {}".format(exit_code)))
+
+		self.future.set_result(None)
+
+	async def wait(self) -> None:
+		await self.future
 
 
-class DebuggerBuildExecCommand(Default.exec.ExecCommand):
+class DebuggerExecCommand(Default.exec.ExecCommand):
 	def run(self, id, args):
 		self._id = id
-		self.on_output_callback = on_output_callbacks[id]
+		self.instance = debugger_exec_for_id[id]
 		panel = self.window.active_panel()
 		super().run(**args)
-		print("run")
+
+		# return to previous panel we don't want to show the build results panel
 		self.window.run_command("show_panel", {"panel": panel})
 
-	def finish(self, proc):
-		print("run")
-		super().finish(proc)
-		future = self.future()
-		if future:
-			exit_code = proc.exit_code() or 0
-			future.set_result(exit_code)
-
-	def future(self):
-		future = on_finished_futures.get(self._id)
-		del on_finished_futures[self._id]
-		return future
-
-	def append_string(self, proc, str):
-		super().append_string(proc, str)
-		self.on_output_callback(str)
-
 	def kill(self):
-		print("kill")
 		super().kill()
-		future = self.future()
-		if future:
-			future.cancel()
+		self.instance.on_kill()
+
+	# st3
+	def finish(self, proc):
+		super().finish(proc)
+		self.instance.on_finished(proc.exit_code() or 0)
+
+	# st3
+	def append_string(self, proc, characters):
+		super().append_string(proc, characters)
+		self.instance.on_output(characters)
+
+	# st4
+	def on_finished(self, proc):
+		super().on_finished(proc)
+		self.instance.on_finished(proc.exit_code() or 0)
+
+	# st4
+	def write(self, characters):
+		super().write(characters)
+		self.instance.on_output(characters)
+

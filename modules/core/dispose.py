@@ -22,3 +22,11 @@ class Disposables:
 		for value in self.disposables.values():
 			value.dispose()
 		self.disposables.clear()
+
+
+class disposables:
+	def __init__(self):
+		self.disposables = Disposables()
+
+	def dispose(self):
+		self.disposables.dispose()

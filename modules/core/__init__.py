@@ -6,7 +6,7 @@ from .log import *
 from .event import Handle, Event
 from . import platform
 from .error import Error
-from .dispose import Disposables
+from .dispose import Disposables, disposables
 
 _current_package = __package__.split('.', 1)[0]
 
