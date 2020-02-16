@@ -11,7 +11,7 @@ visible_always = 0
 visible_created = 1
 visible_not_created = 2
 
-menu_context = 1 << 0
+menu_context = 1
 menu_main = 1 << 1
 menu_commands = 1 << 2
 menu_no_prefix = 1 << 3
@@ -32,7 +32,7 @@ class Command:
 		return True
 
 class CommandDebugger(Command):
-	def __init__(self, name, action, enabled=None, visible=visible_created, menus=menu_commands|menu_main):
+	def __init__(self, name: str, action:Callable[[Debugger], None], enabled: Optional[Callable[[Debugger], bool]]=None, visible=visible_created, menus=menu_commands|menu_main):
 		self.name = name
 		self.action = action
 		self.visible = visible
@@ -56,7 +56,9 @@ class CommandDebugger(Command):
 			return True
 
 		instance = Debugger.get(window)
-		return bool(instance) and self.enabled(instance)
+		if instance:
+			return self.enabled(instance)
+		return False
 
 def open_settings(window: sublime.Window):
 	window.run_command('edit_settings', {
@@ -82,7 +84,7 @@ commands = [
 	Command(
 		name="Preferences: Debugger Settings",
 		action=open_settings,
-		menus=menu_main & menu_no_prefix
+		menus=menu_commands | menu_no_prefix
 	),
 	None,
 	CommandDebugger (
@@ -139,6 +141,19 @@ commands = [
 		action=Debugger.on_input_command,
 	),
 	CommandDebugger (
+		name="Add Function Breakpoint",
+		action=Debugger.add_function_breakpoint,
+	),
+	CommandDebugger (
+		name="Add Watch Expression",
+		action=Debugger.add_watch_expression,
+	),
+	CommandDebugger (
+		name="Force Save",
+		action=Debugger.save_data,
+	),
+	None,
+	CommandDebugger (
 		name="Toggle Breakpoint",
 		action=Debugger.toggle_breakpoint,
 		menus=menu_context,
@@ -154,18 +169,7 @@ commands = [
 		enabled=Debugger.is_paused,
 		menus=menu_context,
 	),
-	CommandDebugger (
-		name="Add Function Breakpoint",
-		action=Debugger.add_function_breakpoint,
-	),
-	CommandDebugger (
-		name="Add Watch Expression",
-		action=Debugger.add_watch_expression,
-	),
-	CommandDebugger (
-		name="Force Save",
-		action=Debugger.save_data,
-	),
+	None,
 ]
 commands_by_action = {}
 for command in commands:
@@ -266,3 +270,5 @@ def generate_commands_and_menus():
 
 	# with open(current_package + '/Commands/Default.sublime-keymap', 'w') as file:
 	# 	json.dump(keymap_commands, file, indent=4, separators=(',', ': '))
+
+# generate_commands_and_menus()

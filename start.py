@@ -28,11 +28,9 @@ from .modules.debugger.output_panel import *
 # 	core.log_exception()
 
 def plugin_loaded():
-	print('plugin_loaded')
 	from .modules.debugger.main import startup
 	startup()
 
 def plugin_unloaded():
-	print('plugin_unloaded')
 	from .modules.debugger.main import shutdown
 	shutdown()
