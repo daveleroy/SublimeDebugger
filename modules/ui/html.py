@@ -1,7 +1,7 @@
 from ..typecheck import *
 from . layout import Layout
 from . image import Image
-from . css import css, div_inline_css, icon_css, none_css
+from . css import css, div_inline_css, icon_css, none_css, CHARACTER_SIZE_REM
 
 
 class element:
@@ -98,8 +98,8 @@ class span (element):
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
-		h = self.height(layout)
-		w = self.width(layout)
+		h = self.height(layout) / CHARACTER_SIZE_REM
+		w = self.width(layout) / CHARACTER_SIZE_REM
 		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, inner)
 		return html
 
@@ -120,11 +120,11 @@ class div (element):
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
-		h = self.height(layout) - self.padding_height
-		w = self.width(layout) - self.padding_width
+		h = (self.height(layout) - self.padding_height) / CHARACTER_SIZE_REM
+		w = (self.width(layout) - self.padding_width) / CHARACTER_SIZE_REM
 
 		if self.children and self.children[0].is_inline:
-			html = '<div class= "{} {}" style="height:{}rem;width:{}rem;line-height:{}rem"><img style="height:2.5rem;">{}</div>'.format(div_inline_css.class_name, self.className, h, w, h, inner)
+			html = '<div class= "{} {}" style="height:{}rem;width:{}rem;line-height:{}rem"><img style="height:1.6rem;">{}</div>'.format(div_inline_css.class_name, self.className, h, w, h, inner)
 		else:
 			html = '<div class="{}" style="height:{}rem;width:{}rem;">{}</div>'.format(self.className, h, w, inner)
 		return html
@@ -141,8 +141,8 @@ class phantom_sizer (div):
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
-		h = self.height(layout)
-		w = self.width(layout)
+		h = self.height(layout) / CHARACTER_SIZE_REM
+		w = self.width(layout) / CHARACTER_SIZE_REM
 		html = '<div class="{}" style="height:{}rem;"><img style="width:{}rem;">{}</div>'.format(self.className, h, w, inner)
 		return html
 
@@ -158,7 +158,7 @@ def html_escape(text: str) -> str:
 	return "".join(html_escape_table.get(c, c) for c in text)
 
 class text (span):
-	def __init__(self, text: str, width: Optional[float] = None, height: Optional[float] = None, css: Optional[css] = None) -> None:
+	def __init__(self, text: str, width: Optional[float] = None, height: Optional[float] = 1, css: Optional[css] = None) -> None:
 		super().__init__(width, height, css)
 		self.text = text.replace("\u0000", "\\u0000")
 
@@ -175,8 +175,8 @@ class text (span):
 		return len(self.text) + self.padding_width
 
 	def html(self, layout: Layout) -> str:
-		h = self.height(layout)
-		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, self.text_html)
+		h = self.height(layout) / CHARACTER_SIZE_REM
+		html = '<span class="{}">{}</span>'.format(self.className, self.text_html)
 		return html
 
 
@@ -192,17 +192,36 @@ class click (span):
 
 class icon (span):
 	def __init__(self, image: Image) -> None:
-		super().__init__(width=2.5, height=2.5, css=icon_css)
+		super().__init__(width=1, height=1, css=icon_css)
 		self.image = image
 
 	def html(self, layout: Layout) -> str:
-		return '''<span class="{}"><img style="width:2.5rem;height:2.5rem;" src="{}"></span>'''.format(self.className, self.image.data(layout))
+		return '''<span class="{}"><img style="width:1.6rem;height:1.6rem;" src="{}"></span>'''.format(self.className, self.image.data(layout))
+
+import re
+tokenize_re = re.compile(
+	r'([-.0-9]+)' #matches number
+	r'|(0x[\dA-Fa-f]+)' #matches hex
+	r"|('[^']*')" #matches string '' no escape
+	r'|("[^"]*")' #matches string "" no escape
+	r'|(.*?)' #other
+)
 
 class code(span):
 	def __init__(self, text: str, language: str = 'c++') -> None:
 		super().__init__()
 		self.text = text.replace("\n", "")
-		self.text_html = html_escape(self.text)
+		self.text_html = ''
+		for number, number_hex, string, string_double, other in tokenize_re.findall(self.text):
+			string = string_double or string
+			number = number or number_hex
+			if number:
+				self.text_html += '<span style="color:var(--yellowish);">{}</span>'.format(number)
+			if string:
+				self.text_html += '<span style="color:var(--greenish);">{}</span>'.format(html_escape(string))
+			if other:
+				self.text_html += '<span style="color:var(--foreground);">{}</span>'.format(html_escape(other))
+
 		self.language = language
 
 	def added(self, layout: Layout) -> None:
@@ -212,7 +231,7 @@ class code(span):
 		return len(self.text) + self.padding_width
 
 	def html(self, layout: Layout) -> str:
-		h = self.height(layout)
+		h = self.height(layout) / CHARACTER_SIZE_REM
 		text_html = self.highlight.html or self.text_html
 		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, text_html)
 		return html

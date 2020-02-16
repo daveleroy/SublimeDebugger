@@ -220,7 +220,7 @@ class VariableComponent (ui.div):
 
 		if not self.variable.has_children:
 			return [
-				ui.div(height=3.0, width=100, css=css.icon_sized_spacer)[
+				ui.div(height=css.row_height, width=100, css=css.icon_sized_spacer)[
 					value_item,
 					self.item_right
 				],
@@ -228,7 +228,7 @@ class VariableComponent (ui.div):
 
 		is_expanded = self.state.is_expanded(self.variable)
 
-		variable_label = ui.div(height=3.0, width=100)[
+		variable_label = ui.div(height=css.row_height, width=100)[
 			ui.click(self.toggle_expand)[
 				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close)
 			],
@@ -250,7 +250,7 @@ class VariableComponent (ui.div):
 		more_count = len(self.variable_children) - count
 		if more_count > 0:
 			variable_children.append(
-				ui.div(height=3.0)[
+				ui.div(height=css.row_height)[
 					ui.click(self.show_more)[
 						ui.text("  {} more items...".format(more_count), css=css.label_secondary)
 					]

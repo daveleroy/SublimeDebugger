@@ -80,7 +80,7 @@ class BreakpointsPanel(ui.div):
 						ui.text(breakpoint.name, css=css.label_secondary),
 					]
 
-				items.append(ui.div(height=3)[
+				items.append(ui.div(height=css.row_height)[
 					ui.click(lambda breakpoint=breakpoint: self.on_toggle(breakpoint))[ #type: ignore
 						ui.icon(breakpoint.image),
 					],

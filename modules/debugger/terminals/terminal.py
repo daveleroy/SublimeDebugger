@@ -179,7 +179,7 @@ class LineView (ui.div):
 		while span_offset < len(line_text):
 			if leftover_line_length <= 0:
 				add_name_and_line_if_needed(0)
-				span_lines.append(ui.div(height=3.0)[spans])
+				span_lines.append(ui.div(height=css.row_height)[spans])
 				spans = []
 				leftover_line_length = max_line_length
 
@@ -189,7 +189,7 @@ class LineView (ui.div):
 			leftover_line_length -= len(text)
 
 		add_name_and_line_if_needed(leftover_line_length)
-		span_lines.append(ui.div(height=3)[spans])
+		span_lines.append(ui.div(height=css.row_height)[spans])
 
 		if len(span_lines) == 1:
 			return span_lines
@@ -244,7 +244,7 @@ class TerminalView (ui.div):
 		assert self.layout
 		lines = []
 		height = 0
-		max_height = int(self.layout.height() / 3) - 1.0
+		max_height = int((self.layout.height() - css.header_height)/css.row_height) - 1.0
 		count = len(self.terminal.lines)
 		start = 0
 		from ..views.layout import console_panel_width
@@ -255,12 +255,15 @@ class TerminalView (ui.div):
 			start = self.start_line
 
 		for line in self.terminal.lines[::-1][start:]:
-			l = LineView(line, max_line_length, self.on_clicked_source).get()
-			lines.extend(l)
-			height += len(l)
+			for l in LineView(line, max_line_length, self.on_clicked_source).get():
+				height += 1
+				lines.append(l)
+				if height >= max_height:
+					break
 
 			if height >= max_height:
-				break
+					break
+	
 		lines.reverse()
 
 		if self.terminal.writeable():
@@ -284,6 +287,6 @@ class TerminalView (ui.div):
 					ui.text(label, css=css.label_secondary_padding),
 				]
 			)
-			lines.append(ui.div()[input_line])
+			lines.append(ui.div(height=css.row_height)[input_line])
 
 		return lines

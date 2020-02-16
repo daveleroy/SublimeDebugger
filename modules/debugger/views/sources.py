@@ -36,7 +36,7 @@ class SourceView(ui.div):
 
 	def render(self) -> ui.div.Children:
 		items = [
-			ui.div(height=3)[
+			ui.div(height=css.row_height)[
 				ui.click(lambda: self.on_click(self.source))[
 					ui.text(self.source.path or self.source.name or "<no source name>", css=css.label_secondary)
 				]
