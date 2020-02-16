@@ -16,14 +16,13 @@ def _project_data_file(project_path: str) -> str:
 
 class PersistedData:
 	def __init__(self, project_name: str) -> None:
-		self.project_name = project_name
+		self.file_name = _project_data_file(project_name)
 		self.json = {} #type: dict
 		VERSION_NUMBER = 0
 		self.json["version"] = VERSION_NUMBER
 
 		try:
-			file_name = _project_data_file(project_name)
-			file = open(file_name, 'r+')
+			file = open(self.file_name, 'r+')
 			contents = file.read()
 			file.close()
 			j = json.loads(contents)
@@ -63,9 +62,9 @@ class PersistedData:
 		return None
 
 	def save_to_file(self) -> None:
-		file_name = _project_data_file(self.project_name)
+		
 		data = json.dumps(self.json, indent='\t', sort_keys=True)
-		file = open(file_name, 'w+')
+		file = open(self.file_name, 'w+')
 		contents = file.write(data)
 		file.close()
 
