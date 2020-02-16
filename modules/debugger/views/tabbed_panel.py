@@ -63,15 +63,17 @@ class TabbedPanel(ui.div):
 class Tab (ui.span):
 	def __init__(self, item: TabbedPanelItem, selected: bool) -> None:
 		super().__init__(height=css.header_height, css=css.tab_panel_selected if selected else css.tab_panel)
+		name = item.name.upper().ljust(20)
 
 		if not selected and item.modified:
 			self.items = [
-				ui.text(item.name.upper(), css=css.label_secondary),
-				ui.text('◯', css=css.modified_label),
+				ui.text(name, css=css.label_secondary),
+				ui.text('◯', css=css.label_secondary),
 			]
 		else:
 			self.items = [
-				ui.text(item.name.upper(), css=css.label_secondary),
+				ui.text(name, css=css.label_secondary),
+				ui.text(' ', css=css.label_secondary),
 			]
 
 	def render(self) -> ui.span.Children:
