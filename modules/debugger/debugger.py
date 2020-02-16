@@ -35,8 +35,6 @@ from .adapter import (
 	ConfigurationExpanded,
 	Adapters,
 )
-from .output_panel import OutputPhantomsPanel
-
 from .terminals import (
 	Terminal,
 	TerminalProcess,

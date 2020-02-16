@@ -1,118 +1,125 @@
 [
     {
+        "caption": "Debugger: Open",
+        "command": "debugger",
         "args": {
             "action": "open"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Open"
+        }
     },
     {
+        "caption": "Debugger: Quit",
+        "command": "debugger",
         "args": {
             "action": "quit"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Quit"
+        }
     },
     {
+        "caption": "Preferences: Debugger Settings",
+        "command": "debugger",
+        "args": {
+            "action": "open_settings"
+        }
+    },
+    {
+        "caption": "Debugger: Install Adapters",
+        "command": "debugger",
         "args": {
             "action": "install_adapters"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Install Adapters"
+        }
     },
     {
+        "caption": "Debugger: Add or Select Configuration",
+        "command": "debugger",
         "args": {
             "action": "change_configuration"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Add or Select Configuration"
+        }
     },
     {
+        "caption": "Debugger: Start",
+        "command": "debugger",
         "args": {
             "action": "on_play"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Start"
+        }
     },
     {
+        "caption": "Debugger: Start (no debug)",
+        "command": "debugger",
         "args": {
             "action": "on_play_no_debug"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Start (no debug)"
+        }
     },
     {
+        "caption": "Debugger: Stop",
+        "command": "debugger",
         "args": {
             "action": "on_stop"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Stop"
+        }
     },
     {
+        "caption": "Debugger: Resume",
+        "command": "debugger",
         "args": {
             "action": "on_resume"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Resume"
+        }
     },
     {
+        "caption": "Debugger: Pause",
+        "command": "debugger",
         "args": {
             "action": "on_pause"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Pause"
+        }
     },
     {
+        "caption": "Debugger: Step Over",
+        "command": "debugger",
         "args": {
             "action": "on_step_over"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Step Over"
+        }
     },
     {
+        "caption": "Debugger: Step In",
+        "command": "debugger",
         "args": {
             "action": "on_step_in"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Step In"
+        }
     },
     {
+        "caption": "Debugger: Step Out",
+        "command": "debugger",
         "args": {
             "action": "on_step_out"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Step Out"
+        }
     },
     {
+        "caption": "Debugger: Run Command",
+        "command": "debugger",
         "args": {
             "action": "on_input_command"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Run Command"
+        }
     },
     {
+        "caption": "Debugger: Add Function Breakpoint",
+        "command": "debugger",
         "args": {
             "action": "add_function_breakpoint"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Add Function Breakpoint"
+        }
     },
     {
+        "caption": "Debugger: Add Watch Expression",
+        "command": "debugger",
         "args": {
             "action": "add_watch_expression"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Add Watch Expression"
+        }
     },
     {
+        "caption": "Debugger: Force Save",
+        "command": "debugger",
         "args": {
             "action": "save_data"
-        },
-        "command": "debugger",
-        "caption": "Debugger: Force Save"
+        }
     },
     {
-        "command": "debugger_input",
-        "caption": "_"
+        "caption": "_",
+        "command": "debugger_input"
     }
 ]

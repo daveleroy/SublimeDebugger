@@ -12,24 +12,30 @@
         "caption": "-"
     },
     {
+        "caption": "-"
+    },
+    {
+        "caption": "Toggle Breakpoint",
+        "command": "debugger",
         "args": {
             "action": "toggle_breakpoint"
-        },
-        "command": "debugger",
-        "caption": "Toggle Breakpoint"
+        }
     },
     {
+        "caption": "Toggle Column Breakpoint",
+        "command": "debugger",
         "args": {
             "action": "toggle_column_breakpoint"
-        },
-        "command": "debugger",
-        "caption": "Toggle Column Breakpoint"
+        }
     },
     {
+        "caption": "Run To Selected Line",
+        "command": "debugger",
         "args": {
             "action": "run_to_current_line"
-        },
-        "command": "debugger",
-        "caption": "Run To Selected Line"
+        }
+    },
+    {
+        "caption": "-"
     }
 ]
