@@ -12,12 +12,11 @@ if modules_to_remove:
 # import all the commands so that sublime sees them
 from .modules.debugger.commands import DebuggerCommand
 from .modules.debugger.view_selected_source import DebuggerReplaceContentsCommand, DebuggerShowLineCommand
-from .modules.debugger.terminals.terminal_build import DebuggerBuildExecCommand
+from .modules.debugger.terminals.terminal_build import DebuggerExecCommand
 
 from .modules.ui.input import DebuggerInputCommand
 from .modules.ui.events import ViewEventsListener
-
-from .modules.debugger.output_panel import *
+from .modules.debugger.main import MainEventListener
 
 # try:
 # 	dir_path = os.path.dirname(os.path.realpath(__file__))
