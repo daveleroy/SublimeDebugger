@@ -113,43 +113,19 @@ class Client:
 
 	async def GetThreads(self) -> List[Thread]:
 		response = await self.send_request_asyc('threads', None)
-
-		threads = []
-		for thread in response['threads']:
-			thread = Thread(self, thread['id'], thread.get("name"))
-			threads.append(thread)
-
-		return threads
+		return array_from_json(Thread.from_json, response['threads'])
 
 	async def GetScopes(self, frame: StackFrame) -> List[Scope]:
 		body = await self.send_request_asyc('scopes', {
 			"frameId": frame.id
 		})
-		scopes = []
-		for scope_json in body['scopes']:
-			scope = Scope.from_json(self, scope_json)
-			scopes.append(scope)
-		return scopes
-
-	async def GetStackTrace(self, thread: Thread) -> List[StackFrame]:
-		body = await self.send_request_asyc('stackTrace', {
-			"threadId": thread.id,
-		})
-		frames = []
-		for frame in body['stackFrames']:
-			frame = StackFrame.from_json(frame)
-			frames.append(frame)
-		return frames
+		return array_from_json(Scope.from_json, body['scopes'])
 
 	async def StackTrace(self, threadId: int) -> List[StackFrame]:
 		body = await self.send_request_asyc('stackTrace', {
 			"threadId": threadId,
 		})
-		frames = []
-		for frame in body['stackFrames']:
-			frame = StackFrame.from_json(frame)
-			frames.append(frame)
-		return frames
+		return array_from_json(StackFrame.from_json, body['stackFrames'])
 
 	async def GetSource(self, source: Source) -> str:
 		body = await self.send_request_asyc('source', {
@@ -191,10 +167,7 @@ class Client:
 			"text": text,
 			"column": column,
 		})
-		items = [] #type: List[CompletionItem]
-		for item in response['targets']:
-			items.append(CompletionItem.from_json(item))
-		return items
+		return array_from_json(CompletionItem.from_json, response['targets'])
 
 	async def setVariable(self, variable: Variable, value: str) -> Variable:
 		response = await self.send_request_asyc("setVariable", {
@@ -252,32 +225,32 @@ class Client:
 		})
 
 	async def SetFunctionBreakpoints(self, breakpoints: List[FunctionBreakpoint]) -> List[BreakpointResult]:
-		result = await self.send_request_asyc('setFunctionBreakpoints', {
+		response = await self.send_request_asyc('setFunctionBreakpoints', {
 			"breakpoints": json_from_array(FunctionBreakpoint.into_json, breakpoints)
 		})
-		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
+		return array_from_json(BreakpointResult.from_json, response['breakpoints'])
 
 	async def DataBreakpointInfoRequest(self, variable: Variable) -> DataBreakpointInfoResponse:
-		result = await self.send_request_asyc('dataBreakpointInfo', {
+		response = await self.send_request_asyc('dataBreakpointInfo', {
 			"variablesReference": variable.containerVariablesReference,
 			"name": variable.name,
 		})
-		return DataBreakpointInfoResponse.from_json(result)
+		return DataBreakpointInfoResponse.from_json(response)
 
 	async def SetDataBreakpointsRequest(self, breakpoints: List[DataBreakpoint]) -> List[BreakpointResult]:
-		result = await self.send_request_asyc('setDataBreakpoints', {
+		response = await self.send_request_asyc('setDataBreakpoints', {
 			"breakpoints": json_from_array(DataBreakpoint.into_json, breakpoints)
 		})
-		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
+		return array_from_json(BreakpointResult.from_json, response['breakpoints'])
 
 	async def SetBreakpointsFile(self, file: str, breakpoints: List[SourceBreakpoint]) -> List[BreakpointResult]:
-		result = await self.send_request_asyc('setBreakpoints', {
+		response = await self.send_request_asyc('setBreakpoints', {
 			"source": {
 				"path": file
 			},
 			"breakpoints": json_from_array(SourceBreakpoint.into_json, breakpoints)
 		})
-		return array_from_json(BreakpointResult.from_json, result['breakpoints'])
+		return array_from_json(BreakpointResult.from_json, response['breakpoints'])
 
 	async def ConfigurationDone(self) -> None:
 		await self.send_request_asyc('configurationDone', None)
@@ -286,16 +259,12 @@ class Client:
 		response = await self.send_request_asyc('variables', {
 			"variablesReference": variablesReference
 		})
-		variables = []
-		for v in response['variables']:
-			var = Variable.from_json(self, v)
-			var.containerVariablesReference = variablesReference
-			variables.append(var)
-		return variables
+		def from_json(v):
+			return Variable.from_json(variablesReference, v)
+
+		return array_from_json(from_json, response['variables'])
 
 	def _on_initialized(self) -> None:
-		def response(response: dict) -> None:
-			pass
 		self._on_initialized_future.set_result(None)
 
 	def _on_continued(self, body: dict) -> None:

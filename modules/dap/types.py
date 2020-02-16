@@ -1,5 +1,8 @@
+from __future__ import annotations
 from ..typecheck import *
 from ..import core
+
+from dataclasses import dataclass
 
 if TYPE_CHECKING:
 	from .client import Client
@@ -34,15 +37,17 @@ class Error(core.Error):
 		return Error(json.get('showUser', True), error_message)
 
 
+@dataclass
 class Thread:
-	def __init__(self, client: 'Client', id: int, name: str) -> None:
-		self.client = client
-		self.id = id
-		self.name = name
-		self.stopped = False
-		self.stopped_text = ""
-		self.expanded = False
+	id: int
+	name: str
 
+	@staticmethod
+	def from_json(json: dict) -> Thread:
+		return Thread(
+			id=json['id'],
+			name=json['name'],
+		)
 
 class StackFrame:
 	normal = 1
@@ -84,57 +89,50 @@ class StackFrame:
 			source
 		)
 
-
+@dataclass
 class Scope:
-	def __init__(self, client: 'Client', name: str, variablesReference: int, expensive: bool) -> None:
-		self.client = client
-		self.name = name
-		self.variablesReference = variablesReference
-		self.expensive = expensive
+	name: str
+	variablesReference: int
+	expensive: bool
 
 	@staticmethod
-	def from_json(client: 'Client', json: dict) -> 'Scope':
+	def from_json(json: dict) -> Scope:
 		return Scope(
-			client,
-			json['name'],
-			json['variablesReference'],
-			json.get('expensive', False) # some adapters treat this as optional
+			name=json['name'],
+			variablesReference=json['variablesReference'],
+			expensive=json.get('expensive', False) # some adapters treat this as optional
 		)
 
-
+@dataclass
 class Variable:
-	def __init__(self, client: 'Client', name: str, value: str, variablesReference: int, containerVariablesReference: int = 0, evaluateName: Optional[str] = None) -> None:
-		self.client = client
-		self.name = name
-		self.value = value
-		self.containerVariablesReference = 0
-		self.variablesReference = variablesReference
-		self.evaluateName = evaluateName
+	name: str
+	value: str
+	variablesReference: int
+	containerVariablesReference: int = 0
+	evaluateName: Optional[str] = None
 
 	@staticmethod
-	def from_json(client: 'Client', json: dict) -> 'Variable':
+	def from_json(containerVariablesReference: int, json: dict) -> Variable:
 		return Variable(
-			client,
-			json['name'],
-			json['value'],
-			json.get('variablesReference', 0),
+			name=json['name'],
+			value=json['value'],
+			variablesReference=json.get('variablesReference', 0),
+			containerVariablesReference=containerVariablesReference,
 			evaluateName=json.get('evaluateName'),
 		)
 
-
+@dataclass
 class EvaluateResponse:
-	def __init__(self, result: str, variablesReference: int) -> None:
-		self.result = result
-		self.variablesReference = variablesReference
+	result: str
+	variablesReference: int
 
-
+@dataclass
 class CompletionItem:
-	def __init__(self, label: str, text: str) -> None:
-		self.label = label
-		self.text = text
+	label: str
+	text: str
 
 	@staticmethod
-	def from_json(json: dict) -> 'CompletionItem':
+	def from_json(json: dict) -> CompletionItem:
 		return CompletionItem(
 			json['label'],
 			json.get('text', None),
@@ -156,7 +154,7 @@ class Source:
 		self.sources = sources
 
 	@staticmethod
-	def from_json(json: dict) -> 'Source':
+	def from_json(json: dict) -> Source:
 		hint = Source.normal
 		json_hint = json.get('presentationHint')
 		if json_hint:
@@ -164,7 +162,7 @@ class Source:
 				hint = Source.emphasize
 			elif json_hint == 'deemphasize':
 				hint = Source.deemphasize
-
+		
 		sources = array_from_json(Source.from_json, json.get('sources', []))
 
 		return Source(
@@ -176,15 +174,14 @@ class Source:
 			sources
 		)
 
-
+@dataclass
 class ExceptionBreakpointsFilter:
-	def __init__(self, id: str, label: str, default: bool) -> None:
-		self.id = id
-		self.label = label
-		self.default = default
+	id: str
+	label: str
+	default: bool
 
 	@staticmethod
-	def from_json(json: dict) -> 'ExceptionBreakpointsFilter':
+	def from_json(json: dict) -> ExceptionBreakpointsFilter:
 		return ExceptionBreakpointsFilter(
 			json['filter'],
 			json['label'],
@@ -229,33 +226,34 @@ class Capabilities:
 		self.supportsDataBreakpoints = json.get('supportsDataBreakpoints', False)
 
 	@staticmethod
-	def from_json(json: dict) -> 'Capabilities':
+	def from_json(json: dict) -> Capabilities:
 		return Capabilities(json)
 
 
+@dataclass
 class StoppedEvent:
-	def __init__(self, threadId: int, allThreadsStopped: bool, text: str) -> None:
-		self.threadId = threadId
-		self.allThreadsStopped = allThreadsStopped
-		self.text = text
+	threadId: int
+	allThreadsStopped: bool
+	text: str
 
-
+@dataclass
 class ThreadEvent:
-	def __init__(self, threadId: int, reason: str) -> None:
-		self.threadId = threadId
-		self.reason = reason
+	threadId: int
+	reason: str
 
 	@staticmethod
-	def from_json(json) -> 'ThreadEvent':
-		return ThreadEvent(json['threadId'], json['reason'])
+	def from_json(json) -> ThreadEvent:
+		return ThreadEvent(
+			threadId=json['threadId'], 
+			reason=json['reason'],
+		)
 
-
+@dataclass
 class TerminatedEvent:
-	def __init__(self, restart: Optional[Any]) -> None:
-		self.restart = restart
+	restart: Optional[Any]
 
 	@staticmethod
-	def from_json(json) -> 'TerminatedEvent':
+	def from_json(json) -> TerminatedEvent:
 		return TerminatedEvent(json.get('restart'))
 
 
@@ -279,7 +277,7 @@ class OutputEvent:
 		self.line = line
 
 	@staticmethod
-	def from_json(json) -> 'OutputEvent':
+	def from_json(json) -> OutputEvent:
 		category = json.get('category', 'console')
 		source = json.get('source')
 		if source:
@@ -302,7 +300,7 @@ class RunInTerminalRequest:
 		self.env = env
 
 	@staticmethod
-	def from_json(json) -> 'RunInTerminalRequest':
+	def from_json(json) -> RunInTerminalRequest:
 		return RunInTerminalRequest(
 			json.get('kind', 'integrated'),
 			json.get('title', 'No Title'),
@@ -351,12 +349,12 @@ class DataBreakpoint:
 			json['hitCondition'],
 		)
 
+@dataclass
 class DataBreakpointInfoResponse:
-	def __init__(self, id: Optional[str], description: str, accessTypes: List[str], canPersist: bool) -> None:
-		self.id = id
-		self.description = description
-		self.accessTypes = accessTypes
-		self.canPersist = canPersist
+	id: Optional[str]
+	description: str
+	accessTypes: List[str]
+	canPersist: bool
 
 	@staticmethod
 	def from_json(json) -> 'DataBreakpointInfoResponse':
@@ -375,11 +373,11 @@ class DataBreakpointInfoResponse:
 			'canPersist': self.canPersist,
 		}
 
+@dataclass
 class FunctionBreakpoint:
-	def __init__(self, name: str, condition: Optional[str], hitCondition: Optional[str]) -> None:
-		self.name = name
-		self.condition = condition
-		self.hitCondition = hitCondition
+	name: str
+	condition: Optional[str]
+	hitCondition: Optional[str]
 
 	@staticmethod
 	def from_json(json) -> 'FunctionBreakpoint':
@@ -396,13 +394,13 @@ class FunctionBreakpoint:
 			'hitCondition': self.hitCondition,
 		}
 
+@dataclass
 class SourceBreakpoint:
-	def __init__(self, line: int, column: Optional[int], condition: Optional[str], hitCondition: Optional[str], logMessage: Optional[str]) -> None:
-		self.line = line
-		self.column = column
-		self.condition = condition
-		self.hitCondition = hitCondition
-		self.logMessage = logMessage
+	line: int
+	column: Optional[int]
+	condition: Optional[str]
+	hitCondition: Optional[str]
+	logMessage: Optional[str]
 
 	@staticmethod
 	def from_json(json) -> 'SourceBreakpoint':
@@ -436,6 +434,8 @@ def _remove_empty(dict: dict):
 	return dict
 
 class BreakpointResult:
+	failed: BreakpointResult
+
 	def __init__(self, verified: bool, line: Optional[int], column: Optional[int], message: Optional[str], id = None) -> None:
 		self.verified = verified
 		self.line = line
@@ -466,22 +466,33 @@ class BreakpointEvent:
 			BreakpointResult.from_json(json['breakpoint']),
 		)
 
+@dataclass
 class Module:
-	def __init__(self, json: dict):
-		self.id = json['id'] # type: Union[int, str]
-		self.name = json['name'] # type: str
-		self.path = json.get('path') # type: Optional[str]
-		self.isOptimized = json.get('isOptimized') # type: Optional[bool]
-		self.isUserCode = json.get('isUserCode') # type: Optional[bool]
-		self.version = json.get('version') # type: Optional[str]
-		self.symbolStatus = json.get('symbolStatus') # type: Optional[str]
-		self.symbolFilePath = json.get('symbolFilePath') # type: Optional[str]
-		self.dateTimeStamp = json.get('dateTimeStamp') # type: Optional[str]
-		self.addressRange = json.get('addressRange') # type: Optional[str]
+	id: Union[int, str]
+	name: str
+	path: Optional[str]
+	isOptimized: Optional[bool]
+	isUserCode: Optional[bool]
+	version: Optional[str]
+	symbolStatus: Optional[str]
+	symbolFilePath: Optional[str]
+	dateTimeStamp: Optional[str]
+	addressRange: Optional[str]
 
 	@staticmethod
 	def from_json(json) -> 'Module':
-		return Module(json)
+		return Module(
+			id = json['id'],
+			name = json['name'],
+			path = json.get('path'),
+			isOptimized = json.get('isOptimized'),
+			isUserCode = json.get('isUserCode'),
+			version = json.get('version'),
+			symbolStatus = json.get('symbolStatus'),
+			symbolFilePath = json.get('symbolFilePath'),
+			dateTimeStamp = json.get('dateTimeStamp'),
+			addressRange = json.get('addressRange'),
+		)
 
 class ModuleEvent:
 	none = 0
