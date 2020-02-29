@@ -3,10 +3,6 @@ from ..typecheck import *
 
 from ..import core, dap
 
-from ..dap.transport import (
-	Process,
-	StdioTransport
-)
 from .terminals import (
 	Terminal, 
 	TerminalCommand,

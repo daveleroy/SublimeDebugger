@@ -12,7 +12,7 @@ class Firefox(adapter.Adapter):
 			f'node',
 			f'{install_path}/extension/out/adapter/firefoxDebugAdapter.js'
 		]
-		return adapter.ProcessTransport(command, log)
+		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
 		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/firefox-devtools/vsextensions/vscode-firefox-debug/latest/vspackage'

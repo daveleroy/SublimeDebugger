@@ -12,7 +12,7 @@ class Go(adapter.Adapter):
 			f'node',
 			f'{install_path}/extension/out/src/debugAdapter/goDebug.js'
 		]
-		return adapter.ProcessTransport(command, log)
+		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
 		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage'
