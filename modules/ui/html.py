@@ -200,8 +200,8 @@ class icon (span):
 
 import re
 tokenize_re = re.compile(
-	r'([-.0-9]+)' #matches number
-	r'|(0x[\dA-Fa-f]+)' #matches hex
+	r'(0x[0-9A-Fa-f]+)' #matches hex
+	r'|([-.0-9]+)' #matches number
 	r"|('[^']*')" #matches string '' no escape
 	r'|("[^"]*")' #matches string "" no escape
 	r'|(.*?)' #other
@@ -224,14 +224,11 @@ class code(span):
 
 		self.language = language
 
-	def added(self, layout: Layout) -> None:
-		self.highlight = layout.syntax_highlight(self.text, self.language)
 
 	def width(self, layout: Layout) -> float:
 		return len(self.text) + self.padding_width
 
 	def html(self, layout: Layout) -> str:
 		h = self.height(layout) / CHARACTER_SIZE_REM
-		text_html = self.highlight.html or self.text_html
-		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, text_html)
+		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, self.text_html)
 		return html
