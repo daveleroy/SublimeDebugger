@@ -1,7 +1,7 @@
 from ..typecheck import *
 from ..import core
 from . html import div, span, phantom_sizer, element
-from . layout import Layout, SyntaxHighlightedText
+from . layout import Layout
 from . css import css
 from . image import view_background_lightness
 
@@ -89,15 +89,11 @@ class LayoutComponent (Layout):
 
 		if self.item:
 			self.render_component(self.item)
-			self.run_syntax_highlight()
 			self.html = '''<body id="debug"><style>{}</style>{}</body>'''.format(css.all, self.item.html(self))
 		else:
 			self.html = ""
 
 		return True
-
-	def syntax_highlight(self, text: str, language: str) -> SyntaxHighlightedText:
-		return SyntaxHighlightedText(text, language)
 
 	def dispose(self) -> None:
 		self.remove_component(self.item)
@@ -122,15 +118,6 @@ class LayoutView (LayoutComponent):
 		self._lightness = 0.0
 		self._em_width = 1.0
 		self.update()
-		self._highlighter = None
-		self._unhighlightedSyntaxHighlightedTexts = [] #type: List[SyntaxHighlightedText]
-		self._syntaxHighlightCache = {} #type: dict
-		try:
-			from mdpopups import SublimeHighlight #type: ignore
-			scheme = view.settings().get('color_scheme')
-			self._highlighter = SublimeHighlight(scheme)
-		except ImportError as e:
-			core.log_info('syntax highlighting disabled no mdpopups')
 
 	def em_width(self) -> float:
 		return self._em_width
@@ -144,30 +131,6 @@ class LayoutView (LayoutComponent):
 	def luminocity(self) -> float:
 		return self._lightness
 
-	def syntax_highlight(self, text: str, language: str) -> SyntaxHighlightedText:
-		item = SyntaxHighlightedText(text, language)
-		self._unhighlightedSyntaxHighlightedTexts.append(item)
-		return item
-
-	# we run syntax highlighting in the main thread all at once before html is generated
-	# This speeds it up a ton since its interacting with sublime's views which seems
-	# we cache all the results because it is really really slow still...
-	def run_syntax_highlight(self) -> None:
-		if not self._highlighter:
-			return
-		for item in self._unhighlightedSyntaxHighlightedTexts:
-			cache = self._syntaxHighlightCache.setdefault(item.language, {})
-			if item.text in cache:
-				item.html = cache[item.text]
-			else:
-				try:
-					item.html = self._highlighter.syntax_highlight(item.text, item.language, inline=True)
-					cache[item.text] = item.html
-				except:
-					core.log_exception()
-
-		self._unhighlightedSyntaxHighlightedTexts.clear()
-
 	def update(self) -> None:
 		font_size = self.view.settings().get('font_size') or 12
 		lightness = view_background_lightness(self.view)
@@ -176,7 +139,6 @@ class LayoutView (LayoutComponent):
 		width = size[0] / em_width
 		height = size[1] / em_width
 		em_width = (self.view.em_width() or 12) / font_size
-
 		if em_width != self._em_width or self._width != width or self._height != height or self._lightness != lightness:
 			self._em_width = em_width
 			self._width = width
