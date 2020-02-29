@@ -15,7 +15,7 @@ class Node(adapter.Adapter):
 			f'node',
 			f'{install_path}/extension/out/src/nodeDebug.js'
 		]
-		return adapter.ProcessTransport(command, log)
+		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
 		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/node-debug2/latest/vspackage'

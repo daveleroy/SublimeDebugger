@@ -1,7 +1,10 @@
 from ...typecheck import *
 from ..import adapter
 from ...import core
+from ..adapter.transports import SocketTransport
+from ..util import get_debugger_setting
 
+import subprocess
 class LLDB(adapter.Adapter):
 	@property
 	def type(self): 
@@ -9,20 +12,22 @@ class LLDB(adapter.Adapter):
 
 	async def start(self, log: core.Logger):
 		install_path = adapter.vscode.install_path(self.type)
+
+		codelldb = f'{install_path}/extension/adapter2/codelldb'
+		libpython = subprocess.check_output([codelldb, "find-python"]).strip()
 		command = [
-			f'node',
-			f'{core.current_package()}/debug_adapters/lldb_util/entry.js',
-			f'{install_path}/extension/adapter2/codelldb'
+			codelldb,
+			"--libpython", libpython
 		]
-		return adapter.ProcessTransport(command, log)
+		return SocketTransport(log, command)
 
 	async def install(self, log: core.Logger):
 		if core.platform.windows:
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-windows.vsix'
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-windows.vsix'
 		if core.platform.osx:
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-darwin.vsix'
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-darwin.vsix'
 		if core.platform.linux:
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-linux.vsix'
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-linux.vsix'
 
 		await adapter.vscode.install(self.type, url, log)
 

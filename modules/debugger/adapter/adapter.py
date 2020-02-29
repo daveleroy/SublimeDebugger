@@ -1,7 +1,6 @@
 from ...typecheck import *
 from ...import core
 from ...import ui
-from ...dap import StdioTransport, Process
 
 import sublime
 import json
@@ -131,15 +130,6 @@ class Adapters:
 		return ui.InputList(values, "Add or Select Configuration")
 
 	@staticmethod
-	def recalculate_schema(self):
+	def recalculate_schema():
 		from .schema import save_schema
 		save_schema(Adapters.all)
-
-class ProcessTransport(StdioTransport):
-	def __init__(self, command: List[str], log: core.Logger):
-		self.proc = Process(command, on_stdout=None, on_stderr=log.info)
-		super().__init__(self.proc)
-
-	def dispose(self):
-		super().dispose()
-		self.proc.dispose()

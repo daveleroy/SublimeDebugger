@@ -19,6 +19,7 @@ from .. import core
 
 from .types import *
 from .transport import Transport
+from .transport import TransportProtocol
 
 class ClientEventsListener (Protocol):
 	# events
@@ -50,8 +51,8 @@ class Client:
 		events: ClientEventsListener,
 	) -> None:
 
-		self.transport = transport
 		self.events = events
+		self.transport = TransportProtocol(transport)
 		self.transport.start(self.transport_message, self.transport_closed)
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0

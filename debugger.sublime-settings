@@ -33,24 +33,5 @@
 	"log_exceptions": true,
 	"log_errors": true,
 
-	// This is the list of debug adapters.
-	// If you are having issues running one ensure you have the required dependencies to run the the command
-	// Look in the docs for more info: https://github.com/daveleroy/debugger/blob/master/docs/setup.md
-	"adapters_custom" : {
-		// "adapter_name": {
-		// 	"command":["p", "-arg"]
-		// }
-	},
-	"adapters" : {
-		"lldb" : "${package}/debug_adapters/lldb.json",
-		"gdb" : "${package}/debug_adapters/gdb.json",
-		"chrome" : "${package}/debug_adapters/chrome.json",
-		// "chrome-tcp" : "${package}/debug_adapters/chrome-tcp.json",
-		"firefox" : "${package}/debug_adapters/firefox.json",
-		"python" : "${package}/debug_adapters/python.json",
-		"go" : "${package}/debug_adapters/go.json",
-		"php" : "${package}/debug_adapters/php.json",
-		"node" : "${package}/debug_adapters/node.json",
-	}
 }
 

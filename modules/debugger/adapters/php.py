@@ -30,7 +30,7 @@ class PHP(adapter.Adapter):
 			f'node',
 			f'{install_path}/extension/out/phpDebug.js'
 		]
-		return adapter.ProcessTransport(command, log)
+		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
 		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/felixfbecker/vsextensions/php-debug/latest/vspackage'
