@@ -1,6 +1,6 @@
 from ...typecheck import *
 from ...import core
-
+from ...libs import certifi
 import os
 import shutil
 import zipfile
@@ -11,7 +11,6 @@ import sublime
 from dataclasses import dataclass
 import ssl
 import pathlib
-ssl._create_default_https_context = ssl._create_unverified_context
 
 _info_for_type = {} #type: Dict[str, Optional[AdapterInfo]]
 
@@ -90,18 +89,15 @@ async def install(type: str, url: str, log: core.Logger):
 			adapters_path.mkdir()
 
 		if os.path.isdir(path):
-			log_info('Removing existing adapter...')
+			log_info('removing previous installation...')
 			shutil.rmtree(_abspath_fix(path))
-			log_info('done')
+			log_info('...removed')
 
-		log_info('downloading: {}'.format(url))
+		log_info('downloading...')
 		request = urllib.request.Request(url, headers={
 			'Accept-Encoding': 'gzip'
 		})
-
-		response = urllib.request.urlopen(request)
-		if response.getcode() != 200:
-			raise core.Error('Bad response from server, got code {}'.format(response.getcode()))
+		response = urllib.request.urlopen(request, cafile=certifi.where())
 		os.mkdir(path)
 
 		content_encoding = response.headers.get('Content-Encoding')
@@ -114,17 +110,29 @@ async def install(type: str, url: str, log: core.Logger):
 		with open(archive_name, 'wb') as out_file:
 			copyfileobj(data_file, out_file, log_info, int(response.headers.get('Content-Length', '0')))
 
-		log_info('extracting zip... ')
+		log_info('...downloaded')
+
+		log_info('extracting...')
 		with ZipfileLongPaths(archive_name) as zf:
 			zf.extractall(path)
-		log_info('done')
+		log_info('...extracted')
 		os.remove(archive_name)
 	
-	await core.run_in_executor(blocking)
-	
+	log.info(f'Installing adapter: {type}')
+	log.info('from: {}'.format(url))
+
+	try:
+		await core.run_in_executor(blocking)
+	except Exception as error:
+		log.error(f'Failed to install adapter: {str(error)}')
+		return
+
+	# successfully installed so add a marker file
 	path_installed = f'{path}/.sublime_debugger'
 	with open(path_installed, 'w') as file_installed:
 		...
+
+	log.info('Successfully Installed Adapter!')
 
 	from .adapter import Adapters
 	Adapters.recalculate_schema()
