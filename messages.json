@@ -1,4 +1,5 @@
 {
 	"install": "docs/change_log.txt",
+	"0.2.3": "docs/change_log.txt",
 	"0.2.2": "docs/change_log.txt"
 }

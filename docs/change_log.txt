@@ -3,6 +3,9 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.2.3
+- Updates path for lldb
+
 Whats new in version 0.2.2
 - Show dialog with error message when launching fails (to match vscode)
 - In multi-threaded programs the reason for why a specific thread was stopped is now only displayed on that thread even if all threads were stopped
