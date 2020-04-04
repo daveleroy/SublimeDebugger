@@ -12,21 +12,21 @@
 		"install": {
 			"name": "vscode-lldb",
 			"type": "vscode",
-			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-darwin.vsix"
+			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-darwin.vsix"
 		}
 	},
 	"linux": {
 		"install": {
 			"name": "vscode-lldb",
 			"type": "vscode",
-			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-linux.vsix"
+			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-linux.vsix"
 		}
 	},
 	"windows": {
 		"install": {
 			"name": "vscode-lldb",
 			"type": "vscode",
-			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/vscode-lldb-x86_64-windows.vsix"
+			"url": "https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-windows.vsix"
 		}
 	}
 }
