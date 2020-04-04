@@ -7,10 +7,14 @@ from .terminal import Terminal
 
 class TerminalCommand(Terminal):
 	def __init__(self, arguments: dict):
+		arguments = arguments.copy()
 		name = arguments.get('name', arguments['cmd'])
+		self.background = arguments.get('background', False)
 		super().__init__(name)
 		if 'name' in arguments:
 			del arguments['name']
+		if 'background' in arguments:
+			del arguments['background']
 		self.exec = DebuggerExec(sublime.active_window(), self.write_stdout, arguments)
 
 	def write_stdout(self, text: str):
@@ -60,8 +64,8 @@ class DebuggerExec:
 	def on_finished(self, exit_code):
 		if exit_code:
 			self.future.set_exception(core.Error("Command failed with exit_code {}".format(exit_code)))
-
-		self.future.set_result(None)
+		else:
+			self.future.set_result(None)
 
 	async def wait(self) -> None:
 		await self.future

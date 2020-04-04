@@ -17,7 +17,7 @@ class BreakpointCommandsProvider(core.Disposables):
 		self.project = project
 
 		self += ui.view_gutter_clicked.add(self.view_gutter_clicked)
-		self += self.debugger.state_changed.add(self.on_debugger_state_change)
+		#self += self.debugger.state_changed.add(self.on_debugger_state_change)
 
 	def view_gutter_clicked(self, event: ui.GutterEvent):
 		file = self.project.source_file(event.view)
@@ -48,9 +48,9 @@ class BreakpointCommandsProvider(core.Disposables):
 		self.run_to_line_breakpoint = self.breakpoints.source.add_breakpoint(file, line)
 		core.run(self.debugger.resume())
 
-	def on_debugger_state_change(self):
-		if self.debugger.state != DebuggerSession.running:
-			self.clear_run_to_line()
+	#def on_debugger_state_change(self):
+		# if self.debugger.state != DebuggerSession.running:
+		# 	self.clear_run_to_line()
 
 	def toggle_file_line(self, file: str, line: int):
 		bps = self.breakpoints.source.get_breakpoints_on_line(file, line)

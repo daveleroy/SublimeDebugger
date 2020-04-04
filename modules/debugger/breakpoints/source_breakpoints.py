@@ -317,7 +317,6 @@ class SourceBreakpoints:
 			identifier = b.region_name
 			regions = view.get_regions(identifier)
 			if len(regions) == 0:
-				print('Error: Failed to find breakpoint that should be set, re-adding')
 				b.add_to_view(view)
 				dirty = True
 			else:

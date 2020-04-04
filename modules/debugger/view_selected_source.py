@@ -2,7 +2,7 @@ from .. typecheck import *
 from .. import core, ui, dap
 from .views.selected_line import SelectedLine
 
-from .debugger_session import DebuggerSession
+from .debugger_sessions import DebuggerSessions
 from .debugger_project import DebuggerProject
 
 import sublime
@@ -23,8 +23,8 @@ class DebuggerReplaceContentsCommand(sublime_plugin.TextCommand):
 		self.view.sel().clear()
 
 class ViewSelectedSourceProvider:
-	def __init__(self, project: DebuggerProject, debugger: DebuggerSession):
-		self.debugger = debugger
+	def __init__(self, project: DebuggerProject, sessions: DebuggerSessions):
+		self.sessions = sessions
 		self.project = project
 		self.updating = None #type: Optional[Any]
 		self.generated_view = None #type: Optional[sublime.View]
@@ -79,16 +79,16 @@ class ViewSelectedSourceProvider:
 		self.clear()
 
 	async def navigate_to_source(self, source: dap.Source, line: int, move_cursor: bool = False) -> sublime.View:
+		
+
 		# if we aren't going to reuse the previous generated view
 		# or the generated view was closed (no buffer) throw it away
 		if not source.sourceReference or self.generated_view and not self.generated_view.buffer_id():
 			self.clear_generated_view()
 
 		if source.sourceReference:
-			if not self.debugger.adapter:
-				raise core.Error('Debugger not running')
-
-			content = await self.debugger.adapter.GetSource(source)
+			session = self.sessions.active
+			content = await session.client.GetSource(source)
 
 			view = self.generated_view or self.project.window.new_file()
 			self.generated_view = view

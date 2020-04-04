@@ -122,8 +122,14 @@ class Adapters:
 	@staticmethod
 	def select_configuration(debugger: 'Debugger'):
 		values = []
+
+		for c in debugger.project.compounds:
+			name = f'{c.name}\tcompound'
+			values.append(ui.InputListItemChecked(lambda c=c: debugger.changeConfiguration(c), name, name, c == debugger.configuration)) #type: ignore
+
 		for c in debugger.configurations:
-			values.append(ui.InputListItemChecked(lambda c=c: debugger.changeConfiguration(c), c.name, c.name, c == debugger.configuration)) #type: ignore
+			name = f'{c.name}\t{c.type}'
+			values.append(ui.InputListItemChecked(lambda c=c: debugger.changeConfiguration(c), name, name, c == debugger.configuration)) #type: ignore
 
 		values.append(ui.InputListItem(Adapters.add_configuration(), "Add Configuration"))
 

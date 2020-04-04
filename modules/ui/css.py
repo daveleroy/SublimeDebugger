@@ -6,6 +6,7 @@ base_css = '''
 html {
 }
 body {
+	padding-top: 1px;
 }
 .dark {
 	--panel-color: color(var(--background) blend(black 90%));

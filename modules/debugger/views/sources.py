@@ -2,26 +2,32 @@ from ...typecheck import *
 from ...import dap
 from ...import core
 from ...import ui
-from ..debugger_session import Sources
+from ..debugger_sessions import DebuggerSessions, DebuggerSession
 from . import css
 
 
 class SourcesView(ui.div):
-	def __init__(self, sources: Sources, on_click: Callable[[dap.Source], None]):
+	def __init__(self, sessions: DebuggerSessions, on_click: Callable[[dap.Source], None]):
 		super().__init__()
-		self.sources = sources
+		self.sessions = sessions
 		self.on_click = on_click
 
 	def added(self, layout: ui.Layout):
-		self.on_updated_handle = self.sources.on_updated.add(self.dirty)
+		self.on_updated_sources = self.sessions.on_updated_sources.add(self.updated)
+		self.on_removed_session = self.sessions.on_removed_session.add(self.updated)
+
+	def updated(self, session: DebuggerSession):
+		self.dirty()
 
 	def removed(self):
-		self.on_updated_handle.dispose()
+		self.on_updated_sources.dispose()
+		self.on_removed_session.dispose()
 
 	def render(self) -> ui.div.Children:
 		items = []
-		for source in self.sources.sources:
-			items.append(SourceView(source, self.on_click))
+		for session in self.sessions:
+			for source in session.sources.values():
+				items.append(SourceView(source, self.on_click))
 
 		return [
 			ui.div()[items]

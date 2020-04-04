@@ -15,6 +15,11 @@
 	"folders":
 	[
 		{
+			"folder_exclude_patterns":
+			[
+				"data"
+			],
+			"name": "project",
 			"path": "."
 		}
 	],

@@ -3,6 +3,7 @@ from ..typecheck import *
 from ..import core
 
 from dataclasses import dataclass
+from collections import defaultdict
 
 if TYPE_CHECKING:
 	from .client import Client
@@ -23,6 +24,10 @@ def json_from_array(into_json: Callable[[__T], dict], array: List[__T]) -> list:
 		json.append(into_json(item))
 	return json
 
+class Default(dict):
+    def __missing__(self, key): 
+        return key.join("{}")
+
 class Error(core.Error):
 	def __init__(self, showUser: bool, format: str):
 		super().__init__(format)
@@ -32,8 +37,8 @@ class Error(core.Error):
 	def from_json(json: dict) -> 'Error':
 		# why on earth does the optional error details have variables that need to be formatted in it????????
 		format = json.get('format', 'No error reason given')
-		variables = json.get('variables', {})
-		error_message = format.format(**variables)
+		variables = Default(**json.get('variables', {}))
+		error_message = format.format_map(variables)
 		return Error(json.get('showUser', True), error_message)
 
 
@@ -146,6 +151,9 @@ class Source:
 	deemphasize = 3
 
 	def __init__(self, name: Optional[str], path: Optional[str], sourceReference: int, presentationHint: int, origin: Optional[str], sources: List['Source']) -> None:
+		# no idea how there are supposed to be uniquely identified but there is an event LoadedSourceEvent that seems to assume they are
+		self.id = f'{name}~{path}~{sourceReference}'
+		
 		self.name = name or path
 		self.path = path
 		self.sourceReference = sourceReference

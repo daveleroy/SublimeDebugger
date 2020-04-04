@@ -12,17 +12,17 @@ from .. import core, ui, dap
 
 from .autocomplete import Autocomplete
 
-from .util import WindowSettingsCallback, get_setting
+from .util import get_setting
 from .config import PersistedData
 
 from .debugger_session import (
 	DebuggerSession,
-	Modules,
-	Sources,
 	Variables,
 	Watch,
-	Threads,
 	Terminals
+)
+from .debugger_sessions import (
+	DebuggerSessions
 )
 from .debugger_project import (
 	DebuggerProject
@@ -33,6 +33,7 @@ from .breakpoints import (
 from .adapter import (
 	Configuration,
 	ConfigurationExpanded,
+	ConfigurationCompound,
 	Adapters,
 )
 from .terminals import (
@@ -56,7 +57,7 @@ from .views.breakpoints_panel import BreakpointsPanel
 from .views.variables_panel import VariablesPanel
 from .views.tabbed_panel import Panels, TabbedPanel, TabbedPanelItem
 from .views.selected_line import SelectedLine
-
+from .debugger_log_output_panel import DebuggerLogOutputPanel
 
 
 class Debugger:
@@ -119,28 +120,29 @@ class Debugger:
 		self.disposeables = [] #type: List[Any]
 
 		def on_project_configuration_updated():
-			print('on_project_configuration_updated')
-			self.terminals.external_terminal_kind = self.project.external_terminal_kind
+			self.sessions.terminals.external_terminal_kind = self.project.external_terminal_kind
 			self.configurations = self.project.configurations
-			self.configuration = self.persistance.load_configuration_option(self.configurations)
+			self.configuration = self.persistance.load_configuration_option(self.project.configurations, self.project.compounds)
 
 		self.project = DebuggerProject(window)
 		self.disposeables.append(self.project)
 		self.project.on_updated.add(on_project_configuration_updated)
 		
+		self.transport_log = DebuggerLogOutputPanel(self.window)
+		self.disposeables.append(self.transport_log)
 
 		autocomplete = Autocomplete.create_for_window(window)
 
-		def on_state_changed(state: int) -> None:
+		def on_state_changed(session, state: int) -> None:
 			if state == DebuggerSession.stopped:
-				self.debugger_panel.setState(STOPPED)
-				if self.debugger.stopped_reason != DebuggerSession.stopped_reason_build_failed:
+				if session.stopped_reason == DebuggerSession.stopped_reason_build_failed:
+					... # leave build results open	
+				else:
 					self.show_console_panel()
 
 			elif state == DebuggerSession.running:
-				self.debugger_panel.setState(RUNNING)
+				...
 			elif state == DebuggerSession.paused:
-				self.debugger_panel.setState(PAUSED)
 
 				if self.project.bring_window_to_front_on_pause:
 					# is there a better way to bring sublime to the front??
@@ -154,23 +156,23 @@ class Debugger:
 				self.show_call_stack_panel()
 
 			elif state == DebuggerSession.stopping or state == DebuggerSession.starting:
-				self.debugger_panel.setState(LOADING)
+				...
 
-		def on_selected_frame(frame: Optional[dap.StackFrame]) -> None:
+		def on_selected_frame(session, frame: Optional[dap.StackFrame]) -> None:
 			if frame and frame.source:
-				thread = self.debugger.callstack.selected_thread
+				thread = session.selected_thread
 				assert thread
 				self.source_provider.select(frame.source, frame.line, thread.stopped_reason or "Stopped")
 			else:
 				self.source_provider.clear()
 
-		def on_output(event: dap.OutputEvent) -> None:
-			self.terminal.program_output(self.debugger.adapter, event)
+		def on_output(session:DebuggerSession, event: dap.OutputEvent) -> None:
+			self.terminal.program_output(session, event)
 
 		def on_terminal_added(terminal: Terminal):
 			component = TerminalView(terminal, self.on_navigate_to_source)
 
-			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, component.action_buttons())
+			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0)
 			def on_modified():
 				self.panels.modified(panel)
 
@@ -182,39 +184,31 @@ class Debugger:
 		def on_terminal_removed(terminal: Terminal):
 			self.panels.remove(id(terminal))
 
-		self.modules = Modules()
-		self.sources = Sources()
-		self.variables = Variables()
-		self.threads = Threads()
-		self.watch = Watch()
 		self.breakpoints = Breakpoints()
-		self.terminals = Terminals()
-		self.terminals.on_terminal_added.add(on_terminal_added)
-		self.terminals.on_terminal_removed.add(on_terminal_removed)
+		self.disposeables.append(self.breakpoints)
+		
+		self.sessions = DebuggerSessions()
+		self.sessions.transport_log = self.transport_log
+		self.sessions.updated.add(on_state_changed)
+		self.sessions.selected_frame.add(on_selected_frame)
+		self.sessions.output.add(on_output)
 
-		self.debugger = DebuggerSession(
-			breakpoints=self.breakpoints,
-			modules=self.modules,
-			sources=self.sources,
-			threads=self.threads,
-			watch=self.watch,
-			variables=self.variables,
-			terminals=self.terminals,
-			on_state_changed=on_state_changed,
-			on_output=on_output,
-			on_selected_frame=on_selected_frame)
+		self.sessions.terminals.on_terminal_added.add(on_terminal_added)
+		self.sessions.terminals.on_terminal_removed.add(on_terminal_removed)
 
-		self.breakpoints_panel = BreakpointsPanel(self.debugger.breakpoints)
+
+		self.disposeables.append(self.sessions)
+
+		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
 		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
-		self.variables_panel = VariablesPanel(self.debugger.variables, self.debugger.watch)
+		self.variables_panel = VariablesPanel(self.sessions)
 		self.terminal = TermianlDebugger(
-			self.debugger,
 			on_run_command=self.on_run_command,
 		)
 
-		self.source_provider = ViewSelectedSourceProvider(self.project, self.debugger)
-		self.view_hover_provider = ViewHoverProvider(self.project, self.debugger)
-		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.debugger, self.debugger.breakpoints)
+		self.source_provider = ViewSelectedSourceProvider(self.project, self.sessions)
+		self.view_hover_provider = ViewHoverProvider(self.project, self.sessions)
+		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.sessions, self.breakpoints)
 
 
 		self.persistance = PersistedData(project_name)
@@ -226,11 +220,11 @@ class Debugger:
 
 		terminal_component = TerminalView(self.terminal, self.on_navigate_to_source)
 		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
-		callstack_panel_item = TabbedPanelItem(id(self.debugger.callstack), CallStackView(self.debugger), "Call Stack", 0)
+		callstack_panel_item = TabbedPanelItem(id(self.sessions.threads), CallStackView(self.sessions), "Call Stack", 0)
 
 		variables_panel_item = TabbedPanelItem(id(self.variables_panel), self.variables_panel, "Variables", 1)
-		modules_panel = TabbedPanelItem(id(self.debugger.modules), ModulesView(self.debugger.modules), "Modules", 1)
-		sources_panel = TabbedPanelItem(id(self.debugger.sources), SourcesView(self.debugger.sources, self.source_provider.navigate), "Sources", 1)
+		modules_panel = TabbedPanelItem(id(self.sessions.modules), ModulesView(self.sessions), "Modules", 1)
+		sources_panel = TabbedPanelItem(id(self.sessions.sources), SourcesView(self.sessions, self.source_provider.navigate), "Sources", 1)
 
 		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(project_name)))
 
@@ -260,9 +254,9 @@ class Debugger:
 		self.panels.show(id(self.terminal))
 
 	def show_call_stack_panel(self) -> None:
-		self.panels.show(id(self.debugger.callstack))
+		self.panels.show(id(self.sessions.threads))
 
-	def changeConfiguration(self, configuration: Configuration):
+	def changeConfiguration(self, configuration: Union[Configuration, ConfigurationCompound]):
 		self.configuration = configuration
 		self.persistance.save_configuration_option(configuration)
 
@@ -271,8 +265,6 @@ class Debugger:
 		for d in self.disposeables:
 			d.dispose()
 
-		if self.debugger:
-			self.debugger.dispose()
 		del Debugger.instances[self.window.id()]
 
 	def run_async(self, awaitable: Awaitable[core.T]):
@@ -285,6 +277,7 @@ class Debugger:
 
 	async def _on_play(self, no_debug=False) -> None:
 		self.show_console_panel()
+		self.sessions.terminals.clear_unused()
 		self.terminal.clear()
 		self.terminal.log_info('Console cleared...')
 		try:
@@ -293,8 +286,25 @@ class Debugger:
 				Adapters.select_configuration(self).run()
 				return
 
-			configuration = self.configuration
-			adapter_configuration = Adapters.get(configuration.type)
+			if isinstance(self.configuration, ConfigurationCompound):
+				configurations = []
+				for configuration_name in self.configuration.configurations:
+					configuration = None
+					for c in self.configurations:
+						if c.name == configuration_name:
+							configuration = c
+							break
+
+					if configuration:
+						configurations.append(configuration)
+					else:
+						raise core.Error(f'Unable to find configuration with name {configuration_name} while evaluating compound {self.configuration.name}')
+
+			elif isinstance(self.configuration, Configuration):
+				configurations = [self.configuration]
+			else: 
+				raise core.Error('unreachable')
+			
 
 		except Exception as e:
 			core.log_exception()
@@ -302,27 +312,42 @@ class Debugger:
 			return
 
 		variables = self.project.extract_variables()
-		configuration_expanded = ConfigurationExpanded(configuration, variables)
 
-		try:
-			await self.debugger.launch(adapter_configuration, configuration_expanded, no_debug=no_debug)
-		except core.Error as e:
-			if sublime.ok_cancel_dialog("Error Launching Configuration\n\n{}".format(str(e)), 'Open Project'):
-				project_name = self.window.project_file_name()
-				view = await core.sublime_open_file_async(self.window, project_name)
-				region = view.find('''"\s*debug.configurations''', 0)
-				if region:
-					view.show_at_center(region)
+		for configuration in configurations:
+			@core.schedule
+			async def launch():
+				try:
+					adapter_configuration = Adapters.get(configuration.type)
+					configuration_expanded = ConfigurationExpanded(configuration, variables)
+					if not adapter_configuration.installed_version:
+						install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
+						if sublime.ok_cancel_dialog(install, 'Install'):
+							await adapter_configuration.install(self)
 
+					await self.sessions.launch(self.breakpoints, adapter_configuration, configuration_expanded, no_debug=no_debug)
+				except core.Error as e:
+					if sublime.ok_cancel_dialog("Error Launching Configuration\n\n{}".format(str(e)), 'Open Project'):
+						project_name = self.window.project_file_name()
+						view = await core.sublime_open_file_async(self.window, project_name)
+						region = view.find('''"\s*debug.configurations''', 0)
+						if region:
+							view.show_at_center(region)
+			launch()
 
 	def is_paused(self):
-		return self.debugger.state == DebuggerSession.paused
+		if not self.sessions.has_active:
+			return False
+		return self.sessions.active.state == DebuggerSession.paused
 
 	def is_running(self):
-		return self.debugger.state == DebuggerSession.running
+		if not self.sessions.has_active:
+			return False
+		return self.sessions.active.state == DebuggerSession.running
 
 	def is_stoppable(self):
-		return self.debugger.state != DebuggerSession.stopped
+		if not self.sessions.has_active:
+			return False
+		return self.sessions.active.state != DebuggerSession.stopped
 
 	#
 	# commands
@@ -341,32 +366,39 @@ class Debugger:
 		self.show()
 		self.run_async(self._on_play(no_debug=True))
 
-	def on_stop(self) -> None:
-		self.run_async(self.debugger.stop())
+	async def catch_error(self, awaitabe):
+		try:
+			return await awaitabe()
+		except core.Error as e:  
+			self.error(str(e))
 
-	def on_resume(self) -> None:
-		self.run_async(self.debugger.resume())
-
-	def on_pause(self) -> None:
-		self.run_async(self.debugger.pause())
-
-	def on_step_over(self) -> None:
-		self.run_async(self.debugger.step_over())
-
-	def on_step_in(self) -> None:
-		self.run_async(self.debugger.step_in())
-
-	def on_step_out(self) -> None:
-		self.run_async(self.debugger.step_out())
-
-	def on_run_command(self, command: str) -> None:
-		self.run_async(self.debugger.evaluate(command))
+	@core.schedule
+	async def on_stop(self) -> None:
+		await self.catch_error(lambda: self.sessions.active.stop())
+	@core.schedule
+	async def on_resume(self) -> None:
+		await self.catch_error(lambda: self.sessions.active.resume())
+	@core.schedule
+	async def on_pause(self) -> None:
+		await self.catch_error(lambda: self.sessions.active.pause())
+	@core.schedule
+	async def on_step_over(self) -> None:
+		await self.catch_error(lambda: self.sessions.active.step_over())
+	@core.schedule
+	async def on_step_in(self) -> None:
+		await self.catch_error(lambda: self.sessions.active.step_in())
+	@core.schedule
+	async def on_step_out(self) -> None:
+		await self.catch_error(lambda: self.sessions.active.step_out())
+	@core.schedule
+	async def on_run_command(self, command: str) -> None:
+		await self.catch_error(lambda: self.sessions.active.evaluate(command))
 
 	def on_input_command(self) -> None:
 		label = "Input Debugger Command"
 		def run(value: str):
 			if value:
-				self.run_async(self.debugger.evaluate(value))
+				self.run_async(self.sessions.active.evaluate(value))
 				self.on_input_command()
 
 		input = ui.InputText(run, label, enable_when_active=Autocomplete.for_window(self.window))
@@ -379,21 +411,21 @@ class Debugger:
 		self.breakpoints_provider.toggle_current_line_column()
 
 	def add_function_breakpoint(self):
-		self.debugger.breakpoints.function.add_command()
+		self.breakpoints.function.add_command()
 
 	def add_watch_expression(self):
-		self.debugger.watch.add_command()
+		self.sessions.watch.add_command()
 
 	def run_to_current_line(self) -> None:
 		self.breakpoints_provider.run_to_current_line()
 
 	def load_data(self):
-		self.debugger.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
-		self.debugger.watch.load_json(self.persistance.json.get('watch', []))
+		self.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
+		self.sessions.watch.load_json(self.persistance.json.get('watch', []))
 
 	def save_data(self):
-		self.persistance.json['breakpoints'] = self.debugger.breakpoints.into_json()
-		self.persistance.json['watch'] = self.debugger.watch.into_json()
+		self.persistance.json['breakpoints'] = self.breakpoints.into_json()
+		self.persistance.json['watch'] = self.sessions.watch.into_json()
 		self.persistance.save_to_file()
 
 	def on_settings(self) -> None:
@@ -404,7 +436,7 @@ class Debugger:
 		def report_issue():
 			webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger/issues")
 
-		values = Adapters.select_configuration(debugger).values
+		values = Adapters.select_configuration(self).values
 		values.extend([
 			ui.InputListItem(lambda: ..., ""),
 			ui.InputListItem(report_issue, "Report Issue"),
