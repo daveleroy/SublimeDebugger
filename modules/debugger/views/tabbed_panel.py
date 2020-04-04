@@ -8,12 +8,11 @@ import sublime
 
 
 class TabbedPanelItem:
-	def __init__(self, id: int, item: ui.div, name: str, index: int = 0, buttons: List[Tuple[ui.Image, Callable]] = []):
+	def __init__(self, id: int, item: ui.div, name: str, index: int = 0):
 		self.id = id
 		self.item = item
 		self.name = name
 		self.index = index
-		self.buttons = buttons
 		self.modified = False
 		self.column = -1
 		self.row = -1

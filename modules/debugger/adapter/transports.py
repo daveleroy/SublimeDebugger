@@ -61,18 +61,18 @@ class StdioTransport(Transport):
 
 		self.process.dispose()
 
-	def write(self, message: str) -> None:
-		self.process.stdin.write(bytes(message, "utf-8"))
+	def write(self, message: bytes) -> None:
+		self.process.stdin.write(message)
 		self.process.stdin.flush()
 
-	def readline(self) -> str:
+	def readline(self) -> bytes:
 		if l := self.process.stdout.readline():
-			return l.decode("utf-8")
+			return l
 		raise EOFError
 
-	def read(self, n: int) -> str:
+	def read(self, n: int) -> bytes:
 		if l := self.process.stdout.read(n):
-			return l.decode("utf-8")
+			return l
 		raise EOFError
 
 	def dispose(self) -> None:
@@ -109,18 +109,18 @@ class SocketTransport(Transport):
 				core.log_exception()
 				break
 
-	def write(self, message: str) -> None:
-		self.stdin.write(bytes(message, "utf-8"))
+	def write(self, message: bytes) -> None:
+		self.stdin.write(message)
 		self.stdin.flush()
 
-	def readline(self) -> str:
+	def readline(self) -> bytes:
 		if l := self.stdout.readline():
-			return l.decode("utf-8")
+			return l
 		raise EOFError
 
-	def read(self, n: int) -> str:
+	def read(self, n: int) -> bytes:
 		if l := self.stdout.read(n):
-			return l.decode("utf-8")
+			return l
 		raise EOFError
 
 	def dispose(self) -> None:

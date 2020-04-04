@@ -1,7 +1,7 @@
 from .. typecheck import *
 from .. import core
 
-from .adapter import Configuration
+from .adapter import Configuration, ConfigurationCompound
 from .breakpoints import Breakpoints
 
 import sublime
@@ -37,24 +37,27 @@ class PersistedData:
 	def load_breakpoints(self, breakpoints: Breakpoints):
 		breakpoints.load_from_json(self.json.get('breakpoints', {}))
 
-	def save_configuration_option(self, configuration: Configuration) -> None:
+	def save_configuration_option(self, configuration: Union[Configuration, ConfigurationCompound]) -> None:
 		self.json['config_name'] = configuration.name
-		self.json['config_maybe_at_index'] = configuration.index
+		self.json['config_id_ish'] = configuration.id_ish
 
-	def load_configuration_option(self, configurations: List[Configuration]) -> Optional[Configuration]:
+	def load_configuration_option(self, configurations: List[Configuration], compounds: List[ConfigurationCompound]) -> Optional[Union[Configuration, ConfigurationCompound]]:
 		config_name = self.json.get('config_name')
-		config_maybe_at_index = self.json.get('config_maybe_at_index')
+		config_id_ish = self.json.get('config_id_ish')
 
-		if config_name is None or config_maybe_at_index is None:
+		if config_name is None or config_id_ish is None:
 			return None
 
-		try:
-			configuration = configurations[config_maybe_at_index]
-			if configuration.name == config_name:
+		for compound in compounds:
+			if compound.id_ish == config_id_ish:
+				return compound
+		for configuration in configurations:
+			if configuration.id_ish == config_id_ish:
 				return configuration
-		except IndexError:
-			pass
 
+		for compound in compounds:
+			if compound.name == config_name:
+				return compound
 		for configuration in configurations:
 			if configuration.name == config_name:
 				return configuration

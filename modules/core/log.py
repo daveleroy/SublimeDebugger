@@ -18,7 +18,7 @@ def log_configure(log_info: bool, log_errors: bool, log_exceptions: bool):
 def log_error(*args) -> None:
 	if not _should_log_error:
 		return
-	print(*args)
+	print('Debugger: error:', *args)
 
 
 def log_exception(*args) -> None:
@@ -32,7 +32,7 @@ def log_exception(*args) -> None:
 def log_info(*args) -> None:
 	if not _should_log_info:
 		return
-	print(*args)
+	print('Debugger:', *args)
 
 
 class Logger(Protocol):

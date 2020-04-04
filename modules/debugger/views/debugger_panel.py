@@ -12,48 +12,45 @@ LOADING = 3
 
 
 class DebuggerPanel(ui.div):
-	def __init__(self, callbacks: 'Debugger', breakpoints: ui.div) -> None:
+	def __init__(self, debugger: 'Debugger', breakpoints: ui.div) -> None:
 		super().__init__()
 		self.state = STOPPED
-		self.callbacks = callbacks
+		self.debugger = debugger
 		self.name = ''
 		self.breakpoints = breakpoints
-
-	def setState(self, state: int) -> None:
-		self.state = state
-		self.dirty()
+		self.debugger.sessions.updated.add(lambda session, state: self.dirty())
 
 	def render(self) -> ui.div.Children:
 		buttons = [] #type: List[ui.span]
 
 		items = [
-			DebuggerCommandButton(self.callbacks.on_settings, ui.Images.shared.settings),
-			DebuggerCommandButton(self.callbacks.on_play, ui.Images.shared.play),
+			DebuggerCommandButton(self.debugger.on_settings, ui.Images.shared.settings),
+			DebuggerCommandButton(self.debugger.on_play, ui.Images.shared.play),
 		]
 
-		if self.callbacks.is_stoppable():
-			items.append(DebuggerCommandButton(self.callbacks.on_stop, ui.Images.shared.stop))
+		if self.debugger.is_stoppable():
+			items.append(DebuggerCommandButton(self.debugger.on_stop, ui.Images.shared.stop))
 		else:
-			items.append(DebuggerCommandButton(self.callbacks.on_stop, ui.Images.shared.stop_disable))
+			items.append(DebuggerCommandButton(self.debugger.on_stop, ui.Images.shared.stop_disable))
 
-		if self.state == STOPPED or self.state == LOADING:
-			items.append(DebuggerCommandButton(self.callbacks.on_pause, ui.Images.shared.pause_disable))
-		elif self.state == PAUSED:
-			items.append(DebuggerCommandButton(self.callbacks.on_resume, ui.Images.shared.resume))
+		if self.debugger.is_running():
+			items.append(DebuggerCommandButton(self.debugger.on_pause, ui.Images.shared.pause))
+		elif self.debugger.is_paused():
+			items.append(DebuggerCommandButton(self.debugger.on_resume, ui.Images.shared.resume))
 		else:
-			items.append(DebuggerCommandButton(self.callbacks.on_pause, ui.Images.shared.pause))
+			items.append(DebuggerCommandButton(self.debugger.on_pause, ui.Images.shared.pause_disable))
 
-		if self.callbacks.is_paused():
+		if self.debugger.is_paused():
 			items.extend([
-				DebuggerCommandButton(self.callbacks.on_step_over, ui.Images.shared.down),
-				DebuggerCommandButton(self.callbacks.on_step_out, ui.Images.shared.left),
-				DebuggerCommandButton(self.callbacks.on_step_in, ui.Images.shared.right),
+				DebuggerCommandButton(self.debugger.on_step_over, ui.Images.shared.down),
+				DebuggerCommandButton(self.debugger.on_step_out, ui.Images.shared.left),
+				DebuggerCommandButton(self.debugger.on_step_in, ui.Images.shared.right),
 			])
 		else:
 			items.extend([
-				DebuggerCommandButton(self.callbacks.on_step_over, ui.Images.shared.down_disable),
-				DebuggerCommandButton(self.callbacks.on_step_out, ui.Images.shared.left_disable),
-				DebuggerCommandButton(self.callbacks.on_step_in, ui.Images.shared.right_disable),
+				DebuggerCommandButton(self.debugger.on_step_over, ui.Images.shared.down_disable),
+				DebuggerCommandButton(self.debugger.on_step_out, ui.Images.shared.left_disable),
+				DebuggerCommandButton(self.debugger.on_step_in, ui.Images.shared.right_disable),
 			])
 
 		return [

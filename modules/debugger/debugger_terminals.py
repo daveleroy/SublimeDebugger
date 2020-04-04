@@ -64,6 +64,9 @@ class Terminals:
 		raise dap.Error(True, "unknown terminal kind requested '{}'".format(request.kind))
 
 	def clear_session_data(self, session: 'DebuggerSession'):
+		...
+
+	def clear_unused(self):
 		for terminal in self.terminals:
 			self.on_terminal_removed(terminal)
 		self.terminals.clear()

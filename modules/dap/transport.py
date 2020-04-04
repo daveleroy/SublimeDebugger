@@ -34,29 +34,31 @@ import signal
 import os
 import subprocess
 import sys
+import json
 
 from .. import core
 
 class Transport(Protocol):
-	def write(self, message: str) -> None:
+	def write(self, message: bytes) -> None:
 		...
-	def readline(self) -> str:
+	def readline(self) -> bytes:
 		...
-	def read(self, n: int) -> str:
+	def read(self, n: int) -> bytes:
 		...
 	def dispose(self) ->None:
 		...
 
 
-CONTENT_HEADER = "Content-Length: "
+CONTENT_HEADER = b'Content-Length: '
 
 class TransportProtocol:
-	def __init__(self, transport: Transport) -> None:
+	def __init__(self, transport: Transport, log: core.Logger) -> None:
 		self.transport = transport
+		self.log = log
 		self.closed = False
 		self.send_queue = Queue()  # type: Queue[Optional[str]]
 
-	def start(self, on_receive: 'Callable[[str], None]', on_closed: 'Callable[[], None]') -> None:
+	def start(self, on_receive: 'Callable[[dict], None]', on_closed: 'Callable[[], None]') -> None:
 		self.on_receive = on_receive
 		self.on_closed = on_closed
 		self.write_thread = threading.Thread(target=self.write_stdin)
@@ -65,15 +67,12 @@ class TransportProtocol:
 		self.read_thread.start()
 
 	def close(self) -> None:
-		print("closed transport protocol", self.closed)
 		if self.closed:
 			return
 		self.closed = True
 		self.transport.dispose()
 		self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
 		core.call_soon_threadsafe(self.on_closed)
-		
-		print("closed transport protocol")
 
 	def dispose(self) -> None:
 		self.close()
@@ -95,24 +94,24 @@ class TransportProtocol:
 						content_length = int(header[len(CONTENT_HEADER):])
 
 				if content_length > 0:
-					total_content = ""
+					total_content = b''
 					while (content_length > 0):
 						content = self.transport.read(content_length)
 						content_length -= len(content)
 						total_content += content
 
 					if content_length == 0:
-						core.call_soon_threadsafe(self.on_receive, total_content)
+						message = total_content.decode('utf-8')
+						json_message = json.loads(message)
+						core.call_soon_threadsafe(self.on_receive, json_message)
 
 			except (OSError, EOFError) as err:
-				core.log_exception()
 				break
 
-		print("closing transport protocol")
 		self.close()
 
-	def send(self, message: str) -> None:
-		self.send_queue.put(message)
+	def send(self, json_message: dict) -> None:
+		self.send_queue.put(json.dumps(json_message))
 
 	def write_stdin(self) -> None:
 		while True:
@@ -120,8 +119,7 @@ class TransportProtocol:
 			if message is None:
 				break
 			try:
-				self.transport.write(f'Content-Length: {len(message)}\r\n\r\n{message}')
-				core.log_info('<< ', message)
+				self.transport.write(bytes(f'Content-Length: {len(message)}\r\n\r\n{message}', 'utf-8'))
 			except (BrokenPipeError, OSError) as err:
 				print("Failure writing to stdout", err)
 				self.close()

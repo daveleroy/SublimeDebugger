@@ -16,12 +16,11 @@ from .breakpoints import (
 	SourceBreakpoint,
 )
 
-from .variables import Variables
+from .variables import Variables, Variable, ScopeReference
 from .watch import Watch
 from .debugger_terminals import Terminals
 
 import sublime
-
 
 class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	stopped = 0
@@ -42,23 +41,20 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self,
 		breakpoints: Breakpoints,
 		threads: Threads,
-		sources: Sources,
-		modules: Modules,
 		watch: Watch,
 		variables: Variables,
 		terminals: Terminals,
 		on_state_changed: Callable[[int], None],
 		on_output: Callable[[dap.OutputEvent], None],
 		on_selected_frame: Callable[[Optional[dap.StackFrame]], None],
+		transport_log: core.Logger,
 	) -> None:
 
+		self.on_selected_frame = on_selected_frame
+
+		self.transport_log = transport_log
 		self.state_changed = core.Event() #type: core.Event[int]
-		self.modules = modules
-		self.sources = sources
-		self.variables = variables
-		self.callstack = threads
-		self.callstack.on_selected_frame.add(lambda frame: self.load_frame(frame))
-		self.callstack.on_selected_thread.add(lambda thread: self._refresh_state())
+
 		self.terminals = terminals
 		self.terminals_updated = core.Event() #type: core.Event[None]
 
@@ -70,19 +66,43 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.breakpoints.source.on_send.add(self.on_send_source_breakpoint)
 
 		self.watch = watch
-		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, self.callstack.selected_frame, expr))
+		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, self.selected_frame, expr))
 		self.on_state_changed = on_state_changed
 		self.on_output = on_output
-		self.on_selected_frame = on_selected_frame
 
 		self.adapter = None #type: Optional[dap.Client]
-		self.process = None #type: Optional[Process]
 		self.launching_async = None #type: Optional[core.future]
+		self.capabilities = None
 		self.stop_requested = False
 		self.launch_request = True
 		self._state = DebuggerSession.stopped
 
 		self.disposeables = [] #type: List[Any]
+
+		self.complete = core.future()
+
+		self.threads_for_id: Dict[int, Thread] = {}
+		self.all_threads_stopped = False
+		self.selected_explicitly = False
+		self.selected_thread = None
+		self.selected_frame = None
+
+		self.threads: List[Thread] = []
+		self.variables: List[Variable] = []
+		self.sources: Dict[dap.Source] = {}
+		self.modules: Dict[dap.Module] = {}
+
+		self.on_updated_threads = core.Event()
+		self.on_threads_selected: core.Event[Optional[Thread], Optional[dap.StackFrame]] = core.Event()
+		self.on_threads_selected.add(lambda thread, frame: self.load_frame(frame))
+
+		self.on_updated_modules = core.Event()
+		self.on_updated_sources = core.Event()
+		self.on_updated_variables = core.Event()
+
+	@property
+	def name(self) -> str:
+		return self.configuration.name
 
 	def dispose_terminals(self):
 		self.terminals.clear_session_data(self)
@@ -90,7 +110,6 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	def dispose(self) -> None:
 		self.clear_session()
 		self.dispose_terminals()
-		self.breakpoints.dispose()
 		for disposeable in self.disposeables:
 			disposeable.dispose()
 
@@ -104,13 +123,10 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			return
 
 		self._state = state
-		self.on_state_changed(state)
+		self.on_state_changed(self, state)
 		self.state_changed()
 
 	async def launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False) -> None:
-		if self.launching_async:
-			self.launching_async.cancel()
-
 		self.dispose_terminals()
 		try:
 			self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart, no_debug))
@@ -123,36 +139,10 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			raise e
 		except core.CancelledError:
 			self.launching_async = None
-			self.info("... canceled")
+			self.info("... launch aborted")
 			await self.stop_forced(reason=DebuggerSession.stopped_reason_cancel)
 
 		self.launching_async = None
-
-
-	async def run_pre_debug_task(self) -> bool:
-		pre_debug_command = self.configuration.all.get('pre_debug_command')
-		if pre_debug_command:
-			self.info('running pre debug command...')
-			return await self.run_task(pre_debug_command)
-		return True
-
-	async def run_post_debug_task(self) -> bool:
-		post_debug_command = self.configuration.all.get('post_debug_command')
-		if post_debug_command:
-			self.info('running post debug command...')
-			return await self.run_task(post_debug_command)
-		return True
-
-	async def run_task(self, args: Dict[str, Any]) -> bool:
-		try:
-			terminal = TerminalCommand(args)
-			self.terminals.add(self, terminal)
-			await terminal.wait()
-			self.info('... finished')
-			return True
-		except Exception as e:
-			self.error(f'... failed: {e}')
-			return False
 
 	async def _launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any], no_debug: bool) -> None:
 		if self.state != DebuggerSession.stopped:
@@ -165,23 +155,18 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.configuration = configuration
 
 		if not adapter_configuration.installed_version:
-			install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
-			if sublime.ok_cancel_dialog(install, 'Install'):
-				await adapter_configuration.install(self)
-
-		if not adapter_configuration.installed_version:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
 
 		if not await self.run_pre_debug_task():
 			await self.stop_forced(reason=DebuggerSession.stopped_reason_build_failed)
 			return
 
-		# dont monitor stdout the StdioTransport uses it
 		transport = await adapter_configuration.start(log=self)
 
 		adapter = dap.Client(
 			transport,
-			self
+			self,
+			self.transport_log
 		)
 		self.adapter = adapter
 
@@ -228,11 +213,45 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		# At this point we are running?
 		self.state = DebuggerSession.running
 
+	async def wait(self) -> None:
+		await self.complete
+
+	async def run_pre_debug_task(self) -> bool:
+		pre_debug_command = self.configuration.all.get('pre_debug_command')
+		if pre_debug_command:
+			self.info('running pre debug command...')
+			return await self.run_task(pre_debug_command)
+		return True
+
+	async def run_post_debug_task(self) -> bool:
+		post_debug_command = self.configuration.all.get('post_debug_command')
+		if post_debug_command:
+			self.info('running post debug command...')
+			return await self.run_task(post_debug_command)
+		return True
+
+	async def run_task(self, args: Dict[str, Any]) -> bool:
+		try:
+			terminal = TerminalCommand(args)
+			if not terminal.background:
+				self.terminals.add(self, terminal)
+			await terminal.wait()
+			self.info('... finished')
+			return True
+		except Exception as e:
+			core.log_exception()
+			self.error(f'... failed: {e}')
+			return False
+
 	def _refresh_state(self) -> None:
-		thread = self.callstack.command_thread()
-		if thread and thread.stopped:
-			self.state = DebuggerSession.paused
-		else:
+		try:
+			thread = self.command_thread
+			if thread.stopped:
+				self.state = DebuggerSession.paused
+			else:
+				self.state = DebuggerSession.running
+
+		except core.Error as e:
 			self.state = DebuggerSession.running
 
 	async def add_breakpoints(self) -> None:
@@ -341,7 +360,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.stop_requested = True
 
 		if self.launch_request:
-			if self.capabilities.supportsTerminateRequest:
+			if self.capabilities and self.capabilities.supportsTerminateRequest:
 				try:
 					await self.client.Terminate()
 				except dap.Error as e:
@@ -359,36 +378,34 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 		self.breakpoints_for_id = {}
 
-		self.variables.clear_session_data()
-		self.modules.clear_session_date(self)
-		self.sources.clear_session_date(self)
 		self.watch.clear_session_data(self)
 		self.breakpoints.clear_session_data()
-		self.callstack.clear_session_data()
+
+		self.stop_requested = False
 
 		if self.adapter:
 			self.adapter.dispose()
 			self.adapter = None
-		if self.process:
-			self.process.dispose()
-			self.process = None
+
 			
 	async def stop_forced(self, reason) -> None:
+		if self.state == DebuggerSession.stopping or self.state == DebuggerSession.stopped:
+			return
+
 		self.stopped_reason = reason
 		self.state = DebuggerSession.stopping
 		self.clear_session()
 		await self.run_post_debug_task()
 		self.state = DebuggerSession.stopped
 
+		if not self.complete.done():
+			self.complete.set_result(None)
+
 	@property
 	def client(self) -> dap.Client:
 		if not self.adapter:
 			raise core.Error('debugger not running')
 		return self.adapter
-
-	@property
-	def command_thread(self) -> dap.Thread:
-		return self.callstack.command_thread()
 
 	async def resume(self):
 		await self.client.Resume(self.command_thread)
@@ -407,71 +424,81 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 	async def evaluate(self, command: str):
 		self.info(command)
-		response = await self.client.Evaluate(command, self.callstack.selected_frame, "repl")
+		response = await self.client.Evaluate(command, self.selected_frame, "repl")
 		event = dap.OutputEvent("console", response.result, response.variablesReference)
-		self.on_output(event)
+		self.on_output(self, event)
+
+	async def stack_trace(self, thread_id: str) -> List[dap.StackFrame]:
+		return await self.client.StackTrace(thread_id)
 
 	def log_output(self, string: str) -> None:
 		output = dap.OutputEvent("debugger.output", string + '\n', 0)
-		self.on_output(output)
+		self.on_output(self, output)
 
 	def info(self, string: str) -> None:
 		output = dap.OutputEvent("debugger.info", string + '\n', 0)
-		self.on_output(output)
+		self.on_output(self, output)
 
 	def error(self, string: str) -> None:
 		output = dap.OutputEvent("debugger.error", string + '\n', 0)
-		self.on_output(output)
-
-	# after a successfull launch/attach, stopped event, thread event we request all threads
-	# see https://microsoft.github.io/debug-adapter-protocol/overview
-	def refresh_threads(self) -> None:
-		async def refresh_threads():
-			threads = await self.client.GetThreads()
-			self.callstack.update(self.client, threads)
-		core.run(refresh_threads())
+		self.on_output(self, output)
 
 	def load_frame(self, frame: Optional[dap.StackFrame]):
-		self.on_selected_frame(frame)
+		self.on_selected_frame(self, frame)
 		if frame:
 			core.run(self.get_scopes(frame))
-			core.run(self.watch.evaluate(self, self.callstack.selected_frame))
+			core.run(self.watch.evaluate(self, self.selected_frame))
+		else:
+			self.variables.clear()
+			self.on_updated_variables()
 
 	async def get_scopes(self, frame: dap.StackFrame):
 		scopes = await self.client.GetScopes(frame)
-		self.variables.update(self, scopes)
-
+		self.variables = [Variable(self, ScopeReference(scope)) for scope in scopes]
+		self.on_updated_variables()
+		
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
 		b = self.breakpoints_for_id.get(event.result.id)
 		if b:
 			self.breakpoints.source.set_result(b, event.result)
 
 	def on_module_event(self, event: dap.ModuleEvent):
-		self.modules.on_module_event(self, event)
+		if event.reason == dap.ModuleEvent.new:
+			self.modules[event.module.id] = event.module
+
+		if event.reason == dap.ModuleEvent.removed:
+			try:
+				del self.modules[event.module.id]
+			except KeyError:
+				...
+		if event.reason == dap.ModuleEvent.changed:
+			self.modules[event.module.id] = event.module
+
+		self.on_updated_modules()
 
 	def on_loaded_source_event(self, event: dap.LoadedSourceEvent):
-		self.sources.on_loaded_source_event(self, event)
+		if event.reason == dap.LoadedSourceEvent.new:
+			self.sources[event.source.id] = event.source
+
+		elif event.reason == dap.LoadedSourceEvent.removed:
+			try:
+				del self.sources[event.source.id]
+			except KeyError:
+				...
+		elif event.reason == dap.LoadedSourceEvent.changed:
+			self.sources[event.source.id] = event.source
+
+		self.on_updated_sources()
 
 	def on_output_event(self, event: dap.OutputEvent):
-		self.on_output(event)
-
-	def on_threads_event(self, event: dap.ThreadEvent) -> None:
-		self.refresh_threads()
-
-	def on_stopped_event(self, event: dap.StoppedEvent):
-		self.callstack.on_stopped_event(self.client, event)
-		self.refresh_threads()
-		self._refresh_state()
-
-	def on_continued_event(self, event: dap.ContinuedEvent):
-		self.callstack.on_continued_event(self.client, event)
-		self._refresh_state()
+		self.on_output(self, event)
 
 	def on_terminated_event(self, event: dap.TerminatedEvent):
 		async def on_terminated_async():
 			await self.stop_forced(reason=DebuggerSession.stopped_reason_terminated_event)
-			if event.restart:
-				await self.launch(self.adapter_configuration, self.configuration, event.restart)
+			# restarting needs to be handled by creating a new session
+			# if event.restart:
+			# 	await self.launch(self.adapter_configuration, self.configuration, event.restart)
 
 		core.run(on_terminated_async())
 
@@ -482,62 +509,115 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			self.error(str(e))
 			raise e
 
+	@property
+	def command_thread(self) -> Thread:
+		if self.selected_thread:
+			return self.selected_thread
+		if self.threads:
+			return self.threads[0]
 
-class Sources:
-	def __init__(self):
-		self.sources = [] #type: List[dap.Source]
-		self.on_updated = core.Event() #type: core.Event[None]
+		raise core.Error("No threads to run command")
 
-	def on_loaded_source_event(self, session: DebuggerSession, event: dap.LoadedSourceEvent) -> None:
-		if event.reason == dap.LoadedSourceEvent.new:
-			self.sources.append(event.source)
-			self.on_updated()
-			return
-		if event.reason == dap.LoadedSourceEvent.removed:
-			# FIXME: NOT IMPLEMENTED
-			return
-		if event.reason == dap.LoadedSourceEvent.changed:
-			# FIXME: NOT IMPLEMENTED
-			return
+	def get_thread(self, id: int):
+		t = self.threads_for_id.get(id)
+		if t:
+			return t
+		else:
+			t = Thread(id, "??", self, self.all_threads_stopped)
+			self.threads_for_id[id] = t
+			return t
 
-	def clear_session_date(self, session: DebuggerSession) -> None:
-		self.sources.clear()
-		self.on_updated()
+	def set_selected(self, thread: Thread, frame: Optional[dap.StackFrame]):
+		self.selected_explicitly = True
+		self.selected_thread = thread
+		self.selected_frame = frame
+		self.on_updated_threads()
+		self.on_threads_selected(thread, frame)
+		self._refresh_state()
 
+	def on_threads_event(self, event: dap.ThreadEvent) -> None:
+		self.refresh_threads()
 
-class Modules:
-	def __init__(self):
-		self.expanded = {} #type: Dict[int, bool]
-		self.modules = [] #type: List[dap.Module]
-		self.on_updated = core.Event() #type: core.Event[None]
+	def on_stopped_event(self, stopped: dap.StoppedEvent):
+		if stopped.allThreadsStopped:
+			self.all_threads_stopped = True
 
-	def toggle_expanded(self, id) -> None:
-		expanded = self.expanded.get(id, False)
-		self.expanded[id] = not expanded
-		self.on_updated()
+			for thread in self.threads:
+				thread.clear()
+				thread.stopped = True
 
-	def on_module_event(self, session: DebuggerSession, event: dap.ModuleEvent) -> None:
-		if event.reason == dap.ModuleEvent.new:
-			self.modules.append(event.module)
-			self.on_updated()
-			return
-		if event.reason == dap.ModuleEvent.removed:
-			# FIXME: NOT IMPLEMENTED
-			return
-		if event.reason == dap.ModuleEvent.changed:
-			# FIXME: NOT IMPLEMENTED
-			return
+		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
+		thread = self.get_thread(stopped.threadId)
+		thread.clear()
+		thread.stopped = True
+		thread.stopped_reason = stopped.text
 
-	def clear_session_date(self, session: DebuggerSession) -> None:
-		self.expanded.clear()
-		self.modules.clear()
-		self.on_updated()
+		if not self.selected_explicitly:
+			self.selected_thread = thread
+			self.selected_frame = None
 
+			self.on_threads_selected(thread, None)
+
+			@core.schedule
+			async def run(thread=thread):
+				children = await thread.children()
+				if children and not self.selected_frame and not self.selected_explicitly and self.selected_thread is thread:
+					def first_non_subtle_frame(frames: List[dap.StackFrame]):
+						for frame in frames:
+							if frame.presentation != dap.StackFrame.subtle:
+								return frame
+						return frames[0]
+
+					self.selected_frame = first_non_subtle_frame(children)
+					self.on_updated_threads()
+					self.on_threads_selected(thread, self.selected_frame)
+					self._refresh_state()
+			run()
+
+		self.on_updated_threads()
+		self.refresh_threads()
+		self._refresh_state()
+
+	def on_continued_event(self, continued: dap.ContinuedEvent):
+		if continued.allThreadsContinued:
+			self.all_threads_stopped = False
+			for thread in self.threads:
+				thread.stopped = False
+				thread.stopped_reason = ""
+
+		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
+		thread = self.get_thread(continued.threadId)
+		thread.stopped = False
+		thread.stopped_reason = ""
+
+		if continued.allThreadsContinued or thread is self.selected_thread:
+			self.selected_explicitly = False
+			self.selected_thread = None
+			self.selected_frame = None
+			self.on_threads_selected(None, None)
+
+		self.on_updated_threads()
+		self._refresh_state()
+
+	# after a successfull launch/attach, stopped event, thread event we request all threads
+	# see https://microsoft.github.io/debug-adapter-protocol/overview
+	# updates all the threads from the dap model
+	# @NOTE threads_for_id will retain all threads for the entire session even if they are removed
+	@core.schedule
+	async def refresh_threads(self):
+		threads = await self.client.GetThreads()
+		self.threads.clear()
+		for thread in threads:
+			t = self.get_thread(thread.id)
+			t.name = thread.name
+			self.threads.append(t)
+
+		self.on_updated_threads()
 
 class Thread:
-	def __init__(self, id: int, name: str, client: dap.Client, stopped: bool):
+	def __init__(self, id: int, name: str, session: DebuggerSession, stopped: bool):
 		self.id = id
-		self.client = client
+		self.session = session
 		self.name = name
 		self.stopped = stopped
 		self.stopped_reason = ""
@@ -552,126 +632,8 @@ class Thread:
 
 		if self._children:
 			return self._children
-		self._children = core.run(self.client.StackTrace(self.id))
+		self._children = core.run(self.session.stack_trace(self.id))
 		return self._children
 
 	def clear(self):
 		self._children = None
-
-
-class Threads:
-	def __init__(self):
-		self.threads = [] #type: List[Thread]
-		self.threads_for_id = {}
-		self.on_updated = core.Event() #type: core.Event[None]
-		self.on_selected_frame = core.Event() #type: core.Event[Optional[dap.StackFrame]]
-		self.on_selected_thread = core.Event() #type: core.Event[Optional[Thread]]
-		self.all_threads_stopped = False
-
-		self.selected_explicitly = False
-		self.selected_thread = None
-		self.selected_frame = None
-
-	def command_thread(self) -> Thread:
-		if self.selected_thread:
-			return self.selected_thread
-		if self.threads:
-			return self.threads[0]
-		raise core.Error("No threads to run command")
-
-	def get_thread(self, client: dap.Client, id: int):
-		t = self.threads_for_id.get(id)
-		if t:
-			return t
-		else:
-			t = Thread(id, "??", client, self.all_threads_stopped)
-			self.threads_for_id[id] = t
-			return t
-
-	def set_selected(self, thread: Thread, frame: Optional[dap.StackFrame]):
-		self.selected_explicitly = True
-		self.selected_thread = thread
-		self.selected_frame = frame
-		self.on_updated()
-		if frame:
-			self.on_selected_frame(frame)
-		self.on_selected_thread(thread)
-
-	def on_stopped_event(self, client: dap.Client, stopped: dap.StoppedEvent):
-		if stopped.allThreadsStopped:
-			self.all_threads_stopped = True
-
-			for thread in self.threads:
-				thread.clear()
-				thread.stopped = True
-
-		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
-		thread = self.get_thread(client, stopped.threadId, )
-		thread.clear()
-		thread.stopped = True
-		thread.stopped_reason = stopped.text
-
-		if self.selected_thread is None:
-			self.selected_explicitly = False
-			self.selected_thread = thread
-			self.selected_frame = None
-
-			self.on_selected_thread(thread)
-			self.on_selected_frame(None)
-
-			async def run(thread=thread):
-				children = await thread.children()
-				if children and not self.selected_frame and not self.selected_explicitly and self.selected_thread is thread:
-					def first_non_subtle_frame(frames: List[dap.StackFrame]):
-						for frame in frames:
-							if frame.presentation != dap.StackFrame.subtle:
-								return frame
-						return frames[0]
-
-					self.selected_frame = first_non_subtle_frame(children)
-					self.on_updated()
-					self.on_selected_frame(self.selected_frame)
-			core.run(run())
-
-		self.on_updated()
-
-	def on_continued_event(self, client: dap.Client, continued: dap.ContinuedEvent):
-		if continued.allThreadsContinued:
-			self.all_threads_stopped = False
-			for thread in self.threads:
-				thread.stopped = False
-				thread.stopped_reason = ""
-
-		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
-		thread = self.get_thread(client, continued.threadId)
-		thread.stopped = False
-		thread.stopped_reason = ""
-
-		if continued.allThreadsContinued or thread is self.selected_thread:
-			self.selected_explicitly = False
-			self.selected_thread = None
-			self.selected_frame = None
-			self.on_selected_thread(None)
-			self.on_selected_frame(None)
-
-		self.on_updated()
-
-	# updates all the threads from the dap model
-	# @NOTE threads_for_id will retain all threads for the entire session even if they are removed
-	def update(self, client: dap.Client, threads: List[dap.Thread]):
-		self.threads.clear()
-		for thread in threads:
-			t = self.get_thread(client, thread.id)
-			t.name = thread.name
-			self.threads.append(t)
-
-		self.on_updated()
-
-	def clear_session_data(self):
-		self.threads.clear()
-		self.threads_for_id.clear()
-		self.selected_explicitly = False
-		self.selected_thread = None
-		self.selected_frame = None
-		self.on_selected_frame(None)
-		self.on_updated()

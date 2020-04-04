@@ -13,7 +13,6 @@ from ..typecheck import *
 
 import socket
 import threading
-import json
 
 from .. import core
 
@@ -49,14 +48,16 @@ class Client:
 		self,
 		transport: Transport,
 		events: ClientEventsListener,
+		transport_log: core.Logger,
 	) -> None:
 
 		self.events = events
-		self.transport = TransportProtocol(transport)
+		self.transport_log = transport_log
+		transport_log.clear()
+		self.transport = TransportProtocol(transport, transport_log)
 		self.transport.start(self.transport_message, self.transport_closed)
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
-		self.allThreadsStopped = False
 		self.is_running = True
 		self._on_initialized_future = core.create_future()
 
@@ -273,9 +274,6 @@ class Client:
 		self._continued(threadId, body.get('allThreadsContinued', True))
 
 	def _continued(self, threadId: int, allThreadsContinued: bool) -> None:
-		if allThreadsContinued:
-			self.allThreadsStopped = False
-
 		event = ContinuedEvent(threadId, allThreadsContinued)
 		self.events.on_continued_event(event)
 
@@ -296,9 +294,6 @@ class Client:
 		else:
 			stopped_text = "Stopped"
 
-		if allThreadsStopped:
-			self.allThreadsStopped = True
-
 		event = StoppedEvent(threadId, allThreadsStopped, stopped_text)
 		self.events.on_stopped_event(event)
 
@@ -311,10 +306,8 @@ class Client:
 			core.log_error('Debug Adapter process was terminated prematurely')
 			self._on_terminated({})
 
-	def transport_message(self, message: str) -> None:
-		core.log_info('>> ', message)
-		msg = json.loads(message)
-		self.recieved_msg(msg)
+	def transport_message(self, message: dict) -> None:
+		self.recieved_msg(message)
 
 	def send_request_asyc(self, command: str, args: Optional[dict]) -> Awaitable[dict]:
 		future = core.create_future()
@@ -325,9 +318,12 @@ class Client:
 			"command": command,
 			"arguments": args
 		}
+
 		self.pending_requests[self.seq] = future
-		msg = json.dumps(request)
-		self.transport.send(msg)
+
+		self.log_transport(True, request)
+		self.transport.send(request)
+
 		return future
 
 	def send_response(self, request: dict, body: dict, error: Optional[str] = None) -> None:
@@ -346,8 +342,46 @@ class Client:
 			"success": success,
 			"message": error,
 		}
-		msg = json.dumps(data)
-		self.transport.send(msg)
+
+		self.log_transport(True, data)
+		self.transport.send(data)
+
+	def log_transport(self, out: bool, data: dict):
+		type = data.get('type')
+
+		def sigal(success: bool):
+			if success:
+				if out:
+					return '⟸'
+				else:
+					return '⟹'
+			else:
+				if out:
+					return '⟽'
+				else:
+					return '⟾'
+
+		if type == 'response':
+			id = data.get('request_seq')
+			command = data.get('command')
+			body = data.get('body', data.get('message'))
+			self.transport_log.info(f'{sigal(data.get("success", False))} response/{command}({id}) :: {body}')
+			return
+
+		if type == 'request':
+			id = data.get('seq')
+			command = data.get('command')
+			body = data.get('arguments')
+			self.transport_log.info(f'{sigal(True)} request/{command}({id}) :: {body}')
+			return
+
+		if type == 'event':
+			command = data.get('event')
+			body = data.get('body')
+			self.transport_log.info(f'{sigal(True)} event/{command} :: {body}')
+			return
+
+		self.transport_log.info(f'{sigal(True)} {type}/unknown :: {data}')
 
 	def handle_reverse_request_run_in_terminal(self, request: dict):
 		command = RunInTerminalRequest.from_json(request['arguments'])
@@ -367,6 +401,8 @@ class Client:
 
 	def recieved_msg(self, data: dict) -> None:
 		t = data['type']
+		self.log_transport(False, data)
+
 		if t == 'response':
 			try:
 				future = self.pending_requests.pop(data['request_seq'])
@@ -396,6 +432,7 @@ class Client:
 		if t == 'event':
 			event_body = data.get('body', {})
 			event = data['event']
+
 			if event == 'initialized':
 				return core.call_soon(self._on_initialized)
 			if event == 'output':

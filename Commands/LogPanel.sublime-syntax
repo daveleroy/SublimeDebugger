@@ -1,0 +1,30 @@
+%YAML 1.2
+---
+hidden: true
+scope: output.debugger.log
+
+contexts:
+  main:
+    - match: (⟹|⟸)(.*)\((\d*|None)\) (::)
+      captures:
+        1: storage.modifier
+        2: variable.function
+        3: constant.numeric.integer
+        4: punctuation.separator
+    - match: (⟹|⟸)(.*) (::)
+      captures:
+        1: storage.modifier
+        2: variable.function
+        3: punctuation.separator
+
+    - match: (⟾|⟽)(.*)\((\d*|None)\) (::)
+      captures:
+        1: storage.modifier
+        2: storage.modifier
+        3: constant.numeric.integer
+        4: punctuation.separator
+    - match: (⟾|⟽)(.*) (::)
+      captures:
+        1: storage.modifier
+        2: storage.modifier
+        3: punctuation.separator

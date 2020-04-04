@@ -1,8 +1,8 @@
 from ..typecheck import*
 from ..import core
 
-from .adapter import Configuration
-from .util import get_setting, WindowSettingsCallback
+from .adapter import Configuration, ConfigurationCompound
+from .util import get_setting
 
 import sublime
 import json
@@ -17,13 +17,13 @@ class DebuggerProject(core.disposables):
 
 		self.window = window
 		self.on_updated: core.Event[None] = core.Event()
-		self.configuration: List[Configuration] = []
+
+		self.compounds: List[ConfigurationCompound] = []
+		self.configurations: List[Configuration] = []
 
 		self.external_terminal_kind = 'platform'
 		self.ui_scale = 12
 		self.bring_window_to_front_on_pause = False
-
-
 
 		self.panel = self.window.create_output_panel("Debugger")
 		self.panel_show()
@@ -35,7 +35,7 @@ class DebuggerProject(core.disposables):
 		})
 		settings = self.panel.settings()
 		settings.set("margin", 0)
-		settings.set('line_padding_top', 0)
+		settings.set('line_padding_top', 1)
 		settings.set('gutter', False)
 		settings.set('word_wrap', False)
 		settings.set('line_spacing', 0)
@@ -49,8 +49,6 @@ class DebuggerProject(core.disposables):
 			await core.sleep(0)
 			self.panel.set_viewport_position((_panel_position, 0), animate=False)
 		core.run(later())
-
-		self.disposables += WindowSettingsCallback(self.window, self.reload)
 		self.reload()
 
 	def reload(self):
@@ -71,6 +69,7 @@ class DebuggerProject(core.disposables):
 		self.panel.settings().set('font_size', self.ui_scale)
 
 		self.bring_window_to_front_on_pause = get_setting(self.window.active_view(), 'bring_window_to_front_on_pause', self.bring_window_to_front_on_pause)
+
 	def load_configurations(self):
 		data = self.window.project_data()
 		if not data:
@@ -80,11 +79,19 @@ class DebuggerProject(core.disposables):
 		configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
 
 		for index, configuration_json in enumerate(configurations_json):
-			configuration = Configuration.from_json(configuration_json)
-			configuration.index = index
+			configuration = Configuration.from_json(configuration_json, index)
 			configurations.append(configuration)
 
 		self.configurations = configurations
+
+		compounds = []
+		compounds_json = data.setdefault('settings', {}).setdefault('debug.compounds', [])
+
+		for index, compound_json in enumerate(compounds_json):
+			compound = ConfigurationCompound.from_json(compound_json, index)
+			compounds.append(compound)
+
+		self.compounds = compounds
 
 	def is_source_file(self, view: sublime.View) -> bool:
 		return bool(self.source_file(view))

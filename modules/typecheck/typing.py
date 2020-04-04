@@ -1,70 +1,39 @@
-
 TYPE_CHECKING = False
 
-
 class Any:
-    pass
-
+	...
 class Protocol:
-    pass
-
-class _GetAttr(type):
-    def __getitem__(self, x):
-        return self
-
-
-class Generic(metaclass=_GetAttr):
-    pass
-
-
+	...
+class Generic:
+	def __class_getitem__(self, params):
+		return self
+	...
 class Generator(Generic):
-    pass
-
-
+	...
 class Callable(Generic):
-    pass
-
-
+	...
 class List(Generic):
-    pass
-
-
+	...
 class Optional(Generic):
-    pass
-
-
+	...
 class Tuple(Generic):
-    pass
-
-
+	...
 class Union(Generic):
-    pass
-
-
+	...
 class Dict(Generic):
-    pass
-
-
+	...
 class Set(Generic):
-    pass
-
-
+	...
 class Sequence(Generic):
-    pass
-
+	...
 class Iterable(Generic):
-    pass
-
+	...
 class NamedTuple(Generic):
-    pass
-
-
+	...
 class TypeVar:
-    def __init__(self, name: str) -> None:
-        pass
-
-
+	def __init__(self, name: str) -> None:
+		...
 def overload(func):
-    def overload(*args, **kwds):
-        raise NotImplementedError
-    return overload
+	def overload(*args, **kwds):
+		raise NotImplementedError
+	return overload

@@ -66,6 +66,9 @@ class Variable:
 		return [Variable(self.session, v) for v in variables]
 
 	async def children(self) -> List['Variable']:
+		if not self.has_children:
+			return []
+
 		if not self.fetched:
 			self.fetched = core.run(self.fetch())
 		children = await self.fetched
@@ -195,6 +198,13 @@ class VariableComponent (ui.div):
 				))
 
 		ui.InputList(items, '{} {}'.format(variable.name, variable.value)).run()
+
+	def set_expanded(self) -> None:
+		async def fetch():
+			self.state.set_expanded(self.variable,True)
+			self.variable_children = await self.variable.children()
+			self.dirty()
+		core.run(fetch())
 
 	def toggle_expand(self) -> None:
 		async def fetch():
