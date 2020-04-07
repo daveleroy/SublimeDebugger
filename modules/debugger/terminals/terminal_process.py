@@ -9,7 +9,7 @@ try:
 	if core.platform.windows:
 		from winpty import PtyProcess  #type: ignore
 	else:
-		from ptyprocess import PtyProcess as _PtyProcess  #type: ignore
+		from ...libs.ptyprocess import PtyProcess as _PtyProcess  #type: ignore
 
 		class PtyProcess(_PtyProcess):  #type: ignore
 			def read(self):
