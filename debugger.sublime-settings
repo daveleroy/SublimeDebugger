@@ -1,6 +1,6 @@
-{	
-	// Open the debugger automatically when a project that is set up for debugging has been opened 
-	// In otherwords it has configurations in the .sublime-project defined
+{
+	// Open the debugger automatically when a project that is set up for debugging has been opened
+	// In other words it has configurations in the .sublime-project defined
 	// "settings" : {
 	//	"debug.configurations" : [...]
 	// }
@@ -24,8 +24,7 @@
 	// NOTE: this runs the "subl" command to accomplish this so it must be in your PATH
 	"bring_window_to_front_on_pause" : false,
 
-
-	// info includes debug adapter commands send/recieved and other (possibly) useful things
+	// info includes debug adapter commands send/received and other (possibly) useful things
 	"log_info": false,
 
 	// any uncaught exceptions in the main loop get logged
@@ -53,4 +52,3 @@
 		"node" : "${package}/debug_adapters/node.json",
 	}
 }
-
