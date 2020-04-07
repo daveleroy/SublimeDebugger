@@ -2,7 +2,7 @@
 This project attemps to match Visual Studio Code's Debugger fairly closely so their documentation can be pretty helpful. See [https://code.visualstudio.com/docs/editor/debugging](https://code.visualstudio.com/docs/editor/debugging)
 
 ## Requirements
-This plugin requires Node.js installed.
+This plugin requires that Node.js is installed.
 
 ## Setting up your debugger
 - Opening the debug panel
