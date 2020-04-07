@@ -1,5 +1,6 @@
 from ...typecheck import *
 from ...import core
+from ...libs import certifi
 
 import os
 import shutil
@@ -105,7 +106,7 @@ class VSCodeAdapterInstall:
 			'Accept-Encoding': 'gzip'
 		})
 
-		response = urllib.request.urlopen(request)
+		response = urllib.request.urlopen(request, cafile=certifi.where())
 		if response.getcode() != 200:
 			raise core.Error('Bad response from server, got code {}'.format(response.getcode()))
 		os.mkdir(self.path)
