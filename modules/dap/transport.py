@@ -57,6 +57,7 @@ class TransportProtocol:
 		self.log = log
 		self.closed = False
 		self.send_queue = Queue()  # type: Queue[Optional[str]]
+		self.log.info(f'⟹ process/started')
 
 	def start(self, on_receive: 'Callable[[dict], None]', on_closed: 'Callable[[], None]') -> None:
 		self.on_receive = on_receive
@@ -66,21 +67,24 @@ class TransportProtocol:
 		self.read_thread = threading.Thread(target=self.read_stdout)
 		self.read_thread.start()
 
-	def close(self) -> None:
+	def close(self, error: Optional[str] = None) -> None:
 		if self.closed:
 			return
+
 		self.closed = True
 		self.transport.dispose()
 		self.send_queue.put(None)  # kill the write thread as it's blocked on send_queue
 		core.call_soon_threadsafe(self.on_closed)
 
+		if error:
+			self.log.info(f'⟹ process/closed :: closed unexpectedly ${error}')
+		else:
+			self.log.info(f'⟹ process/closed ::')
+
 	def dispose(self) -> None:
 		self.close()
 
 	def read_stdout(self) -> None:
-		"""
-		Reads JSON responses from process and dispatch them to response_handler
-		"""
 		while True:
 			try:
 				content_length = 0
@@ -106,9 +110,8 @@ class TransportProtocol:
 						core.call_soon_threadsafe(self.on_receive, json_message)
 
 			except (OSError, EOFError) as err:
-				break
-
-		self.close()
+				self.close(f'unable to read: {err}')
+				return
 
 	def send(self, json_message: dict) -> None:
 		self.send_queue.put(json.dumps(json_message))
@@ -121,5 +124,4 @@ class TransportProtocol:
 			try:
 				self.transport.write(bytes(f'Content-Length: {len(message)}\r\n\r\n{message}', 'utf-8'))
 			except (BrokenPipeError, OSError) as err:
-				print("Failure writing to stdout", err)
-				self.close()
+				self.close(f'unable to write: {err}')
