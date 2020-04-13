@@ -5,16 +5,10 @@ from . import css
 if TYPE_CHECKING:
 	from ..debugger import Debugger
 
-STOPPED = 0
-RUNNING = 1
-PAUSED = 2
-LOADING = 3
-
 
 class DebuggerPanel(ui.div):
 	def __init__(self, debugger: 'Debugger', breakpoints: ui.div) -> None:
 		super().__init__()
-		self.state = STOPPED
 		self.debugger = debugger
 		self.name = ''
 		self.breakpoints = breakpoints

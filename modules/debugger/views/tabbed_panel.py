@@ -14,9 +14,9 @@ class TabbedPanelItem:
 		self.name = name
 		self.index = index
 		self.modified = False
+		self.visible = True
 		self.column = -1
 		self.row = -1
-
 
 class TabbedPanel(ui.div):
 	def __init__(self, items: List[TabbedPanelItem], selected_index: int) -> None:
@@ -29,6 +29,43 @@ class TabbedPanel(ui.div):
 		if len(items) < self.selected_index:
 			self.selected_index = 0
 		self.dirty()
+
+	def add(self, item: TabbedPanelItem):
+		self.items.append(item)
+		self.dirty()
+
+	def remove(self, id: int):
+		for item in self.items:
+			if item.id == id:
+				self.items.remove(item)
+				break
+		
+		if len(self.items) < self.selected_index:
+			self.selected_index = 0
+		self.dirty()
+
+	def select(self, id: int):
+		for index, item in enumerate(self.items):
+			if item.id == id:
+				self.selected_index = index
+				item.modified = False
+				self.dirty()
+				return
+
+	def set_visible(self, id: int, visible: bool):
+		for index, item in enumerate(self.items):
+			if item.id == id:
+				item.visible = visible
+				self.patch_selected()
+				self.dirty()
+				return
+
+	def patch_selected(self):
+		if not self.items[self.selected_index].visible:
+			for index, item in enumerate(self.items):
+				if item.visible:
+					self.selected_index = index
+					return
 
 	def show(self, index: int):
 		self.selected_index = index
@@ -48,6 +85,9 @@ class TabbedPanel(ui.div):
 
 		tabs = [] #type: List[ui.span]
 		for index, item in enumerate(self.items):
+			if not item.visible:
+				continue
+
 			tabs.append(ui.click(lambda index=index: self.show(index))[ #type: ignore
 				Tab(item, index == self.selected_index)
 			])
@@ -57,7 +97,6 @@ class TabbedPanel(ui.div):
 				self.items[self.selected_index].item
 			],
 		]
-
 
 class Tab (ui.span):
 	def __init__(self, item: TabbedPanelItem, selected: bool) -> None:
@@ -77,52 +116,3 @@ class Tab (ui.span):
 
 	def render(self) -> ui.span.Children:
 		return self.items
-
-
-class Panels:
-	def __init__(self, view: sublime.View, phantom_location: int, columns: int):
-		self.panels = [] #type: List[TabbedPanelItem]
-		self.pages = [] #type: List[TabbedPanel]
-		self.columns = columns
-
-		for i in range(0, columns):
-			pages = TabbedPanel([], 0)
-			self.pages.append(pages)
-			phantom = ui.Phantom(pages, view, sublime.Region(phantom_location + i, phantom_location + i), sublime.LAYOUT_INLINE)
-
-	def add(self, panels: List[TabbedPanelItem]):
-		self.panels.extend(panels)
-		self.layout()
-
-	def modified(self, panel: TabbedPanelItem):
-		column = panel.column
-		row = panel.row
-		if row >= 0 and column >= 0:
-			self.pages[column].modified(row)
-
-	def remove(self, id: int):
-		for item in self.panels:
-			if item.id == id:
-				self.panels.remove(item)
-				self.layout()
-				return
-
-	def show(self, id: int):
-		for panel in self.panels:
-			if panel.id == id:
-				column = panel.column
-				row = panel.row
-				self.pages[column].show(row)
-
-	def layout(self):
-		items = [] #type: Any
-		for i in range(0, self.columns):
-			items.append([])
-
-		for panel in self.panels:
-			panel.column = panel.index % self.columns
-			panel.row = len(items[panel.column])
-			items[panel.column].append(panel)
-
-		for i in range(0, self.columns):
-			self.pages[i].update(items[i])

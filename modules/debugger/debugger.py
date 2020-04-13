@@ -52,10 +52,10 @@ from .views.modules import ModulesView
 from .views.sources import SourcesView
 from .views.callstack import CallStackView
 
-from .views.debugger_panel import DebuggerPanel, STOPPED, PAUSED, RUNNING, LOADING
+from .views.debugger_panel import DebuggerPanel
 from .views.breakpoints_panel import BreakpointsPanel
 from .views.variables_panel import VariablesPanel
-from .views.tabbed_panel import Panels, TabbedPanel, TabbedPanelItem
+from .views.tabbed_panel import TabbedPanel, TabbedPanelItem
 from .views.selected_line import SelectedLine
 from .debugger_log_output_panel import DebuggerLogOutputPanel
 
@@ -133,39 +133,6 @@ class Debugger:
 
 		autocomplete = Autocomplete.create_for_window(window)
 
-		def on_state_changed(session, state: int) -> None:
-			if state == DebuggerSession.stopped:
-				if session.stopped_reason == DebuggerSession.stopped_reason_build_failed:
-					... # leave build results open	
-				else:
-					self.show_console_panel()
-
-			elif state == DebuggerSession.running:
-				...
-			elif state == DebuggerSession.paused:
-
-				if self.project.bring_window_to_front_on_pause:
-					# is there a better way to bring sublime to the front??
-					# this probably doesn't work for most people. subl needs to be in PATH
-					# ignore any errors
-					try:
-						subprocess.call(["subl"])
-					except Exception:
-						pass
-
-				self.show_call_stack_panel()
-
-			elif state == DebuggerSession.stopping or state == DebuggerSession.starting:
-				...
-
-		def on_selected_frame(session, frame: Optional[dap.StackFrame]) -> None:
-			if frame and frame.source:
-				thread = session.selected_thread
-				assert thread
-				self.source_provider.select(frame.source, frame.line, thread.stopped_reason or "Stopped")
-			else:
-				self.source_provider.clear()
-
 		def on_output(session:DebuggerSession, event: dap.OutputEvent) -> None:
 			self.terminal.program_output(session, event)
 
@@ -174,34 +141,28 @@ class Debugger:
 
 			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0)
 			def on_modified():
-				self.panels.modified(panel)
+				... 
+				#self.middle_panel.modified(panel)
 
 			terminal.on_updated.add(on_modified)
 
-			self.panels.add([panel])
-			self.panels.show(id(terminal))
+			self.middle_panel.add(panel)
+			self.middle_panel.select(id(terminal))
 
 		def on_terminal_removed(terminal: Terminal):
-			self.panels.remove(id(terminal))
+			self.middle_panel.remove(id(terminal))
 
 		self.breakpoints = Breakpoints()
 		self.disposeables.append(self.breakpoints)
 		
 		self.sessions = DebuggerSessions()
 		self.sessions.transport_log = self.transport_log
-		self.sessions.updated.add(on_state_changed)
-		self.sessions.selected_frame.add(on_selected_frame)
 		self.sessions.output.add(on_output)
 
 		self.sessions.terminals.on_terminal_added.add(on_terminal_added)
 		self.sessions.terminals.on_terminal_removed.add(on_terminal_removed)
-
-
 		self.disposeables.append(self.sessions)
 
-		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
-		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
-		self.variables_panel = VariablesPanel(self.sessions)
 		self.terminal = TermianlDebugger(
 			on_run_command=self.on_run_command,
 		)
@@ -209,52 +170,133 @@ class Debugger:
 		self.source_provider = ViewSelectedSourceProvider(self.project, self.sessions)
 		self.view_hover_provider = ViewHoverProvider(self.project, self.sessions)
 		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.sessions, self.breakpoints)
+		self.disposeables.extend([self.view_hover_provider, self.source_provider, self.breakpoints_provider])
 
-
-		self.persistance = PersistedData(project_name)
+		self.persistance = PersistedData(self.project.name)
 		self.load_data()
 		on_project_configuration_updated()
 
+
+		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(self.project.name)))
+
+		def on_terminal_updated():
+			# self.panels.modified(terminal_panel_item)
+			...
+		self.terminal.on_updated.add(on_terminal_updated)
+
+		#left panels
+		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
+		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
+
+		# middle panels
+		self.middle_panel = TabbedPanel([], 0)
+
+		self.terminal_view = TerminalView(self.terminal, self.on_navigate_to_source)
+
+		self.callstack_view =  CallStackView(self.sessions)
+		self.middle_panel.update([
+			TabbedPanelItem(self.terminal_view, self.terminal_view, 'Debugger Console'),
+			TabbedPanelItem(self.callstack_view, self.callstack_view, 'Callstack'),
+		])
+
+		# right panels
+		self.right_panel = TabbedPanel([], 0)
+
+		self.variables_panel = VariablesPanel(self.sessions)
+		self.modules_panel = ModulesView(self.sessions)
+		self.sources_panel = SourcesView(self.sessions, self.source_provider.navigate)
+
+		self.right_panel.update([
+			TabbedPanelItem(self.variables_panel, self.variables_panel, 'Variables'),
+			TabbedPanelItem(self.modules_panel, self.modules_panel, 'Modules'),
+			TabbedPanelItem(self.sources_panel, self.sources_panel, 'Sources'),
+		])
+		self.update_modules_visibility()
+		self.update_sources_visibility()
+
+		# phantoms
 		phantom_location = self.project.panel_phantom_location()
 		phantom_view = self.project.panel_phantom_view()
 
-		terminal_component = TerminalView(self.terminal, self.on_navigate_to_source)
-		terminal_panel_item = TabbedPanelItem(id(self.terminal), terminal_component, self.terminal.name(), 0)
-		callstack_panel_item = TabbedPanelItem(id(self.sessions.threads), CallStackView(self.sessions), "Call Stack", 0)
+		self.left = ui.Phantom(self.debugger_panel, phantom_view, sublime.Region(phantom_location, phantom_location), sublime.LAYOUT_INLINE)
+		self.middle = ui.Phantom(self.middle_panel, phantom_view, sublime.Region(phantom_location + 0, phantom_location + 1), sublime.LAYOUT_INLINE)
+		self.right = ui.Phantom(self.right_panel, phantom_view, sublime.Region(phantom_location + 0, phantom_location + 2), sublime.LAYOUT_INLINE)
+		self.disposeables.extend([self.left, self.middle, self.right])
 
-		variables_panel_item = TabbedPanelItem(id(self.variables_panel), self.variables_panel, "Variables", 1)
-		modules_panel = TabbedPanelItem(id(self.sessions.modules), ModulesView(self.sessions), "Modules", 1)
-		sources_panel = TabbedPanelItem(id(self.sessions.sources), SourcesView(self.sessions, self.source_provider.navigate), "Sources", 1)
+		self.sessions.on_updated_modules.add(lambda s: self.update_modules_visibility())
+		self.sessions.on_updated_sources.add(lambda s: self.update_sources_visibility())
+		self.sessions.on_removed_session.add(self.on_session_removed)
+		self.sessions.updated.add(self.on_session_state_changed)
+		self.sessions.on_selected.add(self.on_session_selection_changed)
 
-		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(project_name)))
+	def on_session_removed(self, session: DebuggerSession):
+		self.update_sources_visibility()
+		self.update_modules_visibility()
 
-		self.disposeables.extend([
-			ui.Phantom(self.debugger_panel, phantom_view, sublime.Region(phantom_location, phantom_location), sublime.LAYOUT_INLINE),
-		])
-		self.panels = Panels(phantom_view, phantom_location + 1, 3)
-		self.panels.add([
-			terminal_panel_item,
-			callstack_panel_item,
-			variables_panel_item,
-			modules_panel,
-			sources_panel
-		])
-		def on_terminal_updated():
-			 self.panels.modified(terminal_panel_item)
-		self.terminal.on_updated.add(on_terminal_updated)
+	def on_session_selection_changed(self, session: DebuggerSession):
+		if not self.sessions.has_active:
+			self.source_provider.clear()
+			return
+		
+		active_session = self.sessions.active
+		thread = active_session.selected_thread
+		frame = active_session.selected_frame
 
-		self.disposeables.append(self.view_hover_provider)
-		self.disposeables.append(self.source_provider)
-		self.disposeables.append(self.breakpoints_provider)
+		if thread and frame and frame.source:
+				self.source_provider.select(frame.source, frame.line, thread.stopped_reason or "Stopped")
+		else:
+			self.source_provider.clear()
+
+	def on_session_state_changed(self, session: DebuggerSession, state):
+		if state == DebuggerSession.stopped:
+			if session.stopped_reason == DebuggerSession.stopped_reason_build_failed:
+				... # leave build results open	
+			else:
+				self.show_console_panel()
+
+		elif state == DebuggerSession.running:
+			...
+		elif state == DebuggerSession.paused:
+			if self.project.bring_window_to_front_on_pause:
+				# is there a better way to bring sublime to the front??
+				# this probably doesn't work for most people. subl needs to be in PATH
+				# ignore any errors
+				try:
+					subprocess.call(["subl"])
+				except Exception:
+					pass
+
+			self.show_call_stack_panel()
+
+		elif state == DebuggerSession.stopping or state == DebuggerSession.starting:
+			...
+
+	def update_sources_visibility(self):
+		has_sources = False
+		for session in self.sessions:
+			if session.sources:
+				has_sources = True
+				break
+
+		self.right_panel.set_visible(self.sources_panel, has_sources)
+
+	def update_modules_visibility(self):
+		has_modules = False
+		for session in self.sessions:
+			if session.modules:
+				has_modules = True
+				break
+
+		self.right_panel.set_visible(self.modules_panel, has_modules)
 
 	def show(self) -> None:
 		self.project.panel_show()
 
 	def show_console_panel(self) -> None:
-		self.panels.show(id(self.terminal))
+		self.middle_panel.select(self.terminal_view)
 
 	def show_call_stack_panel(self) -> None:
-		self.panels.show(id(self.sessions.threads))
+		self.middle_panel.select(self.callstack_view)
 
 	def changeConfiguration(self, configuration: Union[Configuration, ConfigurationCompound]):
 		self.configuration = configuration

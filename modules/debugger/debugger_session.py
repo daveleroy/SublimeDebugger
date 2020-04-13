@@ -40,9 +40,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	def __init__(
 		self,
 		breakpoints: Breakpoints,
-		threads: Threads,
 		watch: Watch,
-		variables: Variables,
 		terminals: Terminals,
 		on_state_changed: Callable[[int], None],
 		on_output: Callable[[dap.OutputEvent], None],
