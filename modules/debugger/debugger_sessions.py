@@ -13,18 +13,13 @@ from .breakpoints import Breakpoints
 
 class DebuggerSessions:
 	def __init__(self):
-		self.threads = object()
-		self.sources = object()
-		self.modules = object()
 		self.watch = Watch()
-		self.variables = Variables()
 		self.terminals = Terminals()
 
 		self.sessions: List[DebuggerSession] = []
 		self.updated = core.Event()
 
 		self.output = core.Event()
-		self.selected_frame = core.Event()
 		self.transport_log = core.StdioLogger()
 
 		self.on_updated_modules: core.Event[DebuggerSession] = core.Event()
@@ -33,6 +28,7 @@ class DebuggerSessions:
 		self.on_updated_threads: core.Event[DebuggerSession] = core.Event()
 		self.on_added_session: core.Event[DebuggerSession] = core.Event()
 		self.on_removed_session: core.Event[DebuggerSession] = core.Event()
+		self.on_selected: core.Event[DebuggerSession] = core.Event()
 
 		self.selected_session = None
 
@@ -48,14 +44,11 @@ class DebuggerSessions:
 		def on_selected_frame(session, value):
 			self.selected_session = session
 			self.updated(session, session.state)
-
-			self.selected_frame(session, value)
+			self.on_selected(session)
 
 		session = DebuggerSession(
 			breakpoints=breakpoints,
-			threads=self.threads,
 			watch=self.watch,
-			variables=self.variables,
 			terminals=self.terminals,
 			on_state_changed=on_state_changed,
 			on_output=on_output,
@@ -86,7 +79,7 @@ class DebuggerSessions:
 		
 		if self.selected_session == session:
 			self.selected_session = None
-			self.selected_frame(session, None)
+			self.on_selected(session)
 
 		self.updated(session, 0)
 
