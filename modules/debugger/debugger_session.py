@@ -159,7 +159,10 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			await self.stop_forced(reason=DebuggerSession.stopped_reason_build_failed)
 			return
 
-		transport = await adapter_configuration.start(log=self)
+		try:
+			transport = await adapter_configuration.start(log=self)
+		except Exception as e:
+			raise core.Error(f"Unable to start the adapter process: {e}")
 
 		adapter = dap.Client(
 			transport,
@@ -176,18 +179,18 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		async def Initialized() -> None:
 			try:
 				await adapter.Initialized()
-			except Exception as e:
+			except core.Error as e:
 				self.error("there was waiting for initialized from debugger {}".format(e))
 
 			try:
 				await self.add_breakpoints()
-			except Exception as e:
+			except core.Error as e:
 				self.error("there was an error adding breakpoints {}".format(e))
 
 			try:
 				if self.capabilities.supportsConfigurationDoneRequest:
 					await adapter.ConfigurationDone()
-			except Exception as e:
+			except core.Error as e:
 				self.error("there was an error in configuration done {}".format(e))
 		core.run(Initialized())
 
@@ -521,7 +524,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if t:
 			return t
 		else:
-			t = Thread(id, "??", self, self.all_threads_stopped)
+			t = Thread(self, id, "??", self.all_threads_stopped)
 			self.threads_for_id[id] = t
 			return t
 
@@ -613,9 +616,9 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.on_updated_threads()
 
 class Thread:
-	def __init__(self, id: int, name: str, session: DebuggerSession, stopped: bool):
-		self.id = id
+	def __init__(self, session: DebuggerSession, id: int, name: str, stopped: bool):
 		self.session = session
+		self.id = id
 		self.name = name
 		self.stopped = stopped
 		self.stopped_reason = ""
