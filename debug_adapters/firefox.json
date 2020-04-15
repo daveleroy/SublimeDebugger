@@ -1,7 +1,7 @@
 {
 	"command": [
 		"node",
-		"${package}/data/debug_adapters/vscode-firefox-debug/extension/out/adapter/firefoxDebugAdapter.js"
+		"${package}/data/debug_adapters/vscode-firefox-debug/extension/dist/adapter.bundle.js"
 	],
 	"dependencies": ["node"],
 	"install": {
