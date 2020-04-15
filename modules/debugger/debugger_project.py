@@ -14,7 +14,25 @@ _panel_position = 7
 class DebuggerProject(core.disposables):
 	def __init__(self, window: sublime.Window):
 		super().__init__()
+		
+		# ensure we are being run inside a sublime project
+		# if not prompt the user to create one
+		while True:
+			data = window.project_data()
+			project_name = window.project_file_name()
+			while not project_name:
+				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
+				if r:
+					window.run_command('save_project_and_workspace_as')
+				else:
+					raise core.Error("Debugger must be run inside a sublime project")
 
+			# ensure we have debug configurations added to the project file
+			data.setdefault('settings', {}).setdefault('debug.configurations', [])
+			window.set_project_data(data)
+			break
+
+		self.name = project_name
 		self.window = window
 		self.on_updated: core.Event[None] = core.Event()
 
@@ -50,6 +68,13 @@ class DebuggerProject(core.disposables):
 			self.panel.set_viewport_position((_panel_position, 0), animate=False)
 		core.run(later())
 		self.reload()
+
+	@core.schedule
+	async def open_project_configurations_file(self):
+		view = await core.sublime_open_file_async(self.window, self.name)
+		region = view.find('''"\s*debug.configurations''', 0)
+		if region:
+			view.show_at_center(region)
 
 	def reload(self):
 		core.log_info("ProjectConfiguration.reload")

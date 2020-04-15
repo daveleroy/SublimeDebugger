@@ -94,27 +94,7 @@ class Debugger:
 			instance.show()
 		return instance
 
-	def refresh_phantoms(self) -> None:
-		ui.reload()
-
 	def __init__(self, window: sublime.Window) -> None:
-
-		# ensure we are being run inside a sublime project
-		# if not prompt the user to create one
-		while True:
-			data = window.project_data()
-			project_name = window.project_file_name()
-			while not data or not project_name:
-				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
-				if r:
-					window.run_command('save_project_and_workspace_as')
-				else:
-					raise core.Error("Debugger must be run inside a sublime project")
-
-			# ensure we have debug configurations added to the project file
-			data.setdefault('settings', {}).setdefault('debug.configurations', [])
-			window.set_project_data(data)
-			break
 
 		self.window = window
 		self.disposeables = [] #type: List[Any]
@@ -369,11 +349,8 @@ class Debugger:
 					await self.sessions.launch(self.breakpoints, adapter_configuration, configuration_expanded, no_debug=no_debug)
 				except core.Error as e:
 					if sublime.ok_cancel_dialog("Error Launching Configuration\n\n{}".format(str(e)), 'Open Project'):
-						project_name = self.window.project_file_name()
-						view = await core.sublime_open_file_async(self.window, project_name)
-						region = view.find('''"\s*debug.configurations''', 0)
-						if region:
-							view.show_at_center(region)
+						self.project.open_project_configurations_file()
+
 			launch()
 
 	def is_paused(self):
@@ -499,3 +476,6 @@ class Debugger:
 
 	def info(self, value: str):
 		self.terminal.log_info(value)
+
+	def refresh_phantoms(self) -> None:
+		ui.reload()
