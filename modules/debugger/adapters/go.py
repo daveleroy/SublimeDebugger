@@ -7,6 +7,8 @@ class Go(adapter.Adapter):
 		return "go"
 
 	async def start(self, log):
+		adapter.warn_require_node(log)
+
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
 			f'node',
