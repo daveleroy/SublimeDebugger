@@ -38,6 +38,7 @@ on_view_modified: Event[sublime.View] = Event()
 on_view_load: Event[sublime.View] = Event()
 on_view_hovered: Event[Tuple[sublime.View, int, int]] = Event()
 on_view_activated: Event[sublime.View] = Event()
+on_view_gutter_clicked: Event[Tuple[sublime.View, int, int]] = Event() # view, line, button
 
 on_load_project: Event[sublime.Window] = Event()
 on_new_window: Event[sublime.Window] = Event()
@@ -48,10 +49,40 @@ class DebuggerAsyncTextCommand(sublime_plugin.TextCommand):
 	_run = None
 
 	def run(self, edit: sublime.Edit):
-		DebuggerAsyncTextCommand._run(edit)
-		DebuggerAsyncTextCommand._run = None
+		try:
+			DebuggerAsyncTextCommand._run(edit)
+			DebuggerAsyncTextCommand._run = None
+		except Exception as e:
+			DebuggerAsyncTextCommand._run = None
+			raise e
 
 class DebuggerEventsListener(sublime_plugin.EventListener):
+
+	# detects clicks on the gutter
+	# if a click is detected we then reselect the previous selection
+	# This means that a click in the gutter no longer selects that line (at least when a debugger is open)
+	def on_text_command(self, view: sublime.View, cmd: str, args: dict) -> Any:
+		# why bother doing this work if no one wants it
+		if not on_view_gutter_clicked:
+			return
+
+		if (cmd == 'drag_select' or cmd == 'context_menu') and 'event' in args:
+			event = args['event']
+
+			view_x, view_y = view.layout_to_window(view.viewport_position()) #type: ignore
+
+			x = event['x']
+			y = event['y']
+
+			margin = view.settings().get("margin") or 0
+			offset = x - view_x
+
+			if offset < -30 - margin:
+				pt = view.window_to_text((x, y))
+				line = view.rowcol(pt)[0]
+				on_view_gutter_clicked((view, line, event['button']))
+				return ("null", {})
+	
 	def on_hover(self, view: sublime.View, point: int, hover_zone: int) -> None:
 		on_view_hovered((view, point, hover_zone))
 

@@ -152,8 +152,8 @@ class SourceBreakpoints:
 		self.on_send = core.Event() #type: core.Event[SourceBreakpoint]
 
 		self.disposeables = [
-			ui.view_activated.add(self.on_view_activated),
-			ui.view_modified.add(self.view_modified)
+			core.on_view_activated.add(self.on_view_activated),
+			core.on_view_modified.add(self.view_modified)
 		] #type: List[Any]
 
 		self.sync_dirty_scheduled = False
