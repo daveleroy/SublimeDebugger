@@ -6,7 +6,9 @@ class Python(adapter.Adapter):
 	@property
 	def type(self): return 'python'
 
-	async def start(self, log):
+	async def start(self, log):		
+		adapter.warn_require_node_less_than_or_equal(log, 'v12.5.0')
+
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
 			f'node',

@@ -31,7 +31,6 @@ class Process(subprocess.Popen):
 		self.closed = False
 
 	def dispose(self):
-		print("dispose")
 		self.closed = True
 		try:
 			self.terminate()
