@@ -12,8 +12,8 @@ from .modules.debugger.view_selected_source import DebuggerReplaceContentsComman
 from .modules.debugger.terminals.terminal_build import DebuggerExecCommand
 
 from .modules.ui.input import DebuggerInputCommand
-from .modules.ui.events import ViewEventsListener
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
+
 # try:
 # 	dir_path = os.path.dirname(os.path.realpath(__file__))
 # 	sys.path.insert(0, os.path.join(dir_path, "modules/libs"))

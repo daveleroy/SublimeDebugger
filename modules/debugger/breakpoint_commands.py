@@ -16,22 +16,22 @@ class BreakpointCommandsProvider(core.Disposables):
 		self.debugger = debugger
 		self.project = project
 
-		self += ui.view_gutter_clicked.add(self.view_gutter_clicked)
+		self += core.on_view_gutter_clicked.add(self.view_gutter_clicked)
 		#self += self.debugger.state_changed.add(self.on_debugger_state_change)
 
-	def view_gutter_clicked(self, event: ui.GutterEvent):
-		file = self.project.source_file(event.view)
+	def view_gutter_clicked(self, event: Tuple[sublime.View, int, int]):
+		(view, line, button) = event
+
+		file = self.project.source_file(view)
 		if not file:
 			return
-		line = event.line + 1
 
-		if event.button == 1:
-			self.toggle_file_line(file, line)
+		if button == 1:
+			self.toggle_file_line(file, line + 1)
 			return
 
-		if event.button == 2:
-			line = event.line + 1
-			self.edit_breakpoints_at_line(file, line)
+		if button == 2:
+			self.edit_breakpoints_at_line(file, line + 1)
 			return
 
 	def clear_run_to_line(self):

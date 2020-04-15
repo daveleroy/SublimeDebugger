@@ -36,6 +36,9 @@ class Event (Generic[T]):
 	def __call__(self, *data: T) -> None:
 		self.post(*data)
 
+	def __bool__(self) -> bool:
+		return bool(self.handlers)
+
 	def post(self, *data: T) -> None:
 		for h in self.handlers:
 			h.callback(*data)
