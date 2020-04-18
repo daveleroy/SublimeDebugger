@@ -8,13 +8,25 @@ from .terminal import Terminal
 class TerminalCommand(Terminal):
 	def __init__(self, arguments: dict):
 		arguments = arguments.copy()
-		name = arguments.get('name', arguments['cmd'])
+		name = arguments.get('name')
+		cmd = arguments.get('cmd')
+
+		if (not name and isinstance(cmd, str)):
+			name = cmd
+		if (not name and isinstance(cmd, list)):
+			name = cmd and cmd[0]
+		if (not name):
+			name = "Untitled"
+		
 		self.background = arguments.get('background', False)
 		super().__init__(name)
+
+		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
 		if 'name' in arguments:
 			del arguments['name']
 		if 'background' in arguments:
 			del arguments['background']
+
 		self.exec = DebuggerExec(sublime.active_window(), self.write_stdout, arguments)
 
 	def write_stdout(self, text: str):
