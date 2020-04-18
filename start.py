@@ -1,4 +1,8 @@
 import sys
+import sublime
+
+if sublime.version() < '4000':
+	raise Error('This version of Debugger requires st4')
 
 module_starts_with = __package__ + '.'
 
