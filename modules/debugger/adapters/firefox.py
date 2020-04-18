@@ -12,7 +12,7 @@ class Firefox(adapter.Adapter):
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
 			f'node',
-			f'{install_path}/extension/out/adapter/firefoxDebugAdapter.js'
+			f'{install_path}/extension/dist/adapter.bundle.js'
 		]
 		return adapter.StdioTransport(log, command)
 
