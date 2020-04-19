@@ -7,11 +7,10 @@ class GDB(adapter.Adapter):
 		return "gdb"
 
 	async def start(self, log):
-		adapter.warn_require_node(log)
-
+		node = adapter.get_and_warn_require_node(self.type, log)
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
-			f'node',
+			node,
 			f'{install_path}/extension/out/src/gdb.js'
 		]
 		return adapter.StdioTransport(log, command)

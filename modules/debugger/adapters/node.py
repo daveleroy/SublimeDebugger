@@ -10,11 +10,10 @@ class Node(adapter.Adapter):
 	def info(self): return adapter.vscode.info(self.type)
 
 	async def start(self, log):
-		adapter.warn_require_node(log)
-
+		node = adapter.get_and_warn_require_node(self.type, log)
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
-			f'node',
+			node,
 			f'{install_path}/extension/out/src/nodeDebug.js'
 		]
 		return adapter.StdioTransport(log, command)
