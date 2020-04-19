@@ -33,12 +33,14 @@ class Event (Generic[T]):
 	def add_handle(self, handle: Handle[T]) -> None:
 		self.handlers.append(handle)
 
-	def __call__(self, *data: T) -> None:
-		self.post(*data)
+	def __call__(self, *data: T) -> bool:
+		return self.post(*data)
 
 	def __bool__(self) -> bool:
 		return bool(self.handlers)
 
-	def post(self, *data: T) -> None:
+	def post(self, *data: T) -> bool:
+		r = False
 		for h in self.handlers:
-			h.callback(*data)
+			r = r or h.callback(*data)
+		return r

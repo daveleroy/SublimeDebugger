@@ -80,8 +80,11 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 			if offset < -30 - margin:
 				pt = view.window_to_text((x, y))
 				line = view.rowcol(pt)[0]
-				on_view_gutter_clicked((view, line, event['button']))
-				return ("null", {})
+
+				# only rewrite this command if someone actually consumed it
+				# otherwise let sublime do its thing
+				if on_view_gutter_clicked((view, line, event['button'])):
+					return ("null", {})
 	
 	def on_hover(self, view: sublime.View, point: int, hover_zone: int) -> None:
 		on_view_hovered((view, point, hover_zone))

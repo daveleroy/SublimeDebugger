@@ -28,11 +28,11 @@ class BreakpointCommandsProvider(core.Disposables):
 
 		if button == 1:
 			self.toggle_file_line(file, line + 1)
-			return
+			return True
 
 		if button == 2:
 			self.edit_breakpoints_at_line(file, line + 1)
-			return
+			return True
 
 	def clear_run_to_line(self):
 		if self.run_to_line_breakpoint:
