@@ -5,6 +5,8 @@ from ..import core
 import sublime
 import sublime_plugin
 
+core.on_view_drag_select_or_context_menu.add(lambda v: CommandPaletteInputCommand.on_view_drag_select_or_context_menu())
+
 class CommandPaletteInputCommand:
 	running_command = None #type: Optional[CommandPaletteInputCommand]
 
@@ -25,19 +27,22 @@ class CommandPaletteInputCommand:
 		})
 
 		self.hide_overlay()
-
 		CommandPaletteInputCommand.running_command = self
-
 		self.window.run_command("show_overlay", {
 			"overlay": "command_palette",
 			"command": "debugger_input",
 		})
+		CommandPaletteInputCommand.running_command = self
 
 	def hide_overlay(self):
 		self.window.run_command("hide_overlay", {
 			"overlay": "command_palette",
 		})
 
+	@staticmethod
+	def on_view_drag_select_or_context_menu():
+		if CommandPaletteInputCommand.running_command:
+			CommandPaletteInputCommand.running_command.hide_overlay()
 
 class DebuggerInputCommand(sublime_plugin.WindowCommand):
 	def __init__(self, window):
