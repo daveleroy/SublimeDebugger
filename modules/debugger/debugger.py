@@ -229,8 +229,8 @@ class Debugger:
 
 	def on_session_state_changed(self, session: DebuggerSession, state):
 		if state == DebuggerSession.stopped:
-			if session.stopped_reason == DebuggerSession.stopped_reason_build_failed:
-				... # leave build results open	
+			if self.sessions or session.stopped_reason == DebuggerSession.stopped_reason_build_failed:
+				... # leave build results open or there is still a running session
 			else:
 				self.show_console_panel()
 

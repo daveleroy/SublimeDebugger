@@ -40,9 +40,13 @@ class CallStackView (ui.div):
 
 	def added(self, layout: ui.Layout):
 		self.on_updated = self.sessions.on_updated_threads.add(self.on_threads_updated)
+		self.on_added_session = self.sessions.on_added_session.add(self.on_threads_updated)
+		self.on_removed_session = self.sessions.on_removed_session.add(self.on_threads_updated)
 
 	def removed(self):
 		self.on_updated.dispose()
+		self.on_added_session.dispose()
+		self.on_removed_session.dispose()
 
 	def on_threads_updated(self, session: DebuggerSession):
 		self.dirty()

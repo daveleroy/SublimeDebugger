@@ -32,6 +32,9 @@ class DebuggerSessions:
 
 		self.selected_session = None
 
+	def __len__(self):
+		return len(self.sessions)
+
 	def __iter__(self):
 		return iter(self.sessions)
 	
