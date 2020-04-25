@@ -96,9 +96,7 @@ class DebuggerProject(core.disposables):
 		self.bring_window_to_front_on_pause = get_setting(self.window.active_view(), 'bring_window_to_front_on_pause', self.bring_window_to_front_on_pause)
 
 	def load_configurations(self):
-		data = self.window.project_data()
-		if not data:
-			raise core.Error('No project data?')
+		data = self.window.project_data() or {}
 
 		configurations = []
 		configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
