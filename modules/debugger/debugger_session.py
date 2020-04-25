@@ -134,7 +134,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			core.log_exception(e)
 			self.error("... an error occured, " + str(e))
 			await self.stop_forced(reason=DebuggerSession.stopped_reason_launch_error)
-			raise e
+
 		except core.CancelledError:
 			self.launching_async = None
 			self.info("... launch aborted")
@@ -431,6 +431,9 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 	async def stack_trace(self, thread_id: str) -> List[dap.StackFrame]:
 		return await self.client.StackTrace(thread_id)
+
+	async def completions(self, text: str, column: int) -> List[dap.StackFrame]:
+		return await self.client.Completions(text, column, self.selected_frame)
 
 	def log_output(self, string: str) -> None:
 		output = dap.OutputEvent("debugger.output", string + '\n', 0)
