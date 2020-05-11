@@ -3,6 +3,10 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.2.4
+- Fixes rendering issue with variable values
+- Adds missing mdpopups dependency 
+
 Whats new in version 0.2.3
 - Updates path for lldb
 
