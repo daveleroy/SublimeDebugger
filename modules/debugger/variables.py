@@ -220,7 +220,7 @@ class VariableComponent (ui.div):
 
 		value_item = ui.click(self.on_edit)[
 			ui.text(name, css=css.label_secondary_padding),
-			ui.code(value) if self.syntax_highlight else ui.text(value),
+			ui.code(value) if self.syntax_highlight else ui.text(value, css=css.label),
 		]
 
 		if not self.variable.has_children:
