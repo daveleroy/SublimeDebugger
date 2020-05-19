@@ -37,14 +37,14 @@ def log_info(*args) -> None:
 
 class Logger(Protocol):
 	def error(self, value: str):
-		...
+		self.log('error', value)
 	def info(self, value: str):
+		self.log('info', value)
+	def log(self, type: str, value: str):
 		...
 
-class StdioLogger:
-	def error(self, value: str):
-		print('error:', value)
-	def info(self, value: str):
-		print('info:', value)
+class StdioLogger(Logger):
+	def log(self, type: str, value: str):
+		print(f'Debugger: {type}: {value}')
 
 stdio = StdioLogger()

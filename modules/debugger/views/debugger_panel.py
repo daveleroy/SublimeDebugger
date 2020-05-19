@@ -47,11 +47,24 @@ class DebuggerPanel(ui.div):
 				DebuggerCommandButton(self.debugger.on_step_in, ui.Images.shared.right_disable),
 			])
 
+		# looks like
+		# current status
+		# breakpoints ...
+
+		panel_items = []
+		if self.debugger.sessions.has_active:
+			status = self.debugger.sessions.active.status
+			if status:
+				panel_items.append(ui.div(height=css.row_height)[
+					ui.text(status, css=css.label_secondary)
+				])
+		panel_items.append(self.breakpoints)
+
 		return [
 			ui.div()[
 				ui.div(height=css.header_height)[items],
 				ui.div(width=30, height=100, css=css.rounded_panel)[
-					self.breakpoints,
+					panel_items
 				],
 			]
 		]

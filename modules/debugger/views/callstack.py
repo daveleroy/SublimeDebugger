@@ -40,6 +40,7 @@ class CallStackView (ui.div):
 
 	def added(self, layout: ui.Layout):
 		self.on_updated = self.sessions.on_updated_threads.add(self.on_threads_updated)
+		self.on_selected = self.sessions.on_selected.add(self.on_threads_updated)
 		self.on_added_session = self.sessions.on_added_session.add(self.on_threads_updated)
 		self.on_removed_session = self.sessions.on_removed_session.add(self.on_threads_updated)
 
@@ -51,6 +52,8 @@ class CallStackView (ui.div):
 	def on_threads_updated(self, session: DebuggerSession):
 		self.dirty()
 
+	def selected_session(self, session: DebuggerSession):
+		self.sessions.active = session
 
 	def render(self) -> ui.div.Children:
 		thread_views = []
@@ -61,9 +64,17 @@ class CallStackView (ui.div):
 			show_thread_name = len(threads) > 1
 
 			if show_session_name:
+				if session == self.sessions.active:
+					session_css_label = css.label
+				else:
+					session_css_label = css.label_secondary
+
 				thread_views.append(ui.div(height=css.row_height)[
-					ui.text(session.name, css=css.label_secondary)
+					ui.click(lambda session=session: self.selected_session(session)) [
+						ui.text(session.name, css=session_css_label)
+					]
 				])
+
 			for thread in threads:
 				is_selected = session == self.sessions.selected_session and session.selected_thread == thread
 				if is_selected:

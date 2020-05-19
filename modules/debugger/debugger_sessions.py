@@ -37,7 +37,7 @@ class DebuggerSessions:
 
 	def __iter__(self):
 		return iter(self.sessions)
-	
+
 	async def launch(self, breakpoints: Breakpoints, adapter: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False):
 
 		def on_state_changed(session, value):
@@ -100,6 +100,12 @@ class DebuggerSessions:
 
 		raise core.Error("No active debug sessions")
 	
+	@active.setter
+	def active(self, session: DebuggerSession):
+		self.selected_session = session
+		self.updated(session, session.state)
+		self.on_selected(session)
+
 	def dispose(self):
 		for session in self.sessions:
 			session.dispose()

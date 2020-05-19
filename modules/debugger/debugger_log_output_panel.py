@@ -14,7 +14,7 @@ def clear(view):
 class DebuggerLogOutputPanel(core.Logger):
 	def __init__(self, window: sublime.Window):
 		self.window = window
-		self.panel = window.create_output_panel('Debugger: Log')
+		self.panel = window.create_output_panel('Debugger Log')
 		self.panel.assign_syntax('Packages/Debugger/Commands/LogPanel.sublime-syntax')
 		settings = self.panel.settings()
 		settings.set('word_wrap', False)
@@ -29,4 +29,4 @@ class DebuggerLogOutputPanel(core.Logger):
 		clear(self.panel)
 
 	def dispose(self):
-		self.window.destroy_output_panel('Debugger: Log')
+		self.window.destroy_output_panel('Debugger Log')

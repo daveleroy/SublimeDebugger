@@ -37,6 +37,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	stopped_reason_terminated_event=4
 	stopped_reason_manual=5
 
+
 	def __init__(
 		self,
 		breakpoints: Breakpoints,
@@ -74,6 +75,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.stop_requested = False
 		self.launch_request = True
 		self._state = DebuggerSession.stopped
+		self._status = None
 
 		self.disposeables = [] #type: List[Any]
 
@@ -124,6 +126,14 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.on_state_changed(self, state)
 		self.state_changed()
 
+	@property
+	def status(self) -> Optional[str]:
+		return self._status
+
+	def _change_status(self, status: str):
+		self._status = status
+		self.on_state_changed(self, self._state)
+
 	async def launch(self, adapter_configuration: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False) -> None:
 		self.dispose_terminals()
 		try:
@@ -160,6 +170,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			await self.stop_forced(reason=DebuggerSession.stopped_reason_build_failed)
 			return
 
+		self._change_status("Starting")
 		try:
 			transport = await adapter_configuration.start(log=self)
 		except Exception as e:
@@ -171,8 +182,6 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			self.transport_log
 		)
 		self.adapter = adapter
-
-		self.info("starting debugger... ")
 
 		# this is a bit of a weird case. Initialized will happen at some point in time
 		# it depends on when the debug adapter chooses it is ready for configuration information
@@ -195,6 +204,8 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 				self.error("there was an error in configuration done {}".format(e))
 		core.run(Initialized())
 
+		
+
 		self.capabilities = await adapter.Initialize()
 		# remove/add any exception breakpoint filters
 		self.breakpoints.filters.update(self.capabilities.exceptionBreakpointFilters or [])
@@ -213,22 +224,22 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.refresh_threads()
 
 		# At this point we are running?
+		self._change_status("Running")
 		self.state = DebuggerSession.running
 
 	async def wait(self) -> None:
 		await self.complete
 
 	async def run_pre_debug_task(self) -> bool:
-		pre_debug_command = self.configuration.all.get('pre_debug_command')
+		pre_debug_command = self.configuration.get('pre_debug_command')
 		if pre_debug_command:
-			self.info('running pre debug command...')
+			self._change_status("Running pre debug command")
 			return await self.run_task(pre_debug_command)
 		return True
 
 	async def run_post_debug_task(self) -> bool:
-		post_debug_command = self.configuration.all.get('post_debug_command')
+		post_debug_command = self.configuration.get('post_debug_command')
 		if post_debug_command:
-			self.info('running post debug command...')
 			return await self.run_task(post_debug_command)
 		return True
 
@@ -238,19 +249,20 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			if not terminal.background:
 				self.terminals.add(self, terminal)
 			await terminal.wait()
-			self.info('... finished')
 			return True
 		except Exception as e:
 			core.log_exception()
-			self.error(f'... failed: {e}')
+			self.error(f'Failed running command: {e}')
 			return False
 
 	def _refresh_state(self) -> None:
 		try:
 			thread = self.command_thread
 			if thread.stopped:
+				self._change_status("Paused")
 				self.state = DebuggerSession.paused
 			else:
+				self._change_status("Running")
 				self.state = DebuggerSession.running
 
 		except core.Error as e:
@@ -440,12 +452,16 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		output = dap.OutputEvent("debugger.output", string + '\n', 0)
 		self.on_output(self, output)
 
-	def info(self, string: str) -> None:
-		output = dap.OutputEvent("debugger.info", string + '\n', 0)
-		self.on_output(self, output)
+	def log(self, type: str, value: str) -> None:
+		if type == "process":
+			self.transport_log.info(f'⟹ process/stderr :: {value.strip()}')
+			return
+		if type == "error":
+			output = dap.OutputEvent("debugger.error", value + '\n', 0)
+			self.on_output(self, output)
+			return
 
-	def error(self, string: str) -> None:
-		output = dap.OutputEvent("debugger.error", string + '\n', 0)
+		output = dap.OutputEvent("debugger.info", value + '\n', 0)
 		self.on_output(self, output)
 
 	def load_frame(self, frame: Optional[dap.StackFrame]):
