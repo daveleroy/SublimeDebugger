@@ -1,6 +1,10 @@
 from ...typecheck import *
 from ..import adapter
 
+from ..util import get_debugger_setting
+
+import shutil
+
 class Go(adapter.Adapter):
 	@property
 	def type(self): 
@@ -18,6 +22,15 @@ class Go(adapter.Adapter):
 	async def install(self, log):
 		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage'
 		await adapter.vscode.install(self.type, url, log)
+
+	# Patch in dlvToolPath to point to dlv if present in settings or path
+	# TODO: Implement more of the functionality in
+	# https://github.com/microsoft/vscode-go/blob/master/src/goDebugConfiguration.ts
+	def configuration_resolve(self, configuration):
+		if not 'dlvToolPath' in configuration:
+			configuration['dlvToolPath'] = get_debugger_setting('go.dlv') or shutil.which('dlv')
+
+		return configuration
 
 	@property
 	def installed_version(self) -> Optional[str]: 

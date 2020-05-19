@@ -146,6 +146,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		if self.state != DebuggerSession.stopped:
 			await self.stop()
 			return
+		configuration = adapter_configuration.configuration_resolve(configuration)
 
 		assert self.state == DebuggerSession.stopped, "debugger not in stopped state?"
 		self.state = DebuggerSession.starting
@@ -200,10 +201,10 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 		if configuration.request == 'launch':
 			self.launch_request = True
-			await adapter.Launch(configuration.all, restart, no_debug)
+			await adapter.Launch(configuration, restart, no_debug)
 		elif configuration.request == 'attach':
 			self.launch_request = False
-			await adapter.Attach(configuration.all, restart, no_debug)
+			await adapter.Attach(configuration, restart, no_debug)
 		else:
 			raise core.Error('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
 

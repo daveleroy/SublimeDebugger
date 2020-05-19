@@ -2,6 +2,8 @@ from ...typecheck import *
 from ...import core
 from ...import ui
 
+from .configuration import ConfigurationExpanded
+
 import sublime
 import json
 
@@ -18,6 +20,9 @@ class Adapter (Protocol):
 
 	@property
 	def configuration_shema(self) -> Optional[dict]: ...
+
+	def configuration_resolve(self, configuration: ConfigurationExpanded) -> ConfigurationExpanded:
+		return configuration
 
 	@property
 	def is_installed(self) -> bool: ...

@@ -3,6 +3,8 @@ from ...import core
 import sublime
 
 def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dict:
+	json = json.copy()
+
 	platform = None #type: Optional[dict]
 	if core.platform.osx:
 		platform = json.get('osx')
@@ -12,7 +14,6 @@ def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dic
 		platform = json.get('windows')
 
 	if platform:
-		json = json.copy()
 		for key, value in platform.items():
 			json[key] = value
 
@@ -22,13 +23,14 @@ def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dic
 	return json
 
 
-class Configuration:
+class Configuration(dict):
 	def __init__(self, name: str, index: int, type: str, request: str, all: dict) -> None:
+		super().__init__(all)
+
 		self.name = name
 		self.id_ish = f'configuration_{name}_{index}'
 		self.type = type
 		self.request = request
-		self.all = all
 
 	@staticmethod
 	def from_json(json: dict, index: int) -> 'Configuration':
@@ -42,7 +44,7 @@ class Configuration:
 
 class ConfigurationExpanded(Configuration):
 	def __init__(self, configuration: Configuration, variables: Any) -> None:
-		all = _expand_variables_and_platform(configuration.all, variables)
+		all = _expand_variables_and_platform(configuration, variables)
 		super().__init__(configuration.name, -1, configuration.type, configuration.request, all)
 		self.verify()
 

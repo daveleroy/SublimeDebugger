@@ -33,6 +33,8 @@
 	"log_exceptions": true,
 	"log_errors": true,
 
+	// sets a specific path for dlv if not set go will use whatever is in your path
+	"go.dlv": null,
 
 	// sets a specific path for node if not set adapters that require node to run will use whatever is in your path
 	"node": null,
