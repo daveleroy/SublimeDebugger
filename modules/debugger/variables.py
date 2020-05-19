@@ -120,9 +120,7 @@ class VariableComponent (ui.div):
 		self.item_right = item_right or ui.span()
 		self.variable_children = [] #type: List[Variable]
 
-	def on_edit(self) -> None:
-		core.run(self.edit_variable())
-
+	@core.schedule
 	async def edit_variable(self) -> None:
 		if not isinstance(self.variable.reference, dap.Variable):
 			raise core.Error("Not able to set value of this item")
@@ -223,9 +221,9 @@ class VariableComponent (ui.div):
 		name = v.name
 		value = v.value
 
-		value_item = ui.click(self.on_edit)[
+		value_item = ui.click(self.edit_variable)[
 			ui.text(name, css=css.label_secondary_padding),
-			ui.code(value) if self.syntax_highlight else ui.text(value),
+			ui.code(value) if self.syntax_highlight else ui.text(value, css=css.label),
 		]
 
 		if not self.variable.has_children:
