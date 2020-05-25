@@ -190,7 +190,7 @@ class LineView (ui.div):
 
 			text = line_text[span_offset:span_offset + leftover_line_length]
 			span_offset += len(text)
-			spans.append(ui.click(lambda: self.click(text))[
+			spans.append(ui.click(lambda text=text: self.click(text))[
 				ui.text(text, css=self.css)
 			])
 			leftover_line_length -= len(text)
@@ -206,13 +206,9 @@ class LineView (ui.div):
 
 	@core.schedule
 	async def click(self, text: str):
-		def copy():
-			sublime.set_clipboard(text)
-
 		values = [
-			ui.InputListItem(copy, "Copy"),
+			ui.InputListItem(lambda: sublime.set_clipboard(text), "Copy"),
 		]
-
 		for match in url_matching_regex.findall(text):
 			values.insert(0, ui.InputListItem(lambda: webbrowser.open_new_tab(match[0]), "Open"))
 
@@ -220,6 +216,8 @@ class LineView (ui.div):
 			values[0].run()
 			self.clicked_menu.cancel()
 			return
+
+		values[0].text += "\t Click again to select"
 
 		self.clicked_menu = ui.InputList(values, text).run()
 		await self.clicked_menu
