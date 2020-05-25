@@ -1,6 +1,6 @@
 from ...typecheck import *
 from ...import core
-from ...libs import certifi
+
 import os
 import shutil
 import zipfile
@@ -11,6 +11,7 @@ import sublime
 from dataclasses import dataclass
 import ssl
 import pathlib
+import certifi
 
 _info_for_type = {} #type: Dict[str, Optional[AdapterInfo]]
 
