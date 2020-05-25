@@ -1,25 +1,11 @@
 {
 	"*": {
 		">=3124": [
-			"mdpopups",
-			"python-markdown",
-			"python-jinja2",
-			"markupsafe",
-			"pymdownx",
-			"pyyaml",
-
 			"ptyprocess"
 		]
 	},
 	"windows": {
 		">=3124": [
-			"mdpopups",
-			"python-markdown",
-			"python-jinja2",
-			"markupsafe",
-			"pymdownx",
-			"pyyaml",
-
 			"pywinpty"
 		]
 	}
