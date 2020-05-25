@@ -119,7 +119,9 @@ class VariableComponent (ui.div):
 		self.state = state
 		self.item_right = item_right or ui.span()
 		self.variable_children = [] #type: List[Variable]
-
+		if self.state.is_expanded(self.variable):
+			self.set_expanded()
+			
 	@core.schedule
 	async def edit_variable(self) -> None:
 		if not isinstance(self.variable.reference, dap.Variable):
@@ -197,19 +199,17 @@ class VariableComponent (ui.div):
 
 		ui.InputList(items, '{} {}'.format(variable.name, variable.value)).run()
 
-	def set_expanded(self) -> None:
-		async def fetch():
-			self.state.set_expanded(self.variable,True)
-			self.variable_children = await self.variable.children()
-			self.dirty()
-		core.run(fetch())
+	@core.schedule
+	async def set_expanded(self) -> None:
+		self.state.set_expanded(self.variable,True)
+		self.variable_children = await self.variable.children()
+		self.dirty()
 
-	def toggle_expand(self) -> None:
-		async def fetch():
-			self.state.set_expanded(self.variable, not self.state.is_expanded(self.variable))
-			self.variable_children = await self.variable.children()
-			self.dirty()
-		core.run(fetch())
+	@core.schedule
+	async def toggle_expand(self) -> None:
+		self.state.set_expanded(self.variable, not self.state.is_expanded(self.variable))
+		self.variable_children = await self.variable.children()
+		self.dirty()
 
 	def show_more(self) -> None:
 		count = self.state.number_expanded(self.variable)
@@ -218,8 +218,13 @@ class VariableComponent (ui.div):
 
 	def render(self) -> ui.div.Children:
 		v = self.variable
-		name = v.name
-		value = v.value
+		width = self.width(self.layout)
+		width -= css.label_secondary_padding.padding_width
+		width -= css.icon_sized_spacer.padding_width
+
+		name = v.name[0:int(width)]
+		width -= len(name)
+		value = v.value[0:int(width)]
 
 		value_item = ui.click(self.edit_variable)[
 			ui.text(name, css=css.label_secondary_padding),

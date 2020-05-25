@@ -276,7 +276,7 @@ class TerminalView (ui.div):
 		start = 0
 		from ..views.layout import console_panel_width
 
-		width = console_panel_width(self.layout) - css.panel_padding
+		width = self.width(self.layout)
 		max_line_length = int(width)
 		if count > max_height:
 			start = self.start_line

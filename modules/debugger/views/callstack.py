@@ -132,12 +132,11 @@ class ThreadView (ui.div):
 		self.session.set_selected(self.thread, frame)
 
 	def render(self) -> ui.div.Children:
-		width = callstack_panel_width(self.layout)
 		expandable = self.thread.has_children()
 		is_expanded = self.is_expanded
 
 		if expandable:
-			thread_item = ui.div(height=css.row_height, width=width)[
+			thread_item = ui.div(height=css.row_height)[
 				ui.click(self.toggle_expand)[
 					ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close),
 				],
@@ -150,7 +149,7 @@ class ThreadView (ui.div):
 				],
 			]
 		else:
-			thread_item = ui.div(height=css.row_height, width=width)[
+			thread_item = ui.div(height=css.row_height)[
 				ui.icon(ui.Images.shared.loading),
 				ui.click(self.on_select_thread)[
 					ui.span(height=1.0, css=css.button)[
@@ -171,7 +170,7 @@ class ThreadView (ui.div):
 			return [
 				thread_item,
 				ui.div()[
-					[StackFrameComponent(self.session, frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame), width=width) for frame in self.frames] #type: ignore
+					[StackFrameComponent(self.session, frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame)) for frame in self.frames] #type: ignore
 				]
 			]
 		else:
@@ -179,8 +178,8 @@ class ThreadView (ui.div):
 
 
 class StackFrameComponent (ui.div):
-	def __init__(self, session: DebuggerSession, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None], width: float) -> None:
-		super().__init__(width=width)
+	def __init__(self, session: DebuggerSession, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None]) -> None:
+		super().__init__()
 		self.frame = frame
 		self.on_click = on_click
 
@@ -188,6 +187,7 @@ class StackFrameComponent (ui.div):
 			self.add_class(css.selected.class_name)
 
 	def render(self) -> ui.div.Children:
+		width = self.width(self.layout)
 		frame = self.frame
 		name = os.path.basename(frame.file)
 		if frame.presentation == dap.StackFrame.subtle:
@@ -201,7 +201,7 @@ class StackFrameComponent (ui.div):
 				ui.text(line_str, css=css.label),
 			],
 			# this width calcualtion is annoying ...
-			ui.text_align(self._width - css.table_inset.padding_width - css.panel_padding - css.label.padding_width - len(line_str) - css.button.padding_width, [
+			ui.text_align(width - css.table_inset.padding_width - css.panel_padding - css.label.padding_width - len(line_str) - css.button.padding_width, [
 				ui.text(name, css=label_padding),
 				ui.text(frame.name, css=css.label_secondary),
 			])
