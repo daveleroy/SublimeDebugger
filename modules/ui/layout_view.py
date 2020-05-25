@@ -15,9 +15,10 @@ class LayoutComponent (Layout):
 		assert item.layout is None, 'item is already added to a layout'
 		self.on_click_handlers = {} #type: Dict[int, Callable]
 		self.on_click_handlers_id = 0
+		self.requires_render = True
+
 		self.item = phantom_sizer(div()[item])
 		self.add_component(self.item)
-		self.requires_render = True
 		self.dirty()
 
 	def __getitem__(self, values: 'div.Children'):
@@ -48,7 +49,13 @@ class LayoutComponent (Layout):
 		item.layout = None
 
 	def add_component_children(self, item: element) -> None:
+		if item._width is not None:
+			_parent_width = item._width
+		else:
+			_parent_width = item._max_allowed_width and item._max_allowed_width - item.padding_width
+
 		for item in item.children:
+			item._max_allowed_width = _parent_width
 			self.add_component(item)
 
 	def add_component(self, item: element) -> None:
@@ -116,11 +123,7 @@ class LayoutView (LayoutComponent):
 		self._width = 0.0
 		self._height = 0.0
 		self._lightness = 0.0
-		self._em_width = 1.0
 		self.update()
-
-	def em_width(self) -> float:
-		return self._em_width
 
 	def width(self) -> float:
 		return self._width
@@ -132,15 +135,14 @@ class LayoutView (LayoutComponent):
 		return self._lightness
 
 	def update(self) -> None:
-		font_size = self.view.settings().get('font_size') or 12
 		lightness = view_background_lightness(self.view)
+		font_size = self.view.settings().get('font_size') or 12
+		em_width = (self.view.em_width() or 12)
 		size = self.view.viewport_extent()
-		em_width = self.view.em_width() or 1
 		width = size[0] / em_width
 		height = size[1] / em_width
-		em_width = (self.view.em_width() or 12) / font_size
-		if em_width != self._em_width or self._width != width or self._height != height or self._lightness != lightness:
-			self._em_width = em_width
+
+		if self._width != width or self._height != height or self._lightness != lightness:
 			self._width = width
 			self._height = height
 			self._lightness = lightness

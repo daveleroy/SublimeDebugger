@@ -10,6 +10,7 @@ class element:
 		self.layout = None #type: Optional[Layout]
 		self.children = [] #type: Sequence[element]
 		self.requires_render = True
+		self._max_allowed_width = None
 		self._height = height
 		self._width = width
 		self.is_inline = is_inline
@@ -42,6 +43,9 @@ class element:
 	def width(self, layout: Layout) -> float:
 		if self._width is not None:
 			return self._width + self.padding_width
+
+		if self._max_allowed_width:
+			return self._max_allowed_width
 
 		width = 0.0
 		width_max = 0.0
