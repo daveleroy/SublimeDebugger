@@ -46,20 +46,6 @@ class ConfigurationExpanded(Configuration):
 	def __init__(self, configuration: Configuration, variables: Any) -> None:
 		all = _expand_variables_and_platform(configuration, variables)
 		super().__init__(configuration.name, -1, configuration.type, configuration.request, all)
-		self.verify()
-
-	def verify(self):
-		def warn(text: str):
-			sublime.error_message(text)
-
-		def error(text: str):
-			raise core.Error(text)
-
-		if self.type == "python":
-			if self.request == "launch":
-				if not self.all.get("program"):
-					warn("Warning: Check your debugger configuration.\n\nField `program` in configuration is empty. If it contained a $variable that variable may not have existed.""")
-			return
 
 class ConfigurationCompound:
 	def __init__(self, name: str, index: int, configurations: List[str]) -> None:
