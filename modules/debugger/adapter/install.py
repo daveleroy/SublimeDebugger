@@ -1,6 +1,5 @@
 from ...typecheck import *
 from ...import core
-from ...libs import certifi
 
 import os
 import shutil
@@ -9,7 +8,7 @@ import gzip
 import urllib.request
 import json
 import sublime
-
+import certifi
 
 def _adapters_path() -> str:
 	return os.path.join(core.current_package(), 'data', 'debug_adapters')
