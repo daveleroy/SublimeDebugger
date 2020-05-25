@@ -10,15 +10,20 @@ core.on_view_drag_select_or_context_menu.add(lambda v: CommandPaletteInputComman
 class CommandPaletteInputCommand:
 	running_command = None #type: Optional[CommandPaletteInputCommand]
 
-	def __init__(self, window, input, on_cancel):
+	def __init__(self, window, input):
 		self.window = window
 		self.input = input
+		self.future = core.create_future()
 
 		def _on_cancel():
 			CommandPaletteInputCommand.running_command = None
-			if on_cancel: on_cancel()
+			self.future.set_result(None)
+
+		def _on_run_internal():
+			self.future.set_result(None)
 
 		input._on_cancel_internal = _on_cancel
+		input._on_run_internal = _on_run_internal
 
 		# if you don't clear the text then the debugger_input command can't be found in the command pallete....
 		self.window.run_command("show_overlay", {
@@ -33,6 +38,12 @@ class CommandPaletteInputCommand:
 			"command": "debugger_input",
 		})
 		CommandPaletteInputCommand.running_command = self
+
+	async def wait(self):
+		try:
+			await self.future
+		except core.CancelledError:
+			self.hide_overlay()
 
 	def hide_overlay(self):
 		self.window.run_command("hide_overlay", {
@@ -78,12 +89,16 @@ class InputList(sublime_plugin.ListInputHandler):
 		self.values = values
 		self._placeholder = placeholder
 		self.index = index
+
 		self._on_cancel_internal = None
+		self._on_run_internal = None
+
 		self.arg_name = "list_{}".format(InputList.id)
 		InputList.id += 1
 
-	def run(self):
-		CommandPaletteInputCommand(sublime.active_window(), self, None)
+	@core.schedule
+	async def run(self):
+		await CommandPaletteInputCommand(sublime.active_window(), self).wait()
 
 	def name(self):
 		return self.arg_name
@@ -103,15 +118,17 @@ class InputList(sublime_plugin.ListInputHandler):
 			run()
 		else:
 			self._next_input = run
-		return value
 
-	def validate(self, value):
-		return True
+		if self._on_run_internal:
+			self._on_run_internal()
 
 	def next_input(self, args):
 		n = self._next_input
 		self._next_input = None
 		return n
+
+	def validate(self, value):
+		return True
 
 	def cancel(self):
 		if self._on_cancel_internal:
@@ -133,11 +150,20 @@ class InputText(sublime_plugin.TextInputHandler):
 		super().__init__()
 		self._placeholder = placeholder
 		self._initial = initial
-		self._on_cancel_internal = None
 		self._run = run
+
+		self._next_input = None
+
+		self._on_cancel_internal = None
+		self._on_run_internal = None
+
 		self._enable = enable_when_active
 		self.arg_name = "text_{}".format(InputText.id)
 		InputText.id += 1
+	
+	@core.schedule
+	async def run(self):
+		await CommandPaletteInputCommand(sublime.active_window(), self).wait()
 
 	def placeholder(self):
 		if self._enable:
@@ -147,11 +173,19 @@ class InputText(sublime_plugin.TextInputHandler):
 	def initial_text(self):
 		return self._initial
 
-	def next_input(self, args):
+	def confirm(self, value):
 		if callable(self._run):
-			self._run(args[self.arg_name])
-			return None
-		return self._run
+			self._run(value)
+		else:
+			self._next_input = self._run
+
+		if self._on_run_internal:
+			self._on_run_internal()
+
+	def next_input(self, args):
+		n = self._next_input
+		self._next_input = None
+		return n
 
 	def name(self):
 		return self.arg_name
@@ -161,12 +195,6 @@ class InputText(sublime_plugin.TextInputHandler):
 			self._enable.disable()
 		if self._on_cancel_internal:
 			self._on_cancel_internal()
-
-	def run(self):
-		if self._enable:
-			self._enable.disable()
-
-		CommandPaletteInputCommand(sublime.active_window(), self, None)
 
 def InputListItemCheckedText(run: Callable[[str], None], name: str, description: str, value: Optional[str]):
 	if value:

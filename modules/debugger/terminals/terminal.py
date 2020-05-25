@@ -9,9 +9,14 @@ from ..variables import VariableComponent, Variable
 from ..autocomplete import Autocomplete
 
 import re
+import webbrowser
 import sublime
 
 Source = Tuple[dap.Source, Optional[int]]
+
+url_matching_regex = re.compile(r"((http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)") # from https://stackoverflow.com/questions/6038061/regular-expression-to-find-urls-within-a-string
+default_line_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
+
 
 class Line:
 	def __init__(self, type: Optional[str]):
@@ -50,7 +55,7 @@ class Terminal:
 		self.lines = [] #type: List[Line]
 		self._name = name
 		self.on_updated = core.Event() #type: core.Event[None]
-		self.line_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
+		self.line_regex = default_line_regex
 
 		self.new_line = True
 		self.escape_input = True
@@ -140,9 +145,9 @@ class LineView (ui.div):
 		self.css = _css_for_type.get(line.type, css.label_secondary)
 		self.max_line_length = max_line_length
 		self.on_clicked_source = on_clicked_source
+		self.clicked_menu = None
 
 	def get(self) -> ui.div.Children:
-
 		if self.line.variable:
 			source = self.line.source
 			source_item = None
@@ -185,7 +190,9 @@ class LineView (ui.div):
 
 			text = line_text[span_offset:span_offset + leftover_line_length]
 			span_offset += len(text)
-			spans.append(ui.text(text, css=self.css))
+			spans.append(ui.click(lambda: self.click(text))[
+				ui.text(text, css=self.css)
+			])
 			leftover_line_length -= len(text)
 
 		add_name_and_line_if_needed(leftover_line_length)
@@ -197,6 +204,26 @@ class LineView (ui.div):
 		span_lines.reverse()
 		return span_lines
 
+	@core.schedule
+	async def click(self, text: str):
+		def copy():
+			sublime.set_clipboard(text)
+
+		values = [
+			ui.InputListItem(copy, "Copy"),
+		]
+
+		for match in url_matching_regex.findall(text):
+			values.insert(0, ui.InputListItem(lambda: webbrowser.open_new_tab(match[0]), "Open"))
+
+		if self.clicked_menu:
+			values[0].run()
+			self.clicked_menu.cancel()
+			return
+
+		self.clicked_menu = ui.InputList(values, text).run()
+		await self.clicked_menu
+		self.clicked_menu = None
 
 class TerminalView (ui.div):
 	def __init__(self, terminal: Terminal, on_clicked_source: Callable[[dap.Source, Optional[int]], None]) -> None:
