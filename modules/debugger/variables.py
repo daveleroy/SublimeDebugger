@@ -119,6 +119,8 @@ class VariableComponent (ui.div):
 		self.state = state
 		self.item_right = item_right or ui.span()
 		self.variable_children = [] #type: List[Variable]
+		self.edit_variable_menu = None
+
 		if self.state.is_expanded(self.variable):
 			self.set_expanded()
 			
@@ -171,13 +173,18 @@ class VariableComponent (ui.div):
 			),
 			ui.InputListItem(
 				copy_value,
-				"Copy Value",
+				"Copy Value\t Click again to select",
 			),
 			ui.InputListItem(
 				add_watch,
 				"Add Variable To Watch",
 			),
 		]
+
+		if self.edit_variable_menu:
+			copy_value()
+			self.edit_variable_menu.cancel()
+			return
 
 		if info and info.id:
 			types = info.accessTypes or [""]
@@ -196,8 +203,14 @@ class VariableComponent (ui.div):
 					lambda: on_add_data_breakpoint(acessType),
 					labels.get(acessType) or "Break On Value Change"
 				))
+		
+		
+	
 
-		ui.InputList(items, '{} {}'.format(variable.name, variable.value)).run()
+		self.edit_variable_menu = ui.InputList(items, '{} {}'.format(variable.name, variable.value)).run()
+		await self.edit_variable_menu
+		self.edit_variable_menu = None
+		
 
 	@core.schedule
 	async def set_expanded(self) -> None:
