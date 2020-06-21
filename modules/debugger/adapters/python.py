@@ -8,39 +8,30 @@ class Python(adapter.Adapter):
 	def type(self): return 'python'
 
 	async def start(self, log, configuration):
-		use_debugpy = get_debugger_setting('python.experimental_debugpy_adapter', False)
-		use_socket = get_debugger_setting('python.experimental_socket_attach', False)
-
-		if use_socket and configuration.request == "attach":
-			host = configuration.get("host")
-			port = configuration.get("port")
-
-			if not host and not port:
-				connect = configuration.get("connect") or {}
-				host = connect.get("host")
+		if configuration.request == "attach":
+			connect = configuration.get("connect")
+			if connect:
+				host = connect.get("host", "localhost")
 				port = connect.get("port")
 
-			if not host or not port:
-				sublime.error_message("Warning: Check your debugger configuration.\n\nFields `host` and `port` in configuration is empty. If it contained a $variable that variable may not have existed.""")
+				return adapter.SocketTransport(log, host, port)
 
-			return adapter.SocketTransport(log, host, port)
+			port = configuration.get("port")
+			if port:
+				host = configuration.get("host", "localhost")
+
+				return adapter.SocketTransport(log, host, port)
+
+			if not configuration.get("listen") and not configuration.get("processId"):
+				sublime.error_message("Warning: Check your debugger configuration.\n\n'attach' requires 'connect', 'listen' or 'processId'.\n\nIf they contain a $variable that variable may not have existed.""")
 
 		install_path = adapter.vscode.install_path(self.type)
 
-		if use_debugpy:
-			python = configuration.get("pythonPath", "python")
-
-			command = [
-				python, # probably doesn't work cross platform?
-				f'{install_path}/extension/pythonFiles/lib/python/debugpy/adapter',
-			]
-			log.info("Using experimental debugpy adapter")
-		else:
-			node = adapter.get_and_warn_require_node_less_than_or_equal(self.type, log, 'v12.5.0')
-			command = [
-				node,
-				f'{install_path}/extension/out/client/debugger/debugAdapter/main.js'
-			]
+		python = configuration.get("pythonPath", "python")
+		command = [
+			python,
+			f'{install_path}/extension/pythonFiles/lib/python/debugpy/adapter',
+		]
 
 		return adapter.StdioTransport(log, command)
 

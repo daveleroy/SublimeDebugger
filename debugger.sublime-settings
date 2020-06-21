@@ -38,9 +38,5 @@
 
 	// sets a specific path for node if not set adapters that require node to run will use whatever is in your path
 	"node": null,
-
-	"python.node": null, // python adapter only runs on node <= v12.5.0 so you can set a specific version
-	"python.experimental_debugpy_adapter": false,
-	"python.experimental_socket_attach": false,
 }
 
