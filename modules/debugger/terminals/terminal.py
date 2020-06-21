@@ -82,6 +82,7 @@ class Terminal:
 		lines = text.splitlines(keepends=True)
 		for line in lines:
 			self._add_line(type, line, source)
+			source = None
 
 	def add_variable(self, variable, source: Optional[Source] = None):
 		line = Line(None)
@@ -167,17 +168,16 @@ class LineView (ui.div):
 		leftover_line_length = max_line_length
 
 		# if we have a name/line put it to the right of the first line
-		if self.line.source:
+		source = self.line.source
+		if source:
 			leftover_line_length -= 15
 
 		def add_name_and_line_if_needed(padding):
-			source = self.line.source
 			if not span_lines and source:
 				def on_clicked_source():
 					self.on_clicked_source(source[0], source[1])
 
 				spans.append(LineSourceView(source[0].name or '??', source[1], 15, on_clicked_source))
-
 
 		span_offset = 0
 		line_text = self.line.line
