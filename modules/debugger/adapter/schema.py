@@ -41,16 +41,25 @@ def save_schema(adapters: List[Adapter]):
 		'allOf': allOf,
 	}
 
-	schema = {
-		'description': 'Debugger Configuration File',
+	schema_debug_configurations = {
+		'description': 'Debug configurations',
 		'type': 'object',
 		'properties': {
-			'configurations': {
+			'debug.configurations': {
 				'type': 'array',
 				'items': debuggers_schema,
 			}
 		},
-		'required': ['configurations']
+		'required': ['debug.configurations']
+	}
+
+	schema = {
+		'description': 'Debugger Configuration File',
+		'type': 'object',
+		'properties': {
+			'settings': schema_debug_configurations
+		},
+		'required': ['settings']
 	}
 	
 
