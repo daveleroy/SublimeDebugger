@@ -5,9 +5,7 @@ from ...dap import Transport
 import socket
 import os
 import subprocess
-import re
 import threading
-import sys
 import signal
 
 class Process(subprocess.Popen):
@@ -101,34 +99,3 @@ class SocketTransport(Transport):
 
 	def dispose(self) -> None:
 		pass
-
-
-class CommandSocketTransport(Transport):
-	def __init__(self, log: core.Logger, command: List[str], cwd: Optional[str] = None):
-		self.process = Process(command, cwd)
-
-		line = self.process.stdout.readline().decode('utf-8')
-		result = re.match(r'Listening on port (.*)', line)
-		if result:
-			port = int(result.group(1))
-
-		super()._init__(log, 'localhost', port, cwd)
-
-		thread = threading.Thread(target=self._read, args=(self.process.stderr, log.info))
-		thread.start()
-
-	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
-		while True:
-			try:
-				line = file.read(2**15).decode('UTF-8')
-				if not line:
-					core.log_info("Nothing to read from process, closing")
-					break
-				core.log_info(line)
-				core.call_soon_threadsafe(callback, line)
-			except Exception as e:
-				core.log_exception()
-				break
-
-	def dispose(self) -> None:
-		self.process.dispose()
