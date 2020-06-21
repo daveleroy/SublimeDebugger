@@ -10,7 +10,7 @@ import json
 class Adapter (Protocol):
 	@property
 	def type(self): ...
-	async def start(self, log: core.Logger): ...
+	async def start(self, log: core.Logger, configuration: ConfigurationExpanded): ...
 
 	@property
 	def version(self) -> Optional[str]: ...
@@ -114,7 +114,7 @@ class Adapters:
 					core.run(Adapters._insert_snippet(sublime.active_window(), insert))
 
 				snippet_input_items.append(ui.InputListItem(insert, snippet.get('label', 'label')))
-			
+
 			if not snippet_input_items:
 				snippet_input_items.append(ui.InputListItem(lambda: insert_custom(adapter.type, "launch"), 'launch'))
 				snippet_input_items.append(ui.InputListItem(lambda: insert_custom(adapter.type, "attach"), 'attach'))

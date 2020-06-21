@@ -7,10 +7,10 @@ import shutil
 
 class Go(adapter.Adapter):
 	@property
-	def type(self): 
+	def type(self):
 		return "go"
 
-	async def start(self, log):
+	async def start(self, log, configuration):
 		node = adapter.get_and_warn_require_node(self.type, log)
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
@@ -33,13 +33,13 @@ class Go(adapter.Adapter):
 		return configuration
 
 	@property
-	def installed_version(self) -> Optional[str]: 
+	def installed_version(self) -> Optional[str]:
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> list: 
+	def configuration_snippets(self) -> list:
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> dict: 
+	def configuration_schema(self) -> dict:
 		return adapter.vscode.configuration_schema(self.type)

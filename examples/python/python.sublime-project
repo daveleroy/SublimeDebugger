@@ -14,9 +14,9 @@
 				"type": "python",
 				"request": "launch",
 				"program": "${project_path}/main.py",
-				"debugOptions" : {
-					"RedirectOutput": true,
-				}
+				"debugOptions" : [
+					"RedirectOutput"
+				]
 			},
 		]
 	}

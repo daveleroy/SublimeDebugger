@@ -21,10 +21,10 @@ import re
 
 class PHP(adapter.Adapter):
 	@property
-	def type(self): 
+	def type(self):
 		return 'php'
 
-	async def start(self, log):
+	async def start(self, log, configuration):
 		node = adapter.get_and_warn_require_node(self.type, log)
 
 		install_path = adapter.vscode.install_path(self.type)
@@ -37,22 +37,22 @@ class PHP(adapter.Adapter):
 	async def install(self, log):
 		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/felixfbecker/vsextensions/php-debug/latest/vspackage'
 		await adapter.vscode.install(self.type, url, log)
-		
+
 	@property
-	def installed_version(self) -> Optional[str]: 
+	def installed_version(self) -> Optional[str]:
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> list: 
+	def configuration_snippets(self) -> list:
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> dict: 
+	def configuration_schema(self) -> dict:
 		return adapter.vscode.configuration_schema(self.type)
 
 	def on_hover_provider(self, view, point):
 		seperators = "./\\()\"'-:,.;<>~!@#%^&*|+=[]{}`~?."
-		word = view.expand_by_class(point, sublime.CLASS_WORD_START | sublime.CLASS_WORD_END, separators=seperators)		
+		word = view.expand_by_class(point, sublime.CLASS_WORD_START | sublime.CLASS_WORD_END, separators=seperators)
 		word_string = word and view.substr(word)
 		if not word_string:
 			return None
@@ -60,6 +60,6 @@ class PHP(adapter.Adapter):
 		match = re.search("\\$[a-zA-Z0-9_]*", word_string)
 		if not match:
 			return None
-			
+
 		word_string = match.group()
 		return (match.group(), word)

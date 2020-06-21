@@ -19,10 +19,10 @@ class Process(subprocess.Popen):
 			startupinfo = subprocess.STARTUPINFO() #type: ignore
 			startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW #type: ignore
 
-		super().__init__(command, 
-			stdout=subprocess.PIPE, 
-			stderr=subprocess.PIPE, 
-			stdin=subprocess.PIPE, 
+		super().__init__(command,
+			stdout=subprocess.PIPE,
+			stderr=subprocess.PIPE,
+			stdin=subprocess.PIPE,
 			shell=False,
 			bufsize=0,
 			startupinfo=startupinfo,
@@ -77,9 +77,34 @@ class StdioTransport(Transport):
 	def dispose(self) -> None:
 		self.process.dispose()
 
-class SocketTransport(Transport):
-	def __init__(self, log: core.Logger, command: List[str], cwd: Optional[str] = None):
 
+class SocketTransport(Transport):
+	def __init__(self, log: core.Logger, host: str, port: int, cwd: Optional[str] = None):
+		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.socket.connect((host, port))
+		self.stdin = self.socket.makefile('wb')
+		self.stdout = self.socket.makefile('rb')
+
+	def write(self, message: bytes) -> None:
+		self.stdin.write(message)
+		self.stdin.flush()
+
+	def readline(self) -> bytes:
+		if l := self.stdout.readline():
+			return l
+		raise EOFError
+
+	def read(self, n: int) -> bytes:
+		if l := self.stdout.read(n):
+			return l
+		raise EOFError
+
+	def dispose(self) -> None:
+		pass
+
+
+class CommandSocketTransport(Transport):
+	def __init__(self, log: core.Logger, command: List[str], cwd: Optional[str] = None):
 		self.process = Process(command, cwd)
 
 		line = self.process.stdout.readline().decode('utf-8')
@@ -87,10 +112,7 @@ class SocketTransport(Transport):
 		if result:
 			port = int(result.group(1))
 
-		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.socket.connect(('localhost', port))
-		self.stdin = self.socket.makefile('wb')
-		self.stdout = self.socket.makefile('rb')
+		super()._init__(log, 'localhost', port, cwd)
 
 		thread = threading.Thread(target=self._read, args=(self.process.stderr, log.info))
 		thread.start()
@@ -107,20 +129,6 @@ class SocketTransport(Transport):
 			except Exception as e:
 				core.log_exception()
 				break
-
-	def write(self, message: bytes) -> None:
-		self.stdin.write(message)
-		self.stdin.flush()
-
-	def readline(self) -> bytes:
-		if l := self.stdout.readline():
-			return l
-		raise EOFError
-
-	def read(self, n: int) -> bytes:
-		if l := self.stdout.read(n):
-			return l
-		raise EOFError
 
 	def dispose(self) -> None:
 		self.process.dispose()
