@@ -24,9 +24,9 @@ def json_from_array(into_json: Callable[[__T], dict], array: List[__T]) -> list:
 		json.append(into_json(item))
 	return json
 
-class Default(dict):
-    def __missing__(self, key):
-        return key.join("{}")
+class _DefaultDict(dict):
+	def __missing__(self, key):
+		return key.join("{}")
 
 class Error(core.Error):
 	def __init__(self, showUser: bool, format: str):
@@ -37,7 +37,7 @@ class Error(core.Error):
 	def from_json(json: dict) -> 'Error':
 		# why on earth does the optional error details have variables that need to be formatted in it????????
 		format = json.get('format', 'No error reason given')
-		variables = Default(**json.get('variables', {}))
+		variables = _DefaultDict(**json.get('variables', {}))
 		error_message = format.format_map(variables)
 		return Error(json.get('showUser', True), error_message)
 
@@ -264,25 +264,22 @@ class TerminatedEvent:
 	def from_json(json) -> TerminatedEvent:
 		return TerminatedEvent(json.get('restart'))
 
-
 class ContinueResponse:
 	def __init__(self, json) -> None:
 		self.allThreadsContinued = json.get('allThreadsContinued', True)
 
-
+@dataclass
 class ContinuedEvent:
-	def __init__(self, threadId: int, allThreadsContinued: bool) -> None:
-		self.threadId = threadId
-		self.allThreadsContinued = allThreadsContinued
+	threadId: int
+	allThreadsContinued: bool
 
-
+@dataclass
 class OutputEvent:
-	def __init__(self, category: str, text: str, variablesReference: int, source: Optional[Source] = None, line: Optional[int] = None) -> None:
-		self.category = category
-		self.text = text
-		self.variablesReference = variablesReference
-		self.source = source
-		self.line = line
+	category: str
+	text: str
+	variablesReference: int
+	source: Optional[Source] = None
+	line: Optional[int] = None
 
 	@staticmethod
 	def from_json(json) -> OutputEvent:
@@ -299,13 +296,13 @@ class OutputEvent:
 			json.get('line'))
 
 
+@dataclass
 class RunInTerminalRequest:
-	def __init__(self, kind: str, title: str, cwd: str, args: List[str], env: Dict[str, Optional[str]]) -> None:
-		self.kind = kind
-		self.title = title
-		self.cwd = cwd
-		self.args = args
-		self.env = env
+	kind: str
+	title: str
+	cwd: str
+	args: List[str]
+	env: Dict[str, Optional[str]]
 
 	@staticmethod
 	def from_json(json) -> RunInTerminalRequest:
@@ -317,11 +314,10 @@ class RunInTerminalRequest:
 			json.get('env', {})
 		)
 
-
+@dataclass
 class RunInTerminalResponse:
-	def __init__(self, processId: Optional[int], shellProcessId: Optional[int]) -> None:
-		self.processId = processId
-		self.shellProcessId = shellProcessId
+	processId: Optional[int]
+	shellProcessId: Optional[int]
 
 	def into_json(self) -> dict:
 		return {
@@ -330,16 +326,16 @@ class RunInTerminalResponse:
 		}
 
 
+@dataclass
 class DataBreakpoint:
-	read = 'read'
-	write = 'write'
-	readWrite = 'readWrite'
+	read: ClassVar[str] = 'read'
+	write: ClassVar[str] = 'write'
+	readWrite: ClassVar[str] = 'readWrite'
 
-	def __init__(self, id: str, accessType: Optional[str], condition: Optional[str], hitCondition: Optional[str]) -> None:
-		self.id = id
-		self.accessType = accessType
-		self.condition = condition
-		self.hitCondition = hitCondition
+	id: str
+	accessType: Optional[str]
+	condition: Optional[str]
+	hitCondition: Optional[str]
 
 	def into_json(self) -> dict:
 		return {
@@ -462,10 +458,10 @@ class BreakpointResult:
 
 BreakpointResult.failed = BreakpointResult(False, None, None, None, None)
 
+@dataclass
 class BreakpointEvent:
-	def __init__(self, reason: str, result: BreakpointResult) -> None:
-		self.reason = reason
-		self.result = result
+	reason: str
+	result: BreakpointResult
 
 	@staticmethod
 	def from_json(json) -> 'BreakpointEvent':
@@ -502,27 +498,23 @@ class Module:
 			addressRange = json.get('addressRange'),
 		)
 
-class ModuleEvent:
-	none = 0
-	new = 1
-	changed = 2
-	removed = 3
 
-	reasons = {'new': new, 'changed': changed, 'removed': removed}
+
+class ModuleEvent:
+	new: ClassVar[str] = 'new'
+	changed: ClassVar[str] = 'changed'
+	removed: ClassVar[str] = 'removed'
 
 	def __init__(self, json: dict):
-		self.reason = ModuleEvent.reasons.get(json['reason'], ModuleEvent.none)
+		self.reason = json.get('reason')
 		self.module = Module.from_json(json['module'])
 
 class LoadedSourceEvent:
-	none = 0
-	new = 1
-	changed = 2
-	removed = 3
-
-	reasons = {'new': new, 'changed': changed, 'removed': removed}
+	new: ClassVar[str] = 'new'
+	changed: ClassVar[str] = 'changed'
+	removed: ClassVar[str] = 'removed'
 
 	def __init__(self, json: dict):
-		self.reason = LoadedSourceEvent.reasons.get(json['reason'], LoadedSourceEvent.none)
+		self.reason = json.get('reason')
 		self.source = Source.from_json(json['source'])
 
