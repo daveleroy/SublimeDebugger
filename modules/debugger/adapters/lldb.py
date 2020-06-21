@@ -1,16 +1,16 @@
 from ...typecheck import *
 from ..import adapter
 from ...import core
-from ..adapter.transports import SocketTransport
+from ..adapter.transports import CommandSocketTransport
 from ..util import get_debugger_setting
 
 import subprocess
 class LLDB(adapter.Adapter):
 	@property
-	def type(self): 
+	def type(self):
 		return "lldb"
 
-	async def start(self, log: core.Logger):
+	async def start(self, log: core.Logger, configuration):
 		install_path = adapter.vscode.install_path(self.type)
 
 		codelldb = f'{install_path}/extension/adapter2/codelldb'
@@ -19,7 +19,7 @@ class LLDB(adapter.Adapter):
 			codelldb,
 			"--libpython", libpython
 		]
-		return SocketTransport(log, command)
+		return CommandSocketTransport(log, command)
 
 	async def install(self, log: core.Logger):
 		if core.platform.windows:
@@ -32,13 +32,13 @@ class LLDB(adapter.Adapter):
 		await adapter.vscode.install(self.type, url, log)
 
 	@property
-	def installed_version(self) -> Optional[str]: 
+	def installed_version(self) -> Optional[str]:
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> list: 
+	def configuration_snippets(self) -> list:
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> dict: 
+	def configuration_schema(self) -> dict:
 		return adapter.vscode.configuration_schema(self.type)

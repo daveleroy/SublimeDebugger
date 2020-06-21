@@ -25,7 +25,7 @@ def json_from_array(into_json: Callable[[__T], dict], array: List[__T]) -> list:
 	return json
 
 class Default(dict):
-    def __missing__(self, key): 
+    def __missing__(self, key):
         return key.join("{}")
 
 class Error(core.Error):
@@ -153,7 +153,7 @@ class Source:
 	def __init__(self, name: Optional[str], path: Optional[str], sourceReference: int, presentationHint: int, origin: Optional[str], sources: List['Source']) -> None:
 		# no idea how there are supposed to be uniquely identified but there is an event LoadedSourceEvent that seems to assume they are
 		self.id = f'{name}~{path}~{sourceReference}'
-		
+
 		self.name = name or path
 		self.path = path
 		self.sourceReference = sourceReference
@@ -170,7 +170,7 @@ class Source:
 				hint = Source.emphasize
 			elif json_hint == 'deemphasize':
 				hint = Source.deemphasize
-		
+
 		sources = array_from_json(Source.from_json, json.get('sources', []))
 
 		return Source(
@@ -224,7 +224,7 @@ class Capabilities:
 		self.supportsExceptionOptions = json.get('supportsExceptionOptions', False)
 		self.supportsValueFormattingOptions = json.get('supportsValueFormattingOptions', False)
 		self.supportsExceptionInfoRequest = json.get('supportsExceptionInfoRequest', False)
-		self.supportTerminateDebuggee = json.get('supportTerminateDebuggee', False)
+		self.supportsTerminateDebuggee = json.get('supportsTerminateDebuggee', False)
 		self.supportsDelayedStackTraceLoading = json.get('supportsDelayedStackTraceLoading', False)
 		self.supportsLoadedSourcesRequest = json.get('supportsLoadedSourcesRequest', False)
 		self.supportsLogPoints = json.get('supportsLogPoints', False)
@@ -252,7 +252,7 @@ class ThreadEvent:
 	@staticmethod
 	def from_json(json) -> ThreadEvent:
 		return ThreadEvent(
-			threadId=json['threadId'], 
+			threadId=json['threadId'],
 			reason=json['reason'],
 		)
 
@@ -454,9 +454,9 @@ class BreakpointResult:
 	@staticmethod
 	def from_json(json: dict) -> 'BreakpointResult':
 		return BreakpointResult(
-			json['verified'], 
-			json.get('line'), 
-			json.get('column'), 
+			json['verified'],
+			json.get('line'),
+			json.get('column'),
 			json.get('message'),
 			json.get('id'))
 
@@ -507,7 +507,7 @@ class ModuleEvent:
 	new = 1
 	changed = 2
 	removed = 3
-	
+
 	reasons = {'new': new, 'changed': changed, 'removed': removed}
 
 	def __init__(self, json: dict):
@@ -519,7 +519,7 @@ class LoadedSourceEvent:
 	new = 1
 	changed = 2
 	removed = 3
-	
+
 	reasons = {'new': new, 'changed': changed, 'removed': removed}
 
 	def __init__(self, json: dict):

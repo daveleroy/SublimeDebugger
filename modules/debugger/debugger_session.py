@@ -4,7 +4,7 @@ from ..typecheck import *
 from ..import core, dap
 
 from .terminals import (
-	Terminal, 
+	Terminal,
 	TerminalCommand,
 )
 from .adapter import (
@@ -28,7 +28,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 	running = 2
 
 	starting = 3
-	stopping = 4	
+	stopping = 4
 
 	stopped_reason_build_failed=0
 	stopped_reason_launch_error=1
@@ -172,7 +172,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 		self._change_status("Starting")
 		try:
-			transport = await adapter_configuration.start(log=self)
+			transport = await adapter_configuration.start(log=self, configuration=self.configuration)
 		except Exception as e:
 			raise core.Error(f"Unable to start the adapter process: {e}")
 
@@ -204,7 +204,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 				self.error("there was an error in configuration done {}".format(e))
 		core.run(Initialized())
 
-		
+
 
 		self.capabilities = await adapter.Initialize()
 		# remove/add any exception breakpoint filters
@@ -385,7 +385,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		else:
 			await self.client.Disconnect()
 
-		
+
 	def clear_session(self):
 		if self.launching_async:
 			self.launching_async.cancel()
@@ -401,7 +401,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 			self.adapter.dispose()
 			self.adapter = None
 
-			
+
 	async def stop_forced(self, reason) -> None:
 		if self.state == DebuggerSession.stopping or self.state == DebuggerSession.stopped:
 			return
@@ -477,7 +477,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		scopes = await self.client.GetScopes(frame)
 		self.variables = [Variable(self, ScopeReference(scope)) for scope in scopes]
 		self.on_updated_variables()
-		
+
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
 		b = self.breakpoints_for_id.get(event.result.id)
 		if b:
