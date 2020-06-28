@@ -2,7 +2,7 @@
 	"command" : [
 		"node",
 		"${package}/debug_adapters/lldb_util/entry.js",
-		"${install_path}/extension/adapter2/codelldb"
+		"${install_path}/extension/adapter/codelldb"
 	],
 	"dependencies": ["node"],
 	"install" : {
