@@ -47,7 +47,7 @@ class LLDB(adapter.Adapter):
 	async def start(self, log: core.Logger, configuration):
 		install_path = adapter.vscode.install_path(self.type)
 
-		codelldb = f'{install_path}/extension/adapter2/codelldb'
+		codelldb = f'{install_path}/extension/adapter/codelldb'
 		libpython = get_debugger_setting('lldb.Python')
 		if not libpython:
 			libpython = subprocess.check_output([codelldb, "find-python"]).strip()
