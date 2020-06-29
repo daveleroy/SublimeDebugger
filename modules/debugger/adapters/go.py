@@ -20,7 +20,7 @@ class Go(adapter.Adapter):
 		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
-		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage'
+		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/golang/vsextensions/Go/latest/vspackage'
 		await adapter.vscode.install(self.type, url, log)
 
 	# Patch in dlvToolPath to point to dlv if present in settings or path
