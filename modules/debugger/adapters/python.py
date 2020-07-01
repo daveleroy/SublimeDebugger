@@ -2,6 +2,8 @@ from ...typecheck import *
 from ..import adapter
 from ..util import get_debugger_setting
 
+import sublime
+
 class Python(adapter.Adapter):
 
 	@property
