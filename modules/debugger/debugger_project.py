@@ -14,23 +14,18 @@ _panel_position = 7
 class DebuggerProject(core.disposables):
 	def __init__(self, window: sublime.Window):
 		super().__init__()
-		
+
 		# ensure we are being run inside a sublime project
 		# if not prompt the user to create one
-		while True:
-			data = window.project_data()
-			project_name = window.project_file_name()
-			while not project_name:
-				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
-				if r:
-					window.run_command('save_project_and_workspace_as')
-				else:
-					raise core.Error("Debugger must be run inside a sublime project")
+		project_name = window.project_file_name()
+		while not project_name:
+			r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
+			if r:
+				window.run_command('save_project_and_workspace_as')
+			else:
+				raise core.Error("Debugger must be run inside a sublime project")
 
-			# ensure we have debug configurations added to the project file
-			data.setdefault('settings', {}).setdefault('debug.configurations', [])
-			window.set_project_data(data)
-			break
+			project_name = window.project_file_name()
 
 		self.name = project_name
 		self.window = window
@@ -47,7 +42,7 @@ class DebuggerProject(core.disposables):
 		self.panel_show()
 		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
 		# otherwise they will get reordered when one of them gets redrawn
-		# we use new lines so we don't have extra space on the rhs
+		# we use zero width characters so we don't have extra around phantoms
 		self.panel.run_command('insert', {
 			'characters': _phantom_text
 		})
@@ -60,13 +55,18 @@ class DebuggerProject(core.disposables):
 		settings.set('context_menu', 'Widget Debug.sublime-menu')
 
 		self.panel.sel().clear()
-		
+
 		# hack to get view to not freak out when clicking the edge of the window
 		self.panel.set_viewport_position((_panel_position, 0), animate=False)
 		async def later():
 			await core.sleep(0)
 			self.panel.set_viewport_position((_panel_position, 0), animate=False)
 		core.run(later())
+
+		# add the empty debugger configurations settings if needed
+		data = window.project_data() or {}
+		data.setdefault('settings', {}).setdefault('debug.configurations', [])
+		window.set_project_data(data)
 		self.reload()
 
 	@core.schedule

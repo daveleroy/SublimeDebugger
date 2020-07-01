@@ -63,6 +63,7 @@ from .debugger_log_output_panel import DebuggerLogOutputPanel
 class Debugger:
 
 	instances = {} #type: Dict[int, Debugger]
+	creating = {} #type: Set[int, bool]
 
 	@staticmethod
 	def get(window: sublime.Window, run: bool = False) -> 'Optional[Debugger]':
@@ -82,16 +83,26 @@ class Debugger:
 	@staticmethod
 	def for_window(window: sublime.Window, create: bool = False) -> 'Optional[Debugger]':
 		global instances
-		instance = Debugger.instances.get(window.id())
+		id = window.id()
+		instance = Debugger.instances.get(id)
+
 		if not instance and create:
+			if Debugger.creating.get(id):
+				raise core.Error("We shouldn't be creating another debugger instance for this window...")
+
+			Debugger.creating[id] = True
 			try:
-				main = Debugger(window)
-				Debugger.instances[window.id()] = main
-				return main
+				instance = Debugger(window)
+				Debugger.instances[id] = instance
+
 			except dap.Error as e:
 				core.log_exception()
+
+			Debugger.creating[id] = False
+
 		if instance and create:
 			instance.show()
+
 		return instance
 
 	def __init__(self, window: sublime.Window) -> None:
