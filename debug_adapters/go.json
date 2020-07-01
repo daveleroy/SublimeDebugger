@@ -7,6 +7,6 @@
 	"install": {
 		"name": "vscode-go",
 		"type": "vscode",
-		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/Go/latest/vspackage"
+		"url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/golang/vsextensions/Go/latest/vspackage"
 	}
 }
