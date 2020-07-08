@@ -95,10 +95,9 @@ class Adapters:
 	def add_configuration():
 		def insert_custom(type: str, request: str):
 			core.run(Adapters._insert_snippet(sublime.active_window(), {
-					'name': 'request',
-					'type': 'type',
-					'request': 'launch|attach',
-					'<MORE>': '...'
+					'name': f'Debug {type}',
+					'type': type,
+					'request': request,
 				}))
 
 		values = [
@@ -106,6 +105,9 @@ class Adapters:
 		]
 
 		for adapter in Adapters.all:
+			if not adapter.installed_version:
+				continue
+
 			snippet_input_items = []
 
 			for snippet in adapter.configuration_snippets or []:
@@ -116,8 +118,8 @@ class Adapters:
 				snippet_input_items.append(ui.InputListItem(insert, snippet.get('label', 'label')))
 
 			if not snippet_input_items:
-				snippet_input_items.append(ui.InputListItem(lambda: insert_custom(adapter.type, "launch"), 'launch'))
-				snippet_input_items.append(ui.InputListItem(lambda: insert_custom(adapter.type, "attach"), 'attach'))
+				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, "launch"), 'launch'))
+				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, "attach"), 'attach'))
 
 			values.append(ui.InputListItem(ui.InputList(snippet_input_items, "choose a snippet to insert"), adapter.type))
 
