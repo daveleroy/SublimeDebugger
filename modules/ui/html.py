@@ -1,7 +1,7 @@
 from ..typecheck import *
 from . layout import Layout
 from . image import Image
-from . css import css, div_inline_css, icon_css, none_css, CHARACTER_SIZE_REM
+from . css import css, div_inline_css, icon_css, none_css
 
 
 class element:
@@ -102,8 +102,8 @@ class span (element):
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
-		h = self.height(layout) / CHARACTER_SIZE_REM
-		w = self.width(layout) / CHARACTER_SIZE_REM
+		h = self.height(layout) * layout.rem_width_scale()
+		w = self.width(layout) * layout.rem_width_scale()
 		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, inner)
 		return html
 
@@ -124,8 +124,8 @@ class div (element):
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
-		h = (self.height(layout) - self.padding_height) / CHARACTER_SIZE_REM
-		w = (self.width(layout) - self.padding_width) / CHARACTER_SIZE_REM
+		h = (self.height(layout) - self.padding_height) * layout.rem_width_scale()
+		w = (self.width(layout) - self.padding_width) * layout.rem_width_scale()
 
 		if self.children and self.children[0].is_inline:
 			html = '<div class= "{} {}" style="height:{}rem;width:{}rem;line-height:{}rem"><img style="height:1.6rem;">{}</div>'.format(div_inline_css.class_name, self.className, h, w, h, inner)
@@ -145,8 +145,8 @@ class phantom_sizer (div):
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
-		h = self.height(layout) / CHARACTER_SIZE_REM
-		w = self.width(layout) / CHARACTER_SIZE_REM
+		h = self.height(layout) * layout.rem_width_scale()
+		w = self.width(layout) * layout.rem_width_scale()
 		html = '<div class="{}" style="height:{}rem;"><img style="width:{}rem;">{}</div>'.format(self.className, h, w, inner)
 		return html
 
@@ -179,7 +179,7 @@ class text (span):
 		return len(self.text) + self.padding_width
 
 	def html(self, layout: Layout) -> str:
-		h = self.height(layout) / CHARACTER_SIZE_REM
+		h = self.height(layout) * layout.rem_width_scale()
 		html = '<span class="{}">{}</span>'.format(self.className, self.text_html)
 		return html
 
@@ -233,6 +233,6 @@ class code(span):
 		return len(self.text) + self.padding_width
 
 	def html(self, layout: Layout) -> str:
-		h = self.height(layout) / CHARACTER_SIZE_REM
+		h = self.height(layout) * layout.rem_width_scale()
 		html = '<span class="{}" style="line-height:{}rem;">{}</span>'.format(self.className, h, self.text_html)
 		return html

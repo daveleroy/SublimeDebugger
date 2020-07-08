@@ -1,6 +1,14 @@
 from .. typecheck import *
 
-CHARACTER_SIZE_REM = 1.6
+# TODO: Reclaulate css when the layout changes and replace REM_WIDTH_SCALE with the real value from rem_width_scale
+# close enough for now but it means that every padding calculation will be slightly off
+# better to overestimate and add less padding than more ( calculations don't overlap the side of things)
+
+# REM_WIDTH_SCALE = 13/8 font size 13
+# REM_WIDTH_SCALE = 12/7 font size 12
+# REM_WIDTH_SCALE = 11/7 font size 11
+
+REM_WIDTH_SCALE = 7.0/12.0
 
 base_css = '''
 html {
@@ -63,16 +71,16 @@ class css:
 		additional_height = 0.0
 
 		if not padding_top is None:
-			css_string += 'padding-top:{}rem;'.format(padding_top/CHARACTER_SIZE_REM)
+			css_string += 'padding-top:{}rem;'.format(padding_top * REM_WIDTH_SCALE)
 			additional_height += padding_top
 		if not padding_bottom is None:
-			css_string += 'padding-bottom:{}rem;'.format(padding_bottom/CHARACTER_SIZE_REM)
+			css_string += 'padding-bottom:{}rem;'.format(padding_bottom * REM_WIDTH_SCALE)
 			additional_height += padding_bottom
 		if not padding_left is None:
-			css_string += 'padding-left:{}rem;'.format(padding_left/CHARACTER_SIZE_REM)
+			css_string += 'padding-left:{}rem;'.format(padding_left * REM_WIDTH_SCALE)
 			additional_width += padding_left
 		if not padding_right is None:
-			css_string += 'padding-right:{}rem;'.format(padding_right/CHARACTER_SIZE_REM)
+			css_string += 'padding-right:{}rem;'.format(padding_right * REM_WIDTH_SCALE)
 			additional_width += padding_right
 		if not background_color is None:
 			css_string += 'background-color:{};'.format(background_color)

@@ -116,6 +116,7 @@ class LayoutComponent (Layout):
 		self.on_click_handlers[id] = callback
 		return str(id)
 
+
 class LayoutView (LayoutComponent):
 	def __init__(self, item: Union[div, span], view: sublime.View) -> None:
 		super().__init__(item)
@@ -123,6 +124,7 @@ class LayoutView (LayoutComponent):
 		self._width = 0.0
 		self._height = 0.0
 		self._lightness = 0.0
+		self._rem_width_scale = 0.0
 		self.update()
 
 	def width(self) -> float:
@@ -134,18 +136,23 @@ class LayoutView (LayoutComponent):
 	def luminocity(self) -> float:
 		return self._lightness
 
+	def rem_width_scale(self):
+		return self._rem_width_scale
+
 	def update(self) -> None:
 		lightness = view_background_lightness(self.view)
 		font_size = self.view.settings().get('font_size') or 12
-		em_width = (self.view.em_width() or 12)
+		em_width = (self.view.em_width() or 7)
 		size = self.view.viewport_extent()
 		width = size[0] / em_width
 		height = size[1] / em_width
+		rem_width_scale = em_width / font_size
 
-		if self._width != width or self._height != height or self._lightness != lightness:
+		if self._width != width or self._height != height or self._lightness != lightness or self._rem_width_scale != rem_width_scale:
 			self._width = width
 			self._height = height
 			self._lightness = lightness
+			self._rem_width_scale = rem_width_scale
 			self.item.dirty()
 
 	def force_dirty(self) -> None:
