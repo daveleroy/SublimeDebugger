@@ -43,6 +43,7 @@ from .terminals import (
 	TerminalView,
 )
 from .watch import WatchView
+from .variables import Source
 
 from .view_hover import ViewHoverProvider
 from .view_selected_source import ViewSelectedSourceProvider
@@ -234,7 +235,7 @@ class Debugger:
 		frame = active_session.selected_frame
 
 		if thread and frame and frame.source:
-				self.source_provider.select(frame.source, frame.line, thread.stopped_reason or "Stopped")
+			self.source_provider.select(Source(frame.source, frame.line, frame.column), thread.stopped_reason or "Stopped")
 		else:
 			self.source_provider.clear()
 
@@ -305,8 +306,8 @@ class Debugger:
 			self.terminal.log_error(str(e))
 		core.run(awaitable, on_error=on_error)
 
-	def on_navigate_to_source(self, source: dap.Source, line: Optional[int]):
-		self.source_provider.navigate(source, line or 1)
+	def on_navigate_to_source(self, source: Source):
+		self.source_provider.navigate(source)
 
 	async def _on_play(self, no_debug=False) -> None:
 		self.show_console_panel()

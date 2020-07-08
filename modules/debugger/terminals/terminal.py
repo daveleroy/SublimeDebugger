@@ -5,14 +5,12 @@ from ...import (
 	ui,
 )
 from ..views import css
-from ..variables import VariableComponent, Variable
+from ..variables import VariableComponent, Variable, Source
 from ..autocomplete import Autocomplete
 
 import re
 import webbrowser
 import sublime
-
-Source = Tuple[dap.Source, Optional[int]]
 
 url_matching_regex = re.compile(r"((http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)") # from https://stackoverflow.com/questions/6038061/regular-expression-to-find-urls-within-a-string
 default_line_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
@@ -63,7 +61,7 @@ class Terminal:
 	def name(self) -> str:
 		return self._name
 
-	def clicked_source(self, source: dap.Source, line: Optional[int]) -> None:
+	def clicked_source(self, source: Source) -> None:
 		pass
 
 	def _add_line(self, type: str, text: str, source: Optional[Source] = None):
@@ -132,15 +130,18 @@ class LineSourceView (ui.span):
 			source_text = "{}@{}".format(self.name, self.line)
 		else:
 			source_text = self.name
+
+		source_text = source_text.rjust(self.text_width)
+
 		return [
 			ui.click(self.on_clicked_source)[
-				ui.text(source_text, css=css.label_secondary_padding)
+				ui.text(source_text, css=css.label_secondary)
 			]
 		]
 
 
 class LineView (ui.div):
-	def __init__(self, line: Line, max_line_length: int, on_clicked_source: Callable[[dap.Source, Optional[int]], None]) -> None:
+	def __init__(self, line: Line, max_line_length: int, on_clicked_source: Callable[[Source], None]) -> None:
 		super().__init__()
 		self.line = line
 		self.css = _css_for_type.get(line.type, css.label_secondary)
@@ -152,12 +153,12 @@ class LineView (ui.div):
 		if self.line.variable:
 			source = self.line.source
 			source_item = None
-			if source:
+			if self.line.source:
 				def on_clicked_source():
-					self.on_clicked_source(source[0], source[1])
-				source_item = LineSourceView(source[0].name or '??', source[1], 15, on_clicked_source)
+					self.on_clicked_source(self.line.source)
+				# source_item = LineSourceView(source[0].name or '??', source[1], 15, on_clicked_source)
 
-			component = VariableComponent(self.line.variable, item_right=source_item)
+			component = VariableComponent(self.line.variable, source=self.line.source, on_clicked_source=self.on_clicked_source)
 			return [component]
 
 
@@ -168,22 +169,30 @@ class LineView (ui.div):
 		leftover_line_length = max_line_length
 
 		# if we have a name/line put it to the right of the first line
-		source = self.line.source
-		if source:
-			leftover_line_length -= 15
+		source = None
+		if self.line.source:
+			source = self.line.source.name
 
-		def add_name_and_line_if_needed(padding):
+			# reserve at least the length of the label and a space before it to render the source button
+			leftover_line_length -= len(source)
+			leftover_line_length -= 1
+
+		def add_source_if_needed():
 			if not span_lines and source:
 				def on_clicked_source():
-					self.on_clicked_source(source[0], source[1])
+					self.on_clicked_source(self.line.source)
 
-				spans.append(LineSourceView(source[0].name or '??', source[1], 15, on_clicked_source))
+				source_text = source.rjust(leftover_line_length + len(source) + 1)
+
+				spans.append( ui.click(on_clicked_source)[
+					ui.text(source_text, css=css.label_secondary)
+				])
 
 		span_offset = 0
 		line_text = self.line.line
 		while span_offset < len(line_text):
 			if leftover_line_length <= 0:
-				add_name_and_line_if_needed(0)
+				add_source_if_needed()
 				span_lines.append(ui.div(height=css.row_height)[spans])
 				spans = []
 				leftover_line_length = max_line_length
@@ -195,7 +204,7 @@ class LineView (ui.div):
 			])
 			leftover_line_length -= len(text)
 
-		add_name_and_line_if_needed(leftover_line_length)
+		add_source_if_needed()
 		span_lines.append(ui.div(height=css.row_height)[spans])
 
 		if len(span_lines) == 1:
@@ -224,7 +233,7 @@ class LineView (ui.div):
 		self.clicked_menu = None
 
 class TerminalView (ui.div):
-	def __init__(self, terminal: Terminal, on_clicked_source: Callable[[dap.Source, Optional[int]], None]) -> None:
+	def __init__(self, terminal: Terminal, on_clicked_source: Callable[[Source], None]) -> None:
 		super().__init__()
 		self.terminal = terminal
 		self.terminal.on_updated.add(self._on_updated_terminal)
@@ -288,7 +297,7 @@ class TerminalView (ui.div):
 
 			if height >= max_height:
 					break
-	
+
 		lines.reverse()
 
 		if self.terminal.writeable():

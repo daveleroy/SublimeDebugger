@@ -194,13 +194,16 @@ class click (span):
 		html = '<a href={}>{}</a>'.format(href, self.html_inner(layout))
 		return html
 
+
 class icon (span):
 	def __init__(self, image: Image) -> None:
-		super().__init__(width=1, height=1, css=icon_css)
+		super().__init__(width=3, height=1, css=icon_css)
 		self.image = image
 
 	def html(self, layout: Layout) -> str:
-		return '''<span class="{}"><img style="width:1.6rem;height:1.6rem;" src="{}"></span>'''.format(self.className, self.image.data(layout))
+		actual_rem_width = 1.6 / layout.rem_width_scale()
+		required_padding = 3 - actual_rem_width
+		return f'''<span style="padding-right:{required_padding:.2f}rem;" class="{self.className}"><img style="width:1.6rem;height:1.6rem;" src="{self.image.data(layout)}"></span>'''
 
 import re
 tokenize_re = re.compile(

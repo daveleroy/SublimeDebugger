@@ -7,12 +7,14 @@ from .core import call_soon_threadsafe, create_future, coroutine, awaitable, sch
 from .event import Event
 from .error import Error
 
-async def sublime_open_file_async(window: sublime.Window, file: str, line: Optional[int] = None) -> sublime.View:
-	view = window.open_file(file)
+async def sublime_open_file_async(window: sublime.Window, file: str, line: Optional[int] = None, column: Optional[int] = None) -> sublime.View:
+	if line:
+		file += f':{line}'
+	if column:
+		file += f':{column}'
+
+	view = window.open_file(file, sublime.ENCODED_POSITION)
 	await wait_for_view_to_load(view)
-	if line is None:
-		return view
-	view.show(view.text_point(line, 0), True)
 	return view
 
 async def wait_for_view_to_load(view: sublime.View):

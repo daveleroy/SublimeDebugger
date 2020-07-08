@@ -5,6 +5,7 @@ from ..import ui
 from .views import css
 
 import sublime
+import dataclasses
 
 if TYPE_CHECKING:
 	from .debugger_session import DebuggerSession
@@ -92,6 +93,19 @@ class Variables:
 		self.variables.clear()
 		self.on_updated()
 
+@dataclasses.dataclass
+class Source:
+	source: dap.Source
+	line: Optional[int] = None
+	column: Optional[int] = None
+
+	@property
+	def name(self) -> str:
+		if self.column and line:
+			return f'{self.source.name}@{self.line}:{self.column}'
+		if self.line:
+			return f'{self.source.name}@{self.line}'
+		return self.source.name
 
 class VariableComponentState:
 	def __init__(self):
@@ -112,18 +126,19 @@ class VariableComponentState:
 
 
 class VariableComponent (ui.div):
-	def __init__(self, variable: Variable, syntax_highlight=True, item_right: Optional[ui.span] = None, state=VariableComponentState()) -> None:
+	def __init__(self, variable: Variable, source: Optional[Source] = None, on_clicked_source: Optional[Callable[[Source], None]] = None, state=VariableComponentState()) -> None:
 		super().__init__()
 		self.variable = variable
-		self.syntax_highlight = syntax_highlight
 		self.state = state
-		self.item_right = item_right or ui.span()
-		self.variable_children = [] #type: List[Variable]
+		self.item_right = ui.span()
+		self.variable_children: List[Variable] = []
 		self.edit_variable_menu = None
+		self.on_clicked_source = on_clicked_source
+		self.source = source
 
 		if self.state.is_expanded(self.variable):
 			self.set_expanded()
-			
+
 	@core.schedule
 	async def edit_variable(self) -> None:
 		if not isinstance(self.variable.reference, dap.Variable):
@@ -203,14 +218,9 @@ class VariableComponent (ui.div):
 					lambda: on_add_data_breakpoint(acessType),
 					labels.get(acessType) or "Break On Value Change"
 				))
-		
-		
-	
-
 		self.edit_variable_menu = ui.InputList(items, '{} {}'.format(variable.name, variable.value)).run()
 		await self.edit_variable_menu
 		self.edit_variable_menu = None
-		
 
 	@core.schedule
 	async def set_expanded(self) -> None:
@@ -232,18 +242,33 @@ class VariableComponent (ui.div):
 	def render(self) -> ui.div.Children:
 		v = self.variable
 		width = self.width(self.layout)
-		width -= css.label_secondary_padding.padding_width
 		width -= css.icon_sized_spacer.padding_width
 
-		name = v.name[0:int(width)]
-		width -= len(name)
+		name =  v.name[0:int(width)]
+		if name:
+			name += " "
+			width -= len(name)
+
 		value = v.value[0:int(width)]
+		width -= len(value)
 
-		value_item = ui.click(self.edit_variable)[
-			ui.text(name, css=css.label_secondary_padding),
-			ui.code(value) if self.syntax_highlight else ui.text(value, css=css.label),
-		]
+		if self.source:
+			source = self.source.name[0:int(width - 1)]
 
+		if name:
+			value_item = ui.click(self.edit_variable)[
+				ui.text(name, css=css.label_secondary),
+				ui.code(value),
+			]
+		else:
+			value_item = ui.click(self.edit_variable)[
+				ui.code(value),
+			]
+		if self.source and width > 0:
+			print(width)
+			self.item_right = ui.click(lambda: self.on_clicked_source(self.source))[
+				ui.text(source.rjust(int(width)), css=css.label_secondary)
+			]
 		if not self.variable.has_children:
 			return [
 				ui.div(height=css.row_height, width=100, css=css.icon_sized_spacer)[
@@ -269,9 +294,8 @@ class VariableComponent (ui.div):
 
 		variable_children = [] #type: List[ui.div]
 		count = self.state.number_expanded(self.variable)
-		syntax_highlight = count < 25
 		for variable in self.variable_children[:count]:
-			variable_children.append(VariableComponent(variable, syntax_highlight, state=self.state))
+			variable_children.append(VariableComponent(variable, state=self.state))
 
 		more_count = len(self.variable_children) - count
 		if more_count > 0:

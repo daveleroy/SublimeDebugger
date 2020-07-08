@@ -6,7 +6,7 @@ from ...import (
 	ui,
 )
 from .terminal import Terminal
-from ..variables import Variable
+from ..variables import Variable, Source
 
 if TYPE_CHECKING:
 	from ..debugger_session import DebuggerSession
@@ -44,7 +44,7 @@ class TermianlDebugger (Terminal):
 	def append_variable(self, session: DebuggerSession, variable: dap.Variable, source: Optional[dap.Source], line: Optional[int]):
 		v = Variable(session, variable)
 		if source:
-			self.add_variable(v, (source, line))
+			self.add_variable(v, Source(source, line))
 		else:
 			self.add_variable(v)
 
@@ -53,7 +53,7 @@ class TermianlDebugger (Terminal):
 			return
 
 		if source:
-			self.add(type, text, (source, line))
+			self.add(type, text, Source(source, line))
 		else:
 			self.add(type, text)
 

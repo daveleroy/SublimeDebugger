@@ -10,7 +10,7 @@ def variables_panel_width(layout):
 	view_width -= 45
 	used_width = VARIABLE_PANEL_MIN_WIDTH + PANEL_MIN_WIDTH
 	unused_width = max(view_width - used_width, 0)
-	return VARIABLE_PANEL_MIN_WIDTH + unused_width * 0.5
+	return int(VARIABLE_PANEL_MIN_WIDTH + unused_width * 0.5)
 
 
 def pages_panel_width(layout):
@@ -18,7 +18,7 @@ def pages_panel_width(layout):
 	view_width -= 45
 	used_width = VARIABLE_PANEL_MIN_WIDTH + PANEL_MIN_WIDTH
 	unused_width = max(view_width - used_width, 0)
-	return PANEL_MIN_WIDTH + unused_width * 0.5
+	return int(PANEL_MIN_WIDTH + unused_width * 0.5)
 
 
 def breakpoints_panel_width(layout):

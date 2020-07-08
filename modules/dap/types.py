@@ -54,18 +54,19 @@ class Thread:
 			name=json['name'],
 		)
 
+@dataclass
 class StackFrame:
-	normal = 1
-	label = 2
-	subtle = 3
+	normal: ClassVar[str] = 'normal'
+	label: ClassVar[str] = 'label'
+	subtle: ClassVar[str] = 'subtle'
 
-	def __init__(self, id: int, file: str, name: str, line: int, presentation: int, source: Optional['Source']) -> None:
-		self.id = id
-		self.name = name
-		self.file = file
-		self.line = line
-		self.presentation = presentation
-		self.source = source
+	id: int
+	file: str
+	name: str
+	line: int
+	column: int
+	presentation: int
+	source: Optional['Source']
 
 	@staticmethod
 	def from_json(frame: dict) -> 'StackFrame':
@@ -76,21 +77,13 @@ class StackFrame:
 			source = Source.from_json(source_json)
 			file = source.name or "??"
 
-		hint = frame.get('presentationHint', 'normal')
-
-		if hint == 'label':
-			presentation = StackFrame.label
-		elif hint == 'subtle':
-			presentation = StackFrame.subtle
-		else:
-			presentation = StackFrame.normal
-
 		return StackFrame(
 			frame['id'],
 			file,
 			frame['name'],
 			frame.get('line', 0),
-			presentation,
+			frame.get('column', 0),
+			frame.get('presentationHint', 'normal'),
 			source
 		)
 

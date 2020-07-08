@@ -44,7 +44,7 @@ class ViewHoverProvider(core.Disposables):
 
 			component = VariableComponent(Variable(session, variable))
 			component.toggle_expand()
-			ui.Popup(component, view, region.a, on_close=on_close)
+			ui.Popup(ui.div(width=100)[component], view, region.a, on_close=on_close)
 
 		# errors trying to evaluate a hover expression should be ignored
 		except dap.Error as e:
