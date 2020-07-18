@@ -6,6 +6,7 @@ from .views import css
 
 import sublime
 import dataclasses
+import os
 
 if TYPE_CHECKING:
 	from .debugger_session import DebuggerSession
@@ -99,13 +100,18 @@ class Source:
 	line: Optional[int] = None
 	column: Optional[int] = None
 
+	@staticmethod
+	def from_path(file, line, column) -> 'Source':
+		return Source(dap.Source(os.path.basename(file), file), line, column)
+
 	@property
 	def name(self) -> str:
-		if self.column and line:
+		if self.column and self.line:
 			return f'{self.source.name}@{self.line}:{self.column}'
 		if self.line:
 			return f'{self.source.name}@{self.line}'
-		return self.source.name
+
+		return self.source.name or "??"
 
 class VariableComponentState:
 	def __init__(self):

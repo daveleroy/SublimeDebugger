@@ -11,34 +11,48 @@ from ..autocomplete import Autocomplete
 import re
 import webbrowser
 import sublime
+import os
 
 url_matching_regex = re.compile(r"((http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)") # from https://stackoverflow.com/questions/6038061/regular-expression-to-find-urls-within-a-string
-default_line_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
-
+default_file_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
 
 class Line:
-	def __init__(self, type: Optional[str]):
+	def __init__(self, type: Optional[str], cwd: Optional[str] = None):
 		self.type = type
 		self.line = ''
-		self.source = None #type: Optional[Source]
-		self.variable = None #type: Optional[Variable]
+		self.cwd = cwd
+		self.source: Optional[Source] = None
+		self.variable: Optional[Variable] = None
 		self.finished = False
 
-	def add(self, text: str, source: Optional[Source], line_regex):
+	def add(self, text: str, source: Optional[Source], file_regex: Any):
 		if self.finished:
 			raise core.Error('line is already complete')
 
+		is_end_of_line = (text[-1] == '\n' or text[-1] == '\r')
+
 		self.source = self.source or source
-		self.line += text.rstrip('\r\n')
-		if text[-1] == '\n' or text[-1] == '\r':
-			self.finished = True
-			if not self.source and line_regex:
-				match = line_regex.match(self.line)
-				if match:
-					source = (dap.Source(None, match.group(1), 0, 0, None, []), int(match.group(2)))
-					line = int(match.group(2))
-					self.line = match.group(4)
-					self.source = source
+		self.line += text.rstrip('\r\n').replace('\t', '    ')
+
+		if is_end_of_line:
+			self.commit(file_regex)
+
+	def commit(self, file_regex):
+		self.finished = True
+
+		if match := file_regex.match(self.line):
+			groupdict = match.groupdict()
+			file = groupdict.get("file") or match.group(1)
+			line = int(groupdict.get("line") or match.group(2) or 1)
+			column = int(groupdict.get("column") or match.group(3) or 1)
+
+			if not os.path.isabs(file) and self.cwd:
+				file = os.path.join(self.cwd, file)
+
+			source = Source.from_path(file, line, column)
+
+			self.type = 'terminal.error'
+			self.source = source
 
 	def add_variable(self, variable: Variable, source: Optional[Source]):
 		if self.finished:
@@ -48,12 +62,17 @@ class Line:
 		self.variable = variable
 		self.source = source
 
+
 class Terminal:
-	def __init__(self, name: str):
-		self.lines = [] #type: List[Line]
+	def __init__(self, name: str, cwd: Optional[str] = None, file_regex: Optional[str] = None):
+		self.lines: List[Line] = []
+		self.cwd = cwd
 		self._name = name
-		self.on_updated = core.Event() #type: core.Event[None]
-		self.line_regex = default_line_regex
+		self.on_updated: core.Event[None] = core.Event()
+		if file_regex:
+			self.file_regex = re.compile(file_regex)
+		else:
+			self.file_regex = default_file_regex
 
 		self.new_line = True
 		self.escape_input = True
@@ -68,11 +87,11 @@ class Terminal:
 		if self.lines:
 			previous = self.lines[-1]
 			if not previous.finished and previous.type == type:
-				previous.add(text, source, self.line_regex)
+				previous.add(text, source, self.file_regex)
 				return
-		
-		line = Line(type)
-		line.add(text, source, self.line_regex)
+
+		line = Line(type, self.cwd)
+		line.add(text, source, self.file_regex)
 		self.lines.append(line)
 		self.on_updated.post()
 
@@ -82,8 +101,8 @@ class Terminal:
 			self._add_line(type, line, source)
 			source = None
 
-	def add_variable(self, variable, source: Optional[Source] = None):
-		line = Line(None)
+	def add_variable(self, variable: Variable, source: Optional[Source] = None):
+		line = Line(None, None)
 		line.add_variable(variable, source)
 		self.lines.append(line)
 		self.on_updated.post()
@@ -94,16 +113,18 @@ class Terminal:
 
 	def writeable(self) -> bool:
 		return False
+
 	def can_escape_input(self) -> bool:
 		return False
+
 	def writeable_prompt(self) -> str:
 		return ""
+
 	def write(self, text: str):
 		assert False, "Panel doesn't support writing"
 
 	def dispose(self):
 		pass
-
 
 
 _css_for_type = {
@@ -114,11 +135,13 @@ _css_for_type = {
 	"debugger.error": css.label_redish_secondary,
 	"debugger.info": css.label_secondary,
 	"debugger.output": css.label_secondary,
+
+	"terminal.output": css.label_secondary,
+	"terminal.error": css.label_redish,
 }
 
-
 class LineSourceView (ui.span):
-	def __init__(self, name: str, line: Optional[int], text_width: int, on_clicked_source):
+	def __init__(self, name: str, line: Optional[int], text_width: int, on_clicked_source: Callable[[], None]):
 		super().__init__()
 		self.on_clicked_source = on_clicked_source
 		self.name = name
@@ -152,16 +175,8 @@ class LineView (ui.div):
 	def get(self) -> ui.div.Children:
 		if self.line.variable:
 			source = self.line.source
-			source_item = None
-			if self.line.source:
-				def on_clicked_source():
-					self.on_clicked_source(self.line.source)
-				# source_item = LineSourceView(source[0].name or '??', source[1], 15, on_clicked_source)
-
 			component = VariableComponent(self.line.variable, source=self.line.source, on_clicked_source=self.on_clicked_source)
 			return [component]
-
-
 
 		span_lines = [] #type: List[ui.div]
 		spans = [] #type: List[ui.span]
@@ -184,13 +199,13 @@ class LineView (ui.div):
 
 				source_text = source.rjust(leftover_line_length + len(source) + 1)
 
-				spans.append( ui.click(on_clicked_source)[
+				spans.append(ui.click(on_clicked_source)[
 					ui.text(source_text, css=css.label_secondary)
 				])
 
 		span_offset = 0
 		line_text = self.line.line
-		while span_offset < len(line_text):
+		while span_offset < len(line_text) and max_line_length > 0:
 			if leftover_line_length <= 0:
 				add_source_if_needed()
 				span_lines.append(ui.div(height=css.row_height)[spans])
@@ -219,7 +234,10 @@ class LineView (ui.div):
 			ui.InputListItem(lambda: sublime.set_clipboard(text), "Copy"),
 		]
 		for match in url_matching_regex.findall(text):
-			values.insert(0, ui.InputListItem(lambda: webbrowser.open_new_tab(match[0]), "Open"))
+			values.insert(0, ui.InputListItem(lambda match=match: webbrowser.open_new_tab(match[0]), "Open"))
+
+		if self.line.source:
+			values.insert(0, ui.InputListItem(lambda: self.on_clicked_source(self.line.source), "Navigate"))
 
 		if self.clicked_menu:
 			values[0].run()
@@ -232,9 +250,10 @@ class LineView (ui.div):
 		await self.clicked_menu
 		self.clicked_menu = None
 
+
 class TerminalView (ui.div):
 	def __init__(self, terminal: Terminal, on_clicked_source: Callable[[Source], None]) -> None:
-		super().__init__()
+		super().__init__(css=css.padding_left)
 		self.terminal = terminal
 		self.terminal.on_updated.add(self._on_updated_terminal)
 		self.start_line = 0
@@ -281,9 +300,8 @@ class TerminalView (ui.div):
 		max_height = int((self.layout.height() - css.header_height)/css.row_height) - 1.0
 		count = len(self.terminal.lines)
 		start = 0
-		from ..views.layout import console_panel_width
 
-		width = self.width(self.layout)
+		width = self.width(self.layout) - self.css.padding_width
 		max_line_length = int(width)
 		if count > max_height:
 			start = self.start_line
@@ -308,9 +326,9 @@ class TerminalView (ui.div):
 				else:
 					text = 'line'
 
-				mode_toggle = ui.span(css=css.button)[ui.click(self.on_toggle_input_mode)[
-					ui.text(text, css=css.label_secondary),
-				]]
+				mode_toggle = ui.click(self.on_toggle_input_mode)[
+					ui.text(text, css=css.button_secondary),
+				]
 
 				input_line.append(mode_toggle)
 

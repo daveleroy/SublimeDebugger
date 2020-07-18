@@ -143,7 +143,7 @@ class Source:
 	emphasize = 2
 	deemphasize = 3
 
-	def __init__(self, name: Optional[str], path: Optional[str], sourceReference: int, presentationHint: int, origin: Optional[str], sources: List['Source']) -> None:
+	def __init__(self, name: Optional[str], path: Optional[str], sourceReference: int = 0, presentationHint: int = 1, origin: Optional[str] = None, sources: List['Source'] = []) -> None:
 		# no idea how there are supposed to be uniquely identified but there is an event LoadedSourceEvent that seems to assume they are
 		self.id = f'{name}~{path}~{sourceReference}'
 

@@ -75,10 +75,11 @@ class TtyProcess:
 
 
 class TerminalProcess (Terminal):
-	def __init__(self, cwd: str, args: List[str]) -> None:
-		super().__init__("Terminal")
-		directory = cwd or None # turn "" into None
-		self.process = TtyProcess(args, on_output=self.on_process_output, cwd=directory)
+	def __init__(self, cwd: Optional[str], args: List[str]) -> None:
+		cwd = cwd or None # turn "" into None
+
+		super().__init__("Terminal", cwd=cwd)
+		self.process = TtyProcess(args, on_output=self.on_process_output, cwd=cwd)
 
 	def pid(self) -> int:
 		return self.process.pid

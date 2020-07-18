@@ -17,9 +17,9 @@ class TerminalCommand(Terminal):
 			name = cmd and cmd[0]
 		if (not name):
 			name = "Untitled"
-		
+
 		self.background = arguments.get('background', False)
-		super().__init__(name)
+		super().__init__(name, arguments.get('working_dir'), arguments.get('file_regex'))
 
 		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
 		if 'name' in arguments:
@@ -30,7 +30,7 @@ class TerminalCommand(Terminal):
 		self.exec = DebuggerExec(sublime.active_window(), self.write_stdout, arguments)
 
 	def write_stdout(self, text: str):
-		self.add('stdout', text)
+		self.add('terminal.output', text)
 
 	async def wait(self) -> None:
 		await self.exec.wait()
