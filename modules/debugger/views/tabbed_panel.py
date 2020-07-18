@@ -1,7 +1,5 @@
 from ...typecheck import *
 from ...import ui
-
-from .layout import pages_panel_width
 from .import css
 
 import sublime
@@ -18,11 +16,14 @@ class TabbedPanelItem:
 		self.column = -1
 		self.row = -1
 
+
 class TabbedPanel(ui.div):
-	def __init__(self, items: List[TabbedPanelItem], selected_index: int) -> None:
+	def __init__(self, items: List[TabbedPanelItem], selected_index: int, width_scale: float, width_additional: float) -> None:
 		super().__init__()
 		self.items = items
 		self.selected_index = selected_index
+		self.width_scale = width_scale
+		self.width_additional = width_additional
 
 	def update(self, items: List[TabbedPanelItem]):
 		self.items = items
@@ -39,7 +40,7 @@ class TabbedPanel(ui.div):
 			if item.id == id:
 				self.items.remove(item)
 				break
-		
+
 		if len(self.items) < self.selected_index:
 			self.selected_index = 0
 		self.dirty()
@@ -83,36 +84,27 @@ class TabbedPanel(ui.div):
 		if not self.items:
 			return []
 
+		width = (self.layout.width() + self.width_additional) * self.width_scale
+
 		tabs = [] #type: List[ui.span]
 		for index, item in enumerate(self.items):
 			if not item.visible:
 				continue
 
 			tabs.append(ui.click(lambda index=index: self.show(index))[ #type: ignore
-				Tab(item, index == self.selected_index)
+				ui.span(css=css.tab_panel_selected if index == self.selected_index else css.tab_panel)[
+					ui.spacer(1),
+					ui.text(item.name, css=css.label_secondary),
+					ui.spacer(2),
+				]
 			])
 		return [
-			ui.div(height=css.header_height)[tabs],
-			ui.div(width=pages_panel_width(self.layout), height=1000, css=css.rounded_panel)[
+			ui.div(width=width, height=css.header_height)[
+				ui.align()[
+					tabs
+				]
+			],
+			ui.div(width=width, height=1000, css=css.rounded_panel)[
 				self.items[self.selected_index].item
 			],
 		]
-
-class Tab (ui.span):
-	def __init__(self, item: TabbedPanelItem, selected: bool) -> None:
-		super().__init__(height=css.header_height, css=css.tab_panel_selected if selected else css.tab_panel)
-		name = item.name.upper().ljust(20)
-
-		if not selected and item.modified:
-			self.items = [
-				ui.text(name, css=css.label_secondary),
-				ui.text('◯', css=css.label_secondary),
-			]
-		else:
-			self.items = [
-				ui.text(name, css=css.label_secondary),
-				ui.text(' ', css=css.label_secondary),
-			]
-
-	def render(self) -> ui.span.Children:
-		return self.items

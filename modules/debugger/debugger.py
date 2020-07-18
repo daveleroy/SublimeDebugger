@@ -181,7 +181,7 @@ class Debugger:
 		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
 
 		# middle panels
-		self.middle_panel = TabbedPanel([], 0)
+		self.middle_panel = TabbedPanel([], 0, width_scale=0.666, width_additional=-40)
 
 		self.terminal_view = TerminalView(self.terminal, self.on_navigate_to_source)
 
@@ -192,7 +192,7 @@ class Debugger:
 		])
 
 		# right panels
-		self.right_panel = TabbedPanel([], 0)
+		self.right_panel = TabbedPanel([], 0, width_scale=0.333, width_additional=-40)
 
 		self.variables_panel = VariablesPanel(self.sessions)
 		self.modules_panel = ModulesView(self.sessions)
