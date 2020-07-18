@@ -68,6 +68,11 @@ class DebuggerProject(core.disposables):
 		data = window.project_data() or {}
 		data.setdefault('settings', {}).setdefault('debug.configurations', [])
 		window.set_project_data(data)
+
+		self.settings = sublime.load_settings('debugger.sublime-settings')
+		self.settings_key = "DebuggerProject." + str(id(self))
+		self.settings.add_on_change(self.settings_key, self.reload)
+
 		self.reload()
 
 	@core.schedule
