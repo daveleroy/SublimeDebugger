@@ -6,7 +6,6 @@ from ...import dap
 from ..debugger_session import DebuggerSession, Thread
 from ..debugger_sessions import DebuggerSessions
 
-from .layout import callstack_panel_width
 from . import css
 
 import os
@@ -137,25 +136,23 @@ class ThreadView (ui.div):
 
 		if expandable:
 			thread_item = ui.div(height=css.row_height)[
-				ui.click(self.toggle_expand)[
-					ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close),
-				],
-				ui.click(self.on_select_thread)[
-					ui.span(height=1.0, css=css.button)[
-						ui.icon(ui.Images.shared.thread_running),
+				ui.align()[
+					ui.click(self.toggle_expand)[
+						ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close),
 					],
-					ui.text(self.thread.name, css=css.label_padding),
-					ui.text(self.thread.stopped_reason, css=css.label_secondary),
-				],
+					ui.click(self.on_select_thread)[
+						ui.text(self.thread.name, css=css.label),
+						ui.spacer(1),
+						ui.text(self.thread.stopped_reason, css=css.label_secondary),
+					],
+				]
 			]
 		else:
 			thread_item = ui.div(height=css.row_height)[
 				ui.icon(ui.Images.shared.loading),
 				ui.click(self.on_select_thread)[
-					ui.span(height=1.0, css=css.button)[
-						ui.icon(ui.Images.shared.thread_running),
-					],
-					ui.text(self.thread.name, css=css.label_padding),
+					ui.text(self.thread.name, css=css.label),
+					ui.spacer(1),
 					ui.text(self.thread.stopped_reason, css=css.label_secondary),
 				],
 			]
@@ -170,7 +167,7 @@ class ThreadView (ui.div):
 			return [
 				thread_item,
 				ui.div()[
-					[StackFrameComponent(self.session, frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame)) for frame in self.frames] #type: ignore
+					[StackFrameComponent(self.session, frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame), self.show_thread_name) for frame in self.frames] #type: ignore
 				]
 			]
 		else:
@@ -178,11 +175,11 @@ class ThreadView (ui.div):
 
 
 class StackFrameComponent (ui.div):
-	def __init__(self, session: DebuggerSession, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None]) -> None:
+	def __init__(self, session: DebuggerSession, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None], show_thread_name: bool) -> None:
 		super().__init__()
 		self.frame = frame
 		self.on_click = on_click
-
+		self.show_thread_name = show_thread_name
 		if is_selected:
 			self.add_class(css.selected.class_name)
 
@@ -191,24 +188,26 @@ class StackFrameComponent (ui.div):
 		frame = self.frame
 		name = os.path.basename(frame.file)
 		if frame.presentation == dap.StackFrame.subtle:
-			label_padding = css.label_secondary_padding
+			css_label = css.label_secondary
 		else:
-			label_padding = css.label_padding
+			css_label = css.label
 
 		line_str = str(frame.line)
+
 		file_and_line = ui.click(self.on_click)[
-			ui.span(css=css.button)[
-				ui.text(line_str, css=css.label),
-			],
-			# this width calcualtion is annoying ...
-			ui.text_align(width - css.table_inset.padding_width - css.panel_padding - css.label.padding_width - len(line_str) - css.button.padding_width, [
-				ui.text(name, css=label_padding),
-				ui.text(frame.name, css=css.label_secondary),
-			])
+			ui.align()[
+				ui.spacer([1, 3][self.show_thread_name]),
+				ui.text(frame.name, css=css_label),
+				ui.spacer(min=1),
+				ui.text(name, css=css.label_secondary),
+				ui.spacer(1),
+				ui.text(line_str, css=css.button),
+				ui.spacer(1),
+			]
 		]
 
 		return [
-			ui.div(height=css.row_height, css=css.icon_sized_spacer)[
+			ui.div(height=css.row_height)[
 				file_and_line,
 			]
 		]
