@@ -3,12 +3,12 @@ from .. import core
 from .render import *
 
 from .html import div, span, text, icon, click, code
-from .css import css
+from .style import css
 
 from .layout import *
 from .image import *
 from .input import *
-from .align import text_align
+from .align import *
 
 _update_timer = None #type: Optional[Timer]
 

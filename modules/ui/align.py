@@ -1,20 +1,103 @@
 from ..typecheck import *
-from . html import text, span
-from . css import css
+from . html import span, click, alignable
+from . layout import Layout
 
 
-def text_align(width, values: Sequence[text]) -> span:
-	items = [] #type: List[text]
-	for text in values:
-		css = text.css
-		string = text.text
-		if width < css.padding_width:
-			return span()[items]
+class spacer (span):
+	def __init__(self, width: Optional[int] = None, min: Optional[int] = None):
+		super().__init__(width, None, None)
+		self.flex_width = width
+		self.flex_width_min = min
 
-		width -= css.padding_width
-		string = string[0:int(width)]
-		width -= len(string)
-		text.text = string
-		items.append(text)
+	def required(self):
+		if self.flex_width is not None:
+			return self.flex_width
 
-	return span()[items]
+		if self.flex_width_min is not None:
+			return self.flex_width_min
+
+		return 0
+
+	def resize(self, leftover: int = None) -> int:
+		if self.flex_width is not None:
+			return 0
+
+		width = leftover + (self.flex_width_min or 0)
+		self._width = width
+		self.flex_width = width
+		return leftover
+
+	def html(self, layout: Layout) -> str:
+		return '\u00A0' * self.flex_width
+
+
+class align (span):
+	def __init__(self, priority: float = 1.0):
+		super().__init__()
+		self.flex_priority = priority
+
+	def html(self, layout: Layout):
+		elements = self.children
+		width = int(self.width(layout) * self.flex_priority)
+
+		# how much space was leftover that we can use to fill out any spacers
+		leftover = width
+		# how much space we need for items we can't resize
+		required = 0
+
+		resizeables = []
+		spacers = []
+
+		def calculate(element):
+			nonlocal leftover
+			nonlocal required
+
+			if type(element) == spacer:
+				w = element.required()
+				leftover -= w
+				required += w
+				spacers.append(element)
+
+			elif isinstance(element, alignable):
+				required += int(element.css.padding_width)
+				leftover -= int(element.css.padding_width)
+				required += element.align_required
+				leftover -= element.align_desired
+				resizeables.append(element)
+
+			elif type(element) == span or type(element) == click:
+				required += int(element.css.padding_width)
+				leftover -= int(element.css.padding_width)
+				for element in element.children or []:
+					calculate(element)
+
+			# don't look into any other elements just use their width calculation...
+			else:
+				w = int(element.width(layout))
+				leftover -= w
+				required += w
+
+		for element in elements:
+			calculate(element)
+
+		width_for_spacers = max(leftover, 0)
+		width_for_resizeables = max(width - required, 0)
+
+		def sort_by_align_desired(v):
+			return v.align_desired
+
+		resizeables.sort(key=sort_by_align_desired, reverse=False)
+
+		for element in spacers:
+			width_for_spacers -= element.resize(width_for_spacers)
+
+		# divvy up the resizable space equally
+		resizeables_left = len(resizeables)
+		for element in resizeables:
+			max_width = int(width_for_resizeables/resizeables_left)
+			w = min(max_width, element.align_desired)
+			element.align(w)
+			width_for_resizeables -= w
+			resizeables_left -= 1
+
+		return super().html(layout)

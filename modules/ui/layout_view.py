@@ -2,7 +2,7 @@ from ..typecheck import *
 from ..import core
 from . html import div, span, phantom_sizer, element
 from . layout import Layout
-from . css import css
+from . style import css
 from . image import view_background_lightness
 
 import os

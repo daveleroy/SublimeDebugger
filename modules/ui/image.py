@@ -8,11 +8,11 @@ import os
 
 def _path_for_image(name): #type: (str) -> str
 	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region?
-	return 'Packages/{}/images/{}'.format(core.current_package_name(), name)
+	return f'Packages/{core.current_package_name()}/images/{name}'
 
 def _data_image_png_b64_png_from_resource(path: str) -> str:
 	png_data = sublime.load_binary_resource(path)
-	return "data:image/png;base64,{}".format(base64.b64encode(png_data).decode('ascii'))
+	return f'data:image/png;base64,{base64.b64encode(png_data).decode("ascii")}'
 
 
 def view_background_lightness(view: sublime.View) -> float:
@@ -38,8 +38,8 @@ class Image:
 
 	@staticmethod
 	def named_light_dark(name: str) -> 'Image':
-		light = _path_for_image("light/{}".format(name))
-		dark = _path_for_image("dark/{}".format(name))
+		light = _path_for_image(f'light/{name}')
+		dark = _path_for_image(f'dark/{name}')
 		return Image(dark, light)
 
 	def __init__(self, file_dark: str, file_light: str) -> None:
