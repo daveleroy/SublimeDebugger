@@ -70,10 +70,9 @@ class BreakpointsPanel(ui.div):
 			for breakpoint in breakpoints: #type: ignore
 				if breakpoint.tag:
 					tag_and_name = [
-						ui.span(css=css.button)[
-							ui.text(breakpoint.tag, css=css.label),
-						],
-						ui.text(breakpoint.name, css=css.label_secondary_padding),
+						ui.text(breakpoint.name, css=css.label_secondary),
+						ui.spacer(),
+						ui.text(breakpoint.tag, css=css.button),
 					]
 				else:
 					tag_and_name = [
@@ -81,11 +80,13 @@ class BreakpointsPanel(ui.div):
 					]
 
 				items.append(ui.div(height=css.row_height)[
-					ui.click(lambda breakpoint=breakpoint: self.on_toggle(breakpoint))[ #type: ignore
-						ui.icon(breakpoint.image),
-					],
-					ui.click(lambda breakpoint=breakpoint: self.on_select(breakpoint))[ #type: ignore
-						tag_and_name
+					ui.align()[
+						ui.click(lambda breakpoint=breakpoint: self.on_toggle(breakpoint))[ #type: ignore
+							ui.icon(breakpoint.image),
+						],
+						ui.click(lambda breakpoint=breakpoint: self.on_select(breakpoint))[ #type: ignore
+							tag_and_name
+						]
 					]
 				])
 
