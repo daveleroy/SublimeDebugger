@@ -39,6 +39,9 @@ class DebuggerSessions:
 		return iter(self.sessions)
 
 	async def launch(self, breakpoints: Breakpoints, adapter: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False):
+		for session in self.sessions:
+			if configuration.id_ish == session.configuration.id_ish:
+				await session.stop()
 
 		def on_state_changed(session, value):
 			self.updated(session, value)
