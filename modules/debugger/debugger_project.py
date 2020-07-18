@@ -8,8 +8,8 @@ import sublime
 import json
 
 
-_phantom_text = " \u200F\u200F\u200F\u200F\u200F"
-_panel_position = 7
+_phantom_text = "\u200F\u200F\u200F\u200F\u200F"
+_panel_position = 0
 
 class DebuggerProject(core.disposables):
 	def __init__(self, window: sublime.Window):
@@ -46,14 +46,15 @@ class DebuggerProject(core.disposables):
 		self.panel.run_command('insert', {
 			'characters': _phantom_text
 		})
+
 		settings = self.panel.settings()
 		settings.set("margin", 0)
 		settings.set('line_padding_top', 1)
 		settings.set('gutter', False)
-		settings.set('word_wrap', False)
+		settings.set('word_wrap', True)
 		settings.set('line_spacing', 0)
 		settings.set('context_menu', 'Widget Debug.sublime-menu')
-
+		settings.set('draw_centered', True)
 		self.panel.sel().clear()
 
 		# hack to get view to not freak out when clicking the edge of the window

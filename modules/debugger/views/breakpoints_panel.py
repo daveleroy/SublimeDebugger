@@ -10,18 +10,19 @@ from ..breakpoints import (
 	ExceptionBreakpointsFilter,
 )
 
-from .layout import breakpoints_panel_width
 from .import css
+from ..variables import Source
 
 import os
 import sublime
 
 
 class BreakpointsPanel(ui.div):
-	def __init__(self, breakpoints: Breakpoints) -> None:
+	def __init__(self, breakpoints: Breakpoints, on_navigate: Callable[[Source], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
 		self.selected = None
+		self.on_navigate = on_navigate
 		# FIXME put in on activate/deactivate
 		breakpoints.source.on_updated.add(self._updated)
 		breakpoints.filters.on_updated.add(self._updated)
@@ -42,6 +43,7 @@ class BreakpointsPanel(ui.div):
 			self.breakpoints.filters.edit(breakpoint).run()
 			return
 		if isinstance(breakpoint, SourceBreakpoint):
+			self.on_navigate(Source.from_path(breakpoint.file, breakpoint.line, breakpoint.column))
 			self.breakpoints.source.edit(breakpoint).run()
 			return
 
