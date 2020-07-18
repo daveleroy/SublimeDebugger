@@ -248,49 +248,49 @@ class VariableComponent (ui.div):
 	def render(self) -> ui.div.Children:
 		v = self.variable
 		width = self.width(self.layout)
-		width -= css.icon_sized_spacer.padding_width
 
-		name =  v.name[0:int(width)]
-		if name:
-			name += " "
-			width -= len(name)
-
-		value = v.value[0:int(width)]
-		width -= len(value)
+		name =  v.name
+		value = v.value
 
 		if self.source:
-			source = self.source.name[0:int(width - 1)]
+			source = self.source.name
 
 		if name:
 			value_item = ui.click(self.edit_variable)[
 				ui.text(name, css=css.label_secondary),
+				ui.spacer(1),
 				ui.code(value),
 			]
 		else:
 			value_item = ui.click(self.edit_variable)[
 				ui.code(value),
 			]
-		if self.source and width > 0:
-			print(width)
+		if self.source:
 			self.item_right = ui.click(lambda: self.on_clicked_source(self.source))[
-				ui.text(source.rjust(int(width)), css=css.label_secondary)
+				ui.spacer(min=1),
+				ui.text(source, css=css.label_secondary)
 			]
 		if not self.variable.has_children:
 			return [
-				ui.div(height=css.row_height, width=100, css=css.icon_sized_spacer)[
-					value_item,
-					self.item_right
+				ui.div(height=css.row_height)[
+					ui.align()[
+						ui.spacer(1),
+						value_item,
+						self.item_right,
+					],
 				],
 			]
 
 		is_expanded = self.state.is_expanded(self.variable)
 
-		variable_label = ui.div(height=css.row_height, width=100)[
-			ui.click(self.toggle_expand)[
-				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close)
-			],
-			value_item,
-			self.item_right
+		variable_label = ui.div(height=css.row_height)[
+			ui.align()[
+				ui.click(self.toggle_expand)[
+					ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close)
+				],
+				value_item,
+				self.item_right,
+			]
 		]
 
 		if not is_expanded:
