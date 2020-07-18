@@ -42,15 +42,17 @@ class ModulesView(ui.div):
 			items.append(ui.div(height=css.row_height)[
 				ui.text(session.name)
 			])
-				
+
 			for module in session.modules.values():
 				is_expanded = self.is_expanded(module)
 				image_toggle = ui.Images.shared.open if is_expanded else ui.Images.shared.close
 				item = ui.div(height=css.row_height)[
-					ui.click(lambda module=module: self.toggle_expanded(module))[ #type: ignore
-						ui.icon(image_toggle),
-					],
-					ui.text(module.name)
+					ui.align()[
+						ui.click(lambda module=module: self.toggle_expanded(module))[ #type: ignore
+							ui.icon(image_toggle),
+						],
+						ui.text(module.name)
+					]
 				]
 				items.append(item)
 				if is_expanded:
@@ -67,9 +69,11 @@ class ModulesView(ui.div):
 						value_str = str(value)
 						body.append(
 							ui.div(height=3)[
-								ui.click(copy)[
-									ui.text(label, css=css.label_secondary_padding),
-									ui.text(value_str, css=css.label),
+								ui.align()[
+									ui.click(copy)[
+										ui.text(label, css=css.label_secondary_padding),
+										ui.text(value_str, css=css.label),
+									]
 								]
 							]
 						)
