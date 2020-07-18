@@ -14,8 +14,7 @@ class LLDBTransport(SocketTransport):
 
 		line = self.process.stdout.readline().decode('utf-8')
 		result = re.match(r'Listening on port (.*)', line)
-		if result:
-			port = int(result.group(1))
+		port = int(result.group(1))
 
 		super().__init__(log, 'localhost', port, cwd)
 
@@ -78,9 +77,9 @@ class LLDB(adapter.Adapter):
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> list:
+	def configuration_snippets(self) -> Optional[list]:
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> dict:
+	def configuration_schema(self) -> Optional[dict]:
 		return adapter.vscode.configuration_schema(self.type)

@@ -46,11 +46,11 @@ class Python(adapter.Adapter):
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> list:
+	def configuration_snippets(self) -> Optional[list]:
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> dict:
+	def configuration_schema(self) -> Optional[dict]:
 		return adapter.vscode.configuration_schema(self.type)
 
 	# TODO: patch in env since python seems to not inherit it from the adapter proccess.

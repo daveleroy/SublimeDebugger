@@ -63,7 +63,6 @@ class ExternalTerminalTerminus(ExternalTerminal):
 				view.close()
 
 
-
 class ExternalTerminalMacDefault(ExternalTerminal):
 	OSX_TERMINAL_SCRIPT = os.path.join(os.path.dirname(__file__), 'scripts', 'TerminalHelper.scpt')
 	#OSX_ITERM_SCRIPT = os.path.join(os.path.dirname(__file__), 'iTermHelper.scpt')

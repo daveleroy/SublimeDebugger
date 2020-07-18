@@ -43,9 +43,9 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		breakpoints: Breakpoints,
 		watch: Watch,
 		terminals: Terminals,
-		on_state_changed: Callable[[int], None],
-		on_output: Callable[[dap.OutputEvent], None],
-		on_selected_frame: Callable[[Optional[dap.StackFrame]], None],
+		on_state_changed: Callable[[DebuggerSession, int], None],
+		on_output: Callable[[DebuggerSession, dap.OutputEvent], None],
+		on_selected_frame: Callable[[DebuggerSession, Optional[dap.StackFrame]], None],
 		transport_log: core.Logger,
 	) -> None:
 

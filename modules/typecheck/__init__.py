@@ -1,11 +1,9 @@
 # this is for mypy
 # we add our own stubs so we don't need to escape types
-try:
-	from typing import *
-except:
-	from .typing import * #type: ignore
+
+from typing import *
 
 try:
-	from typing_extensions import Protocol
+	from typing_extensions import Protocol #type: ignore
 except:
-	from .typing import Protocol
+	from .typing import Protocol #type: ignore

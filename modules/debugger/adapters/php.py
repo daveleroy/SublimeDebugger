@@ -43,11 +43,11 @@ class PHP(adapter.Adapter):
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> list:
+	def configuration_snippets(self) -> Optional[list]:
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> dict:
+	def configuration_schema(self) -> Optional[dict]:
 		return adapter.vscode.configuration_schema(self.type)
 
 	def on_hover_provider(self, view, point):

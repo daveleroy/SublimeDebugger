@@ -40,10 +40,10 @@ def wait(fs: Iterable[awaitable[T]]):
 def sleep(delay: float) -> Awaitable[None]:
 	return asyncio.sleep(delay, loop=sublime_event_loop)
 
-def schedule(func: Callable[[awaitable[T]], None], *args):
+def schedule(func: T, *args):
 	def wrap(*args):
-		return asyncio.ensure_future(func(*args), loop=sublime_event_loop)
-	wrap.__name__ = func.__name__
+		return asyncio.ensure_future(func(*args), loop=sublime_event_loop) #type: ignore
+	wrap.__name__ = func.__name__ #type: ignore
 	return wrap
 
 def run(awaitable: awaitable[T], on_done: Callable[[T], None] = None, on_error: Callable[[Exception], None] = None) -> future:

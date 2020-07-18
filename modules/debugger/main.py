@@ -19,6 +19,7 @@ def startup() -> None:
 	for window in sublime.windows():
 		open(window)
 
+
 def shutdown() -> None:
 	core.log_info('shutdown')
 	for key, instance in dict(Debugger.instances).items():
@@ -33,7 +34,7 @@ def exit() -> None:
 
 def open(window_or_view: Union[sublime.View, sublime.Window]):
 	if isinstance(window_or_view, sublime.View):
-		view = window_or_view 
+		view = window_or_view
 		window = view.window()
 	else:
 		window = window_or_view

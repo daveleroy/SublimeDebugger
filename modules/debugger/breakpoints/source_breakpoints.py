@@ -31,8 +31,7 @@ class SourceBreakpoint:
 
 	@property
 	def name(self) -> str:
-		base, name = os.path.split(self._file)
-		return name
+		return os.path.basename(self._file)
 
 	@property
 	def file(self):

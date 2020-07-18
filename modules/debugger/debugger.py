@@ -60,7 +60,6 @@ from .views.tabbed_panel import TabbedPanel, TabbedPanelItem
 from .views.selected_line import SelectedLine
 from .debugger_log_output_panel import DebuggerLogOutputPanel
 
-
 class Debugger:
 
 	instances = {} #type: Dict[int, Debugger]
@@ -107,7 +106,6 @@ class Debugger:
 		return instance
 
 	def __init__(self, window: sublime.Window) -> None:
-
 		self.window = window
 		self.disposeables = [] #type: List[Any]
 
@@ -122,7 +120,6 @@ class Debugger:
 		
 		self.transport_log = DebuggerLogOutputPanel(self.window)
 		self.disposeables.append(self.transport_log)
-
 		autocomplete = Autocomplete.create_for_window(window)
 
 		def on_output(session:DebuggerSession, event: dap.OutputEvent) -> None:
@@ -177,7 +174,7 @@ class Debugger:
 		self.terminal.on_updated.add(on_terminal_updated)
 
 		#left panels
-		self.breakpoints_panel = BreakpointsPanel(self.breakpoints)
+		self.breakpoints_panel = BreakpointsPanel(self.breakpoints, self.on_navigate_to_source)
 		self.debugger_panel = DebuggerPanel(self, self.breakpoints_panel)
 
 		# middle panels
@@ -203,6 +200,7 @@ class Debugger:
 			TabbedPanelItem(self.modules_panel, self.modules_panel, 'Modules'),
 			TabbedPanelItem(self.sources_panel, self.sources_panel, 'Sources'),
 		])
+
 		self.update_modules_visibility()
 		self.update_sources_visibility()
 
@@ -337,9 +335,8 @@ class Debugger:
 
 			elif isinstance(self.configuration, Configuration):
 				configurations = [self.configuration]
-			else: 
+			else:
 				raise core.Error('unreachable')
-			
 
 		except Exception as e:
 			core.log_exception()

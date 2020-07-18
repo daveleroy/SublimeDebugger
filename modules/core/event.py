@@ -1,7 +1,5 @@
 from ..typecheck import *
 
-from .core import call_soon_threadsafe
-
 T = TypeVar('T')
 
 class Handle (Generic[T]):
@@ -43,4 +41,4 @@ class Event (Generic[T]):
 		r = False
 		for h in self.handlers:
 			r = r or h.callback(*data)
-		return r
+		return bool(r)

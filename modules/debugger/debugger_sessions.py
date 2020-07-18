@@ -72,17 +72,24 @@ class DebuggerSessions:
 		run()
 
 	def add_session(self, session: DebuggerSession):
-		session.on_updated_modules.add(lambda: self.on_updated_modules(session))
-		session.on_updated_sources.add(lambda: self.on_updated_sources(session))
-		session.on_updated_variables.add(lambda: self.on_updated_variables(session))
-		session.on_updated_threads.add(lambda: self.on_updated_threads(session))
+
+		def on_updated_modules(): self.on_updated_modules(session)
+		def on_updated_sources(): self.on_updated_sources(session)
+		def on_updated_variables(): self.on_updated_variables(session)
+		def on_updated_threads(): self.on_updated_threads(session)
+
+		session.on_updated_modules.add(on_updated_modules)
+		session.on_updated_sources.add(on_updated_sources)
+		session.on_updated_variables.add(on_updated_variables)
+		session.on_updated_threads.add(on_updated_threads)
+
 		self.sessions.append(session)
 		self.on_added_session(session)
 
 	def remove_session(self, session: DebuggerSession):
 		self.sessions.remove(session)
 		self.on_removed_session(session)
-		
+
 		if self.selected_session == session:
 			self.selected_session = None
 			self.on_selected(session)
@@ -102,7 +109,7 @@ class DebuggerSessions:
 			return self.sessions[0]
 
 		raise core.Error("No active debug sessions")
-	
+
 	@active.setter
 	def active(self, session: DebuggerSession):
 		self.selected_session = session
