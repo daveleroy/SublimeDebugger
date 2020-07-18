@@ -229,7 +229,7 @@ class Debugger:
 		if not self.sessions.has_active:
 			self.source_provider.clear()
 			return
-		
+
 		active_session = self.sessions.active
 		thread = active_session.selected_thread
 		frame = active_session.selected_frame
@@ -247,7 +247,8 @@ class Debugger:
 				self.show_console_panel()
 
 		elif state == DebuggerSession.running:
-			...
+			self.show_console_panel()
+
 		elif state == DebuggerSession.paused:
 			if self.project.bring_window_to_front_on_pause:
 				# is there a better way to bring sublime to the front??
