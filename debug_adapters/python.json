@@ -1,9 +1,9 @@
 {
 	"command" : [
-		"node",
-		"${install_path}/extension/out/client/debugger/debugAdapter/main.js"
+		"python",
+		"${install_path}/extension/pythonFiles/lib/python/debugpy/adapter"
 	],
-	"dependencies": ["node"],
+	"dependencies": [],
 	"install": {
 		"name": "vscode-python",
 		"type": "vscode",
