@@ -20,8 +20,11 @@ from .types import *
 from .transport import Transport
 from .transport import TransportProtocol
 
+
 class ClientEventsListener (Protocol):
 	# events
+	def on_initialized_event(self):
+		...
 	def on_breakpoint_event(self, event: BreakpointEvent):
 		...
 	def on_module_event(self, event: ModuleEvent):
@@ -59,7 +62,6 @@ class Client:
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
 		self.is_running = True
-		self._on_initialized_future = core.create_future()
 
 	def dispose(self) -> None:
 		print('disposing Debugger')
@@ -138,9 +140,6 @@ class Client:
 			'sourceReference': source.sourceReference
 		})
 		return body['content']
-
-	async def Initialized(self) -> None:
-		await self._on_initialized_future
 
 	async def Evaluate(self, expression: str, frame: Optional[StackFrame], context: Optional[str]) -> Optional[EvaluateResponse]:
 		frameId = None #type: Optional[int]
@@ -265,9 +264,6 @@ class Client:
 			return Variable.from_json(variablesReference, v)
 
 		return array_from_json(from_json, response['variables'])
-
-	def _on_initialized(self) -> None:
-		self._on_initialized_future.set_result(None)
 
 	def _on_continued(self, body: dict) -> None:
 		threadId = body['threadId']
@@ -434,20 +430,23 @@ class Client:
 			event = data['event']
 
 			if event == 'initialized':
-				return core.call_soon(self._on_initialized)
-			if event == 'output':
-				return core.call_soon(self.events.on_output_event, OutputEvent.from_json(event_body))
-			if event == 'continued':
-				return core.call_soon(self._on_continued, event_body)
-			if event == 'stopped':
-				return core.call_soon(self._on_stopped, event_body)
-			if event == 'terminated':
-				return core.call_soon(self._on_terminated, event_body)
-			if event == 'thread':
-				return core.call_soon(self.events.on_threads_event, ThreadEvent.from_json(event_body))
-			if event == 'breakpoint':
-				return core.call_soon(self.events.on_breakpoint_event, BreakpointEvent.from_json(event_body))
-			if event == 'module':
-				return core.call_soon(self.events.on_module_event, ModuleEvent(event_body))
-			if event == 'loadedSource':
-				return core.call_soon(self.events.on_loaded_source_event, LoadedSourceEvent(event_body))
+				core.call_soon(self.events.on_initialized_event)
+			elif event == 'output':
+				core.call_soon(self.events.on_output_event, OutputEvent.from_json(event_body))
+			elif event == 'continued':
+				core.call_soon(self._on_continued, event_body)
+			elif event == 'stopped':
+				core.call_soon(self._on_stopped, event_body)
+			elif event == 'terminated':
+				core.call_soon(self._on_terminated, event_body)
+			elif event == 'thread':
+				core.call_soon(self.events.on_threads_event, ThreadEvent.from_json(event_body))
+			elif event == 'breakpoint':
+				core.call_soon(self.events.on_breakpoint_event, BreakpointEvent.from_json(event_body))
+			elif event == 'module':
+				core.call_soon(self.events.on_module_event, ModuleEvent(event_body))
+			elif event == 'loadedSource':
+				core.call_soon(self.events.on_loaded_source_event, LoadedSourceEvent(event_body))
+			else:
+				# TODO should be logged that we aren't handling this event
+				...

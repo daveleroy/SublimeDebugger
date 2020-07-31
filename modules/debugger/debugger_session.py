@@ -183,29 +183,6 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		)
 		self.adapter = adapter
 
-		# this is a bit of a weird case. Initialized will happen at some point in time
-		# it depends on when the debug adapter chooses it is ready for configuration information
-		# when it does happen we can then add all the breakpoints and complete the configuration
-		async def Initialized() -> None:
-			try:
-				await adapter.Initialized()
-			except core.Error as e:
-				self.error("there was waiting for initialized from debugger {}".format(e))
-
-			try:
-				await self.add_breakpoints()
-			except core.Error as e:
-				self.error("there was an error adding breakpoints {}".format(e))
-
-			try:
-				if self.capabilities.supportsConfigurationDoneRequest:
-					await adapter.ConfigurationDone()
-			except core.Error as e:
-				self.error("there was an error in configuration done {}".format(e))
-		core.run(Initialized())
-
-
-
 		self.capabilities = await adapter.Initialize()
 		# remove/add any exception breakpoint filters
 		self.breakpoints.filters.update(self.capabilities.exceptionBreakpointFilters or [])
@@ -511,17 +488,34 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 
 		self.on_updated_sources()
 
+	# this is a bit of a weird case. Initialized will happen at some point in time
+	# it depends on when the debug adapter chooses it is ready for configuration information
+	# when it does happen we can then add all the breakpoints and complete the configuration
+	# NOTE: some adapters appear to the initialized event multiple times
+
+	@core.schedule
+	async def on_initialized_event(self):
+		try:
+			await self.add_breakpoints()
+		except core.Error as e:
+			self.error("there was an error adding breakpoints {}".format(e))
+
+		try:
+			if self.capabilities.supportsConfigurationDoneRequest:
+				await self.client.ConfigurationDone()
+		except core.Error as e:
+			self.error("there was an error in configuration done {}".format(e))
+
 	def on_output_event(self, event: dap.OutputEvent):
 		self.on_output(self, event)
 
-	def on_terminated_event(self, event: dap.TerminatedEvent):
-		async def on_terminated_async():
-			await self.stop_forced(reason=DebuggerSession.stopped_reason_terminated_event)
-			# restarting needs to be handled by creating a new session
-			# if event.restart:
-			# 	await self.launch(self.adapter_configuration, self.configuration, event.restart)
-
-		core.run(on_terminated_async())
+	@core.schedule
+	async def on_terminated_event(self, event: dap.TerminatedEvent):
+		await self.stop_forced(reason=DebuggerSession.stopped_reason_terminated_event)
+		# TODO: This needs to be handled inside debugger_sessions
+		# restarting needs to be handled by creating a new session
+		# if event.restart:
+		# 	await self.launch(self.adapter_configuration, self.configuration, event.restart)
 
 	def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
 		try:
