@@ -1,7 +1,16 @@
-For getting set up see https://github.com/daveleroy/sublime_debugger/blob/master/docs/setup.md
+For getting set up see https://github.com/daveleroy/sublime_debugger
 If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
+
+Whats new in version 0.3.0
+- Initial support for multiple debug sessions
+- Use debugpy instead of ptvsd for python adapter
+- Right align line numbers in variables/callstack panel
+- Improved layout of panels
+
+Whats new in version 0.2.3
+- Updates path for lldb
 
 Whats new in version 0.2.3
 - Updates path for lldb
