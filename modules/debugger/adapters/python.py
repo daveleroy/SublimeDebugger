@@ -1,3 +1,4 @@
+import shutil
 from ...typecheck import *
 from ..import adapter
 from ..util import get_debugger_setting
@@ -29,7 +30,14 @@ class Python(adapter.Adapter):
 
 		install_path = adapter.vscode.install_path(self.type)
 
-		python = configuration.get("pythonPath", "python")
+		python = configuration.get("pythonPath")
+
+		if not python:
+			if shutil.which("python3"):
+				python = "python3"
+			else:
+				python = "python"
+
 		command = [
 			python,
 			f'{install_path}/extension/pythonFiles/lib/python/debugpy/adapter',
