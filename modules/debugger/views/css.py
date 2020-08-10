@@ -6,10 +6,10 @@ row_height = 3
 panel_padding= 2
 
 button = ui.css(padding_left=1, padding_right=1, padding_top=-0.4, padding_bottom=-0.4, background_color='var(--segment-color)', color='var(--primary)', raw='''
-	border-radius: 0.5rem;
+	border-radius: 0.4rem;
 ''')
 button_secondary = ui.css(padding_left=1, padding_right=1, padding_top=-0.4, padding_bottom=-0.4, background_color='var(--segment-color)', color='var(--secondary)', raw='''
-	border-radius: 0.5rem;
+	border-radius: 0.4rem;
 ''')
 
 label = ui.css(color='var(--primary)')
