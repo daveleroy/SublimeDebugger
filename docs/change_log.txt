@@ -3,6 +3,10 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.3.1
+- Fixes issue with sizing and alignment of panels on windows
+- Fixes path of go adapter
+
 Whats new in version 0.3.0
 - Initial support for multiple debug sessions
 - Use debugpy instead of ptvsd for python adapter
