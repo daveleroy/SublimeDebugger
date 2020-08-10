@@ -1,7 +1,7 @@
 {
 	"command": [
 		"node",
-		"${package}/data/debug_adapters/vscode-go/extension/out/src/debugAdapter/goDebug.js"
+		"${package}/data/debug_adapters/vscode-go/extension/dist/debugAdapter.js"
 	],
 	"dependencies": ["node"],
 	"install": {
