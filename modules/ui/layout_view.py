@@ -146,7 +146,15 @@ class LayoutView (LayoutComponent):
 		size = self.view.viewport_extent()
 		width = size[0] / em_width
 		height = size[1] / em_width
-		rem_width_scale = em_width / font_size
+
+		# why is this calculation off on windows?
+		# hard code a reasonable (but low) approximation
+		# something is wrong but I do not know what? Or maybe there is a bug with the viewport_extent/rem_width/font_size in output panels on windows?
+		# calculating the width of the viewport above still works on windows...
+		if core.platform.windows:
+			rem_width_scale = 0.55
+		else:
+			rem_width_scale = em_width/font_size
 
 		if self._width != width or self._height != height or self._lightness != lightness or self._rem_width_scale != rem_width_scale:
 			self._width = width
