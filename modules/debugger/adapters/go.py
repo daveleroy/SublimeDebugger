@@ -15,7 +15,7 @@ class Go(adapter.Adapter):
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
 			node,
-			f'{install_path}/extension/out/src/debugAdapter/goDebug.js'
+			f'{install_path}/extension/dist/debugAdapter.js'
 		]
 		return adapter.StdioTransport(log, command)
 
