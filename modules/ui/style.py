@@ -11,11 +11,6 @@ from .. typecheck import *
 REM_WIDTH_SCALE = 7.0/12.0
 
 base_css = '''
-html {
-}
-body {
-	padding-top: 1px;
-}
 .dark {
 	--panel-color: color(var(--background) blend(black 90%));
 	--segment-color: color(var(--background) blend(black 75%));
@@ -35,10 +30,6 @@ body {
 
 	--primary: var(--text-color);
 	--secondary: color(var(--text-color) alpha(0.7));
-}
-span {
-}
-div {
 }
 a {
 	text-decoration: none;

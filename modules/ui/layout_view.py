@@ -16,6 +16,7 @@ class LayoutComponent (Layout):
 		self.on_click_handlers = {} #type: Dict[int, Callable]
 		self.on_click_handlers_id = 0
 		self.requires_render = True
+		self._font_size = 12
 
 		self.item = phantom_sizer(div()[item])
 		self.add_component(self.item)
@@ -96,7 +97,7 @@ class LayoutComponent (Layout):
 
 		if self.item:
 			self.render_component(self.item)
-			self.html = '''<body id="debug"><style>{}</style>{}</body>'''.format(css.all, self.item.html(self))
+			self.html = f'''<body id="debug"><style>html{{font-size:{self._font_size}px}}{css.all}</style>{self.item.html(self)}</body>'''
 		else:
 			self.html = ""
 
@@ -141,22 +142,28 @@ class LayoutView (LayoutComponent):
 
 	def update(self) -> None:
 		lightness = view_background_lightness(self.view)
-		font_size = self.view.settings().get('font_size') or 12
 		em_width = (self.view.em_width() or 7)
-		size = self.view.viewport_extent()
-		width = size[0] / em_width
-		height = size[1] / em_width
 
 		# why is this calculation off on windows?
 		# hard code a reasonable (but low) approximation
 		# something is wrong but I do not know what? Or maybe there is a bug with the viewport_extent/rem_width/font_size in output panels on windows?
 		# calculating the width of the viewport above still works on windows...
 		if core.platform.windows:
-			rem_width_scale = 0.55
+			font_size = em_width / 0.55
+		elif core.platform.linux:
+			font_size = em_width / 0.625
 		else:
-			rem_width_scale = em_width/font_size
+			font_size = self.view.settings().get('font_size')
+
+		rem_width_scale = em_width/font_size
+
+
+		size = self.view.viewport_extent()
+		width = size[0] / em_width
+		height = size[1] / em_width
 
 		if self._width != width or self._height != height or self._lightness != lightness or self._rem_width_scale != rem_width_scale:
+			self._font_size = font_size
 			self._width = width
 			self._height = height
 			self._lightness = lightness
