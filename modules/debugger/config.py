@@ -4,7 +4,6 @@ from .. import core
 from .adapter import Configuration, ConfigurationCompound
 from .breakpoints import Breakpoints
 
-import sublime
 import os
 import json
 

@@ -1,7 +1,7 @@
 from ...typecheck import *
 from ..import adapter
 
-class GDB(adapter.Adapter):
+class GDB(adapter.AdapterConfiguration):
 	@property
 	def type(self):
 		return "gdb"

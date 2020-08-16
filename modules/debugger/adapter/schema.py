@@ -1,11 +1,11 @@
 from ...import core
 from ...typecheck import*
 
-from .adapter import Adapter
+from .adapter import AdapterConfiguration
 import json
 import os
 
-def save_schema(adapters: List[Adapter]):
+def save_schema(adapters: List[AdapterConfiguration]):
 
 	allOf = []
 	for adapter in adapters:
@@ -61,7 +61,6 @@ def save_schema(adapters: List[Adapter]):
 		},
 		'required': ['settings']
 	}
-	
 
 	path = os.path.join(core.current_package(), 'data', 'schema.json')
 	with open(path, 'w') as file:

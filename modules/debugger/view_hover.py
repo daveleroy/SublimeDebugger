@@ -1,9 +1,10 @@
 from ..typecheck import *
-from ..import core, ui, dap
+from ..import core, ui
 
+from .dap import types as dap
 from .debugger_sessions import DebuggerSessions
 from .debugger_project import DebuggerProject
-from .variables import Variable, VariableComponent
+from .views.variable import Variable, VariableComponent
 
 import sublime
 import re
@@ -34,7 +35,7 @@ class ViewHoverProvider(core.Disposables):
 		word_string, region = r
 		
 		try:
-			response = await session.adapter.Evaluate(word_string, session.selected_frame, 'hover')
+			response = await session.evaluate_expression(word_string, 'hover')
 			await core.sleep(0.25)
 			variable = dap.Variable("", response.result, response.variablesReference)
 			view.add_regions('selected_hover', [region], scope="comment", flags=sublime.DRAW_NO_OUTLINE)

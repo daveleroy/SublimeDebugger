@@ -31,7 +31,7 @@ async def wait_for_view_to_load(view: sublime.View):
 
 def edit(view, run):
 	if DebuggerAsyncTextCommand._run:
-		raise Error("There is already an active edit")
+		print("there was already an active edit..?")
 
 	DebuggerAsyncTextCommand._run = run
 	view.run_command('debugger_async_text')

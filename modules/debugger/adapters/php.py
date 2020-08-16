@@ -19,7 +19,7 @@ from ..import adapter
 import sublime
 import re
 
-class PHP(adapter.Adapter):
+class PHP(adapter.AdapterConfiguration):
 	@property
 	def type(self):
 		return 'php'

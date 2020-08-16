@@ -8,28 +8,27 @@ import re
 import json
 import types
 
-from .. import core, ui, dap
+from .. import core, ui
+
+from .dap import types as dap
 
 from .autocomplete import Autocomplete
 
 from .util import get_setting
 from .config import PersistedData
 
-from .debugger_session import (
-	DebuggerSession,
-	Variables,
-	Watch,
-	Terminals
-)
+from .watch import Watch
+from .dap import Session as DebuggerSession
+from .debugger_terminals import Terminals
+
 from .debugger_sessions import (
-	DebuggerSessions
-)
-from .debugger_project import (
-	DebuggerProject
+	DebuggerSessions,
 )
 from .breakpoints import (
 	Breakpoints,
 )
+
+from .debugger_project import DebuggerProject
 from .adapter import (
 	Configuration,
 	ConfigurationExpanded,
@@ -42,11 +41,10 @@ from .terminals import (
 	TermianlDebugger,
 	TerminalView,
 )
-from .watch import WatchView
-from .variables import Source
+from .dap import Source
 
 from .view_hover import ViewHoverProvider
-from .view_selected_source import ViewSelectedSourceProvider
+from .source_navigation import SourceNavigationProvider
 from .breakpoint_commands import BreakpointCommandsProvider
 
 from .views.modules import ModulesView
@@ -156,7 +154,7 @@ class Debugger:
 			on_run_command=self.on_run_command,
 		)
 
-		self.source_provider = ViewSelectedSourceProvider(self.project, self.sessions)
+		self.source_provider = SourceNavigationProvider(self.project, self.sessions)
 		self.view_hover_provider = ViewHoverProvider(self.project, self.sessions)
 		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.sessions, self.breakpoints)
 		self.disposeables.extend([self.view_hover_provider, self.source_provider, self.breakpoints_provider])
@@ -193,7 +191,7 @@ class Debugger:
 
 		self.variables_panel = VariablesPanel(self.sessions)
 		self.modules_panel = ModulesView(self.sessions)
-		self.sources_panel = SourcesView(self.sessions, self.source_provider.navigate)
+		self.sources_panel = SourcesView(self.sessions, self.source_provider.navigate_to_source)
 
 		self.right_panel.update([
 			TabbedPanelItem(self.variables_panel, self.variables_panel, 'Variables'),
@@ -233,7 +231,7 @@ class Debugger:
 		frame = active_session.selected_frame
 
 		if thread and frame and frame.source:
-			self.source_provider.select(Source(frame.source, frame.line, frame.column), thread.stopped_reason or "Stopped")
+			self.source_provider.select_source_location(Source(frame.source, frame.line, frame.column), thread.stopped_reason or "Stopped")
 		else:
 			self.source_provider.clear()
 
@@ -306,7 +304,7 @@ class Debugger:
 		core.run(awaitable, on_error=on_error)
 
 	def on_navigate_to_source(self, source: Source):
-		self.source_provider.navigate(source)
+		self.source_provider.show_source_location(source)
 
 	async def _on_play(self, no_debug=False) -> None:
 		self.show_console_panel()

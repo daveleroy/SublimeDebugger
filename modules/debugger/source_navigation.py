@@ -1,29 +1,34 @@
 from .. typecheck import *
-from .. import core, ui, dap
+from .. import core
 from .views.selected_line import SelectedLine
 
 from .debugger_sessions import DebuggerSessions
 from .debugger_project import DebuggerProject
-from .variables import Source
+from .dap import Source
 
 import sublime
 import sublime_plugin
 
-class DebuggerShowLineCommand(sublime_plugin.TextCommand):
-	def run(self, edit, line: int, column: int, move_cursor: bool): #type: ignore
-		a = self.view.text_point(line, column)
+
+def replace_contents(view, characters):
+	def run(edit):
+		view.replace(edit, sublime.Region(0, view.size()), characters)
+		view.sel().clear()
+
+	core.edit(view, run)
+
+def show_line(view, line: int, column: int, move_cursor: bool):
+	def run(edit):
+		a = view.text_point(line, column)
 		region = sublime.Region(a, a)
-		self.view.show_at_center(region)
+		view.show_at_center(region)
 		if move_cursor:
-			self.view.sel().clear()
-			self.view.sel().add(region)
+			view.sel().clear()
+			view.sel().add(region)
 
-class DebuggerReplaceContentsCommand(sublime_plugin.TextCommand):
-	def run(self, edit, characters):
-		self.view.replace(edit, sublime.Region(0, self.view.size()), characters)
-		self.view.sel().clear()
+	core.edit(view, run)
 
-class ViewSelectedSourceProvider:
+class SourceNavigationProvider:
 	def __init__(self, project: DebuggerProject, sessions: DebuggerSessions):
 		self.sessions = sessions
 		self.project = project
@@ -31,7 +36,10 @@ class ViewSelectedSourceProvider:
 		self.generated_view = None #type: Optional[sublime.View]
 		self.selected_frame_line = None #type: Optional[SelectedLine]
 
-	def select(self, source: Source, stopped_reason: str):
+	def dispose(self):
+		self.clear()
+
+	def select_source_location(self, source: Source, stopped_reason: str):
 		if self.updating:
 			self.updating.cancel()
 		def on_error(error):
@@ -48,7 +56,7 @@ class ViewSelectedSourceProvider:
 
 		self.updating = core.run(select_async(source, stopped_reason), on_error=on_error)
 
-	def navigate(self, source: Source):
+	def show_source_location(self, source: Source):
 		if self.updating:
 			self.updating.cancel()
 
@@ -79,9 +87,6 @@ class ViewSelectedSourceProvider:
 			self.generated_view.close()
 			self.generated_view = None
 
-	def dispose(self):
-		self.clear()
-
 	async def navigate_to_source(self, source: Source, move_cursor: bool = False) -> sublime.View:
 
 		# if we aren't going to reuse the previous generated view
@@ -94,15 +99,15 @@ class ViewSelectedSourceProvider:
 
 		if source.source.sourceReference:
 			session = self.sessions.active
-			content = await session.client.GetSource(source.source)
+			content = await session.get_source(source.source)
 
 			view = self.generated_view or self.project.window.new_file()
 			self.generated_view = view
 			view.set_name(source.source.name or "")
 			view.set_read_only(False)
-			view.run_command('debugger_replace_contents', {
-				'characters': content
-			})
+
+			replace_contents(view, content)
+
 			view.set_read_only(True)
 			view.set_scratch(True)
 		elif source.source.path:
@@ -110,9 +115,7 @@ class ViewSelectedSourceProvider:
 		else:
 			raise core.Error('source has no reference or path')
 
-		view.run_command("debugger_show_line", {
-			'line': line,
-			'column': column,
-			'move_cursor': move_cursor
-		})
+
+		show_line(view, line, column, move_cursor)
+
 		return view

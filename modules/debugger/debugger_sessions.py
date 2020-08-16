@@ -1,15 +1,15 @@
 from ..typecheck import *
 from ..import core
 
-from .debugger_session import (
-	DebuggerSession,
-	Variables,
+from .dap.session import (
+	Session as DebuggerSession,
 	Watch,
 	Terminals
 )
 
-from .adapter import Adapter, ConfigurationExpanded
+from .adapter import AdapterConfiguration, ConfigurationExpanded
 from .breakpoints import Breakpoints
+
 
 class DebuggerSessions:
 	def __init__(self):
@@ -38,7 +38,7 @@ class DebuggerSessions:
 	def __iter__(self):
 		return iter(self.sessions)
 
-	async def launch(self, breakpoints: Breakpoints, adapter: Adapter, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False):
+	async def launch(self, breakpoints: Breakpoints, adapter: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False):
 		for session in self.sessions:
 			if configuration.id_ish == session.configuration.id_ish:
 				await session.stop()

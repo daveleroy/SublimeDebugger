@@ -1,12 +1,11 @@
 from ...typecheck import *
 from ...import core
-from ...dap import Transport
+from ..dap import Transport
 
 import socket
 import os
 import subprocess
 import threading
-import signal
 
 class Process(subprocess.Popen):
 	def __init__(self, command: List[str], cwd: Optional[str]):

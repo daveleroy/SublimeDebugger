@@ -1,15 +1,14 @@
 from ...typecheck import *
 from ... import core
-from ... import ui 
-from ... import dap
+from ... import ui
+
+from ..dap import types as dap
 
 from .data_breakpoints import DataBreakpoints, DataBreakpoint
 from .function_breakpoints import FunctionBreakpoints, FunctionBreakpoint
 from .source_breakpoints import SourceBreakpoints, SourceBreakpoint
 from .exception_filters import ExceptionBreakpointsFilters, ExceptionBreakpointsFilter
 
-import sublime
-import os
 
 class IBreakpoint (Protocol):
 	@property
@@ -28,7 +27,7 @@ class Breakpoints:
 		self.function = FunctionBreakpoints()
 		self.filters = ExceptionBreakpointsFilters()
 		self.source = SourceBreakpoints()
-	
+
 	def dispose(self) -> None:
 		self.source.dispose()
 

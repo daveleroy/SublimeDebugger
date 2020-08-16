@@ -1,19 +1,19 @@
 from .. typecheck import *
-from .. import core, ui, dap
+from .. import core, ui
 
-from .debugger_session import DebuggerSession
+from .debugger_sessions import DebuggerSessions
 from .debugger_project import DebuggerProject
 from .breakpoints import Breakpoints
 
 import sublime
 
 class BreakpointCommandsProvider(core.Disposables):
-	def __init__(self, project: DebuggerProject, debugger: DebuggerSession, breakpoints: Breakpoints):
+	def __init__(self, project: DebuggerProject, sessions: DebuggerSessions, breakpoints: Breakpoints):
 		super().__init__()
 
 		self.run_to_line_breakpoint = None
 		self.breakpoints = breakpoints
-		self.debugger = debugger
+		self.sessions = sessions
 		self.project = project
 
 		self += core.on_view_gutter_clicked.add(self.view_gutter_clicked)
@@ -40,13 +40,15 @@ class BreakpointCommandsProvider(core.Disposables):
 			self.run_to_line_breakpoint = None
 
 	def run_to_current_line(self):
-		file, line = self.project.current_file_line()
-		self.clear_run_to_line()
-		if self.debugger.state != DebuggerSession.paused:
-			raise core.Error("Debugger not paused")
+		...
+		# fix me for multiple sessions
+		# file, line = self.project.current_file_line()
+		# self.clear_run_to_line()
+		# if self.debugger.state != DebuggerSession.paused:
+		# 	raise core.Error("Debugger not paused")
 
-		self.run_to_line_breakpoint = self.breakpoints.source.add_breakpoint(file, line)
-		core.run(self.debugger.resume())
+		# self.run_to_line_breakpoint = self.breakpoints.source.add_breakpoint(file, line)
+		# core.run(self.debugger.resume())
 
 	#def on_debugger_state_change(self):
 		# if self.debugger.state != DebuggerSession.running:

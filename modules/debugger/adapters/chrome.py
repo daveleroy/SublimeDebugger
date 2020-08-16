@@ -1,7 +1,7 @@
 from ...typecheck import *
 from ..import adapter
 
-class Chrome(adapter.Adapter):
+class Chrome(adapter.AdapterConfiguration):
 	@property
 	def type(self):
 		return 'chrome'

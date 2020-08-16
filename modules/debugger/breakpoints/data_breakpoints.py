@@ -1,8 +1,7 @@
 from ... typecheck import *
 from ... import core
 from ... import ui
-from ... import dap
-
+from ..dap import types as dap
 
 class DataBreakpoint:
 	def __init__(self, breakpoint: dap.DataBreakpoint, info: dap.DataBreakpointInfoResponse, enabled: bool):

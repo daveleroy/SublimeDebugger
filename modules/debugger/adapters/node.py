@@ -1,7 +1,7 @@
 from ...typecheck import *
 from ..import adapter
 
-class Node(adapter.Adapter):
+class Node(adapter.AdapterConfiguration):
 
 	@property
 	def type(self): return 'node'

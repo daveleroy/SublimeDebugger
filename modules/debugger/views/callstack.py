@@ -1,10 +1,12 @@
 from ...typecheck import*
 from ...import ui
 from ...import core
-from ...import dap
 
-from ..debugger_session import DebuggerSession, Thread
-from ..debugger_sessions import DebuggerSessions
+from ..dap import (
+	types as dap,
+	Thread,
+)
+from ..debugger_sessions import DebuggerSessions, DebuggerSession
 
 from . import css
 

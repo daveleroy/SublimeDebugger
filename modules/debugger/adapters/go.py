@@ -5,7 +5,7 @@ from ..util import get_debugger_setting
 
 import shutil
 
-class Go(adapter.Adapter):
+class Go(adapter.AdapterConfiguration):
 	@property
 	def type(self):
 		return "go"

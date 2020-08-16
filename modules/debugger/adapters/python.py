@@ -5,7 +5,7 @@ from ..util import get_debugger_setting
 
 import sublime
 
-class Python(adapter.Adapter):
+class Python(adapter.AdapterConfiguration):
 
 	@property
 	def type(self): return 'python'

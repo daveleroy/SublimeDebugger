@@ -38,7 +38,7 @@ class LLDBTransport(SocketTransport):
 		self.process.dispose()
 
 
-class LLDB(adapter.Adapter):
+class LLDB(adapter.AdapterConfiguration):
 	@property
 	def type(self):
 		return "lldb"

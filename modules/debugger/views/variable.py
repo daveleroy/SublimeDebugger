@@ -1,117 +1,14 @@
-from ..typecheck import *
-from ..import core
-from ..import dap
-from ..import ui
-from .views import css
+
+from ...typecheck import *
+from ...import core
+from ...import ui
+from . import css
 
 import sublime
-import dataclasses
-import os
 
-if TYPE_CHECKING:
-	from .debugger_session import DebuggerSession
+from ..dap.variable import VariableReference, EvaluateReference, ScopeReference, Variable, Source
+from ..dap import types as dap
 
-class VariableReference (Protocol):
-	@property
-	def name(self) -> str:
-		...
-	@property
-	def value(self) -> str:
-		...
-	@property
-	def variablesReference(self) -> int:
-		...
-
-class EvaluateReference:
-	def __init__(self, name: str, response: dap.EvaluateResponse):
-		self._response = response
-		self._name = name
-	@property
-	def variablesReference(self) -> int:
-		return self._response.variablesReference
-	@property
-	def name(self) -> str:
-		return self._name
-	@property
-	def value(self) -> str:
-		return self._response.result
-
-class ScopeReference:
-	def __init__(self, scope: dap.Scope):
-		self.scope = scope
-	@property
-	def variablesReference(self) -> int:
-		return self.scope.variablesReference
-	@property
-	def name(self) -> str:
-		return self.scope.name
-	@property
-	def value(self) -> str:
-		return ""
-
-class Variable:
-	def __init__(self, session: 'DebuggerSession', reference: VariableReference) -> None:
-		self.session = session
-		self.reference = reference
-		self.fetched = None #type: Optional[core.future]
-
-	@property
-	def name(self) -> str:
-		return self.reference.name
-
-	@property
-	def value(self) -> str:
-		return self.reference.value
-
-	async def fetch(self):
-		variables = await self.session.client.GetVariables(self.reference.variablesReference)
-		return [Variable(self.session, v) for v in variables]
-
-	async def children(self) -> List['Variable']:
-		if not self.has_children:
-			return []
-
-		if not self.fetched:
-			self.fetched = core.run(self.fetch())
-		children = await self.fetched
-		return children
-
-	@property
-	def has_children(self) -> bool:
-		return self.reference.variablesReference != 0
-
-
-class Variables:
-	def __init__(self):
-		self.variables = [] #type: List[Variable]
-		self.on_updated = core.Event() #type: core.Event
-
-	def update(self, session: 'DebuggerSession', scopes: List[dap.Scope]):
-		self.variables = [Variable(session, ScopeReference(scope)) for scope in scopes]
-		self.on_updated()
-
-	def clear_session_data(self):
-		self.variables.clear()
-		self.on_updated()
-
-@dataclasses.dataclass
-class Source:
-	source: dap.Source
-	line: Optional[int] = None
-	column: Optional[int] = None
-
-	@staticmethod
-	def from_path(file, line, column) -> 'Source':
-		return Source(dap.Source(os.path.basename(file), file), line, column)
-
-	@property
-	def name(self) -> str:
-		if self.column and self.line:
-			return f'{self.source.name}@{self.line}:{self.column}'
-		if self.line:
-			return f'{self.source.name}@{self.line}'
-
-		return self.source.name or "??"
 
 class VariableComponentState:
 	def __init__(self):
@@ -157,11 +54,11 @@ class VariableComponent (ui.div):
 		value = variable.value or ""
 
 		if session.capabilities.supportsDataBreakpoints:
-			info = await session.client.DataBreakpointInfoRequest(variable)
+			info = await session.data_breakpoint_info(variable)
 
 		async def on_edit_variable_async(value: str):
 			try:
-				self.variable.reference = await session.client.setVariable(variable, value)
+				self.variable.reference = await session.set_variable(variable, value)
 				self.variable.fetched = None
 				self.dirty()
 			except core.Error as e:

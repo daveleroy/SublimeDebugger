@@ -1,6 +1,7 @@
 from ..typecheck import*
 from ..import core
-from ..import dap
+
+from .dap import types as dap
 
 from .terminals import (
 	ExternalTerminal,

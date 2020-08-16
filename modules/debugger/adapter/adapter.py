@@ -2,49 +2,20 @@ from ...typecheck import *
 from ...import core
 from ...import ui
 
-from .configuration import ConfigurationExpanded
+from ..dap import AdapterConfiguration
 
 import sublime
 import json
 
-class Adapter (Protocol):
-	@property
-	def type(self): ...
-	async def start(self, log: core.Logger, configuration: ConfigurationExpanded): ...
-
-	@property
-	def version(self) -> Optional[str]: ...
-
-	@property
-	def configuration_snippets(self) -> Optional[list]: ...
-
-	@property
-	def configuration_shema(self) -> Optional[dict]: ...
-
-	def configuration_resolve(self, configuration: ConfigurationExpanded) -> ConfigurationExpanded:
-		return configuration
-
-	@property
-	def is_installed(self) -> bool: ...
-
-	async def install(self, log: core.Logger): ...
-
-	def on_hover_provider(self, view: sublime.View, point: int) -> Optional[str]:
-		word = view.word(point)
-		word_string = word and view.substr(word)
-		if word_string:
-			return (word_string, word)
-		return None
-
 class Adapters:
-	all: ClassVar[List[Adapter]]
+	all: ClassVar[List[AdapterConfiguration]]
 
 	@staticmethod
 	def initialize():
-		Adapters.all = [klass() for klass in Adapter.__subclasses__()]
+		Adapters.all = [klass() for klass in AdapterConfiguration.__subclasses__()]
 
 	@staticmethod
-	def get(type: str) -> Adapter:
+	def get(type: str) -> AdapterConfiguration:
 		for adapter in Adapters.all:
 			if type == adapter.type:
 				return adapter

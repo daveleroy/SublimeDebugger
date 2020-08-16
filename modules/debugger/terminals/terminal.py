@@ -1,11 +1,7 @@
 from ...typecheck import*
-from ...import (
-	core,
-	dap,
-	ui,
-)
+from ...import core, ui
 from ..views import css
-from ..variables import VariableComponent, Variable, Source
+from ..views.variable import VariableComponent, Variable, Source
 from ..autocomplete import Autocomplete
 
 import re

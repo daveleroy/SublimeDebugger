@@ -1,10 +1,9 @@
 from ..typecheck import *
-from ..import dap
 from ..import core
 from ..import ui
-from .views import css
 
-from .variables import EvaluateReference, Variable, VariableComponent
+from .dap import types as dap
+from .dap.variable import EvaluateReference, Variable
 
 if TYPE_CHECKING:
 	from .debugger_session import DebuggerSession
@@ -57,7 +56,7 @@ class Watch:
 	async def evaluate(self, session: 'DebuggerSession', frame: dap.StackFrame) -> None:
 		results = [] #type: List[Awaitable[dap.EvaluateResponse]]
 		for expression in self.expressions:
-			results.append(session.client.Evaluate(expression.value, frame, "watch"))
+			results.append(session.evaluate_expression(expression.value, "watch"))
 
 		evaluations = await asyncio.gather(*results, return_exceptions=True)
 		for expression, evaluation in zip(self.expressions, evaluations):
@@ -66,7 +65,7 @@ class Watch:
 
 	async def evaluate_expression(self, session: 'DebuggerSession', frame: dap.StackFrame, expression: 'Watch.Expression') -> None:
 		try:
-			result = await session.client.Evaluate(expression.value, frame, "watch")
+			result = await session.evaluate_expression(expression.value, "watch")
 			self.evaluated(session, expression, result)
 		except dap.Error as result:
 			self.evaluated(session, expression, result)
@@ -96,49 +95,3 @@ class Watch:
 	def edit_run(self, expression: 'Watch.Expression'):
 		self.edit(expression).run()
 
-class WatchView(ui.div):
-	def __init__(self, provider: Watch):
-		super().__init__()
-		self.provider = provider
-
-	def added(self, layout: ui.Layout):
-		self.on_updated_handle = self.provider.on_updated.add(self.dirty)
-
-	def removed(self):
-		self.on_updated_handle.dispose()
-
-	def render(self) -> ui.div.Children:
-		items = []
-		for expresion in self.provider.expressions:
-			items.append(WatchExpressionView(expresion, on_edit_not_available=self.provider.edit_run))
-		return [
-			ui.div()[
-				items
-			]
-		]
-
-class WatchExpressionView(ui.div):
-	def __init__(self, expression: Watch.Expression, on_edit_not_available: Callable[[Watch.Expression], None]):
-		super().__init__()
-		self.expression = expression
-		self.on_edit_not_available = on_edit_not_available
-
-	def added(self, layout: ui.Layout):
-		self.on_updated_handle = self.expression.on_updated.add(self.dirty)
-
-	def removed(self):
-		self.on_updated_handle.dispose()
-
-	def render(self) -> ui.div.Children:
-		if self.expression.evaluate_response:
-			component = VariableComponent(self.expression.evaluate_response)
-			return [component]
-
-		return [
-			ui.div(height=css.row_height)[
-				ui.click(lambda: self.on_edit_not_available(self.expression))[
-					ui.text(self.expression.value, css=css.label_secondary_padding),
-					ui.text("not available", css=css.label),
-				]
-			]
-		]

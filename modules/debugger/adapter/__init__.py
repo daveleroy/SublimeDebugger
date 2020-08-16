@@ -1,4 +1,4 @@
-from .adapter import Adapter, Adapters
+from .adapter import AdapterConfiguration, Adapters
 from .configuration import Configuration, ConfigurationExpanded, ConfigurationCompound
 from .transports import SocketTransport, StdioTransport
 from . import vscode

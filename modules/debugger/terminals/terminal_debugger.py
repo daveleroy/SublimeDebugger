@@ -1,12 +1,12 @@
 from __future__ import annotations
 from ...typecheck import *
-from ...import (
-	core,
-	dap,
-	ui,
-)
+from ...import core
+
+from ..dap import types as dap
+from ..dap import Variable, Source
+
 from .terminal import Terminal
-from ..variables import Variable, Source
+from ..panel import OutputPanel
 
 if TYPE_CHECKING:
 	from ..debugger_session import DebuggerSession
@@ -31,7 +31,7 @@ class TermianlDebugger (Terminal):
 			# this seems to be what vscode does it ignores the actual message here.
 			# Some of the messages are junk like "output" that we probably don't want to display
 			async def appendVariabble() -> None:
-				variables = await session.client.GetVariables(variablesReference)
+				variables = await session.get_variables(variablesReference)
 				for variable in variables:
 					variable.name = "" # this is what vs code does?
 					self.append_variable(session, variable, event.source, event.line)

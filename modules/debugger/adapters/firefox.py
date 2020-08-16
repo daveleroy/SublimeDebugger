@@ -1,7 +1,7 @@
 from ...typecheck import *
 from ..import adapter
 
-class Firefox(adapter.Adapter):
+class Firefox(adapter.AdapterConfiguration):
 	@property
 	def type(self):
 		return 'firefox'

@@ -1,9 +1,7 @@
 from ... typecheck import *
 from ... import core
 from ... import ui
-from ... import dap
-
-import sublime
+from ..dap import types as dap
 
 
 class ExceptionBreakpointsFilter:

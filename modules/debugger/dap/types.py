@@ -1,12 +1,9 @@
 from __future__ import annotations
-from ..typecheck import *
-from ..import core
+from ... typecheck import *
+from ... import core
 
 from dataclasses import dataclass
 from collections import defaultdict
-
-if TYPE_CHECKING:
-	from .client import Client
 
 
 __T = TypeVar('__T')
@@ -65,7 +62,7 @@ class StackFrame:
 	name: str
 	line: int
 	column: int
-	presentation: int
+	presentation: str
 	source: Optional['Source']
 
 	@staticmethod
@@ -237,6 +234,26 @@ class StoppedEvent:
 	allThreadsStopped: bool
 	text: str
 
+	@staticmethod
+	def from_json(json) -> StoppedEvent:
+		# stopped events are required to have a reason but some adapters treat it as optional...
+		description = json.get('description')
+		text = json.get('text')
+		reason = json.get('reason')
+
+		if description and text:
+			stopped_text = "Stopped: {}: {}".format(description, text)
+		elif text or description or reason:
+			stopped_text = "Stopped: {}".format(text or description or reason)
+		else:
+			stopped_text = "Stopped"
+
+		return StoppedEvent(
+			threadId=json.get('threadId', None),
+			allThreadsStopped=json.get('allThreadsStopped', False),
+			text=stopped_text,
+		)
+
 @dataclass
 class ThreadEvent:
 	threadId: int
@@ -265,6 +282,13 @@ class ContinueResponse:
 class ContinuedEvent:
 	threadId: int
 	allThreadsContinued: bool
+
+	@staticmethod
+	def from_json(json) -> ContinuedEvent:
+		return ContinuedEvent(
+			threadId=json['threadId'],
+			allThreadsContinued=json.get('allThreadsContinued', None),
+		)
 
 @dataclass
 class OutputEvent:

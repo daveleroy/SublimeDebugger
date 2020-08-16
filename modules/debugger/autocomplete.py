@@ -1,6 +1,7 @@
 from ..typecheck import *
 from .. import core
-from .. import dap
+
+from .dap import types as dap
 
 import sublime
 import sublime_plugin
@@ -21,7 +22,6 @@ class Autocomplete:
 		if id in Autocomplete._for_window:
 			return Autocomplete._for_window[id]
 		r = Autocomplete(id)
-		
 		return r
 
 	def __init__(self, id):

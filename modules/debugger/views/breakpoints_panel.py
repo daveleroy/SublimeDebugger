@@ -11,7 +11,7 @@ from ..breakpoints import (
 )
 
 from .import css
-from ..variables import Source
+from ..dap import Source
 
 import os
 import sublime
