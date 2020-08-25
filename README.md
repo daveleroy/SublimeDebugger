@@ -9,7 +9,7 @@ See [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/
 # Installing
   Using package control run `Package Control: Install Package` and select `Debugger`.
 
-  or clone into your sublime Packages directory.
+  or clone into your sublime Packages directory (If you are on Sublime Text 3 use the [st3 branch](https://github.com/daveleroy/sublime_debugger/tree/st3))
 
 # Getting Started
 This project attempts to match Visual Studio Code's Debugger fairly closely so their documentation can be pretty helpful. See [https://code.visualstudio.com/docs/editor/debugging](https://code.visualstudio.com/docs/editor/debugging)
