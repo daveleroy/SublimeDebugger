@@ -32,6 +32,18 @@ from .configuration import (
 from .types import array_from_json, json_from_array
 from .client import ClientEventsListener, Client
 
+class SessionListener (Protocol):
+	async def on_session_task_request(self, session: Session, task: TaskExpanded): ...
+	async def on_session_terminal_request(self, session: Session, request: dap.RunInTerminalRequest): ...
+
+	def on_session_state_changed(self, session: Session, state: int): ...
+	def on_session_selected_frame(self, session: Session, frame: Optional[dap.StackFrame]): ...
+	def on_session_output_event(self, session: Session, event: dap.OutputEvent): ...
+
+	def on_session_updated_modules(self, session: Session): ...
+	def on_session_updated_sources(self, session: Session): ...
+	def on_session_updated_variables(self, session: Session): ...
+	def on_session_updated_threads(self, session: Session): ...
 
 class Session(ClientEventsListener, core.Logger):
 	stopped = 0
@@ -53,14 +65,11 @@ class Session(ClientEventsListener, core.Logger):
 		self,
 		breakpoints: Breakpoints,
 		watch: Watch,
-		terminals: Terminals,
-		on_state_changed: Callable[[Session, int], None],
-		on_output: Callable[[Session, dap.OutputEvent], None],
-		on_selected_frame: Callable[[Session, Optional[dap.StackFrame]], None],
+		listener: SessionListener,
 		transport_log: core.Logger,
 	) -> None:
 
-		self.on_selected_frame = on_selected_frame
+		self.listener = listener
 
 		self.transport_log = transport_log
 		self.state_changed = core.Event() #type: core.Event[int]
@@ -77,8 +86,6 @@ class Session(ClientEventsListener, core.Logger):
 
 		self.watch = watch
 		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, self.selected_frame, expr))
-		self.on_state_changed = on_state_changed
-		self.on_output = on_output
 
 		self.adapter = None #type: Optional[Client]
 		self.launching_async = None #type: Optional[core.future]
@@ -103,13 +110,8 @@ class Session(ClientEventsListener, core.Logger):
 		self.sources: Dict[Union[int, str], dap.Source] = {}
 		self.modules: Dict[Union[int, str], dap.Module] = {}
 
-		self.on_updated_threads = core.Event()
 		self.on_threads_selected: core.Event[Optional[Thread], Optional[dap.StackFrame]] = core.Event()
 		self.on_threads_selected.add(lambda thread, frame: self.load_frame(frame))
-
-		self.on_updated_modules = core.Event()
-		self.on_updated_sources = core.Event()
-		self.on_updated_variables = core.Event()
 
 	@property
 	def name(self) -> str:
@@ -125,8 +127,7 @@ class Session(ClientEventsListener, core.Logger):
 			return
 
 		self._state = state
-		self.on_state_changed(self, state)
-		self.state_changed()
+		self.listener.on_session_state_changed(self, state)
 
 	@property
 	def status(self) -> Optional[str]:
@@ -134,7 +135,7 @@ class Session(ClientEventsListener, core.Logger):
 
 	def _change_status(self, status: str):
 		self._status = status
-		self.on_state_changed(self, self._state)
+		self.listener.on_session_state_changed(self, self._state)
 
 	async def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False) -> None:
 
@@ -530,7 +531,7 @@ class Session(ClientEventsListener, core.Logger):
 
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
 		event = dap.OutputEvent("console", response["result"], response.get("variablesReference", 0))
-		self.on_output(self, event)
+		self.listener.on_session_output_event(self, event)
 
 	async def evaluate_expression(self, expression: str, context: Optional[str]) -> dap.EvaluateResponse:
 		frameId = None #type: Optional[int]
@@ -588,7 +589,7 @@ class Session(ClientEventsListener, core.Logger):
 
 	def log_output(self, string: str) -> None:
 		output = dap.OutputEvent("debugger.output", string + '\n', 0)
-		self.on_output(self, output)
+		self.listener.on_session_output_event(self, output)
 
 	def log(self, type: str, value: str) -> None:
 		if type == "process":
@@ -596,20 +597,20 @@ class Session(ClientEventsListener, core.Logger):
 			return
 		if type == "error":
 			output = dap.OutputEvent("debugger.error", value + '\n', 0)
-			self.on_output(self, output)
+			self.listener.on_session_output_event(self, output)
 			return
 
 		output = dap.OutputEvent("debugger.info", value + '\n', 0)
-		self.on_output(self, output)
+		self.listener.on_session_output_event(self, output)
 
 	def load_frame(self, frame: Optional[dap.StackFrame]):
-		self.on_selected_frame(self, frame)
+		self.listener.on_session_selected_frame(self, frame)
 		if frame:
 			core.run(self.refresh_scopes(frame))
 			core.run(self.watch.evaluate(self, self.selected_frame))
 		else:
 			self.variables.clear()
-			self.on_updated_variables()
+			self.listener.on_session_updated_variables(self)
 
 	async def refresh_scopes(self, frame: dap.StackFrame):
 		body = await self.request('scopes', {
@@ -617,7 +618,7 @@ class Session(ClientEventsListener, core.Logger):
 		})
 		scopes = dap.array_from_json(dap.Scope.from_json, body['scopes'])
 		self.variables = [Variable(self, ScopeReference(scope)) for scope in scopes]
-		self.on_updated_variables()
+		self.listener.on_session_updated_variables(self)
 
 	async def get_source(self, source: dap.Source) -> str:
 		body = await self.request('source', {
@@ -655,7 +656,7 @@ class Session(ClientEventsListener, core.Logger):
 		if event.reason == dap.ModuleEvent.changed:
 			self.modules[event.module.id] = event.module
 
-		self.on_updated_modules()
+		self.listener.on_session_updated_modules(self)
 
 	def on_loaded_source_event(self, event: dap.LoadedSourceEvent):
 		if event.reason == dap.LoadedSourceEvent.new:
@@ -669,7 +670,7 @@ class Session(ClientEventsListener, core.Logger):
 		elif event.reason == dap.LoadedSourceEvent.changed:
 			self.sources[event.source.id] = event.source
 
-		self.on_updated_sources()
+		self.listener.on_session_updated_sources(self)
 
 	# this is a bit of a weird case. Initialized will happen at some point in time
 	# it depends on when the debug adapter chooses it is ready for configuration information
@@ -690,7 +691,7 @@ class Session(ClientEventsListener, core.Logger):
 			self.error("there was an error in configuration done {}".format(e))
 
 	def on_output_event(self, event: dap.OutputEvent):
-		self.on_output(self, event)
+		self.listener.on_session_output_event(self, event)
 
 	@core.schedule
 	async def on_terminated_event(self, event: dap.TerminatedEvent):
@@ -729,7 +730,7 @@ class Session(ClientEventsListener, core.Logger):
 		self.selected_explicitly = True
 		self.selected_thread = thread
 		self.selected_frame = frame
-		self.on_updated_threads()
+		self.listener.on_session_updated_threads(self)
 		self.on_threads_selected(thread, frame)
 		self._refresh_state()
 
@@ -748,7 +749,7 @@ class Session(ClientEventsListener, core.Logger):
 			t.name = thread.name
 			self.threads.append(t)
 
-		self.on_updated_threads()
+		self.listener.on_session_updated_threads(self)
 
 	def on_threads_event(self, event: dap.ThreadEvent) -> None:
 		self.refresh_threads()
@@ -784,12 +785,12 @@ class Session(ClientEventsListener, core.Logger):
 						return frames[0]
 
 					self.selected_frame = first_non_subtle_frame(children)
-					self.on_updated_threads()
+					self.listener.on_session_updated_threads(self)
 					self.on_threads_selected(thread, self.selected_frame)
 					self._refresh_state()
 			run()
 
-		self.on_updated_threads()
+		self.listener.on_session_updated_threads(self)
 		self.refresh_threads()
 		self._refresh_state()
 
@@ -811,7 +812,7 @@ class Session(ClientEventsListener, core.Logger):
 			self.selected_frame = None
 			self.on_threads_selected(None, None)
 
-		self.on_updated_threads()
+		self.listener.on_session_updated_threads(self)
 		self._refresh_state()
 
 
