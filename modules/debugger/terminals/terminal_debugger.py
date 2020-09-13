@@ -12,9 +12,21 @@ if TYPE_CHECKING:
 	from ..debugger_session import DebuggerSession
 
 class TermianlDebugger (Terminal):
-	def __init__(self, on_run_command: Callable[[str], None]):
+	def __init__(self, window: sublime.Window, on_run_command: Callable[[str], None]):
 		super().__init__("Debugger Console")
 		self.on_run_command = on_run_command
+		self.panel = OutputPanel(window, "Console", show_panel=False)
+
+	def dispose(self):
+		super().dispose()
+		self.panel.dispose()
+
+	def show_backing_panel(self):
+		self.panel.open()
+
+	def clear(self):
+		super().clear()
+		self.panel.clear()
 
 	def writeable(self) -> bool:
 		return True
@@ -51,6 +63,8 @@ class TermianlDebugger (Terminal):
 	def append_text(self, type: str, text: str, source: Optional[dap.Source], line: Optional[int]):
 		if type == "telemetry":
 			return
+
+		self.panel.write(text)
 
 		if source:
 			self.add(type, text, Source(source, line))

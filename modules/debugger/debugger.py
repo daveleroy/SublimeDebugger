@@ -29,6 +29,7 @@ from .breakpoints import (
 )
 
 from .debugger_project import DebuggerProject
+from .panel import DebuggerOutputPanel, DebuggerProtocolLogger
 from .adapter import (
 	Configuration,
 	ConfigurationExpanded,
@@ -56,7 +57,6 @@ from .views.breakpoints_panel import BreakpointsPanel
 from .views.variables_panel import VariablesPanel
 from .views.tabbed_panel import TabbedPanel, TabbedPanelItem
 from .views.selected_line import SelectedLine
-from .debugger_log_output_panel import DebuggerLogOutputPanel
 
 class Debugger:
 
@@ -111,12 +111,18 @@ class Debugger:
 			self.sessions.terminals.external_terminal_kind = self.project.external_terminal_kind
 			self.configurations = self.project.configurations
 			self.configuration = self.persistance.load_configuration_option(self.project.configurations, self.project.compounds)
+			self.panel.set_ui_scale(self.project.ui_scale)
 
 		self.project = DebuggerProject(window)
-		self.disposeables.append(self.project)
 		self.project.on_updated.add(on_project_configuration_updated)
-		
-		self.transport_log = DebuggerLogOutputPanel(self.window)
+
+		self.panel = DebuggerOutputPanel(window)
+		self.panel.set_ui_scale(self.project.ui_scale)
+
+		self.disposeables.extend([
+			self.project,
+			self.panel,
+		])
 		self.disposeables.append(self.transport_log)
 		autocomplete = Autocomplete.create_for_window(window)
 
@@ -151,6 +157,7 @@ class Debugger:
 		self.disposeables.append(self.sessions)
 
 		self.terminal = TermianlDebugger(
+			self.window,
 			on_run_command=self.on_run_command,
 		)
 
@@ -182,7 +189,7 @@ class Debugger:
 
 		self.callstack_view =  CallStackView(self.sessions)
 		self.middle_panel.update([
-			TabbedPanelItem(self.terminal_view, self.terminal_view, 'Debugger Console'),
+			TabbedPanelItem(self.terminal_view, self.terminal_view, 'Debugger Console', show_options=lambda: self.terminal.show_backing_panel()),
 			TabbedPanelItem(self.callstack_view, self.callstack_view, 'Callstack'),
 		])
 
@@ -203,8 +210,8 @@ class Debugger:
 		self.update_sources_visibility()
 
 		# phantoms
-		phantom_location = self.project.panel_phantom_location()
-		phantom_view = self.project.panel_phantom_view()
+		phantom_location = self.panel.panel_phantom_location()
+		phantom_view = self.panel.panel_phantom_view()
 
 		self.left = ui.Phantom(self.debugger_panel, phantom_view, sublime.Region(phantom_location, phantom_location), sublime.LAYOUT_INLINE)
 		self.middle = ui.Phantom(self.middle_panel, phantom_view, sublime.Region(phantom_location + 0, phantom_location + 1), sublime.LAYOUT_INLINE)
@@ -279,7 +286,10 @@ class Debugger:
 		self.right_panel.set_visible(self.modules_panel, has_modules)
 
 	def show(self) -> None:
-		self.project.panel_show()
+		self.panel.panel_show()
+
+	def is_panel_visible(self) -> bool:
+		return self.panel.is_panel_visible()
 
 	def show_console_panel(self) -> None:
 		self.middle_panel.select(self.terminal_view)

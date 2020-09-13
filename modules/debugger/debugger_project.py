@@ -7,10 +7,6 @@ from .util import get_setting
 import sublime
 import json
 
-
-_phantom_text = "\u200F\u200F\u200F\u200F\u200F"
-_panel_position = 0
-
 class DebuggerProject(core.disposables):
 	def __init__(self, window: sublime.Window):
 		super().__init__()
@@ -38,31 +34,6 @@ class DebuggerProject(core.disposables):
 		self.ui_scale = 12
 		self.bring_window_to_front_on_pause = False
 
-		self.panel = self.window.create_output_panel("Debugger")
-		self.panel_show()
-		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
-		# otherwise they will get reordered when one of them gets redrawn
-		# we use zero width characters so we don't have extra around phantoms
-		self.panel.run_command('insert', {
-			'characters': _phantom_text
-		})
-
-		settings = self.panel.settings()
-		settings.set("margin", 0)
-		settings.set('line_padding_top', 1)
-		settings.set('gutter', False)
-		settings.set('word_wrap', True)
-		settings.set('line_spacing', 0)
-		settings.set('context_menu', 'Widget Debug.sublime-menu')
-		settings.set('draw_centered', True)
-		self.panel.sel().clear()
-
-		# hack to get view to not freak out when clicking the edge of the window
-		self.panel.set_viewport_position((_panel_position, 0), animate=False)
-		async def later():
-			await core.sleep(0)
-			self.panel.set_viewport_position((_panel_position, 0), animate=False)
-		core.run(later())
 
 		# add the empty debugger configurations settings if needed
 		data = window.project_data() or {}
@@ -75,6 +46,9 @@ class DebuggerProject(core.disposables):
 
 		self.reload()
 
+	def dispose(self):
+		super().dispose()
+		self.settings.clear_on_change(self.settings_key)
 	@core.schedule
 	async def open_project_configurations_file(self):
 		view = await core.sublime_open_file_async(self.window, self.name)
@@ -97,8 +71,6 @@ class DebuggerProject(core.disposables):
 
 		self.external_terminal_kind = get_setting(self.window.active_view(), 'external_terminal', self.external_terminal_kind)
 		self.ui_scale = get_setting(self.window.active_view(), 'ui_scale', self.ui_scale)
-		self.panel.settings().set('font_size', self.ui_scale)
-
 		self.bring_window_to_front_on_pause = get_setting(self.window.active_view(), 'bring_window_to_front_on_pause', self.bring_window_to_front_on_pause)
 
 	def load_configurations(self):
@@ -151,26 +123,3 @@ class DebuggerProject(core.disposables):
 	def current_file_line(self) -> Tuple[str, int]:
 		line, col, _ = self.current_file_line_column()
 		return line, col
-
-	def panel_show(self) -> None:
-		self.window.run_command('show_panel', {
-			'panel': 'output.{}'.format("Debugger")
-		})
-
-	def panel_hide(self) -> None:
-		if self.window.active_panel() != "Debugger":
-			return
-
-		self.window.run_command('hide_panel', {
-			'panel': 'output.{}'.format("Debugger")
-		})
-
-	def panel_phantom_location(self) -> int:
-		return self.panel.size() - len(_phantom_text) + 2
-
-	def panel_phantom_view(self) -> sublime.View:
-		return self.panel
-
-	def dispose(self):
-		super().dispose()
-		self.window.destroy_output_panel("Debugger")

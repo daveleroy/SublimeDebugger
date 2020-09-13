@@ -103,6 +103,9 @@ class Terminal:
 		self.lines.append(line)
 		self.on_updated.post()
 
+	def show_backing_panel(self):
+		...
+
 	def clear(self) -> None:
 		self.lines = []
 		self.on_updated()

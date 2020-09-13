@@ -2,11 +2,9 @@ from ...typecheck import *
 from ...import ui
 from .import css
 
-import sublime
-
 
 class TabbedPanelItem:
-	def __init__(self, id: int, item: ui.div, name: str, index: int = 0):
+	def __init__(self, id: int, item: ui.div, name: str, index: int = 0, show_options: Optional[Callable[[], None]] = None):
 		self.id = id
 		self.item = item
 		self.name = name
@@ -15,6 +13,7 @@ class TabbedPanelItem:
 		self.visible = True
 		self.column = -1
 		self.row = -1
+		self.show_options = show_options
 
 
 class TabbedPanel(ui.div):
@@ -69,6 +68,10 @@ class TabbedPanel(ui.div):
 					return
 
 	def show(self, index: int):
+		if self.selected_index == index and self.items[index].show_options:
+			self.items[index].show_options()
+			return
+
 		self.selected_index = index
 		self.items[index].modified = False
 		self.dirty()
