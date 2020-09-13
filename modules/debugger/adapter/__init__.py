@@ -1,5 +1,4 @@
 from .adapter import AdapterConfiguration, Adapters
-from .configuration import Configuration, ConfigurationExpanded, ConfigurationCompound
 from .transports import SocketTransport, StdioTransport
 from . import vscode
 from .dependencies import get_and_warn_require_node

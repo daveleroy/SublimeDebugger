@@ -1,12 +1,9 @@
 from ..typecheck import *
 
 import sublime
-import sublime_plugin
 import os
-import subprocess
-import re
-import json
-import types
+
+import webbrowser
 
 from .. import core, ui
 
@@ -67,10 +64,6 @@ class Debugger:
 	creating = {} #type: Set[int, bool]
 
 	@staticmethod
-	def get(window: sublime.Window, run: bool = False) -> 'Optional[Debugger]':
-		return Debugger.for_window(window, run)
-
-	@staticmethod
 	def should_auto_open_in_window(window: sublime.Window) -> bool:
 		data = window.project_data()
 		if not data:
@@ -82,7 +75,7 @@ class Debugger:
 		return True
 
 	@staticmethod
-	def for_window(window: sublime.Window, create: bool = False) -> 'Optional[Debugger]':
+	def get(window: sublime.Window, create: bool = False) -> 'Optional[Debugger]':
 		global instances
 		id = window.id()
 		instance = Debugger.instances.get(id)
@@ -112,8 +105,6 @@ class Debugger:
 
 		def on_project_configuration_updated():
 			self.sessions.terminals.external_terminal_kind = self.project.external_terminal_kind
-			self.configurations = self.project.configurations
-			self.configuration = self.persistance.load_configuration_option(self.project.configurations, self.project.compounds)
 			self.panel.set_ui_scale(self.project.ui_scale)
 
 		self.project = DebuggerProject(window)
@@ -295,8 +286,11 @@ class Debugger:
 		self.middle_panel.select(self.callstack_view)
 
 	def changeConfiguration(self, configuration: Union[Configuration, ConfigurationCompound]):
-		self.configuration = configuration
-		self.persistance.save_configuration_option(configuration)
+		self.project.configuration_or_compound = configuration
+		self.save_data()
+
+	def open_project_configurations_file(self):
+		self.project.open_project_configurations_file()
 
 	def dispose(self) -> None:
 		self.save_data()
@@ -319,29 +313,14 @@ class Debugger:
 		self.terminal.clear()
 		self.terminal.log_info('Console cleared...')
 		try:
-			if not self.configuration:
+			active_configurations = self.project.active_configurations()
+			if not active_configurations:
 				self.terminal.log_error("Add or select a configuration to begin debugging")
-				Adapters.select_configuration(self).run()
+				await self.change_configuration()
+
+			active_configurations = self.project.active_configurations()
+			if not active_configurations:
 				return
-
-			if isinstance(self.configuration, ConfigurationCompound):
-				configurations = []
-				for configuration_name in self.configuration.configurations:
-					configuration = None
-					for c in self.configurations:
-						if c.name == configuration_name:
-							configuration = c
-							break
-
-					if configuration:
-						configurations.append(configuration)
-					else:
-						raise core.Error(f'Unable to find configuration with name {configuration_name} while evaluating compound {self.configuration.name}')
-
-			elif isinstance(self.configuration, Configuration):
-				configurations = [self.configuration]
-			else:
-				raise core.Error('unreachable')
 
 		except Exception as e:
 			core.log_exception()
@@ -350,7 +329,7 @@ class Debugger:
 
 		variables = self.project.extract_variables()
 
-		for configuration in configurations:
+		for configuration in active_configurations:
 			@core.schedule
 			async def launch():
 				try:
@@ -454,23 +433,24 @@ class Debugger:
 		self.breakpoints_provider.run_to_current_line()
 
 	def load_data(self):
+		self.project.load_from_json(self.persistance.json.get('project', {}))
 		self.breakpoints.load_from_json(self.persistance.json.get('breakpoints', {}))
 		self.sessions.watch.load_json(self.persistance.json.get('watch', []))
 
 	def save_data(self):
+		self.persistance.json['project'] = self.project.into_json()
 		self.persistance.json['breakpoints'] = self.breakpoints.into_json()
 		self.persistance.json['watch'] = self.sessions.watch.into_json()
 		self.persistance.save_to_file()
 
 	def on_settings(self) -> None:
-		import webbrowser
 		def about():
-			webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger/blob/master/docs/setup.md")
-		
+			webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger#getting-started")
+
 		def report_issue():
 			webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger/issues")
 
-		values = Adapters.select_configuration(self).values
+		values = self.change_configuration_input_items()
 		values.extend([
 			ui.InputListItem(lambda: ..., ""),
 			ui.InputListItem(report_issue, "Report Issue"),
@@ -479,12 +459,30 @@ class Debugger:
 
 		ui.InputList(values).run()
 
+	def change_configuration_input_items(self) -> List[ui.InputListItem]:
+		values = []
+		for c in self.project.compounds:
+			name = f'{c.name}\tcompound'
+			values.append(ui.InputListItemChecked(lambda c=c: self.changeConfiguration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
+
+		for c in self.project.configurations:
+			name = f'{c.name}\t{c.type}'
+			values.append(ui.InputListItemChecked(lambda c=c: self.changeConfiguration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
+
+		if values:
+			values.append(ui.InputListItem(lambda: ..., ""))
+
+		values.append(ui.InputListItem(Adapters.add_configuration(), "Add Configuration"))
+		values.append(ui.InputListItem(lambda: self.open_project_configurations_file(), "Edit Configuration File"))
+		return values
+
+	@core.schedule
+	async def change_configuration(self) -> None:
+		await ui.InputList(self.change_configuration_input_items(), "Add or Select Configuration").run()
+
 	def install_adapters(self) -> None:
 		self.show_console_panel()
 		Adapters.install_menu(log=self).run()
-
-	def change_configuration(self) -> None:
-		Adapters.select_configuration(self).run()
 
 	def error(self, value: str):
 		self.terminal.log_error(value)

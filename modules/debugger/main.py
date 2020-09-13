@@ -42,7 +42,7 @@ def open(window_or_view: Union[sublime.View, sublime.Window]):
 
 	if get_setting(view, 'open_at_startup', False) and (not window.id() in was_opened_at_startup) and Debugger.should_auto_open_in_window(window):
 		was_opened_at_startup.add(window.id())
-		Debugger.for_window(window, create=True)
+		Debugger.get(window, create=True)
 
 def on_load_project(window: sublime.Window):
 	if debugger := Debugger.get(window):

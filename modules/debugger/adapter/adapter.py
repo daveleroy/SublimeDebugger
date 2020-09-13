@@ -96,23 +96,6 @@ class Adapters:
 
 		return ui.InputList(values, placeholder="choose a configuration type")
 
-
-	@staticmethod
-	def select_configuration(debugger: 'Debugger'):
-		values = []
-
-		for c in debugger.project.compounds:
-			name = f'{c.name}\tcompound'
-			values.append(ui.InputListItemChecked(lambda c=c: debugger.changeConfiguration(c), name, name, c == debugger.configuration)) #type: ignore
-
-		for c in debugger.configurations:
-			name = f'{c.name}\t{c.type}'
-			values.append(ui.InputListItemChecked(lambda c=c: debugger.changeConfiguration(c), name, name, c == debugger.configuration)) #type: ignore
-
-		values.append(ui.InputListItem(Adapters.add_configuration(), "Add Configuration"))
-
-		return ui.InputList(values, "Add or Select Configuration")
-
 	@staticmethod
 	def recalculate_schema():
 		from .schema import save_schema
