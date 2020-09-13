@@ -2,18 +2,15 @@ from ...typecheck import*
 from ...import ui
 from ...import core
 
-from ..dap import (
-	types as dap,
-	Thread,
-)
-from ..debugger_sessions import DebuggerSessions, DebuggerSession
+from .. import dap
+from ..debugger_sessions import DebuggerSessions
 
 from . import css
 
 import os
 
 
-class State:
+class CallStackState:
 	def __init__(self):
 		self._expanded = {}
 
@@ -37,7 +34,7 @@ class CallStackView (ui.div):
 	def __init__(self, sessions: DebuggerSessions):
 		super().__init__()
 		self.sessions = sessions
-		self.state = State()
+		self.state = CallStackState()
 
 	def added(self, layout: ui.Layout):
 		self.on_updated = self.sessions.on_updated_threads.add(self.on_threads_updated)
@@ -50,15 +47,21 @@ class CallStackView (ui.div):
 		self.on_added_session.dispose()
 		self.on_removed_session.dispose()
 
-	def on_threads_updated(self, session: DebuggerSession):
+	def on_threads_updated(self, session: dap.Session):
 		self.dirty()
 
-	def selected_session(self, session: DebuggerSession):
+	def selected_session(self, session: dap.Session):
 		self.sessions.active = session
 
 	def render(self) -> ui.div.Children:
 		thread_views = []
 		show_session_name = len(self.sessions.sessions) > 1
+
+		if not self.sessions.sessions:
+			return ui.div(height=css.row_height)[
+				ui.spacer(1),
+				ui.text('No Active Debug Sessions', css=css.label_secondary)
+			]
 
 		for session in self.sessions:
 			threads = session.threads
@@ -83,14 +86,11 @@ class CallStackView (ui.div):
 
 				thread_views.append(ThreadView(session, thread, is_selected, self.state, show_thread_name))
 
-		if not thread_views:
-			thread_views.append(ui.div(height=css.row_height)[
-				ui.text('No Active Debug Sessions', css=css.label_secondary)
-			])
+
 		return thread_views
 
 class ThreadView (ui.div):
-	def __init__(self, session: DebuggerSession, thread: Thread, is_selected: bool, state: State, show_thread_name: bool):
+	def __init__(self, session: dap.Session, thread: dap.Thread, is_selected: bool, state: CallStackState, show_thread_name: bool):
 		super().__init__()
 		self.session = session
 		self.is_selected = is_selected
@@ -99,12 +99,6 @@ class ThreadView (ui.div):
 		self.state = state
 		self.frames = [] #type: List[dap.StackFrame]
 		self.fetch()
-
-	def added(self, layout: ui.Layout):
-		self.on_updated = self.session.on_updated_threads.add(self.dirty)
-
-	def removed(self):
-		self.on_updated.dispose()
 
 	@property
 	def is_expanded(self):
@@ -177,7 +171,7 @@ class ThreadView (ui.div):
 
 
 class StackFrameComponent (ui.div):
-	def __init__(self, session: DebuggerSession, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None], show_thread_name: bool) -> None:
+	def __init__(self, session: dap.Session, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None], show_thread_name: bool) -> None:
 		super().__init__()
 		self.frame = frame
 		self.on_click = on_click
@@ -186,7 +180,6 @@ class StackFrameComponent (ui.div):
 			self.add_class(css.selected.class_name)
 
 	def render(self) -> ui.div.Children:
-		width = self.width(self.layout)
 		frame = self.frame
 		name = os.path.basename(frame.file)
 		if frame.presentation == dap.StackFrame.subtle:

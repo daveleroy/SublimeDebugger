@@ -1,10 +1,10 @@
 from ..typecheck import *
 from ..import core, ui
 
-from .dap import types as dap
+from . import dap
 from .debugger_sessions import DebuggerSessions
 from .debugger_project import DebuggerProject
-from .views.variable import Variable, VariableComponent
+from .views.variable import VariableComponent
 
 import sublime
 import re
@@ -37,13 +37,13 @@ class ViewHoverProvider(core.Disposables):
 		try:
 			response = await session.evaluate_expression(word_string, 'hover')
 			await core.sleep(0.25)
-			variable = dap.Variable("", response.result, response.variablesReference)
+			variable = dap.types.Variable("", response.result, response.variablesReference)
 			view.add_regions('selected_hover', [region], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
 
 			def on_close() -> None:
 				view.erase_regions('selected_hover')
 
-			component = VariableComponent(Variable(session, variable))
+			component = VariableComponent(dap.Variable(session, variable))
 			component.toggle_expand()
 			ui.Popup(ui.div(width=100)[component], view, region.a, on_close=on_close)
 

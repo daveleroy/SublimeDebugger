@@ -4,7 +4,7 @@ from .views.selected_line import SelectedLine
 
 from .debugger_sessions import DebuggerSessions
 from .debugger_project import DebuggerProject
-from .dap import Source
+from .dap import SourceLocation
 
 import sublime
 import sublime_plugin
@@ -39,14 +39,14 @@ class SourceNavigationProvider:
 	def dispose(self):
 		self.clear()
 
-	def select_source_location(self, source: Source, stopped_reason: str):
+	def select_source_location(self, source: SourceLocation, stopped_reason: str):
 		if self.updating:
 			self.updating.cancel()
 		def on_error(error):
 			if error is not core.CancelledError:
 				core.log_error(error)
 
-		async def select_async(source: Source, stopped_reason: str):
+		async def select_async(source: SourceLocation, stopped_reason: str):
 			self.clear_selected()
 			view = await self.navigate_to_source(source)
 
@@ -56,7 +56,7 @@ class SourceNavigationProvider:
 
 		self.updating = core.run(select_async(source, stopped_reason), on_error=on_error)
 
-	def show_source_location(self, source: Source):
+	def show_source_location(self, source: SourceLocation):
 		if self.updating:
 			self.updating.cancel()
 
@@ -64,7 +64,7 @@ class SourceNavigationProvider:
 			if error is not core.CancelledError:
 				core.log_error(error)
 
-		async def navigate_async(source: Source):
+		async def navigate_async(source: SourceLocation):
 			self.clear_generated_view()
 			await self.navigate_to_source(source, move_cursor=True)
 
@@ -87,7 +87,7 @@ class SourceNavigationProvider:
 			self.generated_view.close()
 			self.generated_view = None
 
-	async def navigate_to_source(self, source: Source, move_cursor: bool = False) -> sublime.View:
+	async def navigate_to_source(self, source: SourceLocation, move_cursor: bool = False) -> sublime.View:
 
 		# if we aren't going to reuse the previous generated view
 		# or the generated view was closed (no buffer) throw it away

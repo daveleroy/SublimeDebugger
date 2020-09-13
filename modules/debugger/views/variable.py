@@ -6,8 +6,7 @@ from . import css
 
 import sublime
 
-from ..dap.variable import VariableReference, EvaluateReference, ScopeReference, Variable, Source
-from ..dap import types as dap
+from ..import dap
 
 
 class VariableComponentState:
@@ -15,26 +14,26 @@ class VariableComponentState:
 		self._expanded = {}
 		self._number_expanded = {}
 
-	def is_expanded(self, variable: Variable) -> bool:
+	def is_expanded(self, variable: dap.Variable) -> bool:
 		return self._expanded.get(id(variable), False)
 
-	def set_expanded(self, variable: Variable, value: bool):
+	def set_expanded(self, variable: dap.Variable, value: bool):
 		self._expanded[id(variable)] = value
 
-	def number_expanded(self, variable: Variable) -> int:
+	def number_expanded(self, variable: dap.Variable) -> int:
 		return self._number_expanded.get(id(variable), 20)
 
-	def set_number_expanded(self, variable: Variable, value: int):
+	def set_number_expanded(self, variable: dap.Variable, value: int):
 		self._number_expanded[id(variable)] = value
 
 
 class VariableComponent (ui.div):
-	def __init__(self, variable: Variable, source: Optional[Source] = None, on_clicked_source: Optional[Callable[[Source], None]] = None, state=VariableComponentState()) -> None:
+	def __init__(self, variable: dap.Variable, source: Optional[dap.SourceLocation] = None, on_clicked_source: Optional[Callable[[dap.SourceLocation], None]] = None, state: VariableComponentState = VariableComponentState()) -> None:
 		super().__init__()
 		self.variable = variable
 		self.state = state
 		self.item_right = ui.span()
-		self.variable_children: List[Variable] = []
+		self.variable_children: List[dap.Variable] = []
 		self.edit_variable_menu = None
 		self.on_clicked_source = on_clicked_source
 		self.source = source
@@ -44,12 +43,12 @@ class VariableComponent (ui.div):
 
 	@core.schedule
 	async def edit_variable(self) -> None:
-		if not isinstance(self.variable.reference, dap.Variable):
+		if not isinstance(self.variable.reference, dap.types.Variable):
 			raise core.Error("Not able to set value of this item")
 
 		variable = self.variable.reference
 		session = self.variable.session
-		info = None #type: Optional[dap.DataBreakpointInfoResponse]
+		info = None
 		expression = variable.evaluateName or variable.name
 		value = variable.value or ""
 
@@ -144,7 +143,6 @@ class VariableComponent (ui.div):
 
 	def render(self) -> ui.div.Children:
 		v = self.variable
-		width = self.width(self.layout)
 
 		name =  v.name
 		value = v.value
@@ -171,7 +169,6 @@ class VariableComponent (ui.div):
 			return [
 				ui.div(height=css.row_height)[
 					ui.align()[
-						ui.spacer(1),
 						value_item,
 						self.item_right,
 					],

@@ -10,7 +10,6 @@ import types
 
 from .. import core, ui
 
-from .dap import types as dap
 
 from .autocomplete import Autocomplete
 
@@ -18,8 +17,9 @@ from .util import get_setting
 from .config import PersistedData
 
 from .watch import Watch
-from .dap import Session as DebuggerSession
 from .debugger_terminals import Terminals
+
+from .import dap
 
 from .debugger_sessions import (
 	DebuggerSessions,
@@ -30,11 +30,14 @@ from .breakpoints import (
 
 from .debugger_project import DebuggerProject
 from .panel import DebuggerOutputPanel, DebuggerProtocolLogger
+
 from .adapter import (
+	Adapters,
+)
+from .dap import (
 	Configuration,
 	ConfigurationExpanded,
 	ConfigurationCompound,
-	Adapters,
 )
 from .terminals import (
 	Terminal,
@@ -42,7 +45,7 @@ from .terminals import (
 	TermianlDebugger,
 	TerminalView,
 )
-from .dap import Source
+from .dap import SourceLocation
 
 from .view_hover import ViewHoverProvider
 from .source_navigation import SourceNavigationProvider
@@ -126,7 +129,7 @@ class Debugger:
 		self.disposeables.append(self.transport_log)
 		autocomplete = Autocomplete.create_for_window(window)
 
-		def on_output(session:DebuggerSession, event: dap.OutputEvent) -> None:
+		def on_output(session: dap.Session, event: dap.OutputEvent) -> None:
 			self.terminal.program_output(session, event)
 
 		def on_terminal_added(terminal: Terminal):
@@ -218,17 +221,17 @@ class Debugger:
 		self.right = ui.Phantom(self.right_panel, phantom_view, sublime.Region(phantom_location + 0, phantom_location + 2), sublime.LAYOUT_INLINE)
 		self.disposeables.extend([self.left, self.middle, self.right])
 
-		self.sessions.on_updated_modules.add(lambda s: self.update_modules_visibility())
-		self.sessions.on_updated_sources.add(lambda s: self.update_sources_visibility())
+		self.sessions.on_updated_modules.add(lambda _: self.update_modules_visibility())
+		self.sessions.on_updated_sources.add(lambda _: self.update_sources_visibility())
 		self.sessions.on_removed_session.add(self.on_session_removed)
 		self.sessions.updated.add(self.on_session_state_changed)
 		self.sessions.on_selected.add(self.on_session_selection_changed)
 
-	def on_session_removed(self, session: DebuggerSession):
+	def on_session_removed(self, session: dap.Session):
 		self.update_sources_visibility()
 		self.update_modules_visibility()
 
-	def on_session_selection_changed(self, session: DebuggerSession):
+	def on_session_selection_changed(self, session: dap.Session):
 		if not self.sessions.has_active:
 			self.source_provider.clear()
 			return
@@ -238,33 +241,27 @@ class Debugger:
 		frame = active_session.selected_frame
 
 		if thread and frame and frame.source:
-			self.source_provider.select_source_location(Source(frame.source, frame.line, frame.column), thread.stopped_reason or "Stopped")
+			self.source_provider.select_source_location(SourceLocation(frame.source, frame.line, frame.column), thread.stopped_reason or "Stopped")
 		else:
 			self.source_provider.clear()
 
-	def on_session_state_changed(self, session: DebuggerSession, state):
-		if state == DebuggerSession.stopped:
-			if self.sessions or session.stopped_reason == DebuggerSession.stopped_reason_build_failed:
+	def on_session_state_changed(self, session: dap.Session, state):
+		if state == dap.Session.stopped:
+			if self.sessions or session.stopped_reason == dap.Session.stopped_reason_build_failed:
 				... # leave build results open or there is still a running session
 			else:
 				self.show_console_panel()
 
-		elif state == DebuggerSession.running:
+		elif state == dap.Session.running:
 			self.show_console_panel()
 
-		elif state == DebuggerSession.paused:
-			if self.project.bring_window_to_front_on_pause:
-				# is there a better way to bring sublime to the front??
-				# this probably doesn't work for most people. subl needs to be in PATH
-				# ignore any errors
-				try:
-					subprocess.call(["subl"])
-				except Exception:
-					pass
+		elif state == dap.Session.paused:
+			# if self.project.bring_window_to_front_on_pause:
+			# figure out a good way to bring sublime to front
 
 			self.show_call_stack_panel()
 
-		elif state == DebuggerSession.stopping or state == DebuggerSession.starting:
+		elif state == dap.Session.stopping or state == dap.Session.starting:
 			...
 
 	def update_sources_visibility(self):
@@ -313,7 +310,7 @@ class Debugger:
 			self.terminal.log_error(str(e))
 		core.run(awaitable, on_error=on_error)
 
-	def on_navigate_to_source(self, source: Source):
+	def on_navigate_to_source(self, source: SourceLocation):
 		self.source_provider.show_source_location(source)
 
 	async def _on_play(self, no_debug=False) -> None:
@@ -374,17 +371,17 @@ class Debugger:
 	def is_paused(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state == DebuggerSession.paused
+		return self.sessions.active.state == dap.Session.paused
 
 	def is_running(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state == DebuggerSession.running
+		return self.sessions.active.state == dap.Session.running
 
 	def is_stoppable(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state != DebuggerSession.stopped
+		return self.sessions.active.state != dap.Session.stopped
 
 	#
 	# commands
@@ -406,7 +403,7 @@ class Debugger:
 	async def catch_error(self, awaitabe):
 		try:
 			return await awaitabe()
-		except core.Error as e:  
+		except core.Error as e:
 			self.error(str(e))
 
 	@core.schedule

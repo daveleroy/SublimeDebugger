@@ -21,7 +21,7 @@ from . import types as dap
 
 from .variable import (
 	Variable,
-	Source,
+	SourceLocation,
 	ScopeReference,
 )
 from .configuration import (
@@ -630,14 +630,21 @@ class Session(ClientEventsListener, core.Logger):
 		})
 		return body['content']
 
-	async def get_variables(self, variablesReference: int) -> List[dap.Variable]:
+	async def get_variables(self, variablesReference: int, without_names = False) -> List[Variable]:
 		response = await self.request('variables', {
 			"variablesReference": variablesReference
 		})
 		def from_json(v):
 			return dap.Variable.from_json(variablesReference, v)
 
-		return array_from_json(from_json, response['variables'])
+		variables = array_from_json(from_json, response['variables'])
+
+		# vscode seems to remove the names from variables in output events
+		if without_names:
+			for v in variables:
+				v.name = ""
+
+		return [Variable(self, v) for v in variables]
 
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
 		b = self.breakpoints_for_id.get(event.result.id)

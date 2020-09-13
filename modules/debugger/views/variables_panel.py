@@ -1,7 +1,8 @@
 from ... typecheck import *
 from ... import ui
 from .variable import VariableComponent
-from ..debugger_sessions import DebuggerSessions, DebuggerSession
+from ..debugger_sessions import DebuggerSessions
+from ..import dap
 from ..watch import Watch
 from . import css
 
@@ -29,7 +30,7 @@ class VariablesView (ui.div):
 		self.sessions.on_removed_session.add(lambda session: self.on_updated(session))
 		self.variables = []
 
-	def on_updated(self, sessions: DebuggerSession):
+	def on_updated(self, session: dap.Session):
 		if self.sessions.has_active:
 			self.variables = [VariableComponent(variable) for variable in self.sessions.active.variables]
 			if self.variables:

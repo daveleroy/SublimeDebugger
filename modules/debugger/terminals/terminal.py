@@ -1,8 +1,9 @@
 from ...typecheck import*
 from ...import core, ui
 from ..views import css
-from ..views.variable import VariableComponent, Variable, Source
-from ..autocomplete import Autocomplete
+from ..views.variable import VariableComponent
+
+from ..import dap
 
 import re
 import webbrowser
@@ -17,11 +18,11 @@ class Line:
 		self.type = type
 		self.line = ''
 		self.cwd = cwd
-		self.source: Optional[Source] = None
-		self.variable: Optional[Variable] = None
+		self.source: Optional[dap.SourceLocation] = None
+		self.variable: Optional[dap.Variable] = None
 		self.finished = False
 
-	def add(self, text: str, source: Optional[Source], file_regex: Any):
+	def add(self, text: str, source: Optional[dap.SourceLocation], file_regex: Any):
 		if self.finished:
 			raise core.Error('line is already complete')
 
@@ -40,17 +41,21 @@ class Line:
 			groupdict = match.groupdict()
 			file = groupdict.get("file") or match.group(1)
 			line = int(groupdict.get("line") or match.group(2) or 1)
-			column = int(groupdict.get("column") or match.group(3) or 1)
+
+			if len(match.groups()) == 4:
+				column = int(groupdict.get("column") or match.group(3) or 1)
+			else:
+				column = 1
 
 			if not os.path.isabs(file) and self.cwd:
 				file = os.path.join(self.cwd, file)
 
-			source = Source.from_path(file, line, column)
+			source = dap.SourceLocation.from_path(file, line, column)
 
 			self.type = 'terminal.error'
 			self.source = source
 
-	def add_variable(self, variable: Variable, source: Optional[Source]):
+	def add_variable(self, variable: dap.Variable, source: Optional[dap.SourceLocation]):
 		if self.finished:
 			raise core.Error('line is already complete')
 
@@ -76,10 +81,10 @@ class Terminal:
 	def name(self) -> str:
 		return self._name
 
-	def clicked_source(self, source: Source) -> None:
+	def clicked_source(self, source: dap.SourceLocation) -> None:
 		pass
 
-	def _add_line(self, type: str, text: str, source: Optional[Source] = None):
+	def _add_line(self, type: str, text: str, source: Optional[dap.SourceLocation] = None):
 		if self.lines:
 			previous = self.lines[-1]
 			if not previous.finished and previous.type == type:
@@ -91,13 +96,13 @@ class Terminal:
 		self.lines.append(line)
 		self.on_updated.post()
 
-	def add(self, type: str, text: str, source: Optional[Source] = None):
+	def add(self, type: str, text: str, source: Optional[dap.SourceLocation] = None):
 		lines = text.splitlines(keepends=True)
 		for line in lines:
 			self._add_line(type, line, source)
 			source = None
 
-	def add_variable(self, variable: Variable, source: Optional[Source] = None):
+	def add_variable(self, variable: dap.Variable, source: Optional[dap.SourceLocation] = None):
 		line = Line(None, None)
 		line.add_variable(variable, source)
 		self.lines.append(line)

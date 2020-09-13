@@ -3,10 +3,13 @@ from ...typecheck import *
 from ...import core
 
 from ..dap import types as dap
-from ..dap import Variable, Source
+from ..dap import Variable, SourceLocation
 
 from .terminal import Terminal
 from ..panel import OutputPanel
+
+
+import sublime
 
 if TYPE_CHECKING:
 	from ..debugger_session import DebuggerSession
@@ -43,9 +46,8 @@ class TermianlDebugger (Terminal):
 			# this seems to be what vscode does it ignores the actual message here.
 			# Some of the messages are junk like "output" that we probably don't want to display
 			async def appendVariabble() -> None:
-				variables = await session.get_variables(variablesReference)
+				variables = await session.get_variables(variablesReference, without_names=True)
 				for variable in variables:
-					variable.name = "" # this is what vs code does?
 					self.append_variable(session, variable, event.source, event.line)
 
 			# this could make variable messages appear out of order. Do we care??
@@ -54,11 +56,10 @@ class TermianlDebugger (Terminal):
 			self.append_text(event.category, event.text, event.source, event.line)
 
 	def append_variable(self, session: DebuggerSession, variable: dap.Variable, source: Optional[dap.Source], line: Optional[int]):
-		v = Variable(session, variable)
 		if source:
-			self.add_variable(v, Source(source, line))
+			self.add_variable(variable, SourceLocation(source, line))
 		else:
-			self.add_variable(v)
+			self.add_variable(variable)
 
 	def append_text(self, type: str, text: str, source: Optional[dap.Source], line: Optional[int]):
 		if type == "telemetry":
@@ -67,7 +68,7 @@ class TermianlDebugger (Terminal):
 		self.panel.write(text)
 
 		if source:
-			self.add(type, text, Source(source, line))
+			self.add(type, text, SourceLocation(source, line))
 		else:
 			self.add(type, text)
 

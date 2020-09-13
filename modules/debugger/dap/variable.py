@@ -11,14 +11,14 @@ if TYPE_CHECKING:
 	from .session import Session
 
 @dataclass
-class Source:
+class SourceLocation:
 	source: dap.Source
 	line: Optional[int] = None
 	column: Optional[int] = None
 
 	@staticmethod
-	def from_path(file: str, line: Optional[int], column: Optional[int]) -> 'Source':
-		return Source(dap.Source(os.path.basename(file), file), line, column)
+	def from_path(file: str, line: Optional[int], column: Optional[int]) -> SourceLocation:
+		return SourceLocation(dap.Source(os.path.basename(file), file), line, column)
 
 	@property
 	def name(self) -> str:
@@ -82,8 +82,7 @@ class Variable:
 		return self.reference.value
 
 	async def fetch(self):
-		variables = await self.session.get_variables(self.reference.variablesReference)
-		return [Variable(self.session, v) for v in variables]
+		return await self.session.get_variables(self.reference.variablesReference)
 
 	async def children(self) -> List[Variable]:
 		if not self.has_children:

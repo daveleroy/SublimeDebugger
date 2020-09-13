@@ -2,14 +2,14 @@ from ...typecheck import *
 from ...import core
 from ...import ui
 
-from ..dap import types as dap
-from ..debugger_sessions import DebuggerSessions, DebuggerSession
+from .. import dap
+from ..debugger_sessions import DebuggerSessions
 
 from . import css
 
 
 class SourcesView(ui.div):
-	def __init__(self, sessions: DebuggerSessions, on_click: Callable[[dap.Source], None]):
+	def __init__(self, sessions: DebuggerSessions, on_click: Callable[[dap.types.Source], None]):
 		super().__init__()
 		self.sessions = sessions
 		self.on_click = on_click
@@ -18,7 +18,7 @@ class SourcesView(ui.div):
 		self.on_updated_sources = self.sessions.on_updated_sources.add(self.updated)
 		self.on_removed_session = self.sessions.on_removed_session.add(self.updated)
 
-	def updated(self, session: DebuggerSession):
+	def updated(self, session: dap.Session):
 		self.dirty()
 
 	def removed(self):
