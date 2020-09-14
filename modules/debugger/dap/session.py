@@ -3,19 +3,12 @@ from __future__ import annotations
 from ...typecheck import *
 from ...import core
 
-
-from ..terminals import (
-	Terminal,
-	TerminalCommand,
-)
-
 from ..breakpoints import (
 	Breakpoints,
 	SourceBreakpoint,
 )
 
 from ..watch import Watch
-from ..debugger_terminals import Terminals
 
 from . import types as dap
 
@@ -27,6 +20,7 @@ from .variable import (
 from .configuration import (
 	AdapterConfiguration,
 	ConfigurationExpanded,
+	TaskExpanded
 )
 
 from .types import array_from_json, json_from_array
@@ -73,9 +67,6 @@ class Session(ClientEventsListener, core.Logger):
 
 		self.transport_log = transport_log
 		self.state_changed = core.Event() #type: core.Event[int]
-
-		self.terminals = terminals
-		self.terminals_updated = core.Event() #type: core.Event[None]
 
 		self.breakpoints = breakpoints
 		self.breakpoints_for_id = {} #type: Dict[int, SourceBreakpoint]
@@ -137,9 +128,8 @@ class Session(ClientEventsListener, core.Logger):
 		self._status = status
 		self.listener.on_session_state_changed(self, self._state)
 
-	async def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False) -> None:
 
-		self.dispose_terminals()
+	async def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False) -> None:
 		try:
 			self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart, no_debug))
 			await self.launching_async
@@ -204,8 +194,6 @@ class Session(ClientEventsListener, core.Logger):
 		# remove/add any exception breakpoint filters
 		self.breakpoints.filters.update(self.capabilities.exceptionBreakpointFilters or [])
 
-		if restart or no_debug:
-			configuration = configuration.copy()
 		if restart:
 			configuration["__restart"] = restart
 		if no_debug:
@@ -238,7 +226,7 @@ class Session(ClientEventsListener, core.Logger):
 		await self.complete
 
 	async def run_pre_debug_task(self) -> bool:
-		pre_debug_command = self.configuration.get('pre_debug_command')
+		pre_debug_command = self.configuration.pre_debug_task
 		if pre_debug_command:
 			self._change_status("Running pre debug command")
 			r = await self.run_task("Pre debug command", pre_debug_command)
@@ -246,19 +234,16 @@ class Session(ClientEventsListener, core.Logger):
 		return True
 
 	async def run_post_debug_task(self) -> bool:
-		post_debug_command = self.configuration.get('post_debug_command')
+		post_debug_command = self.configuration.post_debug_task
 		if post_debug_command:
 			self._change_status("Running post debug command")
 			r = await self.run_task("Post debug command", post_debug_command)
 			return r
 		return True
 
-	async def run_task(self, name: str, args: Dict[str, Any]) -> bool:
+	async def run_task(self, name: str, task: TaskExpanded) -> bool:
 		try:
-			terminal = TerminalCommand(args)
-			if not terminal.background:
-				self.terminals.add(self, terminal)
-			await terminal.wait()
+			await self.listener.on_session_task_request(self, task)
 			return True
 
 		except core.CancelledError:
@@ -466,12 +451,8 @@ class Session(ClientEventsListener, core.Logger):
 		if not self.complete.done():
 			self.complete.set_result(None)
 
-	def dispose_terminals(self):
-		self.terminals.clear_session_data(self)
-
 	def dispose(self) -> None:
 		self.stop_debug_adapter_session()
-		self.dispose_terminals()
 		for disposeable in self.disposeables:
 			disposeable.dispose()
 

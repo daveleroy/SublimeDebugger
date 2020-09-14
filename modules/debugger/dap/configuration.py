@@ -69,6 +69,8 @@ class ConfigurationExpanded(Configuration):
 		all = ConfigurationExpanded._expand_variables_and_platform(configuration, variables)
 		super().__init__(configuration.name, -1, configuration.type, configuration.request, all)
 
+		self.pre_debug_task: Optional[TaskExpanded] = None
+		self.post_debug_task: Optional[TaskExpanded] = None
 
 	@staticmethod
 	def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dict:
@@ -105,3 +107,19 @@ class ConfigurationCompound:
 		configurations = json.get('configurations')
 		assert configurations, 'expecting configurations for debug.compound'
 		return ConfigurationCompound(name, index, configurations)
+
+
+class Task (dict):
+	def __init__(self, arguments: dict) -> None:
+		super().__init__(arguments)
+		self.name = self.get('name', 'Untitled')
+
+	@staticmethod
+	def from_json(json):
+		return Task(json)
+
+
+class TaskExpanded(Task):
+	def __init__(self, task: Task, variables: Any) -> None:
+		all = ConfigurationExpanded._expand_variables_and_platform(task, variables)
+		super().__init__(all)

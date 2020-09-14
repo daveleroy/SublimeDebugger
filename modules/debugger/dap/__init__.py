@@ -35,6 +35,8 @@ from .configuration import (
 	Configuration,
 	ConfigurationExpanded,
 	ConfigurationCompound,
+	Task,
+	TaskExpanded,
 )
 from .client import (
 	Transport,

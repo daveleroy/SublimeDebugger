@@ -13,8 +13,6 @@ from .autocomplete import Autocomplete
 from .util import get_setting
 from .config import PersistedData
 
-from .watch import Watch
-from .debugger_terminals import Terminals
 
 from .import dap
 
@@ -35,12 +33,14 @@ from .dap import (
 	Configuration,
 	ConfigurationExpanded,
 	ConfigurationCompound,
+	Task,
+	TaskExpanded,
 )
 from .terminals import (
 	Terminal,
 	TerminalProcess,
 	TermianlDebugger,
-	TerminalView,
+	TerminalTask,
 )
 from .dap import SourceLocation
 
@@ -57,6 +57,8 @@ from .views.breakpoints_panel import BreakpointsPanel
 from .views.variables_panel import VariablesPanel
 from .views.tabbed_panel import TabbedPanel, TabbedPanelItem
 from .views.selected_line import SelectedLine
+from .views.terminal import TerminalView
+from .views.problems import ProblemsView
 
 class Debugger:
 
@@ -104,7 +106,7 @@ class Debugger:
 		self.disposeables = [] #type: List[Any]
 
 		def on_project_configuration_updated():
-			self.sessions.terminals.external_terminal_kind = self.project.external_terminal_kind
+			self.sessions.external_terminal_kind = self.project.external_terminal_kind
 			self.panel.set_ui_scale(self.project.ui_scale)
 
 		self.project = DebuggerProject(window)
@@ -117,6 +119,8 @@ class Debugger:
 			self.project,
 			self.panel,
 		])
+
+		self.transport_log = DebuggerProtocolLogger(self.window)
 		self.disposeables.append(self.transport_log)
 		autocomplete = Autocomplete.create_for_window(window)
 
@@ -124,11 +128,14 @@ class Debugger:
 			self.terminal.program_output(session, event)
 
 		def on_terminal_added(terminal: Terminal):
-			component = TerminalView(terminal, self.on_navigate_to_source)
+			if isinstance(terminal, TerminalTask):
+				component = ProblemsView(terminal, self.on_navigate_to_source)
+			else:
+				component = TerminalView(terminal, self.on_navigate_to_source)
 
-			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0)
+			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
 			def on_modified():
-				... 
+				...
 				#self.middle_panel.modified(panel)
 
 			terminal.on_updated.add(on_modified)
@@ -141,19 +148,22 @@ class Debugger:
 
 		self.breakpoints = Breakpoints()
 		self.disposeables.append(self.breakpoints)
-		
+
 		self.sessions = DebuggerSessions()
 		self.sessions.transport_log = self.transport_log
 		self.sessions.output.add(on_output)
 
-		self.sessions.terminals.on_terminal_added.add(on_terminal_added)
-		self.sessions.terminals.on_terminal_removed.add(on_terminal_removed)
+		self.sessions.on_terminal_added.add(on_terminal_added)
+		self.sessions.on_terminal_removed.add(on_terminal_removed)
 		self.disposeables.append(self.sessions)
 
 		self.terminal = TermianlDebugger(
 			self.window,
 			on_run_command=self.on_run_command,
 		)
+		self.terminals: List[Terminal] = []
+
+		self.disposeables.append(self.terminal)
 
 		self.source_provider = SourceNavigationProvider(self.project, self.sessions)
 		self.view_hover_provider = ViewHoverProvider(self.project, self.sessions)
@@ -296,6 +306,8 @@ class Debugger:
 		self.save_data()
 		for d in self.disposeables:
 			d.dispose()
+		for terminal in self.terminals:
+			terminal.dispose()
 
 		del Debugger.instances[self.window.id()]
 
@@ -309,7 +321,7 @@ class Debugger:
 
 	async def _on_play(self, no_debug=False) -> None:
 		self.show_console_panel()
-		self.sessions.terminals.clear_unused()
+		self.sessions.clear_unused()
 		self.terminal.clear()
 		self.terminal.log_info('Console cleared...')
 		try:
@@ -335,6 +347,15 @@ class Debugger:
 				try:
 					adapter_configuration = Adapters.get(configuration.type)
 					configuration_expanded = ConfigurationExpanded(configuration, variables)
+
+					if configuration_expanded.get('pre_debug_task'):
+						pre_debug_task = configuration_expanded.get('pre_debug_task')
+						configuration_expanded.pre_debug_task = TaskExpanded(self.project.get_task(pre_debug_task), variables)
+
+					if configuration_expanded.get('post_debug_task'):
+						post_debug_task = configuration_expanded.get('post_debug_task')
+						configuration_expanded.post_debug_task = TaskExpanded(self.project.get_task(post_debug_task), variables)
+
 					if not adapter_configuration.installed_version:
 						install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
 						if sublime.ok_cancel_dialog(install, 'Install'):
@@ -475,6 +496,27 @@ class Debugger:
 		values.append(ui.InputListItem(Adapters.add_configuration(), "Add Configuration"))
 		values.append(ui.InputListItem(lambda: self.open_project_configurations_file(), "Edit Configuration File"))
 		return values
+
+	def clear_unused_terminals(self):
+		for terminal in self.terminals:
+			if terminal.finished:
+				self.middle_panel.remove(id(terminal))
+				terminal.dispose()
+
+		self.terminals = list(filter(lambda terminal: not terminal.finished, self.terminals))
+
+	def run_task(self, task: Task):
+		self.clear_unused_terminals()
+
+		variables = self.project.extract_variables()
+		terminal = TerminalTask(self.window, TaskExpanded(task, variables))
+		self.terminals.append(terminal)
+
+		component = ProblemsView(terminal, self.on_navigate_to_source)
+		panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
+
+		self.middle_panel.add(panel)
+		self.middle_panel.select(id(terminal))
 
 	@core.schedule
 	async def change_configuration(self) -> None:

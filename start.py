@@ -12,19 +12,11 @@ for m in modules_to_remove:
 
 # import all the commands so that sublime sees them
 from .modules.debugger.commands import DebuggerCommand
-from .modules.debugger.view_selected_source import DebuggerReplaceContentsCommand, DebuggerShowLineCommand
-from .modules.debugger.terminals.terminal_build import DebuggerExecCommand
 
 from .modules.ui.input import DebuggerInputCommand
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
-
-# try:
-# 	dir_path = os.path.dirname(os.path.realpath(__file__))
-# 	sys.path.insert(0, os.path.join(dir_path, "modules/libs"))
-# 	from .modules.libs import ptvsd
-# 	ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-# except:
-# 	core.log_exception()
+from .modules.debugger.autocomplete import AutocompleteEventListener
+from .modules.debugger.debugger_exec import DebuggerExec
 
 def plugin_loaded():
 	from .modules.debugger.main import startup

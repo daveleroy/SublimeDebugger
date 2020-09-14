@@ -1,7 +1,7 @@
 from ..typecheck import*
 from ..import core
 
-from .dap import Configuration, ConfigurationCompound
+from .dap import Configuration, ConfigurationCompound, Task
 from .util import get_setting
 
 import sublime
@@ -26,6 +26,7 @@ class DebuggerProject(core.disposables):
 		self.window = window
 		self.on_updated: core.Event[None] = core.Event()
 
+		self.tasks: List[Task] = []
 		self.compounds: List[ConfigurationCompound] = []
 		self.configurations: List[Configuration] = []
 		self.configuration_or_compound: Optional[Union[Configuration, ConfigurationCompound]] = None
@@ -80,6 +81,13 @@ class DebuggerProject(core.disposables):
 			return None
 
 		self.configuration_or_compound = find_matching_configuration()
+
+	def get_task(self, name: str) -> Task:
+		for task in self.tasks:
+			if task.name == name:
+				return task
+		raise core.Error('Unable to find task with name {name}')
+
 	def active_configurations(self) -> List[Configuration]:
 		if isinstance(self.configuration_or_compound, ConfigurationCompound):
 			configurations = []
@@ -129,6 +137,13 @@ class DebuggerProject(core.disposables):
 	def load_configurations(self):
 		data = self.window.project_data() or {}
 
+		tasks = []
+		tasks_json = data.get("debug.tasks", [])
+
+		for task_json in tasks_json:
+			task = Task.from_json(task_json)
+			tasks.append(task)
+
 		configurations = []
 		configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
 
@@ -145,6 +160,8 @@ class DebuggerProject(core.disposables):
 
 		self.configurations = configurations
 		self.compounds = compounds
+		self.tasks = tasks
+
 		# reselect the old configuration
 		if self.configuration_or_compound:
 			self.load_configuration(self.configuration_or_compound.name, self.configuration_or_compound.id_ish)
