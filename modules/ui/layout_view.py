@@ -153,7 +153,7 @@ class LayoutView (LayoutComponent):
 		elif core.platform.linux:
 			font_size = em_width / 0.625
 		else:
-			font_size = self.view.settings().get('font_size')
+			font_size = self.view.settings().get('font_size') or 12
 
 		rem_width_scale = em_width/font_size
 

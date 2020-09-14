@@ -16,7 +16,7 @@ _update_timer = None #type: Optional[Timer]
 def startup() -> None:
 	Images.shared = Images()
 	global _update_timer
-	_update_timer = Timer(update, 2, True)
+	_update_timer = Timer(update, 0.25, True)
 
 
 def shutdown() -> None:

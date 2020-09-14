@@ -4,7 +4,7 @@ from . import css
 
 import sublime
 
-underline_top_padding_css = ui.css(padding_bottom=0.6, padding_top=0)
+underline_top_padding_css = ui.css(padding_bottom=0.1, padding_top=0)
 underline_css = ui.css(padding_bottom=0, padding_top=0, background_color='color(var(--accent) alpha(0.2))')
 
 class UnderlineComponent(ui.div):
@@ -15,7 +15,7 @@ class UnderlineComponent(ui.div):
 			super().__init__()
 
 	def render(self) -> ui.div.Children:
-		return ui.div(width=1000, height=0.1, css=underline_css)
+		return ui.div(width=1000, height=0.2, css=underline_css)
 
 
 class SelectedLineText(ui.div):
@@ -25,7 +25,7 @@ class SelectedLineText(ui.div):
 
 	def render(self) -> ui.div.Children:
 		return [
-			ui.div(width=25, height=2.5)[
+			ui.div(width=25, height=3.25)[
 				ui.text(self.text, css=css.selected_text),
 			],
 		]

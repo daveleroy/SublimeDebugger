@@ -213,9 +213,9 @@ class icon (span):
 		self.image = image
 
 	def html(self, layout: Layout) -> str:
-		actual_rem_width = 1.6 / layout.rem_width_scale()
-		required_padding = 3 - actual_rem_width
-		return f'<s class="{self.className}" style="padding-right:{required_padding:.2f}rem;"><img style="width:1.6rem;height:1.6rem;" src="{self.image.data(layout)}"></s>'
+		width = 2.5 * layout.rem_width_scale()
+		required_padding = 0.5 * layout.rem_width_scale()
+		return f'<s class="{self.className}" style="padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
 
 
 tokenize_re = re.compile(
