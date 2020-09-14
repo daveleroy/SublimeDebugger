@@ -71,9 +71,7 @@ class Adapters:
 					'request': request,
 				}))
 
-		values = [
-			ui.InputListItem(insert_custom, 'Create Custom Configuration')
-		]
+		values = []
 
 		for adapter in Adapters.all:
 			if not adapter.installed_version:
@@ -89,8 +87,8 @@ class Adapters:
 				snippet_input_items.append(ui.InputListItem(insert, snippet.get('label', 'label')))
 
 			if not snippet_input_items:
-				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, "launch"), 'launch'))
-				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, "attach"), 'attach'))
+				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, "launch"), 'Launch'))
+				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, "attach"), 'Attach'))
 
 			values.append(ui.InputListItem(ui.InputList(snippet_input_items, "choose a snippet to insert"), adapter.type))
 
