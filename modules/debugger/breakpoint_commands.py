@@ -2,13 +2,13 @@ from .. typecheck import *
 from .. import core, ui
 
 from .debugger_sessions import DebuggerSessions
-from .debugger_project import DebuggerProject
+from .project import Project
 from .breakpoints import Breakpoints
 
 import sublime
 
 class BreakpointCommandsProvider(core.Disposables):
-	def __init__(self, project: DebuggerProject, sessions: DebuggerSessions, breakpoints: Breakpoints):
+	def __init__(self, project: Project, sessions: dap.Sessions, breakpoints: Breakpoints):
 		super().__init__()
 
 		self.run_to_line_breakpoint = None

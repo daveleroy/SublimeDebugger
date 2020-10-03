@@ -49,7 +49,7 @@ class Adapters:
 		project = window.project_file_name()
 		if project:
 			view = await core.sublime_open_file_async(window, project)
-			region = view.find('''"\s*debug.configurations\s*"\s*:\s*\[''', 0)
+			region = view.find(r'''"\s*debugger_configurations\s*"\s*:\s*\[''', 0)
 			view.sel().clear()
 			view.sel().add(sublime.Region(region.b, region.b))
 			view.run_command('insert', {

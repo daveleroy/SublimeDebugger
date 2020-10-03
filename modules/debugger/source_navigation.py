@@ -3,8 +3,8 @@ from .. import core
 from .views.selected_line import SelectedLine
 
 from .debugger_sessions import DebuggerSessions
-from .debugger_project import DebuggerProject
 from .dap import SourceLocation
+from .debugger import Project
 
 import sublime
 import sublime_plugin

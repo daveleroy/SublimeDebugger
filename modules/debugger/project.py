@@ -6,7 +6,7 @@ from .util import get_setting
 
 import sublime
 
-class DebuggerProject(core.disposables):
+class Project(core.disposables):
 	def __init__(self, window: sublime.Window):
 		super().__init__()
 
@@ -37,7 +37,7 @@ class DebuggerProject(core.disposables):
 
 		# add the empty debugger configurations settings if needed
 		data = window.project_data() or {}
-		data.setdefault('settings', {}).setdefault('debug.configurations', [])
+		data.setdefault('debugger_configurations', [])
 		window.set_project_data(data)
 
 		self.settings = sublime.load_settings('debugger.sublime-settings')
@@ -86,7 +86,7 @@ class DebuggerProject(core.disposables):
 		for task in self.tasks:
 			if task.name == name:
 				return task
-		raise core.Error('Unable to find task with name {name}')
+		raise core.Error(f'Unable to find task with name "{name}"')
 
 	def active_configurations(self) -> List[Configuration]:
 		if isinstance(self.configuration_or_compound, ConfigurationCompound):
@@ -101,7 +101,7 @@ class DebuggerProject(core.disposables):
 				if configuration:
 					configurations.append(configuration)
 				else:
-					raise core.Error(f'Unable to find configuration with name {configuration_name} while evaluating compound {self.configuration_or_compound.name}')
+					raise core.Error(f'Unable to find configuration with name "{configuration_name}" while evaluating compound "{self.configuration_or_compound.name}"')
 
 			return configurations
 
@@ -113,7 +113,8 @@ class DebuggerProject(core.disposables):
 	@core.schedule
 	async def open_project_configurations_file(self):
 		view = await core.sublime_open_file_async(self.window, self.name)
-		region = view.find('''"\s*debug.configurations''', 0)
+
+		region = view.find(r'''"\s*debugger_configurations''', 0)
 		if region:
 			view.show_at_center(region)
 
@@ -137,22 +138,39 @@ class DebuggerProject(core.disposables):
 	def load_configurations(self):
 		data = self.window.project_data() or {}
 
+		# check for old format and suggest a fixit
+		settings = data.get('settings', {})
+		if 'debug.configurations' in settings:
+			r = sublime.ok_cancel_dialog("Debugger configurations should now be added as 'debugger_configurations' at the root level of the project. Would you like Debugger to automatically update your project file.", "Update Project")
+			if r:
+				data['debugger_configurations'].extend(settings['debug.configurations'])
+				del settings['debug.configurations']
+
+				# make this update after we are out of load_configurations otherwise weird stuff happens...
+				# probably something to do with sublime project event updates
+				@core.schedule
+				async def update():
+					self.window.set_project_data(data)
+
+				update()
+
+
 		tasks = []
-		tasks_json = data.get("debug.tasks", [])
+		tasks_json = data.get("debugger_tasks", [])
 
 		for task_json in tasks_json:
 			task = Task.from_json(task_json)
 			tasks.append(task)
 
 		configurations = []
-		configurations_json = data.setdefault('settings', {}).setdefault('debug.configurations', [])
+		configurations_json = data.get("debugger_configurations", [])
 
 		for index, configuration_json in enumerate(configurations_json):
 			configuration = Configuration.from_json(configuration_json, index)
 			configurations.append(configuration)
 
 		compounds = []
-		compounds_json = data.setdefault('settings', {}).setdefault('debug.compounds', [])
+		compounds_json = data.get("debugger_compounds", [])
 
 		for index, compound_json in enumerate(compounds_json):
 			compound = ConfigurationCompound.from_json(compound_json, index)

@@ -70,11 +70,11 @@ class Debugger:
 		data = window.project_data()
 		if not data:
 			return False
-		if "settings" not in data:
-			return False
-		if "debug.configurations" not in data["settings"]:
-			return False
-		return True
+
+		if "debugger_configurations" in data:
+			return True
+
+		return False
 
 	@staticmethod
 	def get(window: sublime.Window, create: bool = False) -> 'Optional[Debugger]':
@@ -109,7 +109,7 @@ class Debugger:
 			self.sessions.external_terminal_kind = self.project.external_terminal_kind
 			self.panel.set_ui_scale(self.project.ui_scale)
 
-		self.project = DebuggerProject(window)
+		self.project = Project(window)
 		self.project.on_updated.add(on_project_configuration_updated)
 
 		self.panel = DebuggerOutputPanel(window)
@@ -172,8 +172,6 @@ class Debugger:
 
 		self.persistance = PersistedData(self.project.name)
 		self.load_data()
-		on_project_configuration_updated()
-
 
 		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(self.project.name)))
 
@@ -227,6 +225,8 @@ class Debugger:
 		self.sessions.on_removed_session.add(self.on_session_removed)
 		self.sessions.updated.add(self.on_session_state_changed)
 		self.sessions.on_selected.add(self.on_session_selection_changed)
+
+		on_project_configuration_updated()
 
 	def on_session_removed(self, session: dap.Session):
 		self.update_sources_visibility()

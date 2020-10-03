@@ -3,7 +3,7 @@ from ..import core, ui
 
 from . import dap
 from .debugger_sessions import DebuggerSessions
-from .debugger_project import DebuggerProject
+from .project import Project
 from .views.variable import VariableComponent
 
 import sublime
@@ -15,7 +15,7 @@ import re
 # for treating things like $word keeping the $ as part of the word
 
 class ViewHoverProvider(core.Disposables):
-	def __init__(self, project: DebuggerProject, sessions: DebuggerSessions) -> None:
+	def __init__(self, project: Project, sessions: dap.Sessions) -> None:
 		super().__init__()
 		self.sessions = sessions
 		self.project = project
@@ -33,7 +33,7 @@ class ViewHoverProvider(core.Disposables):
 		if not r:
 			return
 		word_string, region = r
-		
+
 		try:
 			response = await session.evaluate_expression(word_string, 'hover')
 			await core.sleep(0.25)
