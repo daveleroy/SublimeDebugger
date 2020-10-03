@@ -93,6 +93,7 @@ class Debugger (dap.SessionsTasksProvider):
 
 		def on_project_configuration_updated():
 			self.panel.set_ui_scale(self.project.ui_scale)
+			self.debugger_panel.dirty()
 
 		self.project = Project(window)
 		self.project.on_updated.add(on_project_configuration_updated)

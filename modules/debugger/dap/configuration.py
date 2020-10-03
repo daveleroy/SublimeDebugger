@@ -43,6 +43,11 @@ class AdapterConfiguration (Protocol):
 			return (word_string, word)
 		return None
 
+	def commands(self):
+		return []
+
+	def settings(self):
+		return []
 
 class Configuration(dict):
 	def __init__(self, name: str, index: int, type: str, request: str, all: dict) -> None:

@@ -1,6 +1,10 @@
 from ...typecheck import *
+from ..adapter import Adapters
 from ...import ui
 from . import css
+from ..import dap
+
+from .input_list_view import InputListView
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
@@ -13,6 +17,12 @@ class DebuggerPanel(ui.div):
 		self.name = ''
 		self.breakpoints = breakpoints
 		self.debugger.sessions.updated.add(lambda session, state: self.dirty())
+		self.debugger.sessions.on_selected.add(self.on_selected_session)
+		self.last_active_adapter = None
+
+	def on_selected_session(self, session: dap.Session):
+		self.last_active_adapter = session.adapter_configuration
+		self.dirty()
 
 	def render(self) -> ui.div.Children:
 		buttons = [] #type: List[ui.span]
@@ -21,6 +31,7 @@ class DebuggerPanel(ui.div):
 			DebuggerCommandButton(self.debugger.on_settings, ui.Images.shared.settings),
 			DebuggerCommandButton(self.debugger.on_play, ui.Images.shared.play),
 		]
+
 
 		if self.debugger.is_stoppable():
 			items.append(DebuggerCommandButton(self.debugger.on_stop, ui.Images.shared.stop))
@@ -53,11 +64,18 @@ class DebuggerPanel(ui.div):
 
 		panel_items = []
 		if self.debugger.sessions.has_active:
-			status = self.debugger.sessions.active.status
+			session = self.debugger.sessions.active
+			status = session.status
 			if status:
 				panel_items.append(ui.div(height=css.row_height)[
 					ui.text(status, css=css.label_secondary)
 				])
+
+		if self.last_active_adapter:
+			settings = self.last_active_adapter.settings(self.debugger.sessions)
+			panel_items.append(InputListView(settings))
+
+
 		panel_items.append(self.breakpoints)
 
 		return [

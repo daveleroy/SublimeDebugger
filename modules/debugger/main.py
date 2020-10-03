@@ -3,6 +3,11 @@ from .. import ui
 from .. import core
 
 from .debugger import Debugger
+
+from .commands import Commands
+from .adapter import Adapters
+from .settings import Settings
+
 from .util import get_setting
 
 import sublime
@@ -13,12 +18,13 @@ was_opened_at_startup: Set[int] = set()
 def startup() -> None:
 	core.log_info('startup')
 	ui.startup()
-	from .adapter import Adapters
+
+	Settings.initialize()
 	Adapters.initialize()
+	Commands.initialize()
 
 	for window in sublime.windows():
 		open(window)
-
 
 def shutdown() -> None:
 	core.log_info('shutdown')

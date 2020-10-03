@@ -3,6 +3,7 @@ from ..import core
 
 from .dap import Configuration, ConfigurationCompound, Task
 from .util import get_setting
+from .settings import Settings
 
 import sublime
 
@@ -43,7 +44,7 @@ class Project(core.disposables):
 		self.settings = sublime.load_settings('debugger.sublime-settings')
 		self.settings_key = "DebuggerProject." + str(id(self))
 		self.settings.add_on_change(self.settings_key, self.reload)
-
+		Settings.updated.add(self.reload)
 		self.reload()
 
 	def dispose(self):
