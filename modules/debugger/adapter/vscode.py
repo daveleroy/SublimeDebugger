@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import ssl
 import pathlib
 import certifi
+import uuid
 
 _info_for_type = {} #type: Dict[str, Optional[AdapterInfo]]
 
@@ -96,7 +97,8 @@ async def install(type: str, url: str, log: core.Logger):
 
 		log_info('downloading...')
 		request = urllib.request.Request(url, headers={
-			'Accept-Encoding': 'gzip'
+			'Accept-Encoding': 'gzip',
+			'X-Market-User-Id': str(uuid.uuid4()),
 		})
 		response = urllib.request.urlopen(request, cafile=certifi.where())
 		os.mkdir(path)
@@ -118,7 +120,7 @@ async def install(type: str, url: str, log: core.Logger):
 			zf.extractall(path)
 		log_info('...extracted')
 		os.remove(archive_name)
-	
+
 	log.info(f'Installing adapter: {type}')
 	log.info('from: {}'.format(url))
 
