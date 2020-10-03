@@ -4,7 +4,7 @@ from .import css
 
 
 class TabbedPanelItem:
-	def __init__(self, id: int, item: ui.div, name: str, index: int = 0, show_options: Optional[Callable[[], None]] = None):
+	def __init__(self, id: Any, item: ui.div, name: str, index: int = 0, show_options: Optional[Callable[[], None]] = None):
 		self.id = id
 		self.item = item
 		self.name = name
@@ -34,7 +34,7 @@ class TabbedPanel(ui.div):
 		self.items.append(item)
 		self.dirty()
 
-	def remove(self, id: int):
+	def remove(self, id: Any):
 		for item in self.items:
 			if item.id == id:
 				self.items.remove(item)
@@ -44,7 +44,7 @@ class TabbedPanel(ui.div):
 			self.selected_index = 0
 		self.dirty()
 
-	def select(self, id: int):
+	def select(self, id: Any):
 		for index, item in enumerate(self.items):
 			if item.id == id:
 				self.selected_index = index
@@ -52,7 +52,7 @@ class TabbedPanel(ui.div):
 				self.dirty()
 				return
 
-	def set_visible(self, id: int, visible: bool):
+	def set_visible(self, id: Any, visible: bool):
 		for index, item in enumerate(self.items):
 			if item.id == id:
 				item.visible = visible

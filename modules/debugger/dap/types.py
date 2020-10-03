@@ -84,6 +84,7 @@ class StackFrame:
 			source
 		)
 
+
 @dataclass
 class Scope:
 	name: str

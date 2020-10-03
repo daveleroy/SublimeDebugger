@@ -22,4 +22,6 @@ def startup() -> None:
 def shutdown() -> None:
 	if _update_timer:
 		_update_timer.dispose()
+
+	# perform one final render to clear up phantoms
 	perform_render()

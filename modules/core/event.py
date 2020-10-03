@@ -3,7 +3,7 @@ from ..typecheck import *
 T = TypeVar('T')
 
 class Handle (Generic[T]):
-	def __init__(self, event: 'Event[T]', callback: Callable[[T], None]) -> None:
+	def __init__(self, event: 'Event[T]', callback: Callable[[T], Any]) -> None:
 		self.callback = callback
 		self.event = event
 
@@ -16,14 +16,14 @@ class Event (Generic[T]):
 		self.handlers = [] # type: List[Handle[T]]
 
 	@overload
-	def add(self: 'Event[None]', callback: Callable[[], None]) -> Handle[None]:
+	def add(self: 'Event[None]', callback: Callable[[], Any]) -> Handle[None]:
 		...
 
 	@overload
-	def add(self, callback: Callable[[T], None]) -> Handle[T]:
+	def add(self, callback: Callable[[T], Any]) -> Handle[T]:
 		...
 
-	def add(self, callback: Callable[[T], None]) -> Handle[T]: #type: ignore
+	def add(self, callback: Callable[[T], Any]) -> Handle[T]: #type: ignore
 		handle = Handle(self, callback)
 		self.handlers.append(handle)
 		return handle

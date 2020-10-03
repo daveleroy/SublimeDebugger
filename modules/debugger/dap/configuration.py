@@ -29,7 +29,7 @@ class AdapterConfiguration (Protocol):
 	def configuration_snippets(self) -> Optional[list]: ...
 
 	@property
-	def configuration_shema(self) -> Optional[dict]: ...
+	def configuration_schema(self) -> Optional[dict]: ...
 
 	def configuration_resolve(self, configuration: ConfigurationExpanded) -> ConfigurationExpanded:
 		return configuration
@@ -76,7 +76,7 @@ class ConfigurationExpanded(Configuration):
 	def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dict:
 		json = json.copy()
 
-		platform = None #type: Optional[dict]
+		platform: Optional[dict] = None
 		if core.platform.osx:
 			platform = json.get('osx')
 		elif core.platform.linux:

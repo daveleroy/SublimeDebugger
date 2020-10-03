@@ -88,7 +88,6 @@ class TerminalTask(Terminal):
 		self.write_stdout(characters)
 
 	def on_updated_errors(self, errors_by_file):
-		print('on_updated_errors')
 		self.problems_per_file.clear()
 		for file, errors in errors_by_file.items():
 			problems = []
@@ -148,7 +147,6 @@ class Exec(Default.exec.ExecCommand):
 					self.instance.status = "[Finished in %.1fs with exit code %d]" % (elapsed, exit_code)
 
 			self.instance.on_finished(proc.exit_code() or 0)
-			self.instance = None
 			# self.window.run_command("next_result")
 
 	def write(self, characters):
