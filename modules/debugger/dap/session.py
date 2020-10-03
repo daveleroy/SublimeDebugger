@@ -505,13 +505,13 @@ class Session(ClientEventsListener, core.Logger):
 	async def evaluate(self, expression: str):
 		self.info(expression)
 
-		result = self.evaluate_expression(expression, 'repl')
+		result = await self.evaluate_expression(expression, 'repl')
 		if not result:
 			raise dap.Error(True, "expression did not return a result")
 			return
 
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
-		event = dap.OutputEvent("console", response["result"], response.get("variablesReference", 0))
+		event = dap.OutputEvent("console", result.result, result.variablesReference)
 		self.listener.on_session_output_event(self, event)
 
 	async def evaluate_expression(self, expression: str, context: Optional[str]) -> dap.EvaluateResponse:
