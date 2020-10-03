@@ -21,6 +21,13 @@
         }
     },
     {
+        "caption": "Debugger: Generate Commands",
+        "command": "debugger",
+        "args": {
+            "action": "generate_commands"
+        }
+    },
+    {
         "caption": "Debugger: Install Adapters",
         "command": "debugger",
         "args": {
@@ -91,10 +98,17 @@
         }
     },
     {
-        "caption": "Debugger: Run Command",
+        "caption": "Debugger: Input Command",
         "command": "debugger",
         "args": {
             "action": "on_input_command"
+        }
+    },
+    {
+        "caption": "Debugger: Run Task",
+        "command": "debugger",
+        "args": {
+            "action": "on_run_task"
         }
     },
     {
@@ -119,7 +133,28 @@
         }
     },
     {
-        "caption": "_",
+        "caption": "Debugger: LLDB Toggle Disassembly",
+        "command": "debugger",
+        "args": {
+            "action": "lldb_toggle_disassembly"
+        }
+    },
+    {
+        "caption": "Debugger: LLDB Display Options",
+        "command": "debugger",
+        "args": {
+            "action": "lldb_display"
+        }
+    },
+    {
+        "caption": "Debugger: LLDB Toggle Dereference",
+        "command": "debugger",
+        "args": {
+            "action": "lldb_toggle_dereference"
+        }
+    },
+    {
+        "caption": "Debugger",
         "command": "debugger_input"
     }
 ]

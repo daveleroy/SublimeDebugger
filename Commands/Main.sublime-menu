@@ -107,10 +107,24 @@
                 "caption": "-"
             },
             {
-                "caption": "Run Command",
+                "caption": "Input Command",
                 "command": "debugger",
                 "args": {
                     "action": "on_input_command"
+                }
+            },
+            {
+                "caption": "Run Task",
+                "command": "debugger",
+                "args": {
+                    "action": "on_run_task"
+                }
+            },
+            {
+                "caption": "Run Last Task",
+                "command": "debugger",
+                "args": {
+                    "action": "on_run_last_task"
                 }
             },
             {
