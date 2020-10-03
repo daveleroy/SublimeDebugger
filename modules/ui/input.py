@@ -80,6 +80,12 @@ class InputListItem:
 		self.run = run
 		self.name = name
 
+	def display_or_run(self):
+		if callable(self.run):
+			self.run()
+		else:
+			self.run.run()
+
 class InputList(sublime_plugin.ListInputHandler):
 	id = 0
 
@@ -212,11 +218,23 @@ def InputListItemCheckedText(run: Callable[[str], None], name: str, description:
 		name
 	)
 
+def InputListItemOnOff(run: Callable[[], None], true: str, false: str, value: bool):
+	if value:
+		input_name = "{}\tOn".format(true)
+	else:
+		input_name = "{}\tOff".format(false)
+
+	return InputListItem(
+		run,
+		input_name,
+	)
+
+
 def InputListItemChecked(run: Callable[[], None], true: str, false: str, value: bool):
 	if value:
-		input_name = "● {}".format(true)
+		input_name = "●   {}".format(true)
 	else:
-		input_name = "○ {}".format(false)
+		input_name = "○   {}".format(false)
 
 	return InputListItem(
 		run,
