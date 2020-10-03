@@ -3,13 +3,12 @@ from ...import core
 from ...import ui
 
 from .. import dap
-from ..debugger_sessions import DebuggerSessions
 
 from . import css
 
 
 class SourcesView(ui.div):
-	def __init__(self, sessions: DebuggerSessions, on_click: Callable[[dap.types.Source], None]):
+	def __init__(self, sessions: dap.Sessions, on_click: Callable[[dap.types.Source], None]):
 		super().__init__()
 		self.sessions = sessions
 		self.on_click = on_click

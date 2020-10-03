@@ -2,7 +2,6 @@ from ..typecheck import *
 from ..import core, ui
 
 from . import dap
-from .debugger_sessions import DebuggerSessions
 from .project import Project
 from .views.variable import VariableComponent
 

@@ -3,13 +3,12 @@ from ...import core
 from ...import ui
 
 from ..import dap
-from ..debugger_sessions import DebuggerSessions
 from . import css
 
 import sublime
 
 class ModulesView(ui.div):
-	def __init__(self, sessions: DebuggerSessions):
+	def __init__(self, sessions: dap.Sessions):
 		super().__init__()
 		self.sessions = sessions
 		self.expanded = {} #type: Dict[Any, bool]

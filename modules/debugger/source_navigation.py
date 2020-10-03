@@ -2,8 +2,7 @@ from .. typecheck import *
 from .. import core
 from .views.selected_line import SelectedLine
 
-from .debugger_sessions import DebuggerSessions
-from .dap import SourceLocation
+from . import dap
 from .debugger import Project
 
 import sublime
@@ -29,7 +28,7 @@ def show_line(view, line: int, column: int, move_cursor: bool):
 	core.edit(view, run)
 
 class SourceNavigationProvider:
-	def __init__(self, project: DebuggerProject, sessions: DebuggerSessions):
+	def __init__(self, project: Project, sessions: dap.Sessions):
 		self.sessions = sessions
 		self.project = project
 		self.updating = None #type: Optional[Any]
@@ -39,24 +38,24 @@ class SourceNavigationProvider:
 	def dispose(self):
 		self.clear()
 
-	def select_source_location(self, source: SourceLocation, stopped_reason: str):
+	def select_source_location(self, source: dap.SourceLocation, stopped_reason: str):
 		if self.updating:
 			self.updating.cancel()
 		def on_error(error):
 			if error is not core.CancelledError:
 				core.log_error(error)
 
-		async def select_async(source: SourceLocation, stopped_reason: str):
+		async def select_async(source: dap.SourceLocation, stopped_reason: str):
 			self.clear_selected()
 			view = await self.navigate_to_source(source)
 
-			# r = view.line(view.text_point(line - 1, 0))
-			# view.add_regions("asdfasdf", [r], scope="region.bluish", flags=sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE|sublime.DRAW_SOLID_UNDERLINE)
+			# r = view.line(view.text_point(source.line - 1, 0))
+			# view.add_regions("asdfasdf", [r], scope="region.bluish", annotations=[stopped_reason.ljust(200, '\u00A0')], annotation_color='var(--bluish)', flags=sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE|sublime.DRAW_SOLID_UNDERLINE)
 			self.selected_frame_line = SelectedLine(view, source.line or 1, stopped_reason)
 
 		self.updating = core.run(select_async(source, stopped_reason), on_error=on_error)
 
-	def show_source_location(self, source: SourceLocation):
+	def show_source_location(self, source: dap.SourceLocation):
 		if self.updating:
 			self.updating.cancel()
 
@@ -64,7 +63,7 @@ class SourceNavigationProvider:
 			if error is not core.CancelledError:
 				core.log_error(error)
 
-		async def navigate_async(source: SourceLocation):
+		async def navigate_async(source: dap.SourceLocation):
 			self.clear_generated_view()
 			await self.navigate_to_source(source, move_cursor=True)
 
@@ -87,7 +86,7 @@ class SourceNavigationProvider:
 			self.generated_view.close()
 			self.generated_view = None
 
-	async def navigate_to_source(self, source: SourceLocation, move_cursor: bool = False) -> sublime.View:
+	async def navigate_to_source(self, source: dap.SourceLocation, move_cursor: bool = False) -> sublime.View:
 
 		# if we aren't going to reuse the previous generated view
 		# or the generated view was closed (no buffer) throw it away

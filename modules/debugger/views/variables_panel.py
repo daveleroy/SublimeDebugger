@@ -1,7 +1,6 @@
 from ... typecheck import *
 from ... import ui
 from .variable import VariableComponent
-from ..debugger_sessions import DebuggerSessions
 from ..import dap
 from ..watch import Watch
 from . import css
@@ -10,7 +9,7 @@ import sublime
 
 
 class VariablesPanel (ui.div):
-	def __init__(self, sessions: DebuggerSessions) -> None:
+	def __init__(self, sessions: dap.Sessions) -> None:
 		super().__init__()
 		self.watch_view = WatchView(sessions.watch)
 		self.variables_view = VariablesView(sessions)
@@ -23,7 +22,7 @@ class VariablesPanel (ui.div):
 
 
 class VariablesView (ui.div):
-	def __init__(self, sessions: DebuggerSessions) -> None:
+	def __init__(self, sessions: dap.Sessions) -> None:
 		super().__init__()
 		self.sessions = sessions
 		self.sessions.on_updated_variables.add(lambda session: self.on_updated(session))

@@ -30,6 +30,10 @@ from .session import (
 	SessionListener,
 	Thread,
 )
+from .sessions import (
+	Sessions,
+	SessionsTasksProvider,
+)
 from .configuration import (
 	AdapterConfiguration,
 	Configuration,

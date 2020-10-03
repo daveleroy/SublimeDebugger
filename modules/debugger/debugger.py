@@ -1,48 +1,33 @@
 from ..typecheck import *
+from ..import core, ui
 
 import sublime
 import os
-
 import webbrowser
-
-from .. import core, ui
-
-
-from .autocomplete import Autocomplete
-
-from .util import get_setting
-from .config import PersistedData
-
 
 from .import dap
 
-from .debugger_sessions import (
-	DebuggerSessions,
-)
-from .breakpoints import (
-	Breakpoints,
-)
-
-from .debugger_project import DebuggerProject
+from .autocomplete import Autocomplete
+from .util import get_setting
+from .config import PersistedData
+from .breakpoints import Breakpoints
+from .project import Project
 from .panel import DebuggerOutputPanel, DebuggerProtocolLogger
 
 from .adapter import (
 	Adapters,
 )
-from .dap import (
-	Configuration,
-	ConfigurationExpanded,
-	ConfigurationCompound,
-	Task,
-	TaskExpanded,
-)
+
 from .terminals import (
 	Terminal,
 	TerminalProcess,
 	TermianlDebugger,
 	TerminalTask,
+	ExternalTerminal,
+	ExternalTerminalTerminus,
+	ExternalTerminalMacDefault,
+	ExternalTerminalWindowsDefault,
 )
-from .dap import SourceLocation
 
 from .view_hover import ViewHoverProvider
 from .source_navigation import SourceNavigationProvider
@@ -60,7 +45,8 @@ from .views.selected_line import SelectedLine
 from .views.terminal import TerminalView
 from .views.problems import ProblemsView
 
-class Debugger:
+
+class Debugger (dap.SessionsTasksProvider):
 
 	instances = {} #type: Dict[int, Debugger]
 	creating = {} #type: Set[int, bool]
@@ -106,7 +92,6 @@ class Debugger:
 		self.disposeables = [] #type: List[Any]
 
 		def on_project_configuration_updated():
-			self.sessions.external_terminal_kind = self.project.external_terminal_kind
 			self.panel.set_ui_scale(self.project.ui_scale)
 
 		self.project = Project(window)
@@ -123,6 +108,9 @@ class Debugger:
 		self.transport_log = DebuggerProtocolLogger(self.window)
 		self.disposeables.append(self.transport_log)
 		autocomplete = Autocomplete.create_for_window(window)
+
+		self.last_run_task = None
+		self.external_terminals: List[ExternalTerminal] = []
 
 		def on_output(session: dap.Session, event: dap.OutputEvent) -> None:
 			self.terminal.program_output(session, event)
@@ -149,12 +137,10 @@ class Debugger:
 		self.breakpoints = Breakpoints()
 		self.disposeables.append(self.breakpoints)
 
-		self.sessions = DebuggerSessions()
+		self.sessions = dap.Sessions(self)
 		self.sessions.transport_log = self.transport_log
 		self.sessions.output.add(on_output)
 
-		self.sessions.on_terminal_added.add(on_terminal_added)
-		self.sessions.on_terminal_removed.add(on_terminal_removed)
 		self.disposeables.append(self.sessions)
 
 		self.terminal = TermianlDebugger(
@@ -174,11 +160,6 @@ class Debugger:
 		self.load_data()
 
 		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(self.project.name)))
-
-		def on_terminal_updated():
-			# self.panels.modified(terminal_panel_item)
-			...
-		self.terminal.on_updated.add(on_terminal_updated)
 
 		#left panels
 		self.breakpoints_panel = BreakpointsPanel(self.breakpoints, self.on_navigate_to_source)
@@ -242,7 +223,7 @@ class Debugger:
 		frame = active_session.selected_frame
 
 		if thread and frame and frame.source:
-			self.source_provider.select_source_location(SourceLocation(frame.source, frame.line, frame.column), thread.stopped_reason or "Stopped")
+			self.source_provider.select_source_location(dap.SourceLocation(frame.source, frame.line, frame.column), thread.stopped_reason or "Stopped")
 		else:
 			self.source_provider.clear()
 
@@ -295,7 +276,7 @@ class Debugger:
 	def show_call_stack_panel(self) -> None:
 		self.middle_panel.select(self.callstack_view)
 
-	def changeConfiguration(self, configuration: Union[Configuration, ConfigurationCompound]):
+	def set_configuration(self, configuration: Union[dap.Configuration, dap.ConfigurationCompound]):
 		self.project.configuration_or_compound = configuration
 		self.save_data()
 
@@ -316,12 +297,11 @@ class Debugger:
 			self.terminal.log_error(str(e))
 		core.run(awaitable, on_error=on_error)
 
-	def on_navigate_to_source(self, source: SourceLocation):
+	def on_navigate_to_source(self, source: dap.SourceLocation):
 		self.source_provider.show_source_location(source)
 
 	async def _on_play(self, no_debug=False) -> None:
 		self.show_console_panel()
-		self.sessions.clear_unused()
 		self.terminal.clear()
 		self.terminal.log_info('Console cleared...')
 		try:
@@ -346,15 +326,15 @@ class Debugger:
 			async def launch():
 				try:
 					adapter_configuration = Adapters.get(configuration.type)
-					configuration_expanded = ConfigurationExpanded(configuration, variables)
+					configuration_expanded = dap.ConfigurationExpanded(configuration, variables)
 
 					if configuration_expanded.get('pre_debug_task'):
 						pre_debug_task = configuration_expanded.get('pre_debug_task')
-						configuration_expanded.pre_debug_task = TaskExpanded(self.project.get_task(pre_debug_task), variables)
+						configuration_expanded.pre_debug_task = dap.TaskExpanded(self.project.get_task(pre_debug_task), variables)
 
 					if configuration_expanded.get('post_debug_task'):
 						post_debug_task = configuration_expanded.get('post_debug_task')
-						configuration_expanded.post_debug_task = TaskExpanded(self.project.get_task(post_debug_task), variables)
+						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)
 
 					if not adapter_configuration.installed_version:
 						install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
@@ -480,15 +460,32 @@ class Debugger:
 
 		ui.InputList(values).run()
 
+	def on_run_task(self) -> None:
+		values = []
+		for task in self.project.tasks:
+			def run(task=task):
+				self.last_run_task = task
+				self.run_task(task)
+
+			values.append(ui.InputListItem(run, task.name))
+
+		ui.InputList(values, 'Select task to run').run()
+
+	def on_run_last_task(self) -> None:
+		if self.last_run_task:
+			self.run_task(self.last_run_task)
+		else:
+			self.on_run_task()
+
 	def change_configuration_input_items(self) -> List[ui.InputListItem]:
 		values = []
 		for c in self.project.compounds:
 			name = f'{c.name}\tcompound'
-			values.append(ui.InputListItemChecked(lambda c=c: self.changeConfiguration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
+			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
 
 		for c in self.project.configurations:
 			name = f'{c.name}\t{c.type}'
-			values.append(ui.InputListItemChecked(lambda c=c: self.changeConfiguration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
+			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
 
 		if values:
 			values.append(ui.InputListItem(lambda: ..., ""))
@@ -505,11 +502,12 @@ class Debugger:
 
 		self.terminals = list(filter(lambda terminal: not terminal.finished, self.terminals))
 
-	def run_task(self, task: Task):
+	@core.schedule
+	async def run_task(self, task: dap.Task):
 		self.clear_unused_terminals()
 
 		variables = self.project.extract_variables()
-		terminal = TerminalTask(self.window, TaskExpanded(task, variables))
+		terminal = TerminalTask(self.window, dap.TaskExpanded(task, variables))
 		self.terminals.append(terminal)
 
 		component = ProblemsView(terminal, self.on_navigate_to_source)
@@ -517,6 +515,51 @@ class Debugger:
 
 		self.middle_panel.add(panel)
 		self.middle_panel.select(id(terminal))
+		await terminal.wait()
+
+	def add(self, session: dap.Session, terminal: Terminal):
+		self.terminals.append(terminal)
+
+		component = TerminalView(terminal, self.on_navigate_to_source)
+		panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
+
+		self.middle_panel.add(panel)
+		self.middle_panel.select(id(terminal))
+
+	def external_terminal(self, session: dap.Session, request: dap.RunInTerminalRequest) -> ExternalTerminal:
+		title = request.title or session.configuration.name or '?'
+		env = request.env or {}
+		cwd = request.cwd
+		commands = request.args
+
+		if self.project.external_terminal_kind == 'platform':
+			if core.platform.osx:
+				return ExternalTerminalMacDefault(title, cwd, commands, env)
+			if core.platform.windows:
+				return ExternalTerminalWindowsDefault(title, cwd, commands, env)
+			if core.platform.linux:
+				raise core.Error('default terminal for linux not implemented')
+
+		if self.project.external_terminal_kind == 'terminus':
+			return ExternalTerminalTerminus(title, cwd, commands, env)
+
+		raise core.Error('unknown external terminal type "{}"'.format(self.project.external_terminal_kind))
+
+	async def sessions_run_task(self, session: dap.Session, task: dap.TaskExpanded):
+		await self.run_task(task)
+
+	async def sessions_create_terminal(self, session: dap.Session, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
+		if request.kind == 'integrated':
+			terminal = TerminalProcess(request.cwd, request.args)
+			self.add(session, terminal)
+			return dap.RunInTerminalResponse(processId=None, shellProcessId=terminal.pid())
+
+		if request.kind == 'external':
+			external_terminal = self.external_terminal(session, request)
+			self.external_terminals.append(external_terminal)
+			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
+
+		raise dap.Error(True, "unknown terminal kind requested '{}'".format(request.kind))
 
 	@core.schedule
 	async def change_configuration(self) -> None:

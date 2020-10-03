@@ -1,7 +1,7 @@
 from .. typecheck import *
 from .. import core, ui
 
-from .debugger_sessions import DebuggerSessions
+from . import dap
 from .project import Project
 from .breakpoints import Breakpoints
 
