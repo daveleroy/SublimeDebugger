@@ -22,6 +22,9 @@ class ProblemsView (ui.div):
 	def on_problems_updated(self):
 		self.dirty()
 
+	def show_backing_panel(self):
+		self.terminal.show_backing_panel()
+
 	def on_tick(self):
 		# cancel the timer when we are done. People may leave this view up indefinitely and we don't want to constantly render it
 		if self.terminal.finished:
@@ -35,11 +38,23 @@ class ProblemsView (ui.div):
 
 		if not self.terminal.finished:
 			items.append(ui.div(height=css.row_height)[
-				ui.text('•' * (self.tick % 4 + 1), css=css.label_secondary)
+				ui.align()[
+					ui.text('•' * (self.tick % 4 + 1), css=css.label_secondary),
+					ui.spacer(),
+					ui.click(self.show_backing_panel)[
+						ui.text('view full', css=css.label_secondary),
+					]
+				]
 			])
 		else:
 			items.append(ui.div(height=css.row_height)[
-				ui.text(self.terminal.status or '[Finished]')
+				ui.align()[
+					ui.text(self.terminal.status or '[Finished]'),
+					ui.spacer(),
+					ui.click(self.show_backing_panel)[
+						ui.text('view full', css=css.label_secondary),
+					]
+				]
 			])
 
 		for file, problems in self.terminal.problems_per_file.items():
