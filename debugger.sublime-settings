@@ -29,9 +29,13 @@
 	// sets a specific path for dlv if not set go will use whatever is in your path
 	"go.dlv": null,
 
-	
-	//lldb specific configurations (probably shouldn't set these)
-	"lldb.Library": null, // which lldb library to use
-	"lldb.Python": null // path to python (3.5 or greater?) that lldb will use
+	// "auto", "always", "never"
+	"lldb.show_disassembly": "auto",
+	// "auto", "hex", "decimal", "binary"
+	"lldb.display_format": "auto",
+	"lldb.dereference_pointers": true,
+	// probably shouldn't set these
+	"lldb.library": null, // which lldb library to use
+	"lldb.python": null // path to python (3.5 or greater?) that lldb will use
 }
 

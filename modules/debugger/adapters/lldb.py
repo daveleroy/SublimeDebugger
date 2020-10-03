@@ -3,10 +3,15 @@ from ..import adapter
 from ...import core
 from ..adapter.transports import SocketTransport, Process
 from ..util import get_debugger_setting
+from ..settings import Settings
+
+from ..import dap
+from ...import ui
 
 import subprocess
 import re
 import threading
+import sublime
 
 class LLDBTransport(SocketTransport):
 	def __init__(self, log: core.Logger, command: List[str], cwd: Optional[str] = None):
@@ -39,6 +44,7 @@ class LLDBTransport(SocketTransport):
 
 
 class LLDB(adapter.AdapterConfiguration):
+
 	@property
 	def type(self):
 		return "lldb"
@@ -47,11 +53,11 @@ class LLDB(adapter.AdapterConfiguration):
 		install_path = adapter.vscode.install_path(self.type)
 
 		codelldb = f'{install_path}/extension/adapter/codelldb'
-		libpython = get_debugger_setting('lldb.Python')
+		libpython = Settings.lldb_python
 		if not libpython:
 			libpython = subprocess.check_output([codelldb, "find-python"]).strip()
 
-		libLLDB = get_debugger_setting('lldb.Library')
+		libLLDB = Settings.lldb_library
 		command = [
 			codelldb,
 			"--libpython", libpython
@@ -61,6 +67,16 @@ class LLDB(adapter.AdapterConfiguration):
 			command.extend(["--liblldb", libLLDB])
 
 		return LLDBTransport(log, command)
+
+	def configuration_resolve(self, configuration):
+		if configuration.request == 'custom':
+			configuration.request = 'launch'
+			configuration['request'] = 'launch'
+			configuration['custom'] = True
+
+		configuration['_adapterSettings'] = self.adapter_settings()
+
+		return configuration
 
 	async def install(self, log: core.Logger):
 		if core.platform.windows:
@@ -83,3 +99,92 @@ class LLDB(adapter.AdapterConfiguration):
 	@property
 	def configuration_schema(self) -> Optional[dict]:
 		return adapter.vscode.configuration_schema(self.type)
+
+	def adapter_settings(self):
+		return {
+			'showDisassembly': Settings.lldb_show_disassembly,
+			'displayFormat': Settings.lldb_display_format,
+			'dereferencePointers': Settings.lldb_dereference_pointers,
+		}
+		# showDisassembly: 'auto', #'always' | 'auto' | 'never' = 'auto';
+		# displayFormat: 'auto', # 'auto' | 'hex' | 'decimal' | 'binary' = 'auto';
+		# dereferencePointers: True
+		# evaluationTimeout: number;
+		# suppressMissingSourceFiles: boolean;
+		# consoleMode: 'commands' | 'expressions';
+		# sourceLanguages: string[];
+		# terminalPromptClear: string[];
+
+	def commands(self):
+		from .. import commands
+		from ..debugger import Debugger
+
+		class Command(commands.Command):
+			def __init__(self, name: str, command: str, action: Callable):
+				self.name = name
+				self.command = command
+				self.action = action
+				self.menus = Command.menu_commands
+
+			def parameters(self, window: sublime.Window):
+				return Debugger.get(window),
+
+			def run(self, debugger):
+				self.action(debugger)
+
+		return [
+			Command(
+				'LLDB Toggle Disassembly',
+				'lldb_toggle_disassembly',
+				lambda debugger: self.toggle_disassembly(debugger.sessions)
+			),
+			Command(
+				'LLDB Display Options',
+				'lldb_display',
+				lambda debugger: self.display_menu(debugger.sessions).run()
+			),
+			Command(
+				'LLDB Toggle Dereference',
+				'lldb_toggle_dereference',
+				lambda debugger: self.toggle_deref(debugger.sessions)
+			),
+		]
+
+	# lldb settings must be resent to the debugger when updated
+	# we only resend them when chaging through the ui if not the adapter needs to be restarted
+	@core.schedule
+	async def updated_settings(self, sessions: dap.Sessions):
+		for session in sessions:
+			if session.adapter_configuration == self:
+				await sessions.active.request('adapterSettings', self.adapter_settings())
+
+	def toggle_disassembly(self, sessions: dap.Sessions):
+		if Settings.lldb_show_disassembly == 'auto':
+			Settings.lldb_show_disassembly = 'always'
+		else:
+			Settings.lldb_show_disassembly = 'auto'
+
+		self.updated_settings(sessions)
+
+	def toggle_deref(self, sessions: dap.Sessions):
+		Settings.lldb_dereference_pointers = not Settings.lldb_dereference_pointers
+		self.updated_settings(sessions)
+
+	def display_menu(self, sessions: dap.Sessions):
+		def set_display(mode: str):
+			Settings.lldb_display_format = mode
+			self.updated_settings(sessions)
+
+		return ui.InputList([
+				ui.InputListItemChecked(lambda: set_display('auto') , 'Auto', 'Auto', Settings.lldb_display_format == 'auto'),
+				ui.InputListItemChecked(lambda: set_display('hex') , 'Hex', 'Hex', Settings.lldb_display_format == 'hex'),
+				ui.InputListItemChecked(lambda: set_display('decimal') , 'Decimal', 'Decimal', Settings.lldb_display_format == 'decimal'),
+				ui.InputListItemChecked(lambda: set_display('binary') , 'Binary', 'Binary', Settings.lldb_display_format == 'binary'),
+			],
+			'Display Options'
+		)
+
+	def settings(self, sessions: dap.Sessions):
+		return ui.InputList([
+			ui.InputListItemOnOff(lambda: self.toggle_disassembly(sessions), 'Disassembly', 'Disassembly', Settings.lldb_show_disassembly != 'auto'),
+		])
