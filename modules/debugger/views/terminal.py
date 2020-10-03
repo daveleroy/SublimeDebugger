@@ -174,7 +174,7 @@ class TerminalView (ui.div):
 		assert self.layout
 		lines = []
 		height = 0
-		max_height = int((self.layout.height() - css.header_height)/css.row_height) - 1.0
+		max_height = int((self.layout.height() - css.header_height)/css.row_height) - 2.0
 		count = len(self.terminal.lines)
 		start = 0
 
