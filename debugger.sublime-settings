@@ -1,9 +1,5 @@
 {
-	// Open the debugger automatically when a project that is set up for debugging has been opened
-	// In otherwords it has configurations in the .sublime-project defined
-	// "settings" : {
-	//	"debug.configurations" : [...]
-	// }
+	// Open the debugger automatically when a project that is set up for debugging
 	"open_at_startup" : true,
 
 	// Sets the entire scale of the UI
@@ -12,7 +8,7 @@
 	// Which external terminal should be used when an adapter requests an external terminal
 	// "platform" (default) uses Terminal on MacOS, CMD (Not tested) on Windows, (Unimplemented) on Linux
 	// "terminus" Opens a new terminal view using terminus. The terminus package must be installed https://github.com/randy3k/Terminus
-	"external_terminal": "platform",
+	"external_terminal": "terminus",
 
 	// hide the status bar of the window when the debugger panel is open
 	"hide_status_bar": false,
@@ -20,24 +16,19 @@
 	// keep the debugger panel open unless another panel is being displayed
 	"keep_panel_open": false,
 
-	// when the debugger hits a breakpoint bring the sublime window to the foreground
-	// NOTE: this runs the "subl" command to accomplish this so it must be in your PATH
+	// currently not implemented
 	"bring_window_to_front_on_pause" : false,
 
-
-	// info includes debug adapter commands send/recieved and other (possibly) useful things
 	"log_info": false,
-
-	// any uncaught exceptions in the main loop get logged
-	// some caught exceptions also get logged so might not actually be an issue
 	"log_exceptions": true,
 	"log_errors": true,
+
+	// sets a specific path for node if not set adapters that require node to run will use whatever is in your path
+	"node": null,
 
 	// sets a specific path for dlv if not set go will use whatever is in your path
 	"go.dlv": null,
 
-	// sets a specific path for node if not set adapters that require node to run will use whatever is in your path
-	"node": null,
 	
 	//lldb specific configurations (probably shouldn't set these)
 	"lldb.Library": null, // which lldb library to use
