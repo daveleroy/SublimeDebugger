@@ -1,3 +1,4 @@
+import sublime
 from ...import core
 from ...typecheck import*
 
@@ -42,26 +43,22 @@ def save_schema(adapters: List[AdapterConfiguration]):
 	}
 
 	schema_debug_configurations = {
-		'description': 'Debug configurations',
-		'type': 'object',
-		'properties': {
-			'debug.configurations': {
-				'type': 'array',
-				'items': debuggers_schema,
-			}
-		},
-		'required': ['debug.configurations']
+		'contributions': {
+			'settings':[{
+				'file_patterns': ['/*.sublime-project'],
+				'schema': {
+					'properties': {
+						'debugger_configurations': {
+							'description': 'Debug configurations',
+							'type': 'array',
+							'items': debuggers_schema,
+						}
+					},
+				},
+			}]
+		}
 	}
 
-	schema = {
-		'description': 'Debugger Configuration File',
-		'type': 'object',
-		'properties': {
-			'settings': schema_debug_configurations
-		},
-		'required': ['settings']
-	}
-
-	path = os.path.join(core.current_package(), 'data', 'schema.json')
+	path = os.path.join(core.current_package(), 'sublime-package.json')
 	with open(path, 'w') as file:
-		file.write(json.dumps(schema, indent="\t"))
+		file.write(sublime.encode_value(schema_debug_configurations, True))
