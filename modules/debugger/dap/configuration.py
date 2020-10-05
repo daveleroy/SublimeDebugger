@@ -46,7 +46,7 @@ class AdapterConfiguration (Protocol):
 	def commands(self):
 		return []
 
-	def settings(self):
+	def settings(self, sessions):
 		return []
 
 class Configuration(dict):

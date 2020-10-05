@@ -185,6 +185,8 @@ class LLDB(adapter.AdapterConfiguration):
 		)
 
 	def settings(self, sessions: dap.Sessions):
-		return ui.InputList([
-			ui.InputListItemOnOff(lambda: self.toggle_disassembly(sessions), 'Disassembly', 'Disassembly', Settings.lldb_show_disassembly != 'auto'),
-		])
+		return [
+			ui.InputList([
+				ui.InputListItemOnOff(lambda: self.toggle_disassembly(sessions), 'Disassembly', 'Disassembly', Settings.lldb_show_disassembly != 'auto'),
+			])
+		]

@@ -73,7 +73,8 @@ class DebuggerPanel(ui.div):
 
 		if self.last_active_adapter:
 			settings = self.last_active_adapter.settings(self.debugger.sessions)
-			panel_items.append(InputListView(settings))
+			for setting in settings:
+				panel_items.append(InputListView(setting))
 
 
 		panel_items.append(self.breakpoints)
