@@ -26,11 +26,11 @@ class Command:
 	menu_commands = 1 << 2
 	menu_no_prefix = 1 << 3
 
-	def __init__(self, name, action, menus=menu_commands|menu_main):
+	def __init__(self, name, command, action, menus=menu_commands|menu_main):
 		self.name = name
 		self.action = action
 		self.menus = menus
-		self.command = action.__name__
+		self.command = command
 
 	def parameters(self, window):
 		return window,
@@ -45,13 +45,13 @@ class Command:
 		return True
 
 class CommandDebugger(Command):
-	def __init__(self, name: str, action:Callable[[Debugger], None], enabled: Optional[Callable[[Debugger], bool]]=None, visible=visible_always, menus=menu_commands|menu_main):
+	def __init__(self, name: str, command: str, action:Callable[[Debugger], None], enabled: Optional[Callable[[Debugger], bool]]=None, visible=visible_always, menus=menu_commands|menu_main):
 		self.name = name
 		self.action = action
 		self.visible = visible
 		self.enabled = enabled
 		self.menus = menus
-		self.command = action.__name__
+		self.command = command
 
 	def parameters(self, window):
 		return window, Debugger.get(window)
@@ -89,117 +89,141 @@ def generate_commands(window: sublime.Window):
 
 commands = [
 	CommandDebugger (
-		name="Open",
+		name='Open',
+		command='open',
 		action=Debugger.open,
 	),
 	CommandDebugger (
-		name="Quit",
+		name='Quit',
+		command='quit',
 		action=Debugger.quit,
 		visible=visible_created,
 	),
 	Command(
-		name="Settings",
+		name='Settings',
+		command='settings',
 		action=open_settings,
 		menus=menu_main
 	),
 	Command(
-		name="Preferences: Debugger Settings",
+		name='Preferences: Debugger Settings',
+		command='settings',
 		action=open_settings,
 		menus=menu_commands | menu_no_prefix
 	),
 	Command(
-		name="Generate Commands",
+		name='Generate Commands',
+		command='generate_commands',
 		action=generate_commands,
 		menus=menu_commands
 	),
 	None,
 	CommandDebugger (
-		name="Install Adapters",
+		name='Install Adapters',
+		command='install_adapters',
 		action=Debugger.install_adapters,
 	),
 	CommandDebugger (
-		name="Add or Select Configuration",
+		name='Add or Select Configuration',
+		command='change_configuration',
 		action=Debugger.change_configuration,
 	),
 	None,
 	CommandDebugger (
-		name="Start",
+		name='Start',
+		command='start',
 		action=Debugger.on_play,
 	),
 	CommandDebugger (
-		name="Start (no debug)",
+		name='Start (no debug)',
+		command='start_no_debug',
 		action=Debugger.on_play_no_debug,
 	),
 	CommandDebugger (
-		name="Stop",
+		name='Stop',
+		command='stop',
 		action=Debugger.on_stop,
 		enabled=Debugger.is_stoppable
 	),
 	None,
 	CommandDebugger (
-		name="Resume",
+		name='Resume',
+		command='resume',
 		action=Debugger.on_resume,
 		enabled=Debugger.is_paused
 	),
 	CommandDebugger (
-		name="Pause",
+		name='Pause',
+		command='pause',
 		action=Debugger.on_pause,
 		enabled=Debugger.is_running,
 	),
 	CommandDebugger (
-		name="Step Over",
+		name='Step Over',
+		command='step_over',
 		action=Debugger.on_step_over,
 		enabled=Debugger.is_paused
 	),
 	CommandDebugger (
-		name="Step In",
+		name='Step In',
+		command='step_in',
 		action=Debugger.on_step_in,
 		enabled=Debugger.is_paused
 	),
 	CommandDebugger (
-		name="Step Out",
+		name='Step Out',
+		command='step_out',
 		action=Debugger.on_step_out,
 		enabled=Debugger.is_paused
 	),
 	None,
 	CommandDebugger (
-		name="Input Command",
+		name='Input Command',
+		command='input_command',
 		action=Debugger.on_input_command,
 	),
 	CommandDebugger (
-		name="Run Task",
+		name='Run Task',
+		command='run_task',
 		action=Debugger.on_run_task,
 	),
 	CommandDebugger (
-		name="Run Last Task",
+		name='Run Last Task',
+		command='run_last_task',
 		action=Debugger.on_run_last_task,
 		menus=menu_main,
 	),
 	CommandDebugger (
-		name="Add Function Breakpoint",
+		name='Add Function Breakpoint',
+		command='add_function_breakpoint',
 		action=Debugger.add_function_breakpoint,
 	),
 	CommandDebugger (
-		name="Add Watch Expression",
+		name='Add Watch Expression',
+		command='add_watch_expression',
 		action=Debugger.add_watch_expression,
 	),
 	CommandDebugger (
-		name="Force Save",
+		name='Force Save',
+		command='save_data',
 		action=Debugger.save_data,
 	),
 	None,
 	CommandDebugger (
-		name="Toggle Breakpoint",
+		name='Toggle Breakpoint',
+		command='toggle_breakpoint',
 		action=Debugger.toggle_breakpoint,
 		menus=menu_context,
 	),
 	CommandDebugger (
-		name="Toggle Column Breakpoint",
+		name='Toggle Column Breakpoint',
+		command='toggle_column_breakpoint',
 		action=Debugger.toggle_column_breakpoint,
 		menus=menu_context,
 	),
 	CommandDebugger (
-		name="Run To Selected Line",
+		name='Run To Selected Line',
+		command='run_to_current_line',
 		action=Debugger.run_to_current_line,
 		enabled=Debugger.is_paused,
 		menus=menu_context,

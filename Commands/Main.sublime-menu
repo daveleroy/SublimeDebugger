@@ -21,7 +21,7 @@
                 "caption": "Settings",
                 "command": "debugger",
                 "args": {
-                    "action": "open_settings"
+                    "action": "settings"
                 }
             },
             {
@@ -48,21 +48,21 @@
                 "caption": "Start",
                 "command": "debugger",
                 "args": {
-                    "action": "on_play"
+                    "action": "start"
                 }
             },
             {
                 "caption": "Start (no debug)",
                 "command": "debugger",
                 "args": {
-                    "action": "on_play_no_debug"
+                    "action": "start_no_debug"
                 }
             },
             {
                 "caption": "Stop",
                 "command": "debugger",
                 "args": {
-                    "action": "on_stop"
+                    "action": "stop"
                 }
             },
             {
@@ -72,35 +72,35 @@
                 "caption": "Resume",
                 "command": "debugger",
                 "args": {
-                    "action": "on_resume"
+                    "action": "resume"
                 }
             },
             {
                 "caption": "Pause",
                 "command": "debugger",
                 "args": {
-                    "action": "on_pause"
+                    "action": "pause"
                 }
             },
             {
                 "caption": "Step Over",
                 "command": "debugger",
                 "args": {
-                    "action": "on_step_over"
+                    "action": "step_over"
                 }
             },
             {
                 "caption": "Step In",
                 "command": "debugger",
                 "args": {
-                    "action": "on_step_in"
+                    "action": "step_in"
                 }
             },
             {
                 "caption": "Step Out",
                 "command": "debugger",
                 "args": {
-                    "action": "on_step_out"
+                    "action": "step_out"
                 }
             },
             {
@@ -110,21 +110,21 @@
                 "caption": "Input Command",
                 "command": "debugger",
                 "args": {
-                    "action": "on_input_command"
+                    "action": "input_command"
                 }
             },
             {
                 "caption": "Run Task",
                 "command": "debugger",
                 "args": {
-                    "action": "on_run_task"
+                    "action": "run_task"
                 }
             },
             {
                 "caption": "Run Last Task",
                 "command": "debugger",
                 "args": {
-                    "action": "on_run_last_task"
+                    "action": "run_last_task"
                 }
             },
             {

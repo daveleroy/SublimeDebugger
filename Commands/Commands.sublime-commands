@@ -17,7 +17,7 @@
         "caption": "Preferences: Debugger Settings",
         "command": "debugger",
         "args": {
-            "action": "open_settings"
+            "action": "settings"
         }
     },
     {
@@ -45,70 +45,70 @@
         "caption": "Debugger: Start",
         "command": "debugger",
         "args": {
-            "action": "on_play"
+            "action": "start"
         }
     },
     {
         "caption": "Debugger: Start (no debug)",
         "command": "debugger",
         "args": {
-            "action": "on_play_no_debug"
+            "action": "start_no_debug"
         }
     },
     {
         "caption": "Debugger: Stop",
         "command": "debugger",
         "args": {
-            "action": "on_stop"
+            "action": "stop"
         }
     },
     {
         "caption": "Debugger: Resume",
         "command": "debugger",
         "args": {
-            "action": "on_resume"
+            "action": "resume"
         }
     },
     {
         "caption": "Debugger: Pause",
         "command": "debugger",
         "args": {
-            "action": "on_pause"
+            "action": "pause"
         }
     },
     {
         "caption": "Debugger: Step Over",
         "command": "debugger",
         "args": {
-            "action": "on_step_over"
+            "action": "step_over"
         }
     },
     {
         "caption": "Debugger: Step In",
         "command": "debugger",
         "args": {
-            "action": "on_step_in"
+            "action": "step_in"
         }
     },
     {
         "caption": "Debugger: Step Out",
         "command": "debugger",
         "args": {
-            "action": "on_step_out"
+            "action": "step_out"
         }
     },
     {
         "caption": "Debugger: Input Command",
         "command": "debugger",
         "args": {
-            "action": "on_input_command"
+            "action": "input_command"
         }
     },
     {
         "caption": "Debugger: Run Task",
         "command": "debugger",
         "args": {
-            "action": "on_run_task"
+            "action": "run_task"
         }
     },
     {
