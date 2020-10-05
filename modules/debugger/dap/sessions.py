@@ -66,8 +66,9 @@ class Sessions (SessionListener):
 	async def on_session_task_request(self, session: Session, task: TaskExpanded):
 		await self.provider.sessions_run_task(session, task)
 
-	async def on_session_terminal_request(self, session: Session, request: RunInTerminalRequest):
-		await self.on_terminal_request(session, request)
+	async def on_session_terminal_request(self, session: Session, request: RunInTerminalRequest) -> RunInTerminalResponse:
+		await self.provider.sessions_create_terminal(session, request)
+		return RunInTerminalResponse(processId=None, shellProcessId=None)
 
 	def on_session_state_changed(self, session: Session, state: int):
 		self.updated(session, state)
@@ -101,10 +102,6 @@ class Sessions (SessionListener):
 			self.on_selected(session)
 
 		self.updated(session, 0)
-
-	async def on_terminal_request(self, session: Session, request: RunInTerminalRequest) -> RunInTerminalResponse:
-		self.provider.sessions_create_terminal(session, request)
-		return RunInTerminalResponse(processId=None, shellProcessId=None)
 
 	@property
 	def has_active(self):

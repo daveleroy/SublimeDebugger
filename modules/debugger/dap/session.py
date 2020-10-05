@@ -689,9 +689,9 @@ class Session(ClientEventsListener, core.Logger):
 		# if event.restart:
 		# 	await self.launch(self.adapter_configuration, self.configuration, event.restart)
 
-	def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
+	async def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
 		try:
-			return self.terminals.on_terminal_request(self, request)
+			return await self.listener.on_session_terminal_request(self, request)
 		except core.Error as e:
 			self.error(str(e))
 			raise e

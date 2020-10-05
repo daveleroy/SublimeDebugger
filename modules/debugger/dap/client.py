@@ -31,7 +31,7 @@ class Transport(Protocol):
 
 class ClientEventsListener (Protocol):
 	# reverse requests
-	def on_run_in_terminal(self, request: RunInTerminalRequest) -> RunInTerminalResponse:
+	async def on_run_in_terminal(self, request: RunInTerminalRequest) -> RunInTerminalResponse:
 		...
 
 	# reverse requests
@@ -191,10 +191,11 @@ class Client:
 
 		self.transport_log.info(f'{sigil(False)} {type}/unknown :: {data}')
 
-	def handle_reverse_request_run_in_terminal(self, request: dict):
+	@core.schedule
+	async def handle_reverse_request_run_in_terminal(self, request: dict):
 		command = RunInTerminalRequest.from_json(request['arguments'])
 		try:
-			response = self.events.on_run_in_terminal(command)
+			response = await self.events.on_run_in_terminal(command)
 			self.send_response(request, response.into_json())
 		except core.Error as e:
 			self.send_response(request, {}, error=str(e))
