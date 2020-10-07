@@ -21,7 +21,7 @@ def save_schema(adapters: List[AdapterConfiguration]):
 				'then': value,
 			})
 
-	debuggers_schema = {
+	debugger_configurations = {
 		'type': 'object',
 		'properties': {
 			'name': {
@@ -36,10 +36,49 @@ def save_schema(adapters: List[AdapterConfiguration]):
 				'type': 'string',
 				'description': 'Request type of configuration. Can be "launch" or "attach".',
 				'enum': [ 'attach', 'launch' ]
+			},
+			'pre_debug_task': {
+				'type': 'string',
+				'description': 'Name of task to run before debugging starts',
+			},
+			'post_debug_task': {
+				'type': 'string',
+				'description': 'name of task to run after debugging ends',
 			}
 		},
 		'required': ['type', 'name', 'request'],
 		'allOf': allOf,
+	}
+
+	debugger_tasks = {
+		'allOf': [
+			{ '$ref': 'sublime://schemas/sublime-build' },
+			{
+				'properties': {
+					'name': {
+						'type': 'string'
+					}
+				},
+				'required': ['name']
+			}
+		]
+	}
+
+	debugger_compounds = {
+		'allOf': [
+			{
+				'properties': {
+					'name': {
+						'type': 'string'
+					},
+					'configurations': {
+						'type': 'array',
+						'items': { 'type': 'string' }
+					}
+				},
+				'required': ['name', 'configurations']
+			}
+		]
 	}
 
 	schema_debug_configurations = {
@@ -49,9 +88,19 @@ def save_schema(adapters: List[AdapterConfiguration]):
 				'schema': {
 					'properties': {
 						'debugger_configurations': {
-							'description': 'Debug configurations',
+							'description': 'Debugger Configurations',
 							'type': 'array',
-							'items': debuggers_schema,
+							'items': debugger_configurations,
+						},
+						'debugger_tasks': {
+							'description': 'Debugger Tasks',
+							'type': 'array',
+							'items': debugger_tasks
+						},
+						'debugger_compounds': {
+							'description': 'Debugger Compounds',
+							'type': 'array',
+							'items': debugger_compounds
 						}
 					},
 				},
