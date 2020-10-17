@@ -48,6 +48,9 @@ on_new_window: Event[sublime.Window] = Event()
 on_pre_close_window: Event[sublime.Window] = Event()
 on_exit: Event[sublime.Window] = Event()
 
+on_pre_hide_panel: Event[sublime.Window] = Event()
+on_post_show_panel: Event[sublime.Window] = Event()
+
 class DebuggerAsyncTextCommand(sublime_plugin.TextCommand):
 	_run = None
 
@@ -90,7 +93,16 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 				# otherwise let sublime do its thing
 				if on_view_gutter_clicked((view, line, event['button'])):
 					return ("null", {})
-	
+
+	def on_window_command(self, window, command_name, args):
+		if command_name == 'hide_panel':
+			if on_pre_hide_panel(window):
+				return ("null", {})
+
+	def on_post_window_command(self, window, command_name, args):
+		if command_name == 'show_panel':
+			on_post_show_panel(window)
+
 	def on_hover(self, view: sublime.View, point: int, hover_zone: int) -> None:
 		on_view_hovered((view, point, hover_zone))
 

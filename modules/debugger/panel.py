@@ -1,5 +1,6 @@
 import sublime
 from ..import core
+from .settings import Settings
 
 class OutputPanel:
 	def __init__(self, window: sublime.Window, name: str, show_panel: bool = True):
@@ -20,7 +21,7 @@ class OutputPanel:
 			})
 
 	def dispose(self):
-		print("OutputPanel: dispose")
+		print(f'OutputPanel: dispose {self.output_name}')
 		self.window.destroy_output_panel(self.output_name)
 
 	def open(self):
@@ -88,6 +89,31 @@ class DebuggerOutputPanel:
 		settings.set('is_widget', True)
 		settings.set('sublime_debugger', True)
 		self.panel.sel().clear()
+
+		def on_hide_panel(window: sublime.Window):
+			name = window.active_panel() or ''
+
+			# show main debugger panel after closing other debugger panels
+			if window == self.window and name != 'output.Debugger' and name.startswith('output.Debugger:'):
+				core.log_info(f'Showing debug panel')
+				self.panel_show()
+				return True
+
+			if Settings.hide_status_bar:
+				self.window.set_status_bar_visible(True)
+
+			return False
+
+		def on_show_panel(window: sublime.Window):
+			name = window.active_panel()
+			if Settings.hide_status_bar:
+				if name != 'output.Debugger':
+					self.window.set_status_bar_visible(True)
+				else:
+					self.window.set_status_bar_visible(False)
+
+		core.on_pre_hide_panel.add(on_hide_panel)
+		core.on_post_show_panel.add(on_show_panel)
 
 	def dispose(self):
 		self.window.destroy_output_panel("Debugger")
