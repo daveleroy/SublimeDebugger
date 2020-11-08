@@ -8,7 +8,7 @@ from . import css
 
 
 class SourcesView(ui.div):
-	def __init__(self, sessions: dap.Sessions, on_click: Callable[[dap.types.Source], None]):
+	def __init__(self, sessions: dap.Sessions, on_click: Callable[[dap.SourceLocation], None]):
 		super().__init__()
 		self.sessions = sessions
 		self.on_click = on_click
@@ -36,7 +36,7 @@ class SourcesView(ui.div):
 
 
 class SourceView(ui.div):
-	def __init__(self, source: dap.Source, on_click: Callable[[dap.Source], None]):
+	def __init__(self, source: dap.Source, on_click: Callable[[dap.SourceLocation], None]):
 		super().__init__()
 		self.source = source
 		self.on_click = on_click
@@ -45,7 +45,7 @@ class SourceView(ui.div):
 		items = [
 			ui.div(height=css.row_height)[
 				ui.align()[
-					ui.click(lambda: self.on_click(self.source))[
+					ui.click(lambda: self.on_click(dap.SourceLocation(self.source, None, None)))[
 						ui.text(self.source.path or self.source.name or "<no source name>", css=css.label_secondary)
 					]
 				]
