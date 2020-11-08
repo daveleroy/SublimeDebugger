@@ -53,14 +53,15 @@ class Sessions (SessionListener):
 		)
 		@core.schedule
 		async def run():
-			self.sessions.append(session)
-			self.on_added_session(session)
+			self.add_session(session)
 
 			await session.launch(adapter, configuration, restart, no_debug)
+
 			await session.wait()
 			session.dispose()
 			self.remove_session(session)
 		run()
+
 
 
 	async def on_session_task_request(self, session: Session, task: TaskExpanded):

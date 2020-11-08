@@ -62,7 +62,7 @@ class Python(adapter.AdapterConfiguration):
 		return adapter.vscode.configuration_schema(self.type)
 
 	# TODO: patch in env since python seems to not inherit it from the adapter proccess.
-	def configuration_resolve(self, configuration):
+	async def configuration_resolve(self, configuration):
 		if configuration.request == "launch":
 			if not configuration.get("program"):
 				sublime.error_message("Warning: Check your debugger configuration.\n\nField `program` in configuration is empty. If it contained a $variable that variable may not have existed.""")

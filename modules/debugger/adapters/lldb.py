@@ -67,7 +67,7 @@ class LLDB(adapter.AdapterConfiguration):
 
 		return LLDBTransport(log, command)
 
-	def configuration_resolve(self, configuration):
+	async def configuration_resolve(self, configuration):
 		if configuration.request == 'custom':
 			configuration.request = 'launch'
 			configuration['request'] = 'launch'

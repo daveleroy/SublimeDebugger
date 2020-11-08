@@ -31,7 +31,7 @@ class AdapterConfiguration (Protocol):
 	@property
 	def configuration_schema(self) -> Optional[dict]: ...
 
-	def configuration_resolve(self, configuration: ConfigurationExpanded) -> ConfigurationExpanded:
+	async def configuration_resolve(self, configuration: ConfigurationExpanded) -> ConfigurationExpanded:
 		return configuration
 
 	async def install(self, log: core.Logger): ...
@@ -42,6 +42,18 @@ class AdapterConfiguration (Protocol):
 		if word_string:
 			return (word_string, word)
 		return None
+
+	def did_start_debugging(self, session):
+		...
+
+	def did_stop_debugging(self, session):
+		...
+
+	def on_custom_event(self, session):
+		...
+
+	async def on_custom_request(self, session):
+		...
 
 	def commands(self):
 		return []

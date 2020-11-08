@@ -31,14 +31,10 @@ class Transport(Protocol):
 
 class ClientEventsListener (Protocol):
 	# reverse requests
-	async def on_run_in_terminal(self, request: RunInTerminalRequest) -> RunInTerminalResponse:
-		...
-
-	# reverse requests
 	def on_event(self, name: str, data: dict):
 		...
 
-	def on_reverse_request(self, name: str, data: dict) -> RunInTerminalResponse:
+	async def on_reverse_request(self, name: str, data: dict) -> dict:
 		...
 
 class Client:
@@ -192,21 +188,14 @@ class Client:
 		self.transport_log.info(f'{sigil(False)} {type}/unknown :: {data}')
 
 	@core.schedule
-	async def handle_reverse_request_run_in_terminal(self, request: dict):
-		command = RunInTerminalRequest.from_json(request['arguments'])
+	async def handle_reverse_request(self, request: dict):
+		command = request['command']
+
 		try:
-			response = await self.events.on_run_in_terminal(command)
-			self.send_response(request, response.into_json())
+			response = await self.events.on_reverse_request(command, request.get('arguments', {}))
+			self.send_response(request, response)
 		except core.Error as e:
 			self.send_response(request, {}, error=str(e))
-
-	def handle_reverse_request(self, request: dict):
-		command = request['command']
-		if command == 'runInTerminal':
-			self.handle_reverse_request_run_in_terminal(request)
-			return
-
-		self.send_response(request, {}, error="request not supported by client: {}".format(command))
 
 	def recieved_msg(self, data: dict) -> None:
 		t = data['type']

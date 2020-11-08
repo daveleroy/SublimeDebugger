@@ -79,11 +79,13 @@ class Session(ClientEventsListener, core.Logger):
 		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, self.selected_frame, expr))
 
 		self.adapter = None #type: Optional[Client]
+		self.adapter_configuration = None
+
 		self.launching_async = None #type: Optional[core.future]
 		self.capabilities = None
 		self.stop_requested = False
 		self.launch_request = True
-		self._state = Session.stopped
+		self._state = Session.starting
 		self._status = None
 
 		self.disposeables = [] #type: List[Any]
@@ -144,13 +146,11 @@ class Session(ClientEventsListener, core.Logger):
 		self.launching_async = None
 
 	async def _launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any], no_debug: bool) -> None:
-
-		configuration = adapter_configuration.configuration_resolve(configuration)
-
 		assert self.state == Session.stopped, "debugger not in stopped state?"
 		self.state = Session.starting
 		self.adapter_configuration = adapter_configuration
 		self.configuration = configuration
+		self.configuration = await adapter_configuration.configuration_resolve(configuration)
 
 		if not adapter_configuration.installed_version:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
@@ -207,6 +207,8 @@ class Session(ClientEventsListener, core.Logger):
 			await self.request('attach', configuration)
 		else:
 			raise core.Error('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
+
+		self.adapter_configuration.did_start_debugging(self)
 
 		# get the baseline threads after launch/attach
 		# according to https://microsoft.github.io/debug-adapter-protocol/overview
@@ -427,6 +429,7 @@ class Session(ClientEventsListener, core.Logger):
 		self.stop_requested = False
 
 		if self.adapter:
+			self.adapter_configuration.did_stop_debugging(self)
 			self.adapter.dispose()
 			self.adapter = None
 
@@ -688,6 +691,18 @@ class Session(ClientEventsListener, core.Logger):
 		# restarting needs to be handled by creating a new session
 		# if event.restart:
 		# 	await self.launch(self.adapter_configuration, self.configuration, event.restart)
+
+	async def on_reverse_request(self, request: str, arguments: dict) -> dict:
+		if request == 'runInTerminal':
+			response = await self.on_run_in_terminal(dap.RunInTerminalRequest.from_json(arguments))
+			return response.into_json()
+
+		response = await self.adapter_configuration.on_custom_request(request, arguments)
+
+		if response is None:
+			raise core.Error(f'reverse request not implemented {request}')
+
+		return response
 
 	async def on_run_in_terminal(self, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
 		try:
