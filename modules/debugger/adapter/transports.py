@@ -7,7 +7,11 @@ import os
 import subprocess
 import threading
 
-class Process(subprocess.Popen):
+class Process:
+	@staticmethod
+	async def check_output(command: List[str]) -> bytes:
+		return await core.run_in_executor(lambda: subprocess.check_output(command))
+
 	def __init__(self, command: List[str], cwd: Optional[str]):
 		# taken from Default/exec.py
 		# Hide the console window on Windows
@@ -16,7 +20,7 @@ class Process(subprocess.Popen):
 			startupinfo = subprocess.STARTUPINFO() #type: ignore
 			startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW #type: ignore
 
-		super().__init__(command,
+		self.process = subprocess.Popen(command,
 			stdout=subprocess.PIPE,
 			stderr=subprocess.PIPE,
 			stdin=subprocess.PIPE,
@@ -25,12 +29,32 @@ class Process(subprocess.Popen):
 			startupinfo=startupinfo,
 			cwd = cwd)
 
+		self.stdin = self.process.stdin
+		self.stderr = self.process.stderr
+		self.stdout = self.process.stdout
+
 		self.closed = False
+
+	def _readline(self, pipe) -> bytes:
+		if l := pipe.readline():
+			return l
+		raise EOFError
+
+	def _read(self, pipe, n: int) -> bytes:
+		if l := pipe.read(n):
+			return l
+		raise EOFError
+
+	async def readline(self, pipe) -> bytes:
+		return await core.run_in_executor(lambda: self._readline(pipe))
+
+	async def read(self, pipe, nbytes) -> bytes:
+		return await core.run_in_executor(lambda: self._read(pipe, nbytes))
 
 	def dispose(self):
 		self.closed = True
 		try:
-			self.terminate()
+			self.process.terminate()
 		except Exception as e:
 			core.log_exception()
 

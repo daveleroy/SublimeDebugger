@@ -12,15 +12,11 @@ import re
 import threading
 import sublime
 
-class LLDBTransport(SocketTransport):
-	def __init__(self, log: core.Logger, command: List[str], cwd: Optional[str] = None):
-		self.process = Process(command, cwd)
+class LLDBTransport(adapter.SocketTransport):
+	def __init__(self, adapter_process: adapter.Process, port: int, log: core.Logger):
+		self.process = adapter_process
 
-		line = self.process.stdout.readline().decode('utf-8')
-		result = re.match(r'Listening on port (.*)', line)
-		port = int(result.group(1))
-
-		super().__init__(log, 'localhost', port, cwd)
+		super().__init__(log, 'localhost', port)
 
 		thread = threading.Thread(target=self._read, args=(self.process.stderr, lambda line: log.log('process', line)))
 		thread.start()
@@ -41,7 +37,6 @@ class LLDBTransport(SocketTransport):
 	def dispose(self) -> None:
 		self.process.dispose()
 
-
 class LLDB(adapter.AdapterConfiguration):
 
 	@property
@@ -54,7 +49,7 @@ class LLDB(adapter.AdapterConfiguration):
 		codelldb = f'{install_path}/extension/adapter/codelldb'
 		libpython = Settings.lldb_python
 		if not libpython:
-			libpython = subprocess.check_output([codelldb, "find-python"]).strip()
+			libpython = (await adapter.Process.check_output([codelldb, "find-python"])).strip()
 
 		libLLDB = Settings.lldb_library
 		command = [
@@ -65,7 +60,16 @@ class LLDB(adapter.AdapterConfiguration):
 		if libLLDB:
 			command.extend(["--liblldb", libLLDB])
 
-		return LLDBTransport(log, command)
+		process = adapter.Process(command, None)
+
+		try:
+			line = await process.readline(process.stdout)
+			result = re.match(r'Listening on port (.*)', line.decode('utf-8'))
+			port = int(result.group(1))
+			return LLDBTransport(process, port, log)
+		except:
+			process.dispose()
+			raise
 
 	async def configuration_resolve(self, configuration):
 		if configuration.request == 'custom':

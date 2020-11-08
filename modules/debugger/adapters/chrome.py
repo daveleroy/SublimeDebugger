@@ -7,7 +7,7 @@ class Chrome(adapter.AdapterConfiguration):
 		return 'chrome'
 
 	async def start(self, log, configuration):
-		node = adapter.get_and_warn_require_node(self.type, log)
+		node = await adapter.get_and_warn_require_node(self.type, log)
 
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
