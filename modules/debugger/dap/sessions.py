@@ -94,12 +94,24 @@ class Sessions (SessionListener):
 	def on_session_updated_threads(self, session: Session):
 		self.on_updated_threads(session)
 
+	def add_session(self, session: Session):
+		self.sessions.append(session)
+		self.on_added_session(session)
+
+		# if a session is added select it
+		self.selected_session = session
+		self.on_selected(session)
+
 	def remove_session(self, session: Session):
 		self.sessions.remove(session)
 		self.on_removed_session(session)
 
 		if self.selected_session == session:
-			self.selected_session = None
+			if self.sessions:
+				self.selected_session = self.sessions[0]
+			else:
+				self.selected_session = None
+
 			self.on_selected(session)
 
 		self.updated(session, 0)
