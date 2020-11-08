@@ -8,7 +8,6 @@ import webbrowser
 from .import dap
 
 from .autocomplete import Autocomplete
-from .util import get_setting
 from .config import PersistedData
 from .breakpoints import Breakpoints
 from .project import Project

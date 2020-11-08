@@ -1,7 +1,7 @@
 from ...typecheck import *
 from ..import adapter
 
-from ..util import get_debugger_setting
+from ..settings import Settings
 
 import shutil
 
@@ -26,9 +26,9 @@ class Go(adapter.AdapterConfiguration):
 	# Patch in dlvToolPath to point to dlv if present in settings or path
 	# TODO: Implement more of the functionality in
 	# https://github.com/microsoft/vscode-go/blob/master/src/goDebugConfiguration.ts
-	def configuration_resolve(self, configuration):
+	async def configuration_resolve(self, configuration):
 		if not 'dlvToolPath' in configuration:
-			configuration['dlvToolPath'] = get_debugger_setting('go.dlv') or shutil.which('dlv')
+			configuration['dlvToolPath'] = Settings.go_dlv or shutil.which('dlv')
 
 		return configuration
 

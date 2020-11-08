@@ -1,7 +1,7 @@
 import shutil
 from ...typecheck import *
 from ..import adapter
-from ..util import get_debugger_setting
+from ..settings import Settings
 
 import sublime
 

@@ -2,7 +2,6 @@ from ..typecheck import*
 from ..import core
 
 from .dap import Configuration, ConfigurationCompound, Task
-from .util import get_setting
 from .settings import Settings
 
 import sublime
@@ -41,15 +40,11 @@ class Project(core.disposables):
 		data.setdefault('debugger_configurations', [])
 		window.set_project_data(data)
 
-		self.settings = sublime.load_settings('debugger.sublime-settings')
-		self.settings_key = "DebuggerProject." + str(id(self))
-		self.settings.add_on_change(self.settings_key, self.reload)
-		Settings.updated.add(self.reload)
+		self.disposables += Settings.updated.add(self.reload)
 		self.reload()
 
 	def dispose(self):
 		super().dispose()
-		self.settings.clear_on_change(self.settings_key)
 
 	def into_json(self) -> dict:
 		return {
@@ -127,14 +122,14 @@ class Project(core.disposables):
 
 	def load_settings(self):
 		core.log_configure(
-			log_info=get_setting(self.window.active_view(), 'log_info', False),
-			log_errors=get_setting(self.window.active_view(), 'log_errors', True),
-			log_exceptions=get_setting(self.window.active_view(), 'log_exceptions', True),
+			log_info= Settings.log_info,
+			log_errors= Settings.log_errors,
+			log_exceptions= Settings.log_exceptions,
 		)
 
-		self.external_terminal_kind = get_setting(self.window.active_view(), 'external_terminal', self.external_terminal_kind)
-		self.ui_scale = get_setting(self.window.active_view(), 'ui_scale', self.ui_scale)
-		self.bring_window_to_front_on_pause = get_setting(self.window.active_view(), 'bring_window_to_front_on_pause', self.bring_window_to_front_on_pause)
+		self.external_terminal_kind = Settings.external_terminal
+		self.ui_scale = Settings.ui_scale
+		self.bring_window_to_front_on_pause = Settings.bring_window_to_front_on_pause
 
 	def load_configurations(self):
 		data = self.window.project_data() or {}

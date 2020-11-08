@@ -8,8 +8,6 @@ from .commands import Commands
 from .adapter import Adapters
 from .settings import Settings
 
-from .util import get_setting
-
 import sublime
 import sublime_plugin
 
@@ -46,7 +44,10 @@ def open(window_or_view: Union[sublime.View, sublime.Window]):
 		window = window_or_view
 		view = window.active_view()
 
-	if get_setting(view, 'open_at_startup', False) and (not window.id() in was_opened_at_startup) and Debugger.should_auto_open_in_window(window):
+	if not window:
+		return
+
+	if Settings.open_at_startup and (not window.id() in was_opened_at_startup) and Debugger.should_auto_open_in_window(window):
 		was_opened_at_startup.add(window.id())
 		Debugger.get(window, create=True)
 

@@ -1,23 +1,16 @@
 from ...import core
 from ...typecheck import*
-from ..util import get_debugger_setting
+from ..settings import Settings
 
 import subprocess
+import shutil
 
 def version_tuple(v):
 	print(v)
-	return tuple(v.split("."))
+	return tuple(v.split('.'))
 
-def get_node_path(adapter_type: str):
-	path = get_debugger_setting(f'{adapter_type}.node')
-	if path:
-		return path
-
-	path = get_debugger_setting('node')
-	if path:
-		return path
-
-	return 'node'
+def get_node_path(adapter_type: str) -> str:
+	return Settings.node or shutil.which('node') or 'node'
 
 def get_and_warn_require_node(adapter_type: str, log: core.Logger):
 	node_path = get_node_path(adapter_type)
