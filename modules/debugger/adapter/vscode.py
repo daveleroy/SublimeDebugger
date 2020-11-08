@@ -23,8 +23,7 @@ def install_path(type: str) -> str:
 @dataclass
 class AdapterInfo:
 	version: str
-	snippets: list
-	schema: dict
+	schema_and_snippets: dict
 
 def info(type: str) -> Optional[AdapterInfo]:
 	info = _info_for_type.get(type)
@@ -40,20 +39,22 @@ def info(type: str) -> Optional[AdapterInfo]:
 	version = "??"
 	snippets = []
 	schema = {}
+	contributes = {}
 
 	with open(f'{path}/extension/package.json') as file:
 		package_json = json.load(file)
 		version = package_json.get('version')
 		for debugger in package_json.get('contributes', {}).get('debuggers', []):
-			if debugger.get('type') != type:
-				continue
-			snippets = debugger.get('configurationSnippets', [])
-			schema = debugger.get('configurationAttributes', {})
+			debugger_type = debugger.get('type') or type
+
+			contributes[debugger_type] = {
+				'snippets': debugger.get('configurationSnippets', []),
+				'schema': debugger.get('configurationAttributes', {})
+			}
 
 	info = AdapterInfo(
 		version=version,
-		snippets=snippets,
-		schema=schema,
+		schema_and_snippets=contributes,
 	)
 	_info_for_type[type] = info
 	return info
@@ -63,14 +64,20 @@ def installed_version(type: str) -> Optional[str]:
 		return i.version
 	return None
 
-def configuration_schema(type: str) -> Optional[dict]:
+def configuration_schema(type: str, vscode_type: Optional[str] = None) -> Optional[dict]:
 	if i := info(type):
-		return i.schema
+		contributes = i.schema_and_snippets.get(vscode_type or type)
+		if contributes:
+			return contributes['schema']
+
 	return None
 
-def configuration_snippets(type: str) -> Optional[list]:
+def configuration_snippets(type: str, vscode_type: Optional[str] = None) -> Optional[list]:
 	if i := info(type):
-		return i.snippets
+		contributes = i.schema_and_snippets.get(vscode_type or type)
+		if contributes:
+			return contributes['snippets']
+
 	return None
 
 async def install(type: str, url: str, log: core.Logger):

@@ -28,8 +28,8 @@ class Node(adapter.AdapterConfiguration):
 
 	@property
 	def configuration_snippets(self) -> Optional[list]:
-		return adapter.vscode.configuration_snippets(self.type)
+		return adapter.vscode.configuration_snippets(self.type, 'node2')
 
 	@property
 	def configuration_schema(self) -> Optional[dict]:
-		return adapter.vscode.configuration_schema(self.type)
+		return adapter.vscode.configuration_schema(self.type, 'node2')
