@@ -181,7 +181,7 @@ class Debugger (dap.SessionsTasksProvider):
 
 		self.variables_panel = VariablesPanel(self.sessions)
 		self.modules_panel = ModulesView(self.sessions)
-		self.sources_panel = SourcesView(self.sessions, self.source_provider.navigate_to_source)
+		self.sources_panel = SourcesView(self.sessions, self.on_navigate_to_source)
 
 		self.right_panel.update([
 			TabbedPanelItem(self.variables_panel, self.variables_panel, 'Variables'),
@@ -504,17 +504,18 @@ class Debugger (dap.SessionsTasksProvider):
 
 	@core.schedule
 	async def run_task(self, task: dap.Task):
-		self.clear_unused_terminals()
-
 		variables = self.project.extract_variables()
 		terminal = TerminalTask(self.window, dap.TaskExpanded(task, variables))
 		self.terminals.append(terminal)
 
-		component = ProblemsView(terminal, self.on_navigate_to_source)
-		panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
+		if not terminal.background:
+			self.clear_unused_terminals()
+			component = ProblemsView(terminal, self.on_navigate_to_source)
+			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
 
-		self.middle_panel.add(panel)
-		self.middle_panel.select(id(terminal))
+			self.middle_panel.add(panel)
+			self.middle_panel.select(id(terminal))
+
 		await terminal.wait()
 
 	def add(self, session: dap.Session, terminal: Terminal):
