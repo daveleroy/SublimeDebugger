@@ -1,7 +1,6 @@
 from ...typecheck import *
 from ..import adapter
 from ...import core
-from ..adapter.transports import SocketTransport, Process
 from ..settings import Settings
 
 from ..import dap
