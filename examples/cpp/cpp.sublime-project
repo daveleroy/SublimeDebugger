@@ -1,44 +1,39 @@
 {
-	"folders":
-	[
+	"folders": [
 		{
-			"path": "."
-		}
+			"path": ".",
+		},
 	],
-	"settings":
-	{
-		// "debug.external_terminal":"terminus",
-		"debug.configurations":
-			[
-			{
-				"sublime_build": {
-					"cmd": "clang++ -std=c++14 -g main.cpp",
-					"shell": true,
-				},
-				"args": [], 
-				"type": "lldb",
-				"cwd": "${project_path}", 
-				"request": "launch",
-				"program": "${project_path}/a.out", 
-				"name": "Launch (Compile)",
-			},
-			{
-				"args": [], 
-				"type": "lldb",
-				"cwd": "${project_path}", 
-				"request": "launch",
-				"terminal": "external",
-				"program": "${project_path}/a.out", 
-				"name": "Launch (external)",
-			},
-			{
-				"args": [], 
-				"type": "lldb",
-				"cwd": "${project_path}", 
-				"request": "launch",
-				"program": "${project_path}/a.out", 
-				"name": "Launch",
-			},
-		]
-	},
+	"debugger_tasks": [
+		{
+			"name": "Compile",
+			"shell_cmd": "clang++ -std=c++14 -g main.cpp -o test",
+			"file_regex": "$cc",
+		},
+	],
+	"debugger_configurations": [
+		{
+			"name": "C++ (compile)",
+			"type": "lldb",
+			"request": "launch",
+			"program": "${project_path}/test",
+			"cwd": "${project_path}",
+			"pre_debug_task": "Compile", // sublime text 4 only
+			"terminal": "console",
+		},
+		{
+			"name": "C++ (external terminal)",
+			"type": "lldb",
+			"request": "launch",
+			"program": "${project_path}/test",
+			"cwd": "${project_path}",
+			"terminal": "external",
+		},
+		{
+			"name": "Attach (Pick Process)",
+			"type": "lldb",
+			"request": "attach",
+			"pid": "${command_pick_process}" // sublime text 4 only
+		},
+	],
 }

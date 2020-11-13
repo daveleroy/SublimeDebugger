@@ -1,26 +1,22 @@
 {
-	"folders":
-	[
+	"folders": [
 		{
-			"path": "."
-		}
+			"path": ".",
+		},
 	],
-	"settings":
-	{
-		"debug.configurations":
-		[
+	"debugger_configurations": [
+		{
+			"name": "Php",
+			"type": "php",
+			"request": "launch",
+			"program": "${project_path}/main.php",
+			"cwd": "${project_path}",
+			"externalConsole": false,
+			"xdebugSettings":
 			{
-				"name": "Launch",
-				"request": "launch",
-				"type": "php",
-				"program": "${project_path}/test.php",
-				"cwd": "${project_path}",
-				"externalConsole": false,
-				"xdebugSettings": {
-					"max_children": 50,
-					"max_depth": 5
-				}
-			}
-		]
-	}
+				"max_children": 50,
+				"max_depth": 5,
+			},
+		},
+	],
 }

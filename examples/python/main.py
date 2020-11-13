@@ -1,6 +1,12 @@
+
 import time
 from threading import Thread
 import sys
+import os
+
+print(sys.version)
+
+# print(os.environ)
 
 def some_random_variables():
 	string = "abc"
@@ -14,8 +20,12 @@ def some_random_variables():
 		'array': array,
 	}
 
-	sys.stdout.write('Hello from stdout\n')
-	sys.stderr.write('Hello from stderr\n')
+	print(string)
+	print(integer)
+	print(floating)
+	print(array)
+	print(table)
+
 
 def test():
 	some_random_variables()
@@ -32,9 +42,9 @@ for i in range(1, 5):
 
 some_lambda = lambda: test()
 some_lambda()
-
 for thread in threads:
 	thread.join()
 
 
 print('Done')
+

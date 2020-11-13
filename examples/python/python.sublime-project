@@ -1,23 +1,15 @@
 {
-	"folders":
-	[
+	"folders": [
 		{
-			"path": "."
-		}
+			"path": ".",
+		},
 	],
-	"settings":
-	{
-		"debug.configurations":
-		[
-			{
-				"name": "Python Debug",
-				"type": "python",
-				"request": "launch",
-				"program": "${project_path}/main.py",
-				"debugOptions" : [
-					"RedirectOutput"
-				]
-			},
-		]
-	}
+	"debugger_configurations": [
+		{
+			"name": "Python",
+			"type": "python",
+			"request": "launch",
+			"program": "${project_path}/main.py",
+		},
+	],
 }
