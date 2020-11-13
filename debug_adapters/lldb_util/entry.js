@@ -42,17 +42,7 @@ process.stdin.on('readable', () => {
 });
 
 async function main() {
-
-	var libpython = ""
-	try {
-		libpython = await findLibPython()
-	}
-	catch (e) {
-		process.stderr.write(e + "\n")
-	}
-	process.stderr.write(libpython + "\n")
 	proc = spawn(codelldb, [
-		"--libpython", libpython
 	],
 		{stdio: ['ignore', 'pipe', 'pipe']}
 	);

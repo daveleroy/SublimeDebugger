@@ -80,7 +80,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		self.adapter = None #type: Optional[dap.Client]
 		self.process = None #type: Optional[Process]
 		self.launching_async = None #type: Optional[core.future]
-
+		self.capabilities = None
 		self.launch_request = True
 
 		self._state = DebuggerSession.stopped
@@ -335,7 +335,7 @@ class DebuggerSession(dap.ClientEventsListener, core.Logger):
 		# this seems to be what the spec says to do in the overview
 		# https://microsoft.github.io/debug-adapter-protocol/overview
 		if self.launch_request:
-			if self.capabilities.supportsTerminateRequest:
+			if self.capabilities and self.capabilities.supportsTerminateRequest:
 				try:
 					yield from self.adapter.Terminate()
 				except dap.Error as e:
