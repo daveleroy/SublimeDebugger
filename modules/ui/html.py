@@ -150,13 +150,6 @@ class phantom_sizer (div):
 	def render(self) -> div.Children:
 		return self.item
 
-	def html(self, layout: Layout) -> str:
-		inner = self.html_inner(layout)
-		h = self.height(layout) * layout.rem_width_scale()
-		w = self.width(layout) * layout.rem_width_scale()
-		html = f'<div class="{self.className}" style="height:{h}rem;"><img style="width:{w}rem;">{inner}</div>'
-		return html
-
 
 html_escape_table = {
 	"&": "&amp;",
