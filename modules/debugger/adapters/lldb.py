@@ -45,19 +45,14 @@ class LLDB(adapter.AdapterConfiguration):
 	async def start(self, log: core.Logger, configuration):
 		install_path = adapter.vscode.install_path(self.type)
 
-		codelldb = f'{install_path}/extension/adapter/codelldb'
-		libpython = Settings.lldb_python
-		if not libpython:
-			libpython = (await adapter.Process.check_output([codelldb, "find-python"])).strip()
 
-		libLLDB = Settings.lldb_library
 		command = [
-			codelldb,
-			"--libpython", libpython
+			f'{install_path}/extension/adapter/codelldb',
 		]
 
-		if libLLDB:
-			command.extend(["--liblldb", libLLDB])
+		liblldb = Settings.lldb_library
+		if liblldb:
+			command.extend(["--liblldb", liblldb])
 
 		process = adapter.Process(command, None)
 
