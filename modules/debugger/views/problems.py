@@ -14,12 +14,18 @@ class ProblemsView (ui.div):
 		super().__init__(css=css.padding_left)
 		self.terminal = terminal
 		self.terminal.on_problems_updated.add(self.on_problems_updated)
+		self.terminal.on_updated.add(self.on_problems_updated)
+
 		self.start_line = 0
 		self.on_clicked_source = on_clicked_source
 		self.timer = ui.Timer(self.on_tick, 0.5, True)
 		self.tick = 0
 
 	def on_problems_updated(self):
+		# open the backing panel if the command failed and there was no detect problems
+		if self.terminal.statusCode and not self.terminal.problems_per_file:
+			self.show_backing_panel()
+
 		self.dirty()
 
 	def show_backing_panel(self):
@@ -49,7 +55,7 @@ class ProblemsView (ui.div):
 		else:
 			items.append(ui.div(height=css.row_height)[
 				ui.align()[
-					ui.text(self.terminal.status or '[Finished]'),
+					ui.text(self.terminal.statusMessage or '[Finished]'),
 					ui.spacer(),
 					ui.click(self.show_backing_panel)[
 						ui.text('view full', css=css.label_secondary),

@@ -109,6 +109,8 @@ class TerminalTask(Terminal):
 		else:
 			self.future.set_result(None)
 
+		self.on_updated()
+
 
 class Exec(Default.exec.ExecCommand):
 	def run(self, instance, args):
@@ -137,14 +139,16 @@ class Exec(Default.exec.ExecCommand):
 		# modified from Default exec.py
 		if self.instance:
 			if proc.killed:
-				self.instance.status = "[Cancelled]"
+				self.instance.statusMessage = "[Cancelled]"
 			else:
 				elapsed = time.time() - proc.start_time
 				exit_code = proc.exit_code()
 				if exit_code == 0 or exit_code is None:
-					self.instance.status = "[Finished in %.1fs]" % elapsed
+					self.instance.statusCode = 0
+					self.instance.statusMessage = "[Finished in %.1fs]" % elapsed
 				else:
-					self.instance.status = "[Finished in %.1fs with exit code %d]" % (elapsed, exit_code)
+					self.instance.statusCode = exit_code
+					self.instance.statusMessage = "[Finished in %.1fs with exit code %d]" % (elapsed, exit_code)
 
 			self.instance.on_finished(proc.exit_code() or 0)
 			# self.window.run_command("next_result")

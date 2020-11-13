@@ -88,7 +88,8 @@ class Terminal:
 		self.new_line = True
 		self.escape_input = True
 		self.finished = False
-		self.status = None
+		self.statusCode = None
+		self.statusMessage = None
 
 	def name(self) -> str:
 		return self._name
