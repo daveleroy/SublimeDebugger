@@ -5,8 +5,10 @@ from .. import core
 from .debugger import Debugger
 
 from .commands import Commands
-from .adapter import Adapters
 from .settings import Settings
+
+from .adapters import * #import all the adapters so Adapters.initialize() will see them
+from .adapter import Adapters
 
 import sublime
 import sublime_plugin

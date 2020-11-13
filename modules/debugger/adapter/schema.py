@@ -2,7 +2,7 @@ import sublime
 from ...import core
 from ...typecheck import*
 
-from .adapter import AdapterConfiguration
+from .adapters import AdapterConfiguration
 import json
 import os
 

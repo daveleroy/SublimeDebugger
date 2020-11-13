@@ -144,7 +144,7 @@ async def install(type: str, url: str, log: core.Logger):
 
 	log.info('Successfully Installed Adapter!')
 
-	from .adapter import Adapters
+	from .adapters import Adapters
 	Adapters.recalculate_schema()
 
 # https://stackoverflow.com/questions/29967487/get-progress-back-from-shutil-file-copy-thread
