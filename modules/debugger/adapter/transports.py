@@ -121,4 +121,7 @@ class SocketTransport(Transport):
 		raise EOFError
 
 	def dispose(self) -> None:
-		pass
+		try:
+			self.socket.close()
+		except:
+			core.log_exception()
