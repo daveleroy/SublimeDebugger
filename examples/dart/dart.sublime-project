@@ -1,0 +1,17 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+		}
+	],
+	"debugger_configurations":
+	[
+		{
+			"name": "Dart",
+			"type": "dart",
+			"request": "launch",
+			"program": "${project_path}/main.dart"
+		},
+	],
+}
