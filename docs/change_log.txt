@@ -3,6 +3,18 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.4.0
+- debugger_configuration replaces debug.configurations and is now defined at the root of the .sublime-project instead of inside settings
+- Adds support for tasks see https://github.com/daveleroy/sublime_debugger#tasks
+- Adds support for pre_debug_task and post_debug_task which can be used to build etc
+- Adds schema support for LSP-json for auto completeing adapter configurations (see https://github.com/sublimelsp/LSP-json)
+- Improvements to lldb adapter adding toggle disassembly, display options, dereference options
+- Clicking a terminal panel when already selected now shows an output panel with the entire contents
+- Renamed a bunch of commands (so if you bound any commands check them)
+- Node adapter now has snippets
+- Fixes issues with latest release of lldb adapter
+- Fixes default ui scale accross platforms
+
 Whats new in version 0.3.1
 - Fixes issue with sizing and alignment of panels on windows
 - Fixes path of go adapter

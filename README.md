@@ -48,12 +48,12 @@ This project comes with some pre-configured debuggers (They can be installed usi
 - Install a debug adapter by running: ```Debugger: Install adapter``` from the command palette.
 
 - Add a configuration ```Debugger: Add Configuration``` from the command palette (or add one manually, see below).
-  - Configurations are added to `debug.configurations` in project settings and use the same configuration format as Visual Studio Code
+  - Configurations are added to `debugger_configurations` to your sublime-projec and use the same configuration format as Visual Studio Code
   - Consult the debugger specific documentation links above for creating a configuration for your debugger. Most debuggers come with some configuration snippets to choose from but I highly recommend looking at the documentation for the debugger.
 
 - Your configuration will look something like the following but with some debugger specific fields.
 ```
-"debug.configurations" : [
+"debugger_configurations" : [
     {
         "name" : "Name of your configuration",
         "request" : "launch"|"attach",
@@ -66,6 +66,28 @@ This project comes with some pre-configured debuggers (They can be installed usi
 - Start debugging
   - click the gear icon to select a configuration to use
   - click the play icon to start the debugger or run `Debugger: Start` (if no configuration is selected it will ask you to select or create one)
+
+## Tasks
+Tasks are based on sublime build_systems with more integration so they can be used more seamlessly while debugging. When errors occur while running a task they are reported in the debugger ui (problem detection is the same as sublime, you must add `file_regex` to your task)
+
+see https://www.sublimetext.com/docs/3/build_systems.html
+
+Tasks are basically the same as sublime builds but there are a few additional paramters.
+`name` which will show up in the debugger ui and the be the name of the panel
+
+```
+"debugger_tasks" : [
+    {
+        "name" : "Name of your configuration",
+        "request" : "launch"|"attach",
+        "type" : "debugger name",
+         ...
+    }
+]
+```
+- Tasks can be run with `Debugger: Run Tasks`
+- You can run tasks before and after debugging by adding `pre_debug_task` or `post_debug_task` to your configuration specifiying the name of the task to run.
+
 
 ## Settings
 Settings can either be set at the project level or globally.
