@@ -444,9 +444,9 @@ class Session(ClientEventsListener, core.Logger):
 		self.stop_debug_adapter_session()
 
 		await self.run_post_debug_task()
-		self._change_status("Debug session has eneded")
+		self._change_status("Debug session has ended")
 
-		self.info("Debug session has eneded")
+		self.info("Debug session has ended")
 
 		self.state = Session.stopped
 
