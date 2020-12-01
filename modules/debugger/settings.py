@@ -10,6 +10,8 @@ class Settings:
 
 	open_at_startup: bool = True
 	ui_scale: int = 10
+	font_face: str = 'Monospace'
+
 	external_terminal: str = "terminus"
 	hide_status_bar: bool = False
 	keep_panel_open: bool = False

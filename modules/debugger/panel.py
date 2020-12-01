@@ -88,6 +88,7 @@ class DebuggerOutputPanel:
 		settings.set('draw_centered', True)
 		settings.set('is_widget', True)
 		settings.set('sublime_debugger', True)
+		settings.set("font_face", Settings.font_face)
 		self.panel.sel().clear()
 
 		def on_hide_panel(window: sublime.Window):

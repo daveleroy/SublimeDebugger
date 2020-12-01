@@ -3,7 +3,10 @@
 	"open_at_startup" : true,
 
 	// Sets the entire scale of the UI
-	"ui_scale" : 10,
+	"ui_scale": 10,
+
+	// change at your own risk it may break the interface. Restart required to take effect
+	"font_face": "Monospace",
 
 	// Which external terminal should be used when an adapter requests an external terminal
 	// "platform" (default) uses Terminal on MacOS, CMD (Not tested) on Windows, (Unimplemented) on Linux
