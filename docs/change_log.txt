@@ -3,6 +3,9 @@ If you have issues or need help https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Whats new in version 0.4.1
+- Adds explicit font setting for debugger panel
+
 Whats new in version 0.4.0
 - debugger_configuration replaces debug.configurations and is now defined at the root of the .sublime-project instead of inside settings
 - Adds support for tasks see https://github.com/daveleroy/sublime_debugger#tasks
