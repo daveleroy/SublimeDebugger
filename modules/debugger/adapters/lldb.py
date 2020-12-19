@@ -153,7 +153,7 @@ class LLDB(adapter.AdapterConfiguration):
 	async def updated_settings(self, sessions: dap.Sessions):
 		for session in sessions:
 			if session.adapter_configuration == self:
-				await sessions.active.request('adapterSettings', self.adapter_settings())
+				await sessions.active.request('_adapterSettings', self.adapter_settings())
 
 	def toggle_disassembly(self, sessions: dap.Sessions):
 		if Settings.lldb_show_disassembly == 'auto':
