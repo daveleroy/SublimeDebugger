@@ -83,6 +83,7 @@ class DebuggerOutputPanel:
 		settings.set('line_padding_top', 3)
 		settings.set('gutter', False)
 		settings.set('word_wrap', True)
+		settings.set('wrap_width', 0)
 		settings.set('line_spacing', 0)
 		settings.set('context_menu', 'Widget Debug.sublime-menu')
 		settings.set('draw_centered', True)
