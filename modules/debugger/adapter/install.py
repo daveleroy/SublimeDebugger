@@ -30,6 +30,17 @@ class AdapterInstalledInformation:
 		self.snippets = snippets
 
 
+class SublimeAdapterInstall:
+
+	@staticmethod
+	def from_json(path: str) -> dict:
+		
+		with open(path, 'r') as f:
+			info = json.load(f)
+		
+		return info
+
+
 class VSCodeAdapterInstall:
 	def __init__(self, name: str, url: str) -> None:
 		self.name = name

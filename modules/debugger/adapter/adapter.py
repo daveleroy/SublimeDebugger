@@ -2,11 +2,14 @@ from ...typecheck import *
 from ...import core
 from ...import ui
 
-from .install import VSCodeAdapterInstall, AdapterInstall
+from .install import VSCodeAdapterInstall, AdapterInstall, SublimeAdapterInstall
 
 import sublime
 
 def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dict:
+
+	local_variables = variables.copy() if variables is not None else {}
+
 	platform = None #type: Optional[dict]
 	if core.platform.osx:
 		platform = json.get('osx')
@@ -19,9 +22,17 @@ def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dic
 		json = json.copy()
 		for key, value in platform.items():
 			json[key] = value
-
+	
+	# Get adapter settings if applicable
+	adapter_type = json.get('type')
+	if adapter_type:
+		adapters_custom = sublime.load_settings('debugger.sublime-settings').get('adapters_custom', {})
+		settings = adapters_custom.get(adapter_type, {}).get('settings')
+		if settings:
+			local_variables.update(settings)
+		
 	if variables is not None:
-		return sublime.expand_variables(json, variables)
+		return sublime.expand_variables(json, local_variables)
 
 	return json
 
@@ -29,16 +40,20 @@ class Adapter:
 	def __init__(self, type: str, json: dict, variables: dict) -> None:
 		json = _expand_variables_and_platform(json, None)
 		install_json = json.get('install')
+		install_info_path = json.get('install info')
 
 		variables = variables.copy()
 
 		self.installer = None
+		self.install_info = None
 		if install_json:
 			if install_json["type"] == "vscode":
 				self.installer = VSCodeAdapterInstall.from_json(_expand_variables_and_platform(install_json, variables))
 				variables["install_path"] = self.installer.path
 			else:
 				raise core.Error("unhandled adapter install type")
+		elif install_info_path:
+			self.install_info = SublimeAdapterInstall.from_json(install_info_path)
 
 		json = _expand_variables_and_platform(json, variables)
 		self.command = json['command']
@@ -57,6 +72,9 @@ class Adapter:
 
 	def load_installation_if_needed(self) -> None:
 		if not self.installer:
+			if self.install_info:
+				self.version = self.install_info["version"]
+				self.snippets = self.install_info["configurationSnippets"]
 			return
 		info = self.installer.installed_info()
 		self.snippets = info.snippets
