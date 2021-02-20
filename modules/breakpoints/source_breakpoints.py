@@ -201,7 +201,7 @@ class SourceBreakpoints:
 			self.updated(breakpoint)
 
 		def toggle_enabled():
-			self.toggle(breakpoint)
+			self.toggle_enabled(breakpoint)
 
 		def remove():
 			self.remove(breakpoint)
@@ -242,13 +242,29 @@ class SourceBreakpoints:
 		self.breakpoints.remove(breakpoint)
 		self.updated(breakpoint)
 
-	def toggle(self, breakpoint: SourceBreakpoint) -> None:
+	def toggle_enabled(self, breakpoint: SourceBreakpoint) -> None:
 		breakpoint.enabled = not breakpoint.enabled
 		self.updated(breakpoint)
+
+	def toggle(self, file: str, line: int, column: Optional[int] = None) -> None:
+		breakpoint = self.get_breakpoint(file, line, column)
+		if breakpoint:
+			self.remove(breakpoint)
+		else:
+			self.add_breakpoint(file, line, column)
 
 	def breakpoints_for_file(self, file: str) -> List[SourceBreakpoint]:
 		r = list(filter(lambda b: b.file == file, self.breakpoints))
 		return r
+
+	def breakpoints_per_file(self) -> Dict[str, List[SourceBreakpoint]]:
+		bps: Dict[str, List[SourceBreakpoint]] = {}
+		for breakpoint in self.breakpoints:
+			if breakpoint.file in bps:
+				bps[breakpoint.file].append(breakpoint)
+			else:
+				bps[breakpoint.file] = [breakpoint]
+		return bps
 
 	def get_breakpoint(self, file: str, line: int, column: Optional[int] = None) -> Optional[SourceBreakpoint]:
 		for b in self.breakpoints:

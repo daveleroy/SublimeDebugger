@@ -70,7 +70,7 @@ class DataBreakpoints:
 		breakpoint.result = result
 		self.updated(send=False)
 
-	def toggle(self, breakpoint: DataBreakpoint):
+	def toggle_enabled(self, breakpoint: DataBreakpoint):
 		breakpoint.enabled = not breakpoint.enabled
 		self.updated()
 
@@ -84,7 +84,7 @@ class DataBreakpoints:
 			self.updated()
 
 		def toggle_enabled():
-			self.toggle(breakpoint)
+			self.toggle_enabled(breakpoint)
 
 		def remove():
 			self.breakpoints.remove(breakpoint)

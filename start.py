@@ -16,6 +16,8 @@ from .modules.commands import DebuggerCommand
 
 from .modules.ui.input import DebuggerInputCommand
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
+from .modules.listener import Listener
+
 from .modules.autocomplete import AutocompleteEventListener
 from .modules.debugger_exec import DebuggerExec
 

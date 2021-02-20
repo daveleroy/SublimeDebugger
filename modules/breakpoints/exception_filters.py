@@ -57,7 +57,7 @@ class ExceptionBreakpointsFilters:
 
 	def edit(self, breakpoint: ExceptionBreakpointsFilter):
 		def toggle_enabled():
-			self.toggle(breakpoint)
+			self.toggle_enabled(breakpoint)
 
 		return ui.InputList([
 			ui.InputListItemChecked(
@@ -68,7 +68,7 @@ class ExceptionBreakpointsFilters:
 			),
 		], placeholder='Edit Exception Filter {}'.format(breakpoint.name))
 
-	def toggle(self, filter: ExceptionBreakpointsFilter):
+	def toggle_enabled(self, filter: ExceptionBreakpointsFilter):
 		filter.enabled = not filter.enabled
 		self.on_updated(self.filters.values())
 		self.on_send(self.filters.values())

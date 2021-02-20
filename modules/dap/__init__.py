@@ -18,6 +18,8 @@ from .types import (
 	FunctionBreakpoint,
 	DataBreakpoint,
 	DataBreakpointInfoResponse,
+	SourceBreakpoint,
+	ExceptionBreakpointsFilter,
 
 	RunInTerminalRequest,
 	RunInTerminalResponse,

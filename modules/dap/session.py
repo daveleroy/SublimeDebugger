@@ -175,20 +175,18 @@ class Session(ClientEventsListener, core.Logger):
 		self.adapter = adapter
 
 		self.capabilities = dap.Capabilities.from_json(
-			await self.request(
-				"initialize", {
-					"clientID": "sublime",
-					"clientName": "Sublime Text",
-					"adapterID": "python",
-					"pathFormat": "path",
-					"linesStartAt1": True,
-					"columnsStartAt1": True,
-					"supportsVariableType": True,
-					"supportsVariablePaging": False,
-					"supportsRunInTerminalRequest": True,
-					"locale": "en-us"
-				}
-			)
+			await self.request("initialize", {
+				"clientID": "sublime",
+				"clientName": "Sublime Text",
+				"adapterID": configuration.type,
+				"pathFormat": "path",
+				"linesStartAt1": True,
+				"columnsStartAt1": True,
+				"supportsVariableType": True,
+				"supportsVariablePaging": False,
+				"supportsRunInTerminalRequest": True,
+				"locale": "en-us"
+			})
 		)
 
 		# remove/add any exception breakpoint filters
@@ -278,14 +276,7 @@ class Session(ClientEventsListener, core.Logger):
 		requests.append(self.set_exception_breakpoint_filters())
 		requests.append(self.set_function_breakpoints())
 
-		bps = {} #type: Dict[str, List[SourceBreakpoint]]
-		for breakpoint in self.breakpoints.source:
-			if breakpoint.file in bps:
-				bps[breakpoint.file].append(breakpoint)
-			else:
-				bps[breakpoint.file] = [breakpoint]
-
-		for file, filebreaks in bps.items():
+		for file, filebreaks in self.breakpoints.source.breakpoints_per_file().items():
 			requests.append(self.set_breakpoints_for_file(file, filebreaks))
 
 		if self.capabilities.supportsDataBreakpoints:
@@ -297,7 +288,7 @@ class Session(ClientEventsListener, core.Logger):
 	async def set_exception_breakpoint_filters(self) -> None:
 		if not self.adapter:
 			return
-		filters = [] #type: List[str]
+		filters: List[str] = []
 		for f in self.breakpoints.filters:
 			if f.enabled:
 				filters.append(f.dap.id)
@@ -437,7 +428,6 @@ class Session(ClientEventsListener, core.Logger):
 	async def stop_forced(self, reason) -> None:
 		if self.state == Session.stopping or self.state == Session.stopped:
 			return
-
 
 		self.stopped_reason = reason
 		self.state = Session.stopping

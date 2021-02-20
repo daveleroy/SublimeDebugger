@@ -51,16 +51,16 @@ class BreakpointsPanel(ui.div):
 
 	def on_toggle(self, breakpoint: IBreakpoint) -> None:
 		if isinstance(breakpoint, DataBreakpoint):
-			self.breakpoints.data.toggle(breakpoint)
+			self.breakpoints.data.toggle_enabled(breakpoint)
 			return
 		if isinstance(breakpoint, FunctionBreakpoint):
-			self.breakpoints.function.toggle(breakpoint)
+			self.breakpoints.function.toggle_enabled(breakpoint)
 			return
 		if isinstance(breakpoint, ExceptionBreakpointsFilter):
-			self.breakpoints.filters.toggle(breakpoint)
+			self.breakpoints.filters.toggle_enabled(breakpoint)
 			return
 		if isinstance(breakpoint, SourceBreakpoint):
-			self.breakpoints.source.toggle(breakpoint)
+			self.breakpoints.source.toggle_enabled(breakpoint)
 			return
 
 		assert False, "unreachable"

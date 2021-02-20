@@ -21,9 +21,7 @@ from .terminal_process import TerminalProcess
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
 from .terminal_task import TerminalTask
 
-from .view_hover import ViewHoverProvider
 from .source_navigation import SourceNavigationProvider
-from .breakpoint_commands import BreakpointCommandsProvider
 
 from .views.modules import ModulesView
 from .views.sources import SourcesView
@@ -147,8 +145,6 @@ class Debugger (dap.SessionsTasksProvider):
 		self.disposeables.append(self.terminal)
 
 		self.source_provider = SourceNavigationProvider(self.project, self.sessions)
-		self.view_hover_provider = ViewHoverProvider(self.project, self.sessions)
-		self.breakpoints_provider = BreakpointCommandsProvider(self.project, self.sessions, self.breakpoints)
 		self.disposeables.extend([self.view_hover_provider, self.source_provider, self.breakpoints_provider])
 
 		self.persistance = PersistedData(self.project.name)
@@ -417,10 +413,12 @@ class Debugger (dap.SessionsTasksProvider):
 		input.run()
 
 	def toggle_breakpoint(self):
-		self.breakpoints_provider.toggle_current_line()
+		file, line, column = self.project.current_file_line_column()
+		self.breakpoints.source.toggle(file, line)
 
 	def toggle_column_breakpoint(self):
-		self.breakpoints_provider.toggle_current_line_column()
+		file, line, column = self.project.current_file_line_column()
+		self.breakpoints.source.toggle(file, line, column)
 
 	def add_function_breakpoint(self):
 		self.breakpoints.function.add_command()
@@ -429,7 +427,7 @@ class Debugger (dap.SessionsTasksProvider):
 		self.sessions.watch.add_command()
 
 	def run_to_current_line(self) -> None:
-		self.breakpoints_provider.run_to_current_line()
+		raise core.Error("Not implemented right now...")
 
 	def load_data(self):
 		self.project.load_from_json(self.persistance.json.get('project', {}))
