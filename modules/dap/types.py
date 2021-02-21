@@ -177,14 +177,20 @@ class Source:
 class ExceptionBreakpointsFilter:
 	id: str
 	label: str
+	description: Optional[str]
 	default: bool
+	supportsCondition: bool
+	conditionDescription: Optional[str]
 
 	@staticmethod
 	def from_json(json: dict) -> ExceptionBreakpointsFilter:
 		return ExceptionBreakpointsFilter(
 			json['filter'],
 			json['label'],
+			json.get('description', None),
 			json.get('default', False),
+			json.get('supportsCondition', False),
+			json.get('conditionDescription', None),
 		)
 
 	def into_json(self) -> dict:
@@ -221,6 +227,14 @@ class Capabilities:
 	supportsSetExpression: bool
 	supportsTerminateRequest: bool
 	supportsDataBreakpoints: bool
+	supportsReadMemoryRequest: bool
+	supportsDisassembleRequest: bool
+	supportsCancelRequest: bool
+	supportsBreakpointLocationsRequest: bool
+	supportsClipboardContext: bool
+	supportsSteppingGranularity: bool
+	supportsInstructionBreakpoints: bool
+	supportsExceptionFilterOptions: bool
 
 	@staticmethod
 	def from_json(json: dict) -> Capabilities:
@@ -252,8 +266,15 @@ class Capabilities:
 			supportsSetExpression=json.get('supportsSetExpression', False),
 			supportsTerminateRequest= json.get('supportsTerminateRequest', False),
 			supportsDataBreakpoints= json.get('supportsDataBreakpoints', False),
+			supportsReadMemoryRequest=json.get('supportsReadMemoryRequest', False),
+			supportsDisassembleRequest=json.get('supportsDisassembleRequest', False),
+			supportsCancelRequest=json.get('supportsCancelRequest', False),
+			supportsBreakpointLocationsRequest=json.get('supportsBreakpointLocationsRequest', False),
+			supportsClipboardContext=json.get('supportsClipboardContext', False),
+			supportsSteppingGranularity=json.get('supportsSteppingGranularity', False),
+			supportsInstructionBreakpoints=json.get('supportsInstructionBreakpoints', False),
+			supportsExceptionFilterOptions=json.get('supportsExceptionFilterOptions', False),
 		)
-
 
 @dataclass
 class StoppedEvent:

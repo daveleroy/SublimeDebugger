@@ -282,9 +282,15 @@ class Session(TransportProtocolListener, core.Logger):
 		if not self._transport:
 			return
 		filters: List[str] = []
+		filterOptions: List[str] = []
+
 		for f in self.breakpoints.filters:
 			if f.enabled:
 				filters.append(f.dap.id)
+				filterOptions.append({
+					'filterId': f.dap.id,
+					'condition': f.condition,
+				})
 
 		await self.request('setExceptionBreakpoints', {
 			'filters': filters

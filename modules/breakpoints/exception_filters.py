@@ -4,16 +4,19 @@ from ..import ui
 from ..import dap
 
 class ExceptionBreakpointsFilter:
-	def __init__(self, dap: dap.ExceptionBreakpointsFilter, enabled: bool):
+	def __init__(self, dap: dap.ExceptionBreakpointsFilter, enabled: bool = True, condition: Optional[str] = None):
 		self.dap = dap
 		self.enabled = enabled
+		self.condition = condition
 
 	@property
 	def image(self) -> ui.Image:
-		if self.enabled:
-			return ui.Images.shared.dot
-		else:
+		if not self.enabled:
 			return ui.Images.shared.dot_disabled
+		elif self.condition:
+			return ui.Images.shared.dot_expr
+		else:
+			return ui.Images.shared.dot
 
 	@property
 	def tag(self) -> Optional[str]:
@@ -27,13 +30,15 @@ class ExceptionBreakpointsFilter:
 		return {
 			'dap': self.dap.into_json(),
 			'enabled': self.enabled,
+			'condition': self.condition
 		}
 
 	@staticmethod
 	def from_json(json: dict) -> 'ExceptionBreakpointsFilter':
 		return ExceptionBreakpointsFilter(
 			dap.ExceptionBreakpointsFilter.from_json(json['dap']),
-			json['enabled']
+			json['enabled'],
+			json.get('condition')
 		)
 
 class ExceptionBreakpointsFilters:
@@ -59,17 +64,32 @@ class ExceptionBreakpointsFilters:
 		def toggle_enabled():
 			self.toggle_enabled(breakpoint)
 
-		return ui.InputList([
-			ui.InputListItemChecked(
-				toggle_enabled,
-				"Enabled",
-				"Disabled",
-				breakpoint.enabled,
-			),
-		], placeholder='Edit Exception Filter {}'.format(breakpoint.name))
+		def set_condition(text: str):
+			self.set_condition(breakpoint, text)
+
+		items: List[ui.InputListItem] = [ui.InputListItemChecked(
+			toggle_enabled,
+			"Enabled",
+			"Disabled",
+			breakpoint.enabled,
+		)]
+
+		if breakpoint.dap.supportsCondition:
+			items.append(ui.InputListItemCheckedText(
+				set_condition,
+				"Condition",
+				breakpoint.dap.conditionDescription or "Breaks when expression is true",
+				breakpoint.condition,
+			))
+		return ui.InputList(items, placeholder='Edit Exception Filter {}'.format(breakpoint.name))
 
 	def toggle_enabled(self, filter: ExceptionBreakpointsFilter):
 		filter.enabled = not filter.enabled
+		self.on_updated(self.filters.values())
+		self.on_send(self.filters.values())
+
+	def set_condition(self, filter: ExceptionBreakpointsFilter, condition: Optional[str]):
+		filter.condition = condition
 		self.on_updated(self.filters.values())
 		self.on_send(self.filters.values())
 
@@ -78,10 +98,13 @@ class ExceptionBreakpointsFilters:
 		self.filters = {}
 		for f in filters:
 			if f.id in old:
-				enabled = old[f.id].enabled
+				filter_old = old[f.id]
+				enabled = filter_old.enabled
+				condition = filter_old.condition if f.supportsCondition else None
 			else:
 				enabled = f.default
+				condition = None
 
-			self.filters[f.id] = ExceptionBreakpointsFilter(f, enabled)
+			self.filters[f.id] = ExceptionBreakpointsFilter(f, enabled, condition)
 
 		self.on_updated(self.filters.values())
