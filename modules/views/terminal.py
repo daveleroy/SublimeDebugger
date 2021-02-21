@@ -218,7 +218,7 @@ class TerminalView (ui.div):
 			input_line.append(
 				ui.click(self.on_input)[
 					ui.icon(ui.Images.shared.right),
-					ui.text(label, css=css.label_secondary_padding),
+					ui.text(label, css=css.label_secondary),
 				]
 			)
 			lines.append(ui.div(height=css.row_height)[input_line])

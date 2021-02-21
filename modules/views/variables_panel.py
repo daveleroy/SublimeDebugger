@@ -108,7 +108,7 @@ class WatchExpressionView(ui.div):
 		return [
 			ui.div(height=css.row_height, css=css.padding_left)[
 				ui.click(lambda: self.on_edit_not_available(self.expression))[
-					ui.text(self.expression.value, css=css.label_secondary_padding),
+					ui.text(self.expression.value, css=css.label_secondary),
 					ui.spacer(1),
 					ui.text("not available", css=css.label),
 				]

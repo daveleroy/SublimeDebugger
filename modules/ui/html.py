@@ -135,7 +135,7 @@ class div (element):
 		w = (self.width(layout) - self.padding_width) * layout.rem_width_scale()
 
 		if self.children and self.children[0].is_inline:
-			html = f'<div class="{div_inline_css.class_name} {self.className}" style="height:{h}rem;width:{w}rem;line-height:{h}rem"><img style="height:1.6rem;">{inner}</div>'
+			html = f'<div class="{div_inline_css.class_name} {self.className}" style="height:{h}rem;width:{w}rem;line-height:{h}rem"><img>{inner}</div>'
 		else:
 			html = f'<div class="{self.className}" style="height:{h}rem;width:{w}rem;">{inner}</div>'
 		return html

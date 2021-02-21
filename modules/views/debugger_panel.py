@@ -17,7 +17,6 @@ class DebuggerPanel(ui.div):
 		self.debugger.sessions.updated.add(lambda session, state: self.dirty())
 		self.debugger.sessions.on_selected.add(self.on_selected_session)
 		self.debugger.sessions.on_added_session.add(self.on_selected_session)
-
 		self.last_active_adapter = None
 
 	def on_selected_session(self, session: dap.Session):

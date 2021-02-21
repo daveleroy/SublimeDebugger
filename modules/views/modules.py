@@ -68,7 +68,7 @@ class ModulesView(ui.div):
 							ui.div(height=3)[
 								ui.align()[
 									ui.click(copy)[
-										ui.text(label, css=css.label_secondary_padding),
+										ui.text(label, css=css.label_secondary),
 										ui.spacer(1),
 										ui.text(value_str, css=css.label),
 									]

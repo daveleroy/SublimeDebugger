@@ -13,13 +13,7 @@ button_secondary = ui.css(padding_left=1, padding_right=1, padding_top=-0.4, pad
 ''')
 
 label = ui.css(color='var(--primary)')
-label_padding = ui.css(color='var(--primary)')
-
 label_secondary = ui.css(color='var(--secondary)')
-label_secondary_padding = ui.css(color='var(--secondary)')
-
-label_secondary_light = ui.css(color='color(var(--secondary) alpha(0.25)')
-
 
 label_redish = ui.css(color='var(--redish)')
 label_redish_secondary = ui.css(color='color(var(--redish) alpha(0.7)')
@@ -46,7 +40,6 @@ tab_panel_selected = ui.css(
 	'''
 )
 
-icon_sized_spacer = ui.css(padding_left=3)
 table_inset = ui.css(padding_left=3)
 
 selected = ui.css(background_color='color(var(--accent) alpha(0.2))', raw='border-radius:0.33rem;')

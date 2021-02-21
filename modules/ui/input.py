@@ -40,10 +40,8 @@ class CommandPaletteInputCommand:
 		CommandPaletteInputCommand.running_command = self
 
 	async def wait(self):
-		try:
-			await self.future
-		except core.CancelledError:
-			self.hide_overlay()
+		await self.future
+
 
 	def hide_overlay(self):
 		self.window.run_command("hide_overlay", {
@@ -96,8 +94,8 @@ class InputList(sublime_plugin.ListInputHandler):
 		self._placeholder = placeholder
 		self.index = index
 
-		self._on_cancel_internal = None
-		self._on_run_internal = None
+		self._on_cancel_internal: Optional[Callable] = None
+		self._on_run_internal: Optional[Callable] = None
 
 		self.arg_name = "list_{}".format(InputList.id)
 		InputList.id += 1
@@ -160,13 +158,13 @@ class InputText(sublime_plugin.TextInputHandler):
 
 		self._next_input = None
 
-		self._on_cancel_internal = None
-		self._on_run_internal = None
+		self._on_cancel_internal: Optional[Callable] = None
+		self._on_run_internal: Optional[Callable] = None
 
 		self._enable = enable_when_active
 		self.arg_name = "text_{}".format(InputText.id)
 		InputText.id += 1
-	
+
 	@core.schedule
 	async def run(self):
 		await CommandPaletteInputCommand(sublime.active_window(), self).wait()
@@ -204,9 +202,9 @@ class InputText(sublime_plugin.TextInputHandler):
 
 def InputListItemCheckedText(run: Callable[[str], None], name: str, description: str, value: Optional[str]):
 	if value:
-		input_name = "● {}: {}".format(name, value)
+		input_name = "●   {}: {}".format(name, value)
 	else:
-		input_name = "○ {}: {}".format(name, description)
+		input_name = "○   {}: {}".format(name, description)
 
 	return InputListItem(
 		InputText(

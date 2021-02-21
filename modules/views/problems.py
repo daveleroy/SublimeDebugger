@@ -74,7 +74,8 @@ class ProblemsView (ui.div):
 			])
 
 			for problem in problems:
-				item = ui.div(height=css.row_height, css=css.icon_sized_spacer)[
+				item = ui.div(height=css.row_height)[
+					ui.spacer(3),
 					ui.click(lambda source=problem.source: self.on_clicked_source(source))[
 						ui.align()[
 							ui.span(css=css.button)[

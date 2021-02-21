@@ -167,6 +167,7 @@ class VariableComponent (ui.div):
 			return [
 				ui.div(height=css.row_height)[
 					ui.align()[
+						ui.spacer(3),
 						value_item,
 						self.item_right,
 					],
