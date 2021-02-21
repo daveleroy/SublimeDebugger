@@ -1,0 +1,18 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+		}
+	],
+	"debugger_configurations":
+	[
+		{
+			"name": "Mock Debug",
+			"type": "mock",
+			"request": "launch",
+			"program": "${project_path}/readme.md",
+			"stopOnEntry": true
+		},
+	],
+}

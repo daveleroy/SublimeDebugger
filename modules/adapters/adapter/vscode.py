@@ -80,7 +80,7 @@ def configuration_snippets(type: str, vscode_type: Optional[str] = None) -> Opti
 
 	return None
 
-async def install(type: str, url: str, log: core.Logger):
+async def install(type: str, url: str, log: core.Logger, post_download_action: Optional[Callable[[], Awaitable]] = None):
 	try:
 		del _info_for_type[type]
 	except KeyError:
@@ -133,6 +133,9 @@ async def install(type: str, url: str, log: core.Logger):
 
 	try:
 		await core.run_in_executor(blocking)
+		if post_download_action:
+			await post_download_action()
+
 	except Exception as error:
 		log.error(f'Failed to install adapter: {str(error)}')
 		return
@@ -144,19 +147,25 @@ async def install(type: str, url: str, log: core.Logger):
 
 	log.info('Successfully Installed Adapter!')
 
-	from .adapters import Adapters
-	Adapters.recalculate_schema()
+	from ...adapters_registry import AdaptersRegistry
+	AdaptersRegistry.recalculate_schema()
 
 # https://stackoverflow.com/questions/29967487/get-progress-back-from-shutil-file-copy-thread
 def copyfileobj(fsrc, fdst, log_info, total, length=128*1024):
 	copied = 0
+
 	while True:
 		buf = fsrc.read(length)
 		if not buf:
 			break
 		fdst.write(buf)
 		copied += len(buf)
-		log_info("{:.2f} mb {}%".format(copied/1024/1024, int(copied/total*100)))
+		
+		# handle the case where the total size isn't known
+		if total:
+			log_info("{:.2f} mb {}%".format(copied/1024/1024, int(copied/total*100)))
+		else:
+			log_info("{:.2f} mb {}%".format(copied/1024/1024))
 
 # Fix for long file paths on windows not being able to be extracted from a zip file
 # Fix for extracted files losing their permission flags
