@@ -40,6 +40,7 @@ class Settings:
 			'go_': 'go.',
 		}
 		settings = sublime.load_settings('debugger.sublime-settings')
+		settings.add_on_change('debugger_settings', Settings.updated)
 
 		for variable_name in vars(cls):
 			if variable_name.startswith('__'): continue
@@ -66,10 +67,8 @@ class Settings:
 			s = Set(key)
 			setattr(cls, variable_name, s)
 
-		print(Settings.lldb_show_disassembly)
-
-	@classmethod
-	def save(self):
+	@staticmethod
+	def save():
 		sublime.save_settings('debugger.sublime-settings')
 
 

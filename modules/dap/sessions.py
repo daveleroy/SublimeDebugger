@@ -45,12 +45,8 @@ class Sessions (SessionListener):
 				await session.stop()
 				return
 
-		session = Session(
-			breakpoints=breakpoints,
-			watch=self.watch,
-			listener=self,
-			transport_log=self.transport_log,
-		)
+		session = Session(breakpoints=breakpoints, watch=self.watch, listener=self, transport_log=self.transport_log)
+
 		@core.schedule
 		async def run():
 			self.add_session(session)
@@ -61,8 +57,6 @@ class Sessions (SessionListener):
 			session.dispose()
 			self.remove_session(session)
 		run()
-
-
 
 	async def on_session_task_request(self, session: Session, task: TaskExpanded):
 		await self.provider.sessions_run_task(session, task)

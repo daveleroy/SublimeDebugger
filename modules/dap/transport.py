@@ -26,19 +26,17 @@ class Transport(Protocol):
 	def dispose(self) ->None:
 		...
 
-class ClientEventsListener (Protocol):
-	# reverse requests
+class TransportProtocolListener (Protocol):
 	def on_event(self, name: str, data: dict):
 		...
-
 	async def on_reverse_request(self, name: str, data: dict) -> dict:
 		...
 
-class Client:
+class TransportProtocol:
 	def __init__(
 		self,
 		transport: Transport,
-		events: ClientEventsListener,
+		events: TransportProtocolListener,
 		transport_log: core.Logger,
 	) -> None:
 

@@ -40,7 +40,7 @@ class AdaptersRegistry:
 					installed_version != None
 				)
 			)
-		return ui.InputList(items, "Install Debug Adapters")
+		return ui.InputList(items, 'Install Debug Adapters')
 
 	@staticmethod
 	async def _insert_snippet(window: sublime.Window, snippet: dict):
@@ -87,12 +87,12 @@ class AdaptersRegistry:
 				snippet_input_items.append(ui.InputListItem(insert, snippet.get('label', 'label')))
 
 			if not snippet_input_items:
-				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, "launch"), 'Launch'))
-				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, "attach"), 'Attach'))
+				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, 'launch'), 'Launch'))
+				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, 'attach'), 'Attach'))
 
-			values.append(ui.InputListItem(ui.InputList(snippet_input_items, "choose a snippet to insert"), adapter.type))
+			values.append(ui.InputListItem(ui.InputList(snippet_input_items, 'choose a snippet to insert'), adapter.type))
 
-		return ui.InputList(values, placeholder="choose a configuration type")
+		return ui.InputList(values, placeholder='choose a configuration type')
 
 	@staticmethod
 	def recalculate_schema():

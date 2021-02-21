@@ -9,8 +9,8 @@ import threading
 
 class Process:
 	@staticmethod
-	async def check_output(command: List[str]) -> bytes:
-		return await core.run_in_executor(lambda: subprocess.check_output(command))
+	async def check_output(command: List[str], cwd: Optional[str] = None) -> bytes:
+		return await core.run_in_executor(lambda: subprocess.check_output(command, cwd=cwd))
 
 	def __init__(self, command: List[str], cwd: Optional[str]):
 		# taken from Default/exec.py

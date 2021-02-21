@@ -24,7 +24,7 @@ from .configuration import (
 )
 
 from .types import array_from_json, json_from_array
-from .client import ClientEventsListener, Client
+from .transport import TransportProtocol, TransportProtocolListener
 
 class SessionListener (Protocol):
 	async def on_session_task_request(self, session: Session, task: TaskExpanded): ...
@@ -39,7 +39,8 @@ class SessionListener (Protocol):
 	def on_session_updated_variables(self, session: Session): ...
 	def on_session_updated_threads(self, session: Session): ...
 
-class Session(ClientEventsListener, core.Logger):
+
+class Session(TransportProtocolListener, core.Logger):
 	stopped = 0
 	paused = 1
 	running = 2
@@ -55,14 +56,7 @@ class Session(ClientEventsListener, core.Logger):
 	stopped_reason_manual=5
 
 
-	def __init__(
-		self,
-		breakpoints: Breakpoints,
-		watch: Watch,
-		listener: SessionListener,
-		transport_log: core.Logger,
-	) -> None:
-
+	def __init__(self, breakpoints: Breakpoints, watch: Watch, listener: SessionListener, transport_log: core.Logger) -> None:
 		self.listener = listener
 
 		self.transport_log = transport_log
@@ -78,7 +72,7 @@ class Session(ClientEventsListener, core.Logger):
 		self.watch = watch
 		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, self.selected_frame, expr))
 
-		self.adapter = None #type: Optional[Client]
+		self._transport: Optional[TransportProtocol] = None
 		self.adapter_configuration = None
 
 		self.launching_async = None #type: Optional[core.future]
@@ -86,7 +80,7 @@ class Session(ClientEventsListener, core.Logger):
 		self.stop_requested = False
 		self.launch_request = True
 		self._state = Session.starting
-		self._status = None
+		self._status = 'Starting'
 
 		self.disposeables = [] #type: List[Any]
 
@@ -138,7 +132,7 @@ class Session(ClientEventsListener, core.Logger):
 		except core.Error as e:
 			self.launching_async = None
 			core.log_exception(e)
-			self.error("... an error occured, " + str(e))
+			self.error('... an error occured, ' + str(e))
 			await self.stop_forced(reason=Session.stopped_reason_launch_error)
 		except core.CancelledError:
 			...
@@ -146,7 +140,7 @@ class Session(ClientEventsListener, core.Logger):
 		self.launching_async = None
 
 	async def _launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any], no_debug: bool) -> None:
-		assert self.state == Session.stopped, "debugger not in stopped state?"
+		assert self.state == Session.stopped, 'debugger not in stopped state?'
 		self.state = Session.starting
 		self.adapter_configuration = adapter_configuration
 		self.configuration = configuration
@@ -161,31 +155,30 @@ class Session(ClientEventsListener, core.Logger):
 			await self.stop_forced(reason=Session.stopped_reason_build_failed)
 			return
 
-		self._change_status("Starting")
+		self._change_status('Starting')
 		try:
 			transport = await adapter_configuration.start(log=self, configuration=self.configuration)
 		except Exception as e:
-			raise core.Error(f"Unable to start the adapter process: {e}")
+			raise core.Error(f'Unable to start the adapter process: {e}')
 
-		adapter = Client(
+		self._transport = TransportProtocol(
 			transport,
 			self,
 			self.transport_log
 		)
-		self.adapter = adapter
 
 		self.capabilities = dap.Capabilities.from_json(
-			await self.request("initialize", {
-				"clientID": "sublime",
-				"clientName": "Sublime Text",
-				"adapterID": configuration.type,
-				"pathFormat": "path",
-				"linesStartAt1": True,
-				"columnsStartAt1": True,
-				"supportsVariableType": True,
-				"supportsVariablePaging": False,
-				"supportsRunInTerminalRequest": True,
-				"locale": "en-us"
+			await self.request('initialize', {
+				'clientID': 'sublime',
+				'clientName': 'Sublime Text',
+				'adapterID': configuration.type,
+				'pathFormat': 'path',
+				'linesStartAt1': True,
+				'columnsStartAt1': True,
+				'supportsVariableType': True,
+				'supportsVariablePaging': False,
+				'supportsRunInTerminalRequest': True,
+				'locale': 'en-us'
 			})
 		)
 
@@ -193,9 +186,9 @@ class Session(ClientEventsListener, core.Logger):
 		self.breakpoints.filters.update(self.capabilities.exceptionBreakpointFilters or [])
 
 		if restart:
-			configuration["__restart"] = restart
+			configuration['__restart'] = restart
 		if no_debug:
-			configuration["noDebug"] = True
+			configuration['noDebug'] = True
 
 		if configuration.request == 'launch':
 			self.launch_request = True
@@ -213,14 +206,14 @@ class Session(ClientEventsListener, core.Logger):
 		self.refresh_threads()
 
 		# At this point we are running?
-		self._change_status("Running")
+		self._change_status('Running')
 		self.state = Session.running
 
 	async def request(self, command: str, arguments: Any) -> Any:
-		if not self.adapter:
+		if not self._transport:
 			raise core.Error('debugger not running')
 
-		return await self.adapter.send_request_asyc(command, arguments)
+		return await self._transport.send_request_asyc(command, arguments)
 
 	async def wait(self) -> None:
 		await self.complete
@@ -228,16 +221,16 @@ class Session(ClientEventsListener, core.Logger):
 	async def run_pre_debug_task(self) -> bool:
 		pre_debug_command = self.configuration.pre_debug_task
 		if pre_debug_command:
-			self._change_status("Running pre debug command")
-			r = await self.run_task("Pre debug command", pre_debug_command)
+			self._change_status('Running pre debug command')
+			r = await self.run_task('Pre debug command', pre_debug_command)
 			return r
 		return True
 
 	async def run_post_debug_task(self) -> bool:
 		post_debug_command = self.configuration.post_debug_task
 		if post_debug_command:
-			self._change_status("Running post debug command")
-			r = await self.run_task("Post debug command", post_debug_command)
+			self._change_status('Running post debug command')
+			r = await self.run_task('Post debug command', post_debug_command)
 			return r
 		return True
 
@@ -259,17 +252,17 @@ class Session(ClientEventsListener, core.Logger):
 		try:
 			thread = self.command_thread
 			if thread.stopped:
-				self._change_status("Paused")
+				self._change_status('Paused')
 				self.state = Session.paused
 			else:
-				self._change_status("Running")
+				self._change_status('Running')
 				self.state = Session.running
 
 		except core.Error as e:
 			self.state = Session.running
 
 	async def add_breakpoints(self) -> None:
-		assert self.adapter
+		assert self._transport
 
 		requests = [] #type: List[Awaitable[Any]]
 
@@ -286,7 +279,7 @@ class Session(ClientEventsListener, core.Logger):
 			await core.wait(requests)
 
 	async def set_exception_breakpoint_filters(self) -> None:
-		if not self.adapter:
+		if not self._transport:
 			return
 		filters: List[str] = []
 		for f in self.breakpoints.filters:
@@ -298,20 +291,20 @@ class Session(ClientEventsListener, core.Logger):
 		})
 
 	async def set_function_breakpoints(self) -> None:
-		if not self.adapter:
+		if not self._transport:
 			return
 		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.function))
 
 		if not self.capabilities.supportsFunctionBreakpoints:
 			# only show error message if the user tried to set a function breakpoint when they are not supported
 			if breakpoints:
-				self.error("This debugger doesn't support function breakpoints")
+				self.error('This debugger does not support function breakpoints')
 			return
 
 		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
 
 		response = await self.request('setFunctionBreakpoints', {
-			"breakpoints": json_from_array(dap.FunctionBreakpoint.into_json, dap_breakpoints)
+			'breakpoints': json_from_array(dap.FunctionBreakpoint.into_json, dap_breakpoints)
 		})
 		results = array_from_json(dap.BreakpointResult.from_json, response['breakpoints'])
 
@@ -319,20 +312,20 @@ class Session(ClientEventsListener, core.Logger):
 			self.breakpoints.function.set_result(b, result)
 
 	async def set_data_breakpoints(self) -> None:
-		if not self.adapter:
+		if not self._transport:
 			return
 		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.data))
 		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
 
 		response = await self.request('setDataBreakpoints', {
-			"breakpoints": json_from_array(dap.DataBreakpoint.into_json, dap_breakpoints)
+			'breakpoints': json_from_array(dap.DataBreakpoint.into_json, dap_breakpoints)
 		})
 		results = array_from_json(dap.BreakpointResult.from_json, response['breakpoints'])
 		for result, b in zip(results, breakpoints):
 			self.breakpoints.data.set_result(b, result)
 
 	async def set_breakpoints_for_file(self, file: str, breakpoints: List[SourceBreakpoint]) -> None:
-		if not self.adapter:
+		if not self._transport:
 			return
 
 		enabled_breakpoints = list(filter(lambda b: b.enabled, breakpoints))
@@ -340,10 +333,10 @@ class Session(ClientEventsListener, core.Logger):
 
 		try:
 			response = await self.request('setBreakpoints', {
-				"source": {
-					"path": file
+				'source': {
+					'path': file
 				},
-				"breakpoints": json_from_array(dap.SourceBreakpoint.into_json, dap_breakpoints)
+				'breakpoints': json_from_array(dap.SourceBreakpoint.into_json, dap_breakpoints)
 			})
 			results = array_from_json(dap.BreakpointResult.from_json, response['breakpoints'])
 
@@ -377,7 +370,7 @@ class Session(ClientEventsListener, core.Logger):
 		# https://microsoft.github.io/debug-adapter-protocol/overview
 
 		# haven't started session yet
-		if self.adapter is None:
+		if self._transport is None:
 			await self.stop_forced(reason=Session.stopped_reason_manual)
 			return
 
@@ -387,14 +380,14 @@ class Session(ClientEventsListener, core.Logger):
 			return
 
 
-		self._change_status("Stop requested")
+		self._change_status('Stop requested')
 		self.stop_requested = True
 
 		# first try to terminate if we can
 		if self.launch_request and self.capabilities and self.capabilities.supportsTerminateRequest:
 			try:
 				await self.request('terminate', {
-					"restart": False
+					'restart': False
 				})
 				return
 			except dap.Error as e:
@@ -404,7 +397,7 @@ class Session(ClientEventsListener, core.Logger):
 		# we couldn't terminate either not a launch request or the terminate request failed
 		# so we foreceully disconnect
 		await self.request('disconnect', {
-			"restart": False
+			'restart': False
 		})
 
 
@@ -419,10 +412,10 @@ class Session(ClientEventsListener, core.Logger):
 
 		self.stop_requested = False
 
-		if self.adapter:
+		if self._transport:
 			self.adapter_configuration.did_stop_debugging(self)
-			self.adapter.dispose()
-			self.adapter = None
+			self._transport.dispose()
+			self._transport = None
 
 
 	async def stop_forced(self, reason) -> None:
@@ -434,9 +427,9 @@ class Session(ClientEventsListener, core.Logger):
 		self.stop_debug_adapter_session()
 
 		await self.run_post_debug_task()
-		self._change_status("Debug session has ended")
+		self._change_status('Debug session has ended')
 
-		self.info("Debug session has ended")
+		self.info('Debug session has ended')
 
 		self.state = Session.stopped
 
@@ -448,12 +441,6 @@ class Session(ClientEventsListener, core.Logger):
 		self.stop_debug_adapter_session()
 		for disposeable in self.disposeables:
 			disposeable.dispose()
-
-	@property
-	def client(self) -> Client:
-		if not self.adapter:
-			raise core.Error('debugger not running')
-		return self.adapter
 
 	async def resume(self):
 		body = await self.request('continue', {
@@ -500,34 +487,34 @@ class Session(ClientEventsListener, core.Logger):
 
 		result = await self.evaluate_expression(expression, 'repl')
 		if not result:
-			raise dap.Error(True, "expression did not return a result")
+			raise dap.Error(True, 'expression did not return a result')
 			return
 
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
-		event = dap.OutputEvent("console", result.result, result.variablesReference)
+		event = dap.OutputEvent('console', result.result, result.variablesReference)
 		self.listener.on_session_output_event(self, event)
 
 	async def evaluate_expression(self, expression: str, context: Optional[str]) -> dap.EvaluateResponse:
-		frameId = None #type: Optional[int]
+		frameId: Optional[int] = None
 		if self.selected_frame:
 			frameId = self.selected_frame.id
 
-		response = await self.request("evaluate", {
-			"expression": expression,
-			"context": context,
-			"frameId": frameId,
+		response = await self.request('evaluate', {
+			'expression': expression,
+			'context': context,
+			'frameId': frameId,
 		})
 
 		# the spec doesn't say this is optional? But it seems that some implementations throw errors instead of marking things as not verified?
 		if response['result'] is None:
-			raise dap.Error(True, "expression did not return a result")
+			raise dap.Error(True, 'expression did not return a result')
 
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
-		return dap.EvaluateResponse(response["result"], response.get("variablesReference", 0))
+		return dap.EvaluateResponse(response['result'], response.get('variablesReference', 0))
 
 	async def stack_trace(self, thread_id: str) -> List[dap.StackFrame]:
 		body = await self.request('stackTrace', {
-			"threadId": thread_id,
+			'threadId': thread_id,
 		})
 		return dap.array_from_json(dap.StackFrame.from_json, body['stackFrames'])
 
@@ -536,18 +523,18 @@ class Session(ClientEventsListener, core.Logger):
 		if self.selected_frame:
 			frameId = self.selected_frame.id
 
-		response = await self.request("completions", {
-			"frameId": frameId,
-			"text": text,
-			"column": column,
+		response = await self.request('completions', {
+			'frameId': frameId,
+			'text': text,
+			'column': column,
 		})
 		return array_from_json(dap.CompletionItem.from_json, response['targets'])
 
 	async def set_variable(self, variable: dap.Variable, value: str) -> dap.Variable:
-		response = await self.request("setVariable", {
-			"variablesReference": variable.containerVariablesReference,
-			"name": variable.name,
-			"value": value,
+		response = await self.request('setVariable', {
+			'variablesReference': variable.containerVariablesReference,
+			'name': variable.name,
+			'value': value,
 		})
 
 		variable.value = response['value']
@@ -556,25 +543,25 @@ class Session(ClientEventsListener, core.Logger):
 
 	async def data_breakpoint_info(self, variable: dap.Variable) -> dap.DataBreakpointInfoResponse:
 		response = await self.request('dataBreakpointInfo', {
-			"variablesReference": variable.containerVariablesReference,
-			"name": variable.name,
+			'variablesReference': variable.containerVariablesReference,
+			'name': variable.name,
 		})
 		return dap.DataBreakpointInfoResponse.from_json(response)
 
 	def log_output(self, string: str) -> None:
-		output = dap.OutputEvent("debugger.output", string + '\n', 0)
+		output = dap.OutputEvent('debugger.output', string + '\n', 0)
 		self.listener.on_session_output_event(self, output)
 
 	def log(self, type: str, value: str) -> None:
-		if type == "process":
+		if type == 'process':
 			self.transport_log.info(f'⟹ process/stderr :: {value.strip()}')
 			return
-		if type == "error":
-			output = dap.OutputEvent("debugger.error", value + '\n', 0)
+		if type == 'error':
+			output = dap.OutputEvent('debugger.error', value + '\n', 0)
 			self.listener.on_session_output_event(self, output)
 			return
 
-		output = dap.OutputEvent("debugger.info", value + '\n', 0)
+		output = dap.OutputEvent('debugger.info', value + '\n', 0)
 		self.listener.on_session_output_event(self, output)
 
 	def load_frame(self, frame: Optional[dap.StackFrame]):
@@ -588,7 +575,7 @@ class Session(ClientEventsListener, core.Logger):
 
 	async def refresh_scopes(self, frame: dap.StackFrame):
 		body = await self.request('scopes', {
-			"frameId": frame.id
+			'frameId': frame.id
 		})
 		scopes = dap.array_from_json(dap.Scope.from_json, body['scopes'])
 		self.variables = [Variable(self, ScopeReference(scope)) for scope in scopes]
@@ -606,7 +593,7 @@ class Session(ClientEventsListener, core.Logger):
 
 	async def get_variables(self, variablesReference: int, without_names = False) -> List[Variable]:
 		response = await self.request('variables', {
-			"variablesReference": variablesReference
+			'variablesReference': variablesReference
 		})
 		def from_json(v):
 			return dap.Variable.from_json(variablesReference, v)
@@ -616,7 +603,7 @@ class Session(ClientEventsListener, core.Logger):
 		# vscode seems to remove the names from variables in output events
 		if without_names:
 			for v in variables:
-				v.name = ""
+				v.name = ''
 
 		return [Variable(self, v) for v in variables]
 
@@ -656,20 +643,19 @@ class Session(ClientEventsListener, core.Logger):
 	# this is a bit of a weird case. Initialized will happen at some point in time
 	# it depends on when the debug adapter chooses it is ready for configuration information
 	# when it does happen we can then add all the breakpoints and complete the configuration
-	# NOTE: some adapters appear to the initialized event multiple times
+	# NOTE: some adapters appear to send the initialized event multiple times
 	@core.schedule
 	async def on_initialized_event(self):
 		try:
 			await self.add_breakpoints()
 		except core.Error as e:
-			self.error("there was an error adding breakpoints {}".format(e))
-
-		try:
-			if self.capabilities.supportsConfigurationDoneRequest:
+			self.error('there was an error adding breakpoints {}'.format(e))
+		
+		if self.capabilities.supportsConfigurationDoneRequest:
+			try:
 				await self.request('configurationDone', None)
-
-		except core.Error as e:
-			self.error("there was an error in configuration done {}".format(e))
+			except core.Error as e:
+				self.error('there was an error in configuration done {}'.format(e))
 
 	def on_output_event(self, event: dap.OutputEvent):
 		self.listener.on_session_output_event(self, event)
@@ -708,14 +694,14 @@ class Session(ClientEventsListener, core.Logger):
 		if self.threads:
 			return self.threads[0]
 
-		raise core.Error("No threads to run command")
+		raise core.Error('No threads to run command')
 
 	def get_thread(self, id: int):
 		t = self.threads_for_id.get(id)
 		if t:
 			return t
 		else:
-			t = Thread(self, id, "??", self.all_threads_stopped)
+			t = Thread(self, id, '??', self.all_threads_stopped)
 			self.threads_for_id[id] = t
 			return t
 
@@ -792,12 +778,12 @@ class Session(ClientEventsListener, core.Logger):
 			self.all_threads_stopped = False
 			for thread in self.threads:
 				thread.stopped = False
-				thread.stopped_reason = ""
+				thread.stopped_reason = ''
 
 		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
 		thread = self.get_thread(continued.threadId)
 		thread.stopped = False
-		thread.stopped_reason = ""
+		thread.stopped_reason = ''
 
 		if continued.allThreadsContinued or thread is self.selected_thread:
 			self.selected_explicitly = False
@@ -829,7 +815,7 @@ class Session(ClientEventsListener, core.Logger):
 		elif event == 'loadedSource':
 			self.on_loaded_source_event(dap.LoadedSourceEvent(data))
 		else:
-			raise dap.Error(True, "event ignored not implemented")
+			raise dap.Error(True, 'event ignored not implemented')
 
 
 class Thread:
@@ -838,7 +824,7 @@ class Thread:
 		self.id = id
 		self.name = name
 		self.stopped = stopped
-		self.stopped_reason = ""
+		self.stopped_reason = ''
 		self._children = None #type: Optional[core.future]
 
 	def has_children(self) -> bool:

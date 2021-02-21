@@ -44,6 +44,6 @@ from .configuration import (
 	Task,
 	TaskExpanded,
 )
-from .client import (
+from .transport import (
 	Transport,
 )
