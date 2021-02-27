@@ -56,8 +56,13 @@ class Session(TransportProtocolListener, core.Logger):
 	stopped_reason_manual=5
 
 
-	def __init__(self, breakpoints: Breakpoints, watch: Watch, listener: SessionListener, transport_log: core.Logger) -> None:
+	def __init__(self, breakpoints: Breakpoints, watch: Watch, listener: SessionListener, transport_log: core.Logger, parent: Optional[Session] = None) -> None:
 		self.listener = listener
+		self.children: List[Session] = []
+		self.parent = parent
+		
+		if parent:
+			parent.children.append(self)
 
 		self.transport_log = transport_log
 		self.state_changed = core.Event() #type: core.Event[int]
@@ -447,6 +452,14 @@ class Session(TransportProtocolListener, core.Logger):
 		self.stop_debug_adapter_session()
 		for disposeable in self.disposeables:
 			disposeable.dispose()
+
+		# clean up hierarchy if needed
+		for child in self.children:
+			child.parent = None
+
+		if self.parent:
+			self.parent.children.remove(self)
+			self.parent = None
 
 	async def resume(self):
 		body = await self.request('continue', {

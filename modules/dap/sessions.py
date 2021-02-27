@@ -39,13 +39,13 @@ class Sessions (SessionListener):
 	def __iter__(self):
 		return iter(self.sessions)
 
-	async def launch(self, breakpoints: Breakpoints, adapter: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False):
+	async def launch(self, breakpoints: Breakpoints, adapter: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False, parent: Optional[Session] = None) -> Session:
 		for session in self.sessions:
 			if configuration.id_ish == session.configuration.id_ish:
 				await session.stop()
-				return
+				# return
 
-		session = Session(breakpoints=breakpoints, watch=self.watch, listener=self, transport_log=self.transport_log)
+		session = Session(breakpoints=breakpoints, watch=self.watch, listener=self, transport_log=self.transport_log, parent=parent)
 
 		@core.schedule
 		async def run():

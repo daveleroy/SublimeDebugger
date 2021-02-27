@@ -10,20 +10,19 @@ class CallStackState:
 	def __init__(self):
 		self._expanded = {}
 
-	def is_expanded(self, item: Any):
-		return self._expanded.get(id(item)) is not None
+	def is_expanded(self, item: Any, default = False):
+		expanded = self._expanded.get(id(item))
+		
+		if expanded is None:
+			return default
+		
+		return expanded
 
 	def set_expanded(self, item: Any, value: bool):
-		if value:
-			self._expanded[id(item)] = True
-		else:
-			del self._expanded[id(item)]
+		self._expanded[id(item)] = value
 
-	def toggle_expanded(self, item: Any):
-		if self.is_expanded(item):
-			del self._expanded[id(item)]
-		else:
-			self._expanded[id(item)] = True
+	def toggle_expanded(self, item: Any, default = False):
+		self._expanded[id(item)] = not self.is_expanded(item, default)
 
 class CallStackView (ui.div):
 	def __init__(self, sessions: dap.Sessions):
@@ -59,29 +58,86 @@ class CallStackView (ui.div):
 			]
 
 		for session in self.sessions:
-			threads = session.threads
-			show_thread_name = len(threads) > 1
+			if session.parent: continue
 
-			if show_session_name:
-				if session == self.sessions.active:
-					session_css_label = css.label
-				else:
-					session_css_label = css.label_secondary
 
-				thread_views.append(ui.div(height=css.row_height)[
-					ui.click(lambda session=session: self.selected_session(session)) [
-						ui.text(session.name, css=session_css_label)
-					]
-				])
+			# for thread in threads:
+			# 	is_selected = session == self.sessions.selected_session and session.selected_thread == thread
+			# 	if is_selected:
+			# 		self.state.set_expanded(thread, True)
 
-			for thread in threads:
-				is_selected = session == self.sessions.selected_session and session.selected_thread == thread
-				if is_selected:
-					self.state.set_expanded(thread, True)
-
-				thread_views.append(ThreadView(session, thread, is_selected, self.state, show_thread_name))
+			thread_views.append(SessionView(self.sessions, session, self.state))
 
 		return thread_views
+
+def toggle(toggle_expand, item: ui.span, is_expanded) -> ui.div:
+	return ui.div(height=css.row_height)[
+		ui.align()[
+			ui.click(toggle_expand)[
+				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close)
+			],
+			item,
+			# self.item_right,
+		]
+	]
+
+class SessionView (ui.div):
+	def __init__(self, sessions: dap.Sessions, session: dap.Session, state: CallStackState):
+		super().__init__()
+		self.sessions = sessions
+		self.session = session
+		self.state = state
+		self.is_selected = session == sessions.selected_session
+		self.show_session_name = True
+
+	def selected_session(self):
+		self.sessions.active = self.session
+
+	def render(self) -> ui.div.Children:
+		session = self.session
+		threads = session.threads
+		expanded = self.state.is_expanded(session, default=True)
+		thread_views = []
+		label_view: Optional[ui.div] = None
+
+		show_thread_name = len(threads) > 1
+
+		if True:
+			if session == self.sessions.active:
+				session_css_label = css.label
+			else:
+				session_css_label = css.label_secondary
+
+			session_label = ui.click(lambda session=session: self.selected_session()) [
+				ui.text(session.name, css=session_css_label)
+			]
+
+			def on_toggle(session):
+				self.state.toggle_expanded(session, default=True)
+				self.dirty()
+
+			label_view = toggle(lambda session=session: on_toggle(session), session_label, expanded)
+
+
+		if not expanded:
+			return label_view
+			
+		for session in self.session.children:
+			thread_views.append(SessionView(self.sessions, session, self.state))
+
+		for thread in threads:
+			is_selected = self.is_selected and session.selected_thread == thread
+			if is_selected:
+				self.state.set_expanded(thread, True)
+
+			thread_views.append(ThreadView(session, thread, is_selected, self.state, show_thread_name))
+
+		return [
+			label_view,
+			ui.div(css=css.table_inset)[
+				thread_views
+			]
+		]
 
 class ThreadView (ui.div):
 	def __init__(self, session: dap.Session, thread: dap.Thread, is_selected: bool, state: CallStackState, show_thread_name: bool):
