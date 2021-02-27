@@ -65,7 +65,21 @@ class VariableComponent (ui.div):
 		def on_edit_variable(value: str):
 			core.run(on_edit_variable_async(value))
 
-		def copy_value():
+		@core.schedule
+		async def copy_value():
+			session = self.variable.session
+			if variable.evaluateName:
+				try:
+					# Attempt to match vscode behavior 
+					# If the adapter supports clipboard use it otherwise send the none standard 'variables' context
+					context = 'clipboard' if session.capabilities.supportsClipboardContext else 'variables'
+					v = await self.variable.session.evaluate_expression(variable.evaluateName, context)
+					sublime.set_clipboard(v.result)
+					return
+
+				except dap.Error as e:
+					core.log_exception()
+
 			sublime.set_clipboard(value)
 
 		def copy_expr():
@@ -140,13 +154,10 @@ class VariableComponent (ui.div):
 		self.dirty()
 
 	def render(self) -> ui.div.Children:
-		v = self.variable
-
-		name =  v.name
-		value = v.value
-
-		if self.source:
-			source = self.source.name
+		name =  self.variable.name
+		value = self.variable.value
+		is_expanded = self.state.is_expanded(self.variable)
+		source = self.source.name if self.source else None
 
 		if name:
 			value_item = ui.click(self.edit_variable)[
@@ -158,11 +169,13 @@ class VariableComponent (ui.div):
 			value_item = ui.click(self.edit_variable)[
 				ui.code(value),
 			]
+
 		if self.source:
 			self.item_right = ui.click(lambda: self.on_clicked_source(self.source))[
 				ui.spacer(min=1),
 				ui.text(source, css=css.label_secondary)
 			]
+
 		if not self.variable.has_children:
 			return [
 				ui.div(height=css.row_height)[
@@ -174,7 +187,6 @@ class VariableComponent (ui.div):
 				],
 			]
 
-		is_expanded = self.state.is_expanded(self.variable)
 
 		variable_label = ui.div(height=css.row_height)[
 			ui.align()[

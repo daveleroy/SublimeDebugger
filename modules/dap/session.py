@@ -501,10 +501,10 @@ class Session(TransportProtocolListener, core.Logger):
 			'threadId': self.command_thread.id
 		})
 
-	async def evaluate(self, expression: str):
+	async def evaluate(self, expression: str, context: str = 'repl'):
 		self.info(expression)
 
-		result = await self.evaluate_expression(expression, 'repl')
+		result = await self.evaluate_expression(expression, context)
 		if not result:
 			raise dap.Error(True, 'expression did not return a result')
 			return
