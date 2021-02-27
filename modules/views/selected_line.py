@@ -25,7 +25,7 @@ class SelectedLineText(ui.div):
 
 	def render(self) -> ui.div.Children:
 		return [
-			ui.div(width=200, height=2.8)[
+			ui.div(height=2.8)[
 				ui.text(self.text, css=css.selected_text),
 			],
 		]
@@ -37,14 +37,17 @@ class SelectedLine:
 		pt_current_line = view.text_point(line - 1, 0)
 		pt_prev_line = view.text_point(line - 2, 0)
 		pt_next_line = view.text_point(line, 0)
+
 		line_prev = view.line(pt_current_line)
 		line_current = view.line(pt_prev_line)
 
-		self.top_line = ui.Phantom(UnderlineComponent(True), view, line_current, sublime.LAYOUT_BLOCK)
-		self.text = ui.Phantom(SelectedLineText(text), view, sublime.Region(pt_next_line - 1, pt_next_line - 1), sublime.LAYOUT_INLINE)
+		end_of_selected_line = view.line(pt_current_line).b
+
+		self.text = ui.Phantom(SelectedLineText(text), view, sublime.Region(end_of_selected_line, end_of_selected_line), sublime.LAYOUT_INLINE)
+		self.top_line = ui.Phantom(UnderlineComponent(True), view, sublime.Region(line_current.a, line_current.a), sublime.LAYOUT_BLOCK) if line != 1 else None
 		self.bottom_line = ui.Phantom(UnderlineComponent(False), view, line_prev, sublime.LAYOUT_BLOCK)
 
 	def dispose(self):
-		self.top_line.dispose()
+		if self.top_line: self.top_line.dispose()
 		self.text.dispose()
 		self.bottom_line.dispose()
