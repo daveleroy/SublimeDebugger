@@ -42,12 +42,11 @@ class TransportProtocol:
 
 		self.events = events
 		self.transport_log = transport_log
-		transport_log.clear()
 		self.transport = transport
 		self.pending_requests = {} #type: Dict[int, core.future]
 		self.seq = 0
 
-		self.transport_log.info(f'⟸ process/started')
+		self.transport_log.log('transport', f'⟸ process/started')
 		self.thread = threading.Thread(target=self.read)
 		self.thread.start()
 
@@ -95,8 +94,8 @@ class TransportProtocol:
 				core.call_soon_threadsafe(self.recieved_msg, json_message)
 
 		except Exception as e:
-			core.call_soon_threadsafe(self.transport_log.info, f'⟸ process/closed :: {e}')
-			core.call_soon_threadsafe(self.events.on_event, "terminated", {})
+			core.call_soon_threadsafe(self.transport_log.log,'transport',  f'⟸ process/closed :: {e}')
+			core.call_soon_threadsafe(self.events.on_event, 'terminated', {})
 
 	def send(self, message):
 		content = json.dumps(message)
@@ -112,10 +111,10 @@ class TransportProtocol:
 		future = core.create_future()
 		self.seq += 1
 		request = {
-			"seq": self.seq,
-			"type": "request",
-			"command": command,
-			"arguments": args
+			'seq': self.seq,
+			'type': 'request',
+			'command': command,
+			'arguments': args
 		}
 
 		self.pending_requests[self.seq] = future
@@ -134,12 +133,12 @@ class TransportProtocol:
 			success = True
 
 		data = {
-			"type": "response",
-			"seq": self.seq,
-			"request_seq": request['seq'],
-			"command": request['command'],
-			"success": success,
-			"message": error,
+			'type': 'response',
+			'seq': self.seq,
+			'request_seq': request['seq'],
+			'command': request['command'],
+			'success': success,
+			'message': error,
 		}
 
 		self.log_transport(True, data)
@@ -164,23 +163,23 @@ class TransportProtocol:
 			id = data.get('request_seq')
 			command = data.get('command')
 			body = data.get('body', data.get('message'))
-			self.transport_log.info(f'{sigil(data.get("success", False))} response/{command}({id}) :: {body}')
+			self.transport_log.log('transport', f'{sigil(data.get("success", False))} response/{command}({id}) :: {body}')
 			return
 
 		if type == 'request':
 			id = data.get('seq')
 			command = data.get('command')
 			body = data.get('arguments')
-			self.transport_log.info(f'{sigil(True)} request/{command}({id}) :: {body}')
+			self.transport_log.log('transport', f'{sigil(True)} request/{command}({id}) :: {body}')
 			return
 
 		if type == 'event':
 			command = data.get('event')
 			body = data.get('body')
-			self.transport_log.info(f'{sigil(True)} event/{command} :: {body}')
+			self.transport_log.log('transport', f'{sigil(True)} event/{command} :: {body}')
 			return
 
-		self.transport_log.info(f'{sigil(False)} {type}/unknown :: {data}')
+		self.transport_log.log('transport', f'{sigil(False)} {type}/unknown :: {data}')
 
 	@core.schedule
 	async def handle_reverse_request(self, request: dict):

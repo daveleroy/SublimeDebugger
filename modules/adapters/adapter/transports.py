@@ -61,7 +61,7 @@ class Process:
 
 class StdioTransport(Transport):
 	def __init__(self, log: core.Logger, command: List[str], cwd: Optional[str] = None):
-		log.info(f'process/starting :: {command}')
+		log.log('transport', f'⟸ process/starting :: {command}')
 		self.process = Process(command, cwd)
 
 		thread = threading.Thread(target=self._read, args=(self.process.stderr, log.info))

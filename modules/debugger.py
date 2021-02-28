@@ -36,7 +36,7 @@ from .views.terminal import TerminalView
 from .views.problems import ProblemsView
 
 
-class Debugger (dap.SessionsTasksProvider):
+class Debugger (dap.SessionsTasksProvider, core.Logger):
 
 	instances: Dict[int, 'Debugger'] = {}
 	creating: Dict[int, bool] = {}
@@ -131,7 +131,7 @@ class Debugger (dap.SessionsTasksProvider):
 		self.disposeables.append(self.breakpoints)
 
 		self.sessions = dap.Sessions(self)
-		self.sessions.transport_log = self.transport_log
+		self.sessions.transport_log = self
 		self.sessions.output.add(on_output)
 
 		self.disposeables.append(self.sessions)
@@ -297,7 +297,6 @@ class Debugger (dap.SessionsTasksProvider):
 	async def _on_play(self, no_debug=False) -> None:
 		self.show_console_panel()
 		self.terminal.clear()
-		self.terminal.log_info('Console cleared...')
 		try:
 			active_configurations = self.project.active_configurations()
 			if not active_configurations:
@@ -571,6 +570,12 @@ class Debugger (dap.SessionsTasksProvider):
 
 	def info(self, value: str):
 		self.terminal.log_info(value)
+
+	def log(self, type: str, value: str):
+		if type == 'transport':
+			self.transport_log.info(value)
+		else:
+			self.terminal.log_info(value)
 
 	def refresh_phantoms(self) -> None:
 		ui.reload()

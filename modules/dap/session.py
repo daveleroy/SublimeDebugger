@@ -162,7 +162,7 @@ class Session(TransportProtocolListener, core.Logger):
 
 		self._change_status('Starting')
 		try:
-			transport = await adapter_configuration.start(log=self, configuration=self.configuration)
+			transport = await adapter_configuration.start(log=self.transport_log, configuration=self.configuration)
 		except Exception as e:
 			raise core.Error(f'Unable to start the adapter process: {e}')
 
