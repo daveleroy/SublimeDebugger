@@ -145,12 +145,11 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.disposeables.append(self.terminal)
 
 		self.source_provider = SourceNavigationProvider(self.project, self.sessions)
-		self.disposeables.extend([self.view_hover_provider, self.source_provider, self.breakpoints_provider])
 
-		self.persistance = PersistedData(self.project.name)
+		self.persistance = PersistedData(self.project.project_name)
 		self.load_data()
 
-		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(self.project.name)))
+		self.terminal.log_info('Opened In Workspace: {}'.format(os.path.dirname(self.project.project_name)))
 
 		#left panels
 		self.breakpoints_panel = BreakpointsPanel(self.breakpoints, self.on_navigate_to_source)

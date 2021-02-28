@@ -22,7 +22,7 @@ class Project(core.disposables):
 
 			project_name = window.project_file_name()
 
-		self.name = project_name
+		self.project_name = project_name
 		self.window = window
 		self.on_updated: core.Event[None] = core.Event()
 
@@ -45,6 +45,13 @@ class Project(core.disposables):
 
 	def dispose(self):
 		super().dispose()
+
+	@property
+	def name(self) -> str:
+		if self.configuration_or_compound:
+			return self.configuration_or_compound.name
+
+		return self.project_name
 
 	def into_json(self) -> dict:
 		return {
@@ -108,7 +115,7 @@ class Project(core.disposables):
 
 	@core.schedule
 	async def open_project_configurations_file(self):
-		view = await core.sublime_open_file_async(self.window, self.name)
+		view = await core.sublime_open_file_async(self.window, self.project_name)
 
 		region = view.find(r'''"\s*debugger_configurations''', 0)
 		if region:
