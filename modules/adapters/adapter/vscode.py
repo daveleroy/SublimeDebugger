@@ -165,7 +165,7 @@ def copyfileobj(fsrc, fdst, log_info, total, length=128*1024):
 		if total:
 			log_info("{:.2f} mb {}%".format(copied/1024/1024, int(copied/total*100)))
 		else:
-			log_info("{:.2f} mb {}%".format(copied/1024/1024))
+			log_info("{:.2f} mb".format(copied/1024/1024))
 
 # Fix for long file paths on windows not being able to be extracted from a zip file
 # Fix for extracted files losing their permission flags
