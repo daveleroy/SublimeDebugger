@@ -405,6 +405,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		def run(value: str):
 			if value:
 				self.run_async(self.sessions.active.evaluate(value))
+				self.show_console_panel()
 				self.on_input_command()
 
 		input = ui.InputText(run, label, enable_when_active=Autocomplete.for_window(self.window))
