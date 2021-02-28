@@ -51,7 +51,7 @@ class AdapterConfiguration (Protocol):
 	def on_custom_event(self, session):
 		...
 
-	async def on_custom_request(self, session):
+	async def on_custom_request(self, session, request, arguments):
 		...
 
 	def commands(self):

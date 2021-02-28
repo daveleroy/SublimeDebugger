@@ -692,7 +692,7 @@ class Session(TransportProtocolListener, core.Logger):
 			response = await self.on_run_in_terminal(dap.RunInTerminalRequest.from_json(arguments))
 			return response.into_json()
 
-		response = await self.adapter_configuration.on_custom_request(request, arguments)
+		response = await self.adapter_configuration.on_custom_request(self, request, arguments)
 
 		if response is None:
 			raise core.Error(f'reverse request not implemented {request}')
