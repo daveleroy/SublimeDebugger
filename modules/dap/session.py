@@ -287,7 +287,7 @@ class Session(TransportProtocolListener, core.Logger):
 		if not self._transport:
 			return
 		filters: List[str] = []
-		filterOptions: List[str] = []
+		filterOptions: List[dict] = []
 
 		for f in self.breakpoints.filters:
 			if f.enabled:
@@ -298,7 +298,8 @@ class Session(TransportProtocolListener, core.Logger):
 				})
 
 		await self.request('setExceptionBreakpoints', {
-			'filters': filters
+			'filters': filters,
+			'filterOptions': filterOptions
 		})
 
 	async def set_function_breakpoints(self) -> None:
@@ -344,9 +345,7 @@ class Session(TransportProtocolListener, core.Logger):
 
 		try:
 			response = await self.request('setBreakpoints', {
-				'source': {
-					'path': file
-				},
+				'source': { 'path': file },
 				'breakpoints': json_from_array(dap.SourceBreakpoint.into_json, dap_breakpoints)
 			})
 			results = array_from_json(dap.BreakpointResult.from_json, response['breakpoints'])
