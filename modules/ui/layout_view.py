@@ -7,7 +7,6 @@ from . image import view_background_lightness
 
 import os
 import sublime
-import threading
 
 
 class LayoutComponent (Layout):

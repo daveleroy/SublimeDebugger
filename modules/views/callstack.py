@@ -100,7 +100,6 @@ class SessionView (ui.div):
 		thread_views = []
 		label_view: Optional[ui.div] = None
 
-		show_thread_name = len(threads) > 1
 
 		if True:
 			if session == self.sessions.active:
@@ -124,6 +123,8 @@ class SessionView (ui.div):
 			
 		for session in self.session.children:
 			thread_views.append(SessionView(self.sessions, session, self.state))
+
+		show_thread_name = len(threads) > 1
 
 		for thread in threads:
 			is_selected = self.is_selected and session.selected_thread == thread

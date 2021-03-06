@@ -439,8 +439,6 @@ class Session(TransportProtocolListener, core.Logger):
 		await self.run_post_debug_task()
 		self._change_status('Debug session has ended')
 
-		self.info('Debug session has ended')
-
 		self.state = Session.stopped
 
 		print(self.complete)

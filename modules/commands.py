@@ -246,6 +246,18 @@ class DebuggerCommand (sublime_plugin.WindowCommand):
 		return command.is_visible(*instance)
 
 
+# allow using debugger_exec to run a build system as a Debugger Task
+class DebuggerExecCommand(sublime_plugin.WindowCommand):
+	def run(self, **kwargs):
+		from .debugger import Debugger
+		from .dap import Task
+		
+		debugger = Debugger.get(self.window, create=True)
+
+		task = Task.from_json(kwargs)
+		debugger.run_task(task)
+
+
 class Commands:
 	commands_by_action = {}
 

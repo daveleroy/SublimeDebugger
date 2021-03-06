@@ -88,6 +88,7 @@ class ConfigurationExpanded(Configuration):
 		all = ConfigurationExpanded._expand_variables_and_platform(configuration, variables)
 		super().__init__(configuration.name, -1, configuration.type, configuration.request, all)
 
+		self.variables = variables
 		self.pre_debug_task: Optional[TaskExpanded] = None
 		self.post_debug_task: Optional[TaskExpanded] = None
 

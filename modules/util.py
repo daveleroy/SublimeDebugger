@@ -8,7 +8,7 @@ import re
 
 @core.schedule
 async def select_process():
-	from ..libs import psutil
+	from .libs import psutil
 
 	list = []
 	selected_proc: Any = None

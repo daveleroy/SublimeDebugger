@@ -12,14 +12,13 @@ for m in modules_to_remove:
 
 
 # import all the commands so that sublime sees them
-from .modules.commands import DebuggerCommand
+from .modules.commands import DebuggerCommand, DebuggerExecCommand
 
 from .modules.ui.input import DebuggerInputCommand
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
 from .modules.listener import Listener
 
 from .modules.autocomplete import AutocompleteEventListener
-from .modules.debugger_exec import DebuggerExec
 
 def plugin_loaded():
 	from .modules.main import startup

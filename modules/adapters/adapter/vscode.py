@@ -9,7 +9,6 @@ import urllib.request
 import json
 import sublime
 from dataclasses import dataclass
-import ssl
 import pathlib
 import certifi
 import uuid
@@ -37,8 +36,6 @@ def info(type: str) -> Optional[AdapterInfo]:
 		return None
 
 	version = "??"
-	snippets = []
-	schema = {}
 	contributes = {}
 
 	with open(f'{path}/extension/package.json') as file:

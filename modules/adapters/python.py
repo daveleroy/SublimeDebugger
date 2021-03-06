@@ -26,7 +26,7 @@ class Python(adapter.AdapterConfiguration):
 				return adapter.SocketTransport(log, host, port)
 
 			if not configuration.get("listen") and not configuration.get("processId"):
-				sublime.error_message("Warning: Check your debugger configuration.\n\n'attach' requires 'connect', 'listen' or 'processId'.\n\nIf they contain a $variable that variable may not have existed.""")
+				sublime.error_message("Warning: Check your debugger configuration.\n\n'attach' requires 'connect', 'listen' or 'processId'.\n\nIf they contain a $variable that variable may not have existed.")
 
 		install_path = adapter.vscode.install_path(self.type)
 
@@ -65,6 +65,6 @@ class Python(adapter.AdapterConfiguration):
 	async def configuration_resolve(self, configuration):
 		if configuration.request == "launch":
 			if not configuration.get("program"):
-				sublime.error_message("Warning: Check your debugger configuration.\n\nField `program` in configuration is empty. If it contained a $variable that variable may not have existed.""")
+				sublime.error_message("Warning: Check your debugger configuration.\n\nField `program` in configuration is empty. If it contained a $variable that variable may not have existed.")
 
 		return configuration
