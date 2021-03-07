@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": ".",
+		},
+	],
+	"debugger_configurations": [
+		{
+			"name": "Ruby",
+			"type": "ruby",
+			"request": "launch",
+			"program": "${project_path}/main.rb",
+		},
+	],
+}
