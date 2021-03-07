@@ -13,6 +13,7 @@ for m in modules_to_remove:
 
 # import all the commands so that sublime sees them
 from .modules.commands import DebuggerCommand, DebuggerExecCommand
+from .modules.adapters.java import DebuggerLspJdtsStartDebuggingResponseCommand
 
 from .modules.ui.input import DebuggerInputCommand
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
