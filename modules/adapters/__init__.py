@@ -7,6 +7,7 @@ from .go import Go
 from .php import PHP
 from .python import Python
 from .java import Java
+from .ruby import Ruby
 
 from .node import Node
 from .chrome import Chrome
