@@ -60,8 +60,6 @@ class Java(adapter.AdapterConfiguration):
 		Java.pending_adapters_current_id += 1
 		Java.pending_adapters[id] = future_port
 
-		sublime.status_message("Hello")
-
 		# ask lsp_jdts to start the debug adapter
 		# lsp_jdts will call debugger_lsp_jdts_start_debugging_response with the id it was given and a port to connect to the adapter with or an error
 		# note: the active window might not match the debugger window but generally will... probably need a way to get the actual window.
