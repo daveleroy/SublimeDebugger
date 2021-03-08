@@ -22,9 +22,10 @@ from .import adapter
 
 import sublime
 import sublime_plugin
+import os
 
-# window.run_command('debugger_lsp_jdts_start_debugging_response', {'id': 1, 'port': 12345, 'error': None})
-class DebuggerLspJdtsStartDebuggingResponseCommand(sublime_plugin.WindowCommand):
+# window.run_command('debugger_lsp_jdtls_start_debugging_response', {'id': 1, 'port': 12345, 'error': None})
+class DebuggerLspJdtlsStartDebuggingResponseCommand(sublime_plugin.WindowCommand):
 	def run(self, id: int, port: Optional[int], error: Optional[str]):
 		future_port = Java.pending_adapters.get(id)
 		if not future_port:
@@ -59,10 +60,12 @@ class Java(adapter.AdapterConfiguration):
 		Java.pending_adapters_current_id += 1
 		Java.pending_adapters[id] = future_port
 
+		sublime.status_message("Hello")
+
 		# ask lsp_jdts to start the debug adapter
 		# lsp_jdts will call debugger_lsp_jdts_start_debugging_response with the id it was given and a port to connect to the adapter with or an error
 		# note: the active window might not match the debugger window but generally will... probably need a way to get the actual window.
-		sublime.active_window().run_command('lsp_jdts_start_debugging', {
+		sublime.active_window().run_command('lsp_jdtls_start_debug_session', {
 			'id': id
 		})
 
@@ -76,11 +79,22 @@ class Java(adapter.AdapterConfiguration):
 		install_path = adapter.vscode.install_path(self.type)
 
 		# probably need to just look through this folder? this has a version #
-		plugin_jar_path = f'{install_path}/extension/server/com.microsoft.java.debug.plugin-0.30.0.jar'
-		
-		# TODO patch in the jar to lsp-jdts
-		# TODO restart lsp-jdts?
-		# probably need to allow running some stuff after downloading the extension but before it is marked as installed because this patching needs to succeed
+		plugin_jar_path = os.path.join(f'{install_path}/extension/server', os.listdir(f'{install_path}/extension/server')[0])
+
+		settings = sublime.load_settings("LSP-jdtls.sublime-settings")
+		init_options = settings.get("initializationOptions", {})
+		bundles = init_options.get("bundles", [])
+
+		if plugin_jar_path not in bundles:
+			# Cleanup
+			for jar in bundles:
+				if "com.microsoft.java.debug.plugin" in jar:
+					bundles.remove(jar)
+					break
+		bundles += [plugin_jar_path]
+		init_options["bundles"] = bundles
+		settings.set("initializationOptions", init_options)
+		sublime.save_settings("LSP-jdtls.sublime-settings")
 
 	@property
 	def installed_version(self) -> Optional[str]:
