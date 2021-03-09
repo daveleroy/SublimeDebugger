@@ -669,7 +669,7 @@ class Session(TransportProtocolListener, core.Logger):
 		
 		if self.capabilities.supportsConfigurationDoneRequest:
 			try:
-				await self.request('configurationDone', None)
+				await self.request('configurationDone', {})
 			except core.Error as e:
 				self.error('there was an error in configuration done {}'.format(e))
 
@@ -735,7 +735,7 @@ class Session(TransportProtocolListener, core.Logger):
 	# @NOTE threads_for_id will retain all threads for the entire session even if they are removed
 	@core.schedule
 	async def refresh_threads(self):
-		response = await self.request('threads', None)
+		response = await self.request('threads', {})
 		threads = array_from_json(dap.Thread.from_json, response['threads'])
 
 		self.threads.clear()
