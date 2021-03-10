@@ -31,6 +31,9 @@ class DebuggerLspJdtlsStartDebuggingResponseCommand(sublime_plugin.WindowCommand
 		if not future:
 			print("Hmm... unable to find a future port for this id")
 			return
+		if args["error"]:
+			future.set_exception(core.Error(args["error"]))
+			return
 
 		future.set_result(args)
 
@@ -62,7 +65,7 @@ class Java(adapter.AdapterConfiguration):
 		args = await future
 		if 'cwd' not in configuration:
 			configuration['cwd'], _ = os.path.split(sublime.active_window().project_file_name())
-		if 'mainClass' not in configuration:
+		if 'mainClass' not in configuration or not configuration['mainClass']:
 			configuration['mainClass'] = args['mainClass']
 		if 'classPaths' not in configuration:
 			configuration['classPaths'] = args['classPaths']
