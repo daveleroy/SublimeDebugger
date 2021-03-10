@@ -736,7 +736,7 @@ class Session(TransportProtocolListener, core.Logger):
 	@core.schedule
 	async def refresh_threads(self):
 		response = await self.request('threads', {})
-		threads = array_from_json(dap.Thread.from_json, response['threads'])
+		threads = array_from_json(dap.Thread.from_json, response.get('threads', []))
 
 		self.threads.clear()
 		for thread in threads:
