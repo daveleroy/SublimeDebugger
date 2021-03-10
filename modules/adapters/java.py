@@ -26,21 +26,13 @@ import os
 
 # window.run_command('debugger_lsp_jdtls_start_debugging_response', {'id': 1, 'port': 12345, 'error': None})
 class DebuggerLspJdtlsStartDebuggingResponseCommand(sublime_plugin.WindowCommand):
-	def run(self, id: int, port: Optional[int], error: Optional[str]):
-		future_port = Java.pending_adapters.get(id)
-		if not future_port:
+	def run(self, **args):
+		future = Java.pending_adapters.get(args["id"])
+		if not future:
 			print("Hmm... unable to find a future port for this id")
 			return
 
-		if error:
-			future_port.set_exception(core.Error(error))
-			return
-
-		if not port:
-			future_port.set_exception(core.Error('Expected port or error from lsp-jdts'))
-			return
-
-		future_port.set_result(port)			
+		future.set_result(args)
 
 
 class Java(adapter.AdapterConfiguration):
@@ -54,11 +46,11 @@ class Java(adapter.AdapterConfiguration):
 		# probably need to add some sort of timeout
 		# probably need to ensure lsp_jdts is installed
 		# probably need to ensure lsp_jdts has the plugin jar patched in
-		future_port = core.create_future()
+		future = core.create_future()
 
 		id = Java.pending_adapters_current_id
 		Java.pending_adapters_current_id += 1
-		Java.pending_adapters[id] = future_port
+		Java.pending_adapters[id] = future
 
 		# ask lsp_jdts to start the debug adapter
 		# lsp_jdts will call debugger_lsp_jdts_start_debugging_response with the id it was given and a port to connect to the adapter with or an error
@@ -67,8 +59,17 @@ class Java(adapter.AdapterConfiguration):
 			'id': id
 		})
 
-		port = await future_port
-		return adapter.SocketTransport(log, 'localhost', port)
+		args = await future
+		if 'cwd' not in configuration:
+			configuration['cwd'], _ = os.path.split(sublime.active_window().project_file_name())
+		if 'mainClass' not in configuration:
+			configuration['mainClass'] = args['mainClass']
+		if 'classPaths' not in configuration:
+			configuration['classPaths'] = args['classPaths']
+		if 'console' not in configuration:
+			configuration['console'] = 'internalConsole'
+
+		return adapter.SocketTransport(log, 'localhost', args["port"])
 
 	async def install(self, log):
 		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vscjava/vsextensions/vscode-java-debug/latest/vspackage'
