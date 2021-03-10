@@ -69,8 +69,15 @@ class Java(adapter.AdapterConfiguration):
 			configuration['mainClass'] = args['mainClass']
 		if 'classPaths' not in configuration:
 			configuration['classPaths'] = args['classPaths']
+		if 'modulePaths' not in configuration:
+			configuration['modulePaths'] = args['modulePaths']
 		if 'console' not in configuration:
 			configuration['console'] = 'internalConsole'
+		if args["enablePreview"]:
+			if 'vmArgs' in configuration:
+				configuration['vmArgs'] += " --enable-preview"
+			else:
+				configuration['vmArgs'] = "--enable-preview"
 
 		return adapter.SocketTransport(log, 'localhost', args["port"])
 
