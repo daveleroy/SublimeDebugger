@@ -1,6 +1,7 @@
+from __future__ import annotations
+from dataclasses import dataclass
 from ..typecheck import *
 from ..import core
-# from . import view_drag_select
 
 import sublime
 import sublime_plugin
@@ -8,12 +9,12 @@ import sublime_plugin
 core.on_view_drag_select_or_context_menu.add(lambda v: CommandPaletteInputCommand.on_view_drag_select_or_context_menu())
 
 class CommandPaletteInputCommand:
-	running_command = None #type: Optional[CommandPaletteInputCommand]
+	running_command: CommandPaletteInputCommand|None = None
 
-	def __init__(self, window, input):
+	def __init__(self, window: sublime.Window, input: InputList|InputText):
 		self.window = window
 		self.input = input
-		self.future = core.create_future()
+		self.future: core.future[None] = core.create_future()
 
 		def _on_cancel():
 			CommandPaletteInputCommand.running_command = None
@@ -26,16 +27,16 @@ class CommandPaletteInputCommand:
 		input._on_run_internal = _on_run_internal
 
 		# if you don't clear the text then the debugger_input command can't be found in the command pallete....
-		self.window.run_command("show_overlay", {
-			"overlay": "command_palette",
-			"text": "",
+		self.window.run_command('show_overlay', {
+			'overlay': 'command_palette',
+			'text': '',
 		})
 
 		self.hide_overlay()
 		CommandPaletteInputCommand.running_command = self
-		self.window.run_command("show_overlay", {
-			"overlay": "command_palette",
-			"command": "debugger_input",
+		self.window.run_command('show_overlay', {
+			'overlay': 'command_palette',
+			'command': 'debugger_input',
 		})
 		CommandPaletteInputCommand.running_command = self
 
@@ -44,8 +45,8 @@ class CommandPaletteInputCommand:
 
 
 	def hide_overlay(self):
-		self.window.run_command("hide_overlay", {
-			"overlay": "command_palette",
+		self.window.run_command('hide_overlay', {
+			'overlay': 'command_palette',
 		})
 
 	@staticmethod
@@ -54,29 +55,27 @@ class CommandPaletteInputCommand:
 			CommandPaletteInputCommand.running_command.hide_overlay()
 
 class DebuggerInputCommand(sublime_plugin.WindowCommand):
-	def __init__(self, window):
-		super().__init__(window)
-
-	def input(self, args):
+	def input(self, args: Any):
 		if not CommandPaletteInputCommand.running_command:
-			raise core.Error("expected running_command")
+			raise core.Error('expected running_command')
 
 		input = CommandPaletteInputCommand.running_command.input
 		CommandPaletteInputCommand.running_command = None
 		return input
 
-	def run(self, **args):
+	def run(self, **args: Any):
 		...
 
 	def is_visible(self):
 		return CommandPaletteInputCommand.running_command is not None
 
-
+@dataclass
 class InputListItem:
-	def __init__(self, run, text, name=None):
-		self.text = text
-		self.run = run
-		self.name = name
+	run: Callable[[], None] | InputList | InputText 
+	text: str
+	name: str | None = None # name of this input when nested
+	kind: tuple[int, str, str] = sublime.KIND_AMBIGUOUS
+	details: list[str]|str = ''
 
 	def display_or_run(self):
 		if callable(self.run):
@@ -87,17 +86,17 @@ class InputListItem:
 class InputList(sublime_plugin.ListInputHandler):
 	id = 0
 
-	def __init__(self, values: List[InputListItem], placeholder=None, index=0):
+	def __init__(self, values: list[InputListItem], placeholder: str|None = None, index: int = 0):
 		super().__init__()
 		self._next_input = None
 		self.values = values
 		self._placeholder = placeholder
 		self.index = index
 
-		self._on_cancel_internal: Optional[Callable] = None
-		self._on_run_internal: Optional[Callable] = None
+		self._on_cancel_internal: Callable[[], None] | None = None
+		self._on_run_internal: Callable[[], None] | None = None
 
-		self.arg_name = "list_{}".format(InputList.id)
+		self.arg_name = 'list_{}'.format(InputList.id)
 		InputList.id += 1
 
 	@core.schedule
@@ -111,9 +110,9 @@ class InputList(sublime_plugin.ListInputHandler):
 		return self._placeholder
 
 	def list_items(self):
-		items = []
+		items: list[sublime.ListInputItem] = []
 		for index, value in enumerate(self.values):
-			items.append([value.text, index])
+			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind))
 		return (items, self.index)
 
 	def confirm(self, value):
@@ -126,7 +125,7 @@ class InputList(sublime_plugin.ListInputHandler):
 		if self._on_run_internal:
 			self._on_run_internal()
 
-	def next_input(self, args):
+	def next_input(self, args: Any):
 		n = self._next_input
 		self._next_input = None
 		return n
@@ -150,7 +149,7 @@ class InputEnable (Protocol):
 class InputText(sublime_plugin.TextInputHandler):
 	id = 0
 
-	def __init__(self, run=None, placeholder=None, initial=None, enable_when_active: Optional[InputEnable] = None):
+	def __init__(self, run: Callable[[str], None] | InputList | InputText, placeholder: str|None = None, initial: str|None = None, enable_when_active: InputEnable|None = None):
 		super().__init__()
 		self._placeholder = placeholder
 		self._initial = initial
@@ -158,11 +157,11 @@ class InputText(sublime_plugin.TextInputHandler):
 
 		self._next_input = None
 
-		self._on_cancel_internal: Optional[Callable] = None
-		self._on_run_internal: Optional[Callable] = None
+		self._on_cancel_internal: Callable[[], None] | None = None
+		self._on_run_internal: Callable[[], None] | None = None
 
 		self._enable = enable_when_active
-		self.arg_name = "text_{}".format(InputText.id)
+		self.arg_name = 'text_{}'.format(InputText.id)
 		InputText.id += 1
 
 	@core.schedule
@@ -177,7 +176,7 @@ class InputText(sublime_plugin.TextInputHandler):
 	def initial_text(self):
 		return self._initial
 
-	def confirm(self, value):
+	def confirm(self, value: str):
 		if callable(self._run):
 			self._run(value)
 		else:
@@ -186,7 +185,7 @@ class InputText(sublime_plugin.TextInputHandler):
 		if self._on_run_internal:
 			self._on_run_internal()
 
-	def next_input(self, args):
+	def next_input(self, args: Any):
 		n = self._next_input
 		self._next_input = None
 		return n
@@ -200,11 +199,13 @@ class InputText(sublime_plugin.TextInputHandler):
 		if self._on_cancel_internal:
 			self._on_cancel_internal()
 
-def InputListItemCheckedText(run: Callable[[str], None], name: str, description: str, value: Optional[str]):
+def InputListItemCheckedText(run: Callable[[str], None], name: str, description: str, value: str|None):
 	if value:
-		input_name = "●   {}: {}".format(name, value)
+		kind = (sublime.KIND_ID_AMBIGUOUS, '●', '')
+		input_name = '{}\t {}'.format(name, value)
 	else:
-		input_name = "○   {}: {}".format(name, description)
+		kind = (sublime.KIND_ID_AMBIGUOUS, '○', '')
+		input_name = '{}\t {}'.format(name, description)
 
 	return InputListItem(
 		InputText(
@@ -213,28 +214,33 @@ def InputListItemCheckedText(run: Callable[[str], None], name: str, description:
 			value
 		),
 		input_name,
-		name
+		name,
+		kind=kind
 	)
 
 def InputListItemOnOff(run: Callable[[], None], true: str, false: str, value: bool):
 	if value:
-		input_name = "{}\tOn".format(true)
+		text = '{}\tOn'.format(true)
 	else:
-		input_name = "{}\tOff".format(false)
+		text = '{}\tOff'.format(false)
 
 	return InputListItem(
 		run,
-		input_name,
+		text,
 	)
 
 
-def InputListItemChecked(run: Callable[[], None], true: str, false: str, value: bool):
+def InputListItemChecked(run: Callable[[], None], true: str, false: str, value: bool|None, details: list[str]|str = ''):
 	if value:
-		input_name = "●   {}".format(true)
+		kind = (sublime.KIND_ID_AMBIGUOUS, '●', '')
+		text = true
 	else:
-		input_name = "○   {}".format(false)
+		kind = (sublime.KIND_ID_AMBIGUOUS, '○', '')
+		text = false
 
 	return InputListItem(
 		run,
-		input_name,
+		text,
+		kind=kind,
+		details=details,
 	)
