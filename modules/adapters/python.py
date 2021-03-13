@@ -46,8 +46,11 @@ class Python(adapter.AdapterConfiguration):
 		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
-		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/python/latest/vspackage'
+		url = await adapter.git.latest_release_vsix('microsoft', 'vscode-python')
 		await adapter.vscode.install(self.type, url, log)
+
+	async def installed_status(self, log):
+		return await adapter.git.installed_status('microsoft', 'vscode-python', self.installed_version)
 
 	@property
 	def installed_version(self) -> Optional[str]:

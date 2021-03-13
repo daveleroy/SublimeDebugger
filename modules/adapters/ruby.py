@@ -23,7 +23,7 @@ class Ruby(adapter.AdapterConfiguration):
 		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
-		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/castwide/vsextensions/ruby-debug/latest/vspackage'
+		url = await adapter.openvsx.latest_release_vsix('wingrunr21', 'vscode-ruby')
 		await adapter.vscode.install(self.type, url, log)
 
 	@property

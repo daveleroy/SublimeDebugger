@@ -19,7 +19,7 @@ class Node(adapter.AdapterConfiguration):
 		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
-		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/node-debug2/latest/vspackage'
+		url = await adapter.openvsx.latest_release_vsix('ms-vscode', 'node-debug2')
 		await adapter.vscode.install(self.type, url, log)
 
 	@property

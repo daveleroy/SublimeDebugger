@@ -16,7 +16,7 @@ class Firefox(adapter.AdapterConfiguration):
 		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
-		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/firefox-devtools/vsextensions/vscode-firefox-debug/latest/vspackage'
+		url = await adapter.openvsx.latest_release_vsix('ms-vscode', 'vscode-firefox-debug')
 		await adapter.vscode.install(self.type, url, log)
 
 	@property

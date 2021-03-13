@@ -17,7 +17,7 @@ class Chrome(adapter.AdapterConfiguration):
 		return adapter.StdioTransport(log, command)
 
 	async def install(self, log):
-		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/msjsdiag/vsextensions/debugger-for-chrome/latest/vspackage'
+		url = await adapter.openvsx.latest_release_vsix('msjsdiag', 'debugger-for-chrome')
 		await adapter.vscode.install(self.type, url, log)
 
 	@property
