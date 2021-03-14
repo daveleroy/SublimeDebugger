@@ -5,9 +5,9 @@ import sublime
 import re
 
 class PHP(adapter.AdapterConfiguration):
-	@property
-	def type(self):
-		return 'php'
+
+	type = 'php'
+	docs = 'https://github.com/xdebug/vscode-php-debug#installation'
 
 	async def start(self, log, configuration):
 		node = await adapter.get_and_warn_require_node(self.type, log)

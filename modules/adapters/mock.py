@@ -4,8 +4,8 @@ from .import adapter
 
 class Mock(adapter.AdapterConfiguration):
 
-	@property
-	def type(self): return 'mock'
+	type = 'mock'
+	docs = 'https://github.com/microsoft/vscode-mock-debug#vs-code-mock-debug'
 
 	@property
 	def info(self): return adapter.vscode.info(self.type)

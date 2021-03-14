@@ -6,8 +6,8 @@ import shutil
 
 class Ruby(adapter.AdapterConfiguration):
 
-	@property
-	def type(self): return 'ruby'
+	type = 'ruby'
+	docs = 'https://github.com/castwide/vscode-ruby-debug#debugging-external-programs'
 
 	async def start(self, log, configuration):
 

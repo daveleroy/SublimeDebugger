@@ -7,8 +7,8 @@ import shutil
 
 class Python(adapter.AdapterConfiguration):
 
-	@property
-	def type(self): return 'python'
+	type = 'python'
+	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
 
 	async def start(self, log, configuration):
 		if configuration.request == "attach":

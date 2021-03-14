@@ -3,8 +3,8 @@ from .import adapter
 
 class Node(adapter.AdapterConfiguration):
 
-	@property
-	def type(self): return 'node'
+	type = 'node'
+	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/nodejs/nodejs-debugging.md#nodejs-debugging-in-vs-code'
 
 	@property
 	def info(self): return adapter.vscode.info(self.type)

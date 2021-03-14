@@ -7,7 +7,6 @@ import zipfile
 import gzip
 import urllib.request
 import json
-import sublime
 from dataclasses import dataclass
 import pathlib
 import certifi
@@ -128,24 +127,16 @@ async def install(type: str, url: str, log: core.Logger, post_download_action: O
 	log.info(f'Installing adapter: {type}')
 	log.info('from: {}'.format(url))
 
-	try:
-		await core.run_in_executor(blocking)
-		if post_download_action:
-			await post_download_action()
+	await core.run_in_executor(blocking)
+	if post_download_action:
+		await post_download_action()
 
-	except Exception as error:
-		log.error(f'Failed to install adapter: {str(error)}')
-		return
 
 	# successfully installed so add a marker file
 	path_installed = f'{path}/.sublime_debugger'
 	with open(path_installed, 'w') as file_installed:
 		...
 
-	log.info('Successfully Installed Adapter!')
-
-	from ...adapters_registry import AdaptersRegistry
-	AdaptersRegistry.recalculate_schema()
 
 # https://stackoverflow.com/questions/29967487/get-progress-back-from-shutil-file-copy-thread
 def copyfileobj(fsrc, fdst, log_info, total, length=128*1024):

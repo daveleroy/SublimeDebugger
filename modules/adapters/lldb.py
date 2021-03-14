@@ -42,10 +42,9 @@ class LLDBTransport(adapter.SocketTransport):
 
 class LLDB(adapter.AdapterConfiguration):
 
-	@property
-	def type(self):
-		return "lldb"
-
+	type = 'lldb'
+	docs = 'https://github.com/vadimcn/vscode-lldb/blob/master/MANUAL.md#starting-a-new-debug-session'
+	
 	async def start(self, log: core.Logger, configuration):
 		install_path = adapter.vscode.install_path(self.type)
 

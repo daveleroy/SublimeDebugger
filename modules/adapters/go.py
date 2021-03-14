@@ -6,9 +6,9 @@ from .import adapter
 import shutil
 
 class Go(adapter.AdapterConfiguration):
-	@property
-	def type(self):
-		return "go"
+
+	type = 'go'
+	docs = 'https://github.com/golang/vscode-go/blob/master/docs/debugging.md#launch-configurations'
 
 	async def start(self, log, configuration):
 		node = await adapter.get_and_warn_require_node(self.type, log)

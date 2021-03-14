@@ -2,9 +2,9 @@ from ..typecheck import *
 from .import adapter
 
 class GDB(adapter.AdapterConfiguration):
-	@property
-	def type(self):
-		return "gdb"
+	
+	type = 'gdb'
+	docs = 'https://github.com/WebFreak001/code-debug#debug'
 
 	async def start(self, log, configuration):
 		node = await adapter.get_and_warn_require_node(self.type, log)

@@ -2,9 +2,9 @@ from ..typecheck import *
 from .import adapter
 
 class Firefox(adapter.AdapterConfiguration):
-	@property
-	def type(self):
-		return 'firefox'
+	
+	type = 'firefox'
+	docs = 'https://github.com/firefox-devtools/vscode-firefox-debug#getting-started'
 
 	async def start(self, log, configuration):
 		node = await adapter.get_and_warn_require_node(self.type, log)

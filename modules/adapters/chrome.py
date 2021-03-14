@@ -2,9 +2,9 @@ from ..typecheck import *
 from .import adapter
 
 class Chrome(adapter.AdapterConfiguration):
-	@property
-	def type(self):
-		return 'chrome'
+
+	type = 'chrome'
+	docs = 'https://github.com/Microsoft/vscode-chrome-debug#using-the-debugger'
 
 	async def start(self, log, configuration):
 		node = await adapter.get_and_warn_require_node(self.type, log)
