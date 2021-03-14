@@ -94,6 +94,9 @@ class LLDB(adapter.AdapterConfiguration):
 
 		await adapter.vscode.install(self.type, url, log)
 
+	async def installed_status(self, log):
+		return await adapter.git.installed_status('vadimcn', 'vscode-lldb', self.installed_version)
+
 	@property
 	def installed_version(self) -> Optional[str]:
 		return adapter.vscode.installed_version(self.type)

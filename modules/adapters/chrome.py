@@ -8,7 +8,6 @@ class Chrome(adapter.AdapterConfiguration):
 
 	async def start(self, log, configuration):
 		node = await adapter.get_and_warn_require_node(self.type, log)
-
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
 			node,
@@ -19,6 +18,9 @@ class Chrome(adapter.AdapterConfiguration):
 	async def install(self, log):
 		url = await adapter.openvsx.latest_release_vsix('msjsdiag', 'debugger-for-chrome')
 		await adapter.vscode.install(self.type, url, log)
+
+	async def installed_status(self, log):
+		return await adapter.openvsx.installed_status('msjsdiag', 'debugger-for-chrome', self.installed_version)
 
 	@property
 	def installed_version(self) -> Optional[str]:

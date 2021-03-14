@@ -23,6 +23,13 @@ class Go(adapter.AdapterConfiguration):
 		url = await adapter.git.latest_release_vsix('golang', 'vscode-go')
 		await adapter.vscode.install(self.type, url, log)
 
+	async def installed_status(self, log):
+		return await adapter.git.installed_status('golang', 'vscode-go', self.installed_version)
+
+	@property
+	def installed_version(self) -> Optional[str]:
+		return adapter.vscode.installed_version(self.type)
+
 	# Patch in dlvToolPath to point to dlv if present in settings or path
 	# TODO: Implement more of the functionality in
 	# https://github.com/microsoft/vscode-go/blob/master/src/goDebugConfiguration.ts
@@ -32,9 +39,6 @@ class Go(adapter.AdapterConfiguration):
 
 		return configuration
 
-	@property
-	def installed_version(self) -> Optional[str]:
-		return adapter.vscode.installed_version(self.type)
 
 	@property
 	def configuration_snippets(self) -> Optional[list]:

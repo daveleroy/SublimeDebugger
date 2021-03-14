@@ -23,6 +23,9 @@ class PHP(adapter.AdapterConfiguration):
 		url = 'https://github.com/xdebug/vscode-php-debug/releases/latest/download/php-debug.vsix'
 		await adapter.vscode.install(self.type, url, log)
 
+	async def installed_status(self, log):
+		return await adapter.git.installed_status('xdebug', 'vscode-php-debug', self.installed_version)
+
 	@property
 	def installed_version(self) -> Optional[str]:
 		return adapter.vscode.installed_version(self.type)
