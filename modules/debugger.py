@@ -331,7 +331,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 					if not adapter_configuration.installed_version:
 						install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
 						if sublime.ok_cancel_dialog(install, 'Install'):
-							await adapter_configuration.install(self)
+							await AdaptersRegistry.install(adapter_configuration.type, self)
 
 					await self.sessions.launch(self.breakpoints, adapter_configuration, configuration_expanded, no_debug=no_debug)
 				except core.Error as e:
@@ -561,9 +561,11 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	async def change_configuration(self) -> None:
 		await ui.InputList(self.change_configuration_input_items(), "Add or Select Configuration").run()
 
-	def install_adapters(self) -> None:
+	@core.schedule
+	async def install_adapters(self) -> None:
 		self.show_console_panel()
-		AdaptersRegistry.install_menu(log=self).run()
+		menu = await AdaptersRegistry.install_menu(log=self)
+		await menu.run()
 
 	def error(self, value: str):
 		self.terminal.log_error(value)
