@@ -24,7 +24,7 @@ class PHP(adapter.AdapterConfiguration):
 		await adapter.vscode.install(self.type, url, log)
 
 	async def installed_status(self, log):
-		return await adapter.git.installed_status('xdebug', 'vscode-php-debug', self.installed_version)
+		return await adapter.git.installed_status('xdebug', 'vscode-php-debug', self.installed_version, log)
 
 	@property
 	def installed_version(self) -> Optional[str]:

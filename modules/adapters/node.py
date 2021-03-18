@@ -23,7 +23,7 @@ class Node(adapter.AdapterConfiguration):
 		await adapter.vscode.install(self.type, url, log)
 
 	async def installed_status(self, log):
-		return await adapter.openvsx.installed_status('ms-vscode', 'node-debug2', self.installed_version)
+		return await adapter.openvsx.installed_status('ms-vscode', 'node-debug2', self.installed_version, log)
 
 	@property
 	def installed_version(self) -> Optional[str]:

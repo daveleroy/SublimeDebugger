@@ -66,14 +66,19 @@ async def latest_release_vsix(owner: str, repo: str) -> str:
 def removeprefix(text: str, prefix: str):
 	return text[text.startswith(prefix) and len(prefix):]
 
-async def installed_status(owner: str, repo: str, version: str|None):
+async def installed_status(owner: str, repo: str, version: str|None, log: core.Logger = core.stdio):
 	if not version:
 		return None
+
+	
+	log.info(f'github {owner} {repo} checking for updates')
 
 	release = await latest_release_vsix_release(owner, repo)
 	tag: str = removeprefix(release['tag_name'], 'v')
 
 	if semver.compare(tag, removeprefix(version, 'v')) != 0:
+		log.info(f'github {owner} {repo} done "Update Available {tag}"')
 		return f'Update Available {tag}'
 
+	log.info(f'github {owner} {repo} done')
 	return None

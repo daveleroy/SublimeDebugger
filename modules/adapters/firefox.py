@@ -20,7 +20,7 @@ class Firefox(adapter.AdapterConfiguration):
 		await adapter.vscode.install(self.type, url, log)
 
 	async def installed_status(self, log):
-		return await adapter.openvsx.installed_status('ms-vscode', 'vscode-firefox-debug', self.installed_version)
+		return await adapter.openvsx.installed_status('ms-vscode', 'vscode-firefox-debug', self.installed_version, log)
 
 	@property
 	def installed_version(self) -> Optional[str]:
