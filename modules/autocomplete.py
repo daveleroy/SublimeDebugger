@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 
 from .dap import types as dap
@@ -7,24 +9,24 @@ import sublime
 import sublime_plugin
 
 class Autocomplete:
-	_for_window = {} #type: Dict[int, Autocomplete]
+	_for_window = {} #type: dict[int, Autocomplete]
 
 	@staticmethod
-	def for_window(window):
+	def for_window(window: sublime.Window):
 		id = window.id()
 		if id in Autocomplete._for_window:
 			return Autocomplete._for_window[id]
 		return None
 
 	@staticmethod
-	def create_for_window(window):
+	def create_for_window(window: sublime.Window):
 		id = window.id()
 		if id in Autocomplete._for_window:
 			return Autocomplete._for_window[id]
 		r = Autocomplete(id)
 		return r
 
-	def __init__(self, id):
+	def __init__(self, id: int):
 		self.enabled = False
 		self.id = id
 		Autocomplete._for_window[id] = self
@@ -41,12 +43,12 @@ class Autocomplete:
 class AutocompleteEventListener(sublime_plugin.EventListener):
 	def __init__(self) -> None:
 		super().__init__()
-		self.completions = [] #type: List[dap.CompletionItem]
+		self.completions = [] #type: list[dap.CompletionItem]
 		self.getting_completions_text = "."
 		self.used_completions = False
 		self.ignore_next_modification = False
 
-	def on_query_completions(self, view, prefix, locations) -> Any:
+	def on_query_completions(self, view: sublime.View, prefix: str, locations: list[int]) -> Any:
 		window = view.window()
 		if not window:
 			return

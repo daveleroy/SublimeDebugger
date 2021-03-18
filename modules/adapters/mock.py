@@ -1,16 +1,18 @@
-import os
+from __future__ import annotations
 from ..typecheck import *
+
 from .import adapter
+from .. import dap
+from .. import core
+
+import os
 
 class Mock(adapter.AdapterConfiguration):
 
 	type = 'mock'
 	docs = 'https://github.com/microsoft/vscode-mock-debug#vs-code-mock-debug'
 
-	@property
-	def info(self): return adapter.vscode.info(self.type)
-
-	async def start(self, log, configuration):
+	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		node = await adapter.get_and_warn_require_node(self.type, log)
 		install_path = adapter.vscode.install_path(self.type)
 		command = [
@@ -19,7 +21,7 @@ class Mock(adapter.AdapterConfiguration):
 		]
 		return adapter.StdioTransport(log, command)
 
-	async def install(self, log):
+	async def install(self, log: core.Logger):
 		url = 'https://github.com/microsoft/vscode-mock-debug/archive/master.zip'
 
 		async def post_download_action():
@@ -42,13 +44,13 @@ class Mock(adapter.AdapterConfiguration):
 		
 
 	@property
-	def installed_version(self) -> Optional[str]:
+	def installed_version(self):
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> Optional[list]:
+	def configuration_snippets(self):
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> Optional[dict]:
+	def configuration_schema(self):
 		return adapter.vscode.configuration_schema(self.type)

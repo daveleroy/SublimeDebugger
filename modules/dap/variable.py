@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 @dataclass
 class SourceLocation:
 	source: dap.Source
-	line: Optional[int] = None
-	column: Optional[int] = None
+	line: int|None = None
+	column: int|None = None
 
 	@staticmethod
-	def from_path(file: str, line: Optional[int], column: Optional[int]) -> SourceLocation:
+	def from_path(file: str, line: int|None, column: int|None) -> SourceLocation:
 		return SourceLocation(dap.Source(os.path.basename(file), file), line, column)
 
 	@property
@@ -71,7 +71,7 @@ class Variable:
 	def __init__(self, session: Session, reference: VariableReference) -> None:
 		self.session = session
 		self.reference = reference
-		self.fetched = None #type: Optional[core.future]
+		self.fetched: core.Future[list[dap.Variable]]|None = None
 
 	@property
 	def name(self) -> str:
@@ -84,7 +84,7 @@ class Variable:
 	async def fetch(self):
 		return await self.session.get_variables(self.reference.variablesReference)
 
-	async def children(self) -> List[Variable]:
+	async def children(self) -> list[Variable]:
 		if not self.has_children:
 			return []
 

@@ -1,10 +1,10 @@
+from __future__ import annotations
 from ..typecheck import *
-from ..import core
+
 from ..import ui
 from .. import dap
 
 from . import css
-
 
 class SourcesView(ui.div):
 	def __init__(self, sessions: dap.Sessions, on_click: Callable[[dap.SourceLocation], None]):
@@ -23,8 +23,8 @@ class SourcesView(ui.div):
 		self.on_updated_sources.dispose()
 		self.on_removed_session.dispose()
 
-	def render(self) -> ui.div.Children:
-		items = []
+	def render(self):
+		items: list[SourceView] = []
 		for session in self.sessions:
 			for source in session.sources.values():
 				items.append(SourceView(source, self.on_click))
@@ -40,7 +40,7 @@ class SourceView(ui.div):
 		self.source = source
 		self.on_click = on_click
 
-	def render(self) -> ui.div.Children:
+	def render(self):
 		items = [
 			ui.div(height=css.row_height)[
 				ui.align()[

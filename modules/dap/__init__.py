@@ -8,6 +8,8 @@ from .variable import (
 	SourceLocation,
 )
 from .types import (
+	Json,
+
 	Error,
 	StackFrame,
 	OutputEvent,

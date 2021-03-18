@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from . layout import Layout
 
@@ -29,7 +31,7 @@ def reload_images():
 	Images.shared = Images()
 
 class Image:
-	cached = {} #type: Dict[str, str]
+	cached = {} #type: dict[str, str]
 
 	@staticmethod
 	def named(name: str) -> 'Image':

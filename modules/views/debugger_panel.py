@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import ui
 from ..import dap
 from . import css
@@ -24,7 +26,7 @@ class DebuggerPanel(ui.div):
 		self.dirty()
 
 	def render(self) -> ui.div.Children:
-		buttons = [] #type: List[ui.span]
+		buttons = [] #type: list[ui.span]
 
 		items = [
 			DebuggerCommandButton(self.debugger.on_settings, ui.Images.shared.settings),

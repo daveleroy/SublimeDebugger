@@ -1,10 +1,12 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from ..import ui
 from ..import dap
 
 class ExceptionBreakpointsFilter:
-	def __init__(self, dap: dap.ExceptionBreakpointsFilter, enabled: bool = True, condition: Optional[str] = None):
+	def __init__(self, dap: dap.ExceptionBreakpointsFilter, enabled: bool = True, condition: str|None = None):
 		self.dap = dap
 		self.enabled = enabled
 		self.condition = condition
@@ -19,14 +21,14 @@ class ExceptionBreakpointsFilter:
 			return ui.Images.shared.dot
 
 	@property
-	def tag(self) -> Optional[str]:
+	def tag(self) -> str|None:
 		return None
 
 	@property
 	def name(self) -> str:
 		return self.dap.label
 
-	def into_json(self) -> dict:
+	def into_json(self) -> dap.Json:
 		return {
 			'dap': self.dap.into_json(),
 			'enabled': self.enabled,
@@ -34,7 +36,7 @@ class ExceptionBreakpointsFilter:
 		}
 
 	@staticmethod
-	def from_json(json: dict) -> 'ExceptionBreakpointsFilter':
+	def from_json(json: dap.Json) -> 'ExceptionBreakpointsFilter':
 		return ExceptionBreakpointsFilter(
 			dap.ExceptionBreakpointsFilter.from_json(json['dap']),
 			json['enabled'],
@@ -43,17 +45,17 @@ class ExceptionBreakpointsFilter:
 
 class ExceptionBreakpointsFilters:
 	def __init__(self) -> None:
-		self.filters = {} #type: Dict[str, ExceptionBreakpointsFilter]
-		self.on_updated = core.Event() #type: core.Event[Iterable[ExceptionBreakpointsFilter]]
-		self.on_send = core.Event() #type: core.Event[Iterable[ExceptionBreakpointsFilter]]
+		self.filters: dict[str, ExceptionBreakpointsFilter] = {}
+		self.on_updated: core.Event[Iterable[ExceptionBreakpointsFilter]] = core.Event()
+		self.on_send: core.Event[Iterable[ExceptionBreakpointsFilter]] = core.Event()
 
 	def __iter__(self):
 		return iter(self.filters.values())
 
-	def into_json(self) -> list:
+	def into_json(self) -> list[Any]:
 		return list(map(lambda b: b.into_json(), self.filters.values()))
 
-	def load_json(self, json: list):
+	def load_json(self, json: list[Any]):
 		filters = list(map(lambda j: ExceptionBreakpointsFilter.from_json(j), json))
 		self.filters = {}
 		for filter in filters:
@@ -67,7 +69,7 @@ class ExceptionBreakpointsFilters:
 		def set_condition(text: str):
 			self.set_condition(breakpoint, text)
 
-		items: List[ui.InputListItem] = [ui.InputListItemChecked(
+		items: list[ui.InputListItem] = [ui.InputListItemChecked(
 			toggle_enabled,
 			"Enabled",
 			"Disabled",
@@ -88,12 +90,12 @@ class ExceptionBreakpointsFilters:
 		self.on_updated(self.filters.values())
 		self.on_send(self.filters.values())
 
-	def set_condition(self, filter: ExceptionBreakpointsFilter, condition: Optional[str]):
+	def set_condition(self, filter: ExceptionBreakpointsFilter, condition: str|None):
 		filter.condition = condition
 		self.on_updated(self.filters.values())
 		self.on_send(self.filters.values())
 
-	def update(self, filters: List[dap.ExceptionBreakpointsFilter]):
+	def update(self, filters: list[dap.ExceptionBreakpointsFilter]):
 		old = self.filters
 		self.filters = {}
 		for f in filters:

@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 from .import ui
 from .import dap
@@ -20,7 +22,7 @@ def debuggers_for_view(view: sublime.View) -> Iterable[Debugger]:
 
 	return list(Debugger.instances.values())
 
-def debugger_for_view(view: sublime.View) -> Optional[Debugger]:
+def debugger_for_view(view: sublime.View) -> Debugger|None:
 	if window := view.window():
 		if debugger := Debugger.get(window):
 			return debugger
@@ -34,7 +36,7 @@ def toggle_file_line(breakpoints: Breakpoints, file: str, line: int):
 	else:
 		breakpoints.source.add_breakpoint(file, line)
 
-def edit_breakpoints_at_line(breakpoints: Breakpoints, source_breakpoints: List[SourceBreakpoint]):
+def edit_breakpoints_at_line(breakpoints: Breakpoints, source_breakpoints: list[SourceBreakpoint]):
 	if not source_breakpoints:
 		return
 
@@ -42,7 +44,7 @@ def edit_breakpoints_at_line(breakpoints: Breakpoints, source_breakpoints: List[
 		breakpoints.source.edit(source_breakpoints[0]).run()
 		return
 
-	items = []
+	items: list[ui.InputListItem] = []
 	for breakpoint in source_breakpoints:
 		items.append(
 			ui.InputListItem(

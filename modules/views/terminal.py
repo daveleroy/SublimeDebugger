@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from ..import ui
 from ..import dap
@@ -31,7 +33,7 @@ _css_for_type = {
 }
 
 class LineSourceView (ui.span):
-	def __init__(self, name: str, line: Optional[int], text_width: int, on_clicked_source: Callable[[], None]):
+	def __init__(self, name: str, line: int|None, text_width: int, on_clicked_source: Callable[[], None]):
 		super().__init__()
 		self.on_clicked_source = on_clicked_source
 		self.name = name
@@ -68,8 +70,8 @@ class LineView (ui.div):
 			component = VariableComponent(self.line.variable, source=self.line.source, on_clicked_source=self.on_clicked_source)
 			return [component]
 
-		span_lines = [] #type: List[ui.div]
-		spans = [] #type: List[ui.span]
+		span_lines = [] #type: list[ui.div]
+		spans = [] #type: list[ui.span]
 		max_line_length = self.max_line_length
 		leftover_line_length = max_line_length
 

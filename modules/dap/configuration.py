@@ -1,9 +1,12 @@
 from __future__ import annotations
-
 from ..typecheck import *
+
 from ..import core
 
 import sublime
+
+if TYPE_CHECKING:
+	from .session import Session
 
 class Transport(Protocol):
 	def write(self, message: bytes) -> None:
@@ -28,7 +31,7 @@ class AdapterConfiguration (Protocol):
 	def installed_version(self) -> str | None: ...
 
 	@property
-	def configuration_snippets(self) -> list[Any] | None: ...
+	def configuration_snippets(self) -> list[dict[str, Any]] | None: ...
 
 	@property
 	def configuration_schema(self) -> dict[str, Any] | None: ...
@@ -46,16 +49,16 @@ class AdapterConfiguration (Protocol):
 			return (word_string, word)
 		return None
 
-	def did_start_debugging(self, session):
+	def did_start_debugging(self, session: Session):
 		...
 
-	def did_stop_debugging(self, session):
+	def did_stop_debugging(self, session: Session):
 		...
 
-	def on_custom_event(self, session):
+	def on_custom_event(self, session: Session):
 		...
 
-	async def on_custom_request(self, session, request, arguments):
+	async def on_custom_request(self, session: Session, command: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
 		...
 
 	def commands(self):
@@ -67,8 +70,8 @@ class AdapterConfiguration (Protocol):
 	def ui(self, sessions):
 		...
 
-class Configuration(dict):
-	def __init__(self, name: str, index: int, type: str, request: str, all: dict) -> None:
+class Configuration(Dict[str, Any]):
+	def __init__(self, name: str, index: int, type: str, request: str, all: dict[str, Any]):
 		super().__init__(all)
 
 		self.name = name
@@ -77,7 +80,7 @@ class Configuration(dict):
 		self.request = request
 
 	@staticmethod
-	def from_json(json: dict, index: int) -> 'Configuration':
+	def from_json(json: dict[str, Any], index: int) -> 'Configuration':
 		name = json.get('name')
 		assert name, 'expecting name for debug.configuration'
 		type = json.get('type')
@@ -88,7 +91,7 @@ class Configuration(dict):
 
 
 class ConfigurationExpanded(Configuration):
-	def __init__(self, configuration: Configuration, variables: Any) -> None:
+	def __init__(self, configuration: Configuration, variables: Any):
 		all = ConfigurationExpanded._expand_variables_and_platform(configuration, variables)
 		super().__init__(configuration.name, -1, configuration.type, configuration.request, all)
 
@@ -97,10 +100,10 @@ class ConfigurationExpanded(Configuration):
 		self.post_debug_task: Optional[TaskExpanded] = None
 
 	@staticmethod
-	def _expand_variables_and_platform(json: dict, variables: Optional[dict]) -> dict:
+	def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, str] | None):
 		json = json.copy()
 
-		platform: Optional[dict] = None
+		platform = None
 		if core.platform.osx:
 			platform = json.get('osx')
 		elif core.platform.linux:
@@ -119,13 +122,13 @@ class ConfigurationExpanded(Configuration):
 
 
 class ConfigurationCompound:
-	def __init__(self, name: str, index: int, configurations: List[str]) -> None:
+	def __init__(self, name: str, index: int, configurations: list[str]) -> None:
 		self.name = name
 		self.id_ish = f'compound_{name}_{index}'
 		self.configurations = configurations
 
 	@staticmethod
-	def from_json(json: dict, index: int) -> 'ConfigurationCompound':
+	def from_json(json: dict[str, Any], index: int) -> 'ConfigurationCompound':
 		name = json.get('name')
 		assert name, 'expecting name for debug.compound'
 		configurations = json.get('configurations')
@@ -133,17 +136,17 @@ class ConfigurationCompound:
 		return ConfigurationCompound(name, index, configurations)
 
 
-class Task (dict):
-	def __init__(self, arguments: dict) -> None:
+class Task (Dict[str, Any]):
+	def __init__(self, arguments: dict[str, Any]) -> None:
 		super().__init__(arguments)
 		self.name = self.get('name', 'Untitled')
 
 	@staticmethod
-	def from_json(json):
+	def from_json(json: dict[str, Any]):
 		return Task(json)
 
 
 class TaskExpanded(Task):
-	def __init__(self, task: Task, variables: Any) -> None:
+	def __init__(self, task: Task, variables: dict[str, str]) -> None:
 		all = ConfigurationExpanded._expand_variables_and_platform(task, variables)
 		super().__init__(all)

@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import ui
 from .import css
 
@@ -17,14 +19,14 @@ class TabbedPanelItem:
 
 
 class TabbedPanel(ui.div):
-	def __init__(self, items: List[TabbedPanelItem], selected_index: int, width_scale: float, width_additional: float) -> None:
+	def __init__(self, items: list[TabbedPanelItem], selected_index: int, width_scale: float, width_additional: float) -> None:
 		super().__init__()
 		self.items = items
 		self.selected_index = selected_index
 		self.width_scale = width_scale
 		self.width_additional = width_additional
 
-	def update(self, items: List[TabbedPanelItem]):
+	def update(self, items: list[TabbedPanelItem]):
 		self.items = items
 		if len(items) < self.selected_index:
 			self.selected_index = 0
@@ -89,7 +91,7 @@ class TabbedPanel(ui.div):
 
 		width = (self.layout.width() + self.width_additional) * self.width_scale
 
-		tabs = [] #type: List[ui.span]
+		tabs = [] #type: list[ui.span]
 		for index, item in enumerate(self.items):
 			if not item.visible:
 				continue

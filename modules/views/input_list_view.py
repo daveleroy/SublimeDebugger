@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ..import ui
 from .import css
 
@@ -6,8 +8,8 @@ class InputListView (ui.div):
 		super().__init__()
 		self.input = input
 
-	def render(self) -> ui.div.Children:
-		items = []
+	def render(self):
+		items: list[ui.div] = []
 		for input in self.input.values:
 			text = input.text.split('\t')
 			if len(text) == 1:

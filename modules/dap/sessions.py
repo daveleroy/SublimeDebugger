@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..typecheck import *
 from ..import core
 
@@ -17,10 +18,11 @@ class Sessions (SessionListener):
 		self.watch = Watch()
 		self.provider = provider
 
-		self.sessions: List[Session] = []
-		self.updated = core.Event()
+		self.sessions: list[Session] = []
 
-		self.output = core.Event()
+		self.updated: core.Event[Session, int] = core.Event()
+		self.output: core.Event[Session, OutputEvent] = core.Event()
+		
 		self.transport_log = core.StdioLogger()
 
 		self.on_updated_modules: core.Event[Session] = core.Event()
@@ -39,7 +41,7 @@ class Sessions (SessionListener):
 	def __iter__(self):
 		return iter(self.sessions)
 
-	async def launch(self, breakpoints: Breakpoints, adapter: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False, parent: Optional[Session] = None) -> Session:
+	async def launch(self, breakpoints: Breakpoints, adapter: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Any|None = None, no_debug: bool = False, parent: Session|None = None) -> Session:
 		for session in self.sessions:
 			if configuration.id_ish == session.configuration.id_ish:
 				await session.stop()

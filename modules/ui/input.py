@@ -1,10 +1,11 @@
 from __future__ import annotations
-from dataclasses import dataclass
 from ..typecheck import *
+
 from ..import core
 
 import sublime
 import sublime_plugin
+from dataclasses import dataclass
 
 core.on_view_drag_select_or_context_menu.add(lambda v: CommandPaletteInputCommand.on_view_drag_select_or_context_menu())
 
@@ -14,7 +15,7 @@ class CommandPaletteInputCommand:
 	def __init__(self, window: sublime.Window, input: InputList|InputText):
 		self.window = window
 		self.input = input
-		self.future: core.future[None] = core.create_future()
+		self.future: core.Future[None] = core.Future()
 
 		def _on_cancel():
 			CommandPaletteInputCommand.running_command = None

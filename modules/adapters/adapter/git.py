@@ -9,8 +9,8 @@ import certifi
 
 from ...libs.semver import semver
 
-cached_etag = {}
-cached_response = {}
+cached_etag: dict[str, str] = {}
+cached_response: dict[str, Any] = {}
 
 # we have 60 requests per hour for an anonymous user to the github api
 # conditional requests don't count against the 60 requests per hour limit so implement some very basic caching
@@ -40,7 +40,8 @@ async def request_json(url: str, timeout: int|None = 30) -> Any:
 
 		return result
 
-	return await core.run_in_executor(blocking)
+	result = await core.run_in_executor(blocking)
+	return result
 
 async def latest_release_vsix_release(owner: str, repo: str):
 	url = f'https://api.github.com/repos/{owner}/{repo}/releases'

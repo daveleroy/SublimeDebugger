@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 from .import dap
 
@@ -29,11 +31,14 @@ def show_line(view, line: int, column: int, move_cursor: bool):
 
 class SourceNavigationProvider:
 	def __init__(self, project: Project, sessions: dap.Sessions):
+		super().__init__()
+
 		self.sessions = sessions
 		self.project = project
-		self.updating = None #type: Optional[Any]
-		self.generated_view = None #type: Optional[sublime.View]
-		self.selected_frame_line = None #type: Optional[SelectedLine]
+
+		self.updating: Any|None = None
+		self.generated_view: sublime.View|None = None
+		self.selected_frame_line: SelectedLine|None = None
 
 	def dispose(self):
 		self.clear()
@@ -41,7 +46,8 @@ class SourceNavigationProvider:
 	def select_source_location(self, source: dap.SourceLocation, stopped_reason: str):
 		if self.updating:
 			self.updating.cancel()
-		def on_error(error):
+
+		def on_error(error: BaseException):
 			if error is not core.CancelledError:
 				core.log_error(error)
 
@@ -50,7 +56,7 @@ class SourceNavigationProvider:
 			view = await self.navigate_to_source(source)
 
 			# r = view.line(view.text_point(source.line - 1, 0))
-			# view.add_regions("asdfasdf", [r], scope="region.bluish", annotations=[stopped_reason.ljust(200, '\u00A0')], annotation_color='var(--bluish)', flags=sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE|sublime.DRAW_SOLID_UNDERLINE)
+			# view.add_regions("asdfasdf", [r], scope="region.bluish", annotations=[stopped_reason], annotation_color='color(var(--bluish) alpha(0.5))')
 			self.selected_frame_line = SelectedLine(view, source.line or 1, stopped_reason)
 
 		self.updating = core.run(select_async(source, stopped_reason), on_error=on_error)
@@ -59,7 +65,7 @@ class SourceNavigationProvider:
 		if self.updating:
 			self.updating.cancel()
 
-		def on_error(error):
+		def on_error(error: BaseException):
 			if error is not core.CancelledError:
 				core.log_error(error)
 

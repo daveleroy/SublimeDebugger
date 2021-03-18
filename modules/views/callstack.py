@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import*
+
 from ..import ui
 from ..import core
 from .. import dap
@@ -8,9 +10,9 @@ import os
 
 class CallStackState:
 	def __init__(self):
-		self._expanded = {}
+		self._expanded: dict[int, bool] = {}
 
-	def is_expanded(self, item: Any, default = False):
+	def is_expanded(self, item: Any, default: bool = False):
 		expanded = self._expanded.get(id(item))
 		
 		if expanded is None:
@@ -21,7 +23,7 @@ class CallStackState:
 	def set_expanded(self, item: Any, value: bool):
 		self._expanded[id(item)] = value
 
-	def toggle_expanded(self, item: Any, default = False):
+	def toggle_expanded(self, item: Any, default: bool = False):
 		self._expanded[id(item)] = not self.is_expanded(item, default)
 
 class CallStackView (ui.div):
@@ -48,7 +50,7 @@ class CallStackView (ui.div):
 		self.sessions.active = session
 
 	def render(self) -> ui.div.Children:
-		thread_views = []
+		thread_views: list[SessionView] = []
 		show_session_name = len(self.sessions.sessions) > 1
 
 		if not self.sessions.sessions:
@@ -97,8 +99,8 @@ class SessionView (ui.div):
 		session = self.session
 		threads = session.threads
 		expanded = self.state.is_expanded(session, default=True)
-		thread_views = []
-		label_view: Optional[ui.div] = None
+		thread_views: list[SessionView|ThreadView] = []
+		label_view: ui.div | None = None
 
 
 		if True:
@@ -111,7 +113,7 @@ class SessionView (ui.div):
 				ui.text(session.name, css=session_css_label)
 			]
 
-			def on_toggle(session):
+			def on_toggle(session: dap.Session):
 				self.state.toggle_expanded(session, default=True)
 				self.dirty()
 
@@ -148,7 +150,7 @@ class ThreadView (ui.div):
 		self.show_thread_name = show_thread_name
 		self.thread = thread
 		self.state = state
-		self.frames = [] #type: List[dap.StackFrame]
+		self.frames = [] #type: list[dap.StackFrame]
 		self.fetch()
 
 	@property
@@ -161,7 +163,7 @@ class ThreadView (ui.div):
 	@core.schedule
 	async def fetch(self):
 		if not self.is_expanded or not self.thread.stopped:
-			return []
+			return
 
 		self.frames = await self.thread.children()
 		self.dirty()

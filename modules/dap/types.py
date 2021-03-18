@@ -3,26 +3,26 @@ from ..typecheck import *
 from ..import core
 
 from dataclasses import dataclass
-from collections import defaultdict
 
+T = TypeVar('T')
+V = TypeVar('V')
 
-__T = TypeVar('__T')
+Json = Dict[str, Any]
 
-
-def array_from_json(from_json: Callable[[dict], __T], json_array: list) -> List[__T]:
-	items = []
+def array_from_json(from_json: Callable[[Json], T], json_array: list[Json]) -> list[T]:
+	items: list[T] = []
 	for json in json_array:
 		items.append(from_json(json))
 	return items
 
-def json_from_array(into_json: Callable[[__T], dict], array: List[__T]) -> list:
-	json = []
+def json_from_array(into_json: Callable[[T], Json], array: list[T]) -> list[Any]:
+	json: list[Any] = []
 	for item in array:
 		json.append(into_json(item))
 	return json
 
-class _DefaultDict(dict):
-	def __missing__(self, key):
+class _DefaultDict(Dict[T, V]):
+	def __missing__(self, key: str):
 		return key.join("{}")
 
 class Error(core.Error):
@@ -31,7 +31,7 @@ class Error(core.Error):
 		self.showUser = showUser
 
 	@staticmethod
-	def from_json(json: dict) -> 'Error':
+	def from_json(json: Json):
 		# why on earth does the optional error details have variables that need to be formatted in it????????
 		format = json.get('format', 'No error reason given')
 		variables = _DefaultDict(**json.get('variables', {}))
@@ -45,7 +45,7 @@ class Thread:
 	name: str
 
 	@staticmethod
-	def from_json(json: dict) -> Thread:
+	def from_json(json: Json):
 		return Thread(
 			id=json['id'],
 			name=json['name'],
@@ -53,23 +53,23 @@ class Thread:
 
 @dataclass
 class StackFrame:
-	normal: ClassVar[str] = 'normal'
-	label: ClassVar[str] = 'label'
-	subtle: ClassVar[str] = 'subtle'
-
 	id: int
 	file: str
 	name: str
 	line: int
 	column: int
 	presentation: str
-	source: Optional['Source']
+	source: Source|None
+
+	normal: ClassVar[str] = 'normal'
+	label: ClassVar[str] = 'label'
+	subtle: ClassVar[str] = 'subtle'
 
 	@staticmethod
-	def from_json(frame: dict) -> 'StackFrame':
+	def from_json(frame: Json):
 		file = '??'
 		source_json = frame.get('source')
-		source = None #type: Optional[Source]
+		source = None #type: Source|None
 		if source_json:
 			source = Source.from_json(source_json)
 			file = source.name or "??"
@@ -92,7 +92,7 @@ class Scope:
 	expensive: bool
 
 	@staticmethod
-	def from_json(json: dict) -> Scope:
+	def from_json(json: Json):
 		return Scope(
 			name=json['name'],
 			variablesReference=json['variablesReference'],
@@ -105,10 +105,10 @@ class Variable:
 	value: str
 	variablesReference: int
 	containerVariablesReference: int = 0
-	evaluateName: Optional[str] = None
+	evaluateName: str|None = None
 
 	@staticmethod
-	def from_json(containerVariablesReference: int, json: dict) -> Variable:
+	def from_json(containerVariablesReference: int, json: Json):
 		return Variable(
 			name=json['name'],
 			value=json['value'],
@@ -125,13 +125,18 @@ class EvaluateResponse:
 @dataclass
 class CompletionItem:
 	label: str
-	text: str
+	text: str | None
+	sortText: str | None
+	type: str | None #'removed' 'method' 'function' 'constructor' 'field' 'variable' 'class' 'interface' 'module' 'property' 'unit' 'value' 'enum' 'keyword' 'snippet' 'text' 'color' 'file' 'reference' 'customcolor'
+
 
 	@staticmethod
-	def from_json(json: dict) -> CompletionItem:
+	def from_json(json: Json):
 		return CompletionItem(
 			json['label'],
 			json.get('text', None),
+			json.get('sortText', None),
+			json.get('type', None),
 		)
 
 
@@ -141,7 +146,7 @@ class Source:
 	emphasize = 2
 	deemphasize = 3
 
-	def __init__(self, name: Optional[str], path: Optional[str], sourceReference: int = 0, presentationHint: int = 1, origin: Optional[str] = None, sources: List['Source'] = []) -> None:
+	def __init__(self, name: str|None, path: str|None, sourceReference: int = 0, presentationHint: int = 1, origin: str|None = None, sources: list['Source'] = []) -> None:
 		# no idea how there are supposed to be uniquely identified but there is an event LoadedSourceEvent that seems to assume they are
 		self.id = f'{name}~{path}~{sourceReference}'
 
@@ -153,7 +158,7 @@ class Source:
 		self.sources = sources
 
 	@staticmethod
-	def from_json(json: dict) -> Source:
+	def from_json(json: Json):
 		hint = Source.normal
 		json_hint = json.get('presentationHint')
 		if json_hint:
@@ -177,13 +182,13 @@ class Source:
 class ExceptionBreakpointsFilter:
 	id: str
 	label: str
-	description: Optional[str]
+	description: str|None
 	default: bool
 	supportsCondition: bool
-	conditionDescription: Optional[str]
+	conditionDescription: str|None
 
 	@staticmethod
-	def from_json(json: dict) -> ExceptionBreakpointsFilter:
+	def from_json(json: Json):
 		return ExceptionBreakpointsFilter(
 			json['filter'],
 			json['label'],
@@ -193,7 +198,7 @@ class ExceptionBreakpointsFilter:
 			json.get('conditionDescription', None),
 		)
 
-	def into_json(self) -> dict:
+	def into_json(self) -> Json:
 		return {
 			'filter': self.id,
 			'label': self.label,
@@ -207,7 +212,7 @@ class Capabilities:
 	supportsConditionalBreakpoints: bool
 	supportsHitConditionalBreakpoints: bool
 	supportsEvaluateForHovers: bool
-	exceptionBreakpointFilters: List[ExceptionBreakpointsFilter]
+	exceptionBreakpointFilters: list[ExceptionBreakpointsFilter]
 	supportsStepBack: bool
 	supportsSetVariable: bool
 	supportsRestartFrame: bool
@@ -237,7 +242,7 @@ class Capabilities:
 	supportsExceptionFilterOptions: bool
 
 	@staticmethod
-	def from_json(json: dict) -> Capabilities:
+	def from_json(json: Json):
 		return Capabilities(
 			supportsConfigurationDoneRequest=json.get('supportsConfigurationDoneRequest', False),
 			supportsFunctionBreakpoints=json.get('supportsFunctionBreakpoints', False),
@@ -283,7 +288,7 @@ class StoppedEvent:
 	text: str
 
 	@staticmethod
-	def from_json(json) -> StoppedEvent:
+	def from_json(json: Json):
 		# stopped events are required to have a reason but some adapters treat it as optional...
 		description = json.get('description')
 		text = json.get('text')
@@ -308,7 +313,7 @@ class ThreadEvent:
 	reason: str
 
 	@staticmethod
-	def from_json(json) -> ThreadEvent:
+	def from_json(json: Json):
 		return ThreadEvent(
 			threadId=json['threadId'],
 			reason=json['reason'],
@@ -316,10 +321,10 @@ class ThreadEvent:
 
 @dataclass
 class TerminatedEvent:
-	restart: Optional[Any]
+	restart: Any|None
 
 	@staticmethod
-	def from_json(json) -> TerminatedEvent:
+	def from_json(json: Json):
 		return TerminatedEvent(json.get('restart'))
 
 @dataclass
@@ -327,7 +332,7 @@ class ContinueResponse:
 	allThreadsContinued: bool
 
 	@staticmethod
-	def from_json(json) -> ContinueResponse:
+	def from_json(json: Json):
 		return ContinueResponse(json.get('allThreadsContinued', True))
 
 
@@ -337,7 +342,7 @@ class ContinuedEvent:
 	allThreadsContinued: bool
 
 	@staticmethod
-	def from_json(json) -> ContinuedEvent:
+	def from_json(json: Json):
 		return ContinuedEvent(
 			threadId=json['threadId'],
 			allThreadsContinued=json.get('allThreadsContinued', None),
@@ -348,11 +353,11 @@ class OutputEvent:
 	category: str
 	text: str
 	variablesReference: int
-	source: Optional[Source] = None
-	line: Optional[int] = None
+	source: Source|None = None
+	line: int|None = None
 
 	@staticmethod
-	def from_json(json) -> OutputEvent:
+	def from_json(json: Json):
 		category = json.get('category', 'console')
 		source = json.get('source')
 		if source:
@@ -371,11 +376,11 @@ class RunInTerminalRequest:
 	kind: str
 	title: str
 	cwd: str
-	args: List[str]
-	env: Dict[str, Optional[str]]
+	args: list[str]
+	env: dict[str, str|None]
 
 	@staticmethod
-	def from_json(json) -> RunInTerminalRequest:
+	def from_json(json: Json):
 		return RunInTerminalRequest(
 			json.get('kind', 'integrated'),
 			json.get('title', 'No Title'),
@@ -386,10 +391,10 @@ class RunInTerminalRequest:
 
 @dataclass
 class RunInTerminalResponse:
-	processId: Optional[int]
-	shellProcessId: Optional[int]
+	processId: int|None
+	shellProcessId: int|None
 
-	def into_json(self) -> dict:
+	def into_json(self) -> Json:
 		return {
 			'processId': self.processId,
 			'shellProcessId': self.shellProcessId,
@@ -398,16 +403,16 @@ class RunInTerminalResponse:
 
 @dataclass
 class DataBreakpoint:
+	id: str
+	accessType: str|None
+	condition: str|None
+	hitCondition: str|None
+
 	read: ClassVar[str] = 'read'
 	write: ClassVar[str] = 'write'
 	readWrite: ClassVar[str] = 'readWrite'
 
-	id: str
-	accessType: Optional[str]
-	condition: Optional[str]
-	hitCondition: Optional[str]
-
-	def into_json(self) -> dict:
+	def into_json(self) -> Json:
 		return {
 			'processId': self.id,
 			'accessType': self.accessType,
@@ -415,7 +420,7 @@ class DataBreakpoint:
 			'hitCondition': self.hitCondition,
 		}
 	@staticmethod
-	def from_json(json: dict) -> 'DataBreakpoint':
+	def from_json(json: Json):
 		return DataBreakpoint(
 			json['dataId'],
 			json['accessType'],
@@ -425,13 +430,13 @@ class DataBreakpoint:
 
 @dataclass
 class DataBreakpointInfoResponse:
-	id: Optional[str]
+	id: str|None
 	description: str
-	accessTypes: List[str]
+	accessTypes: list[str]
 	canPersist: bool
 
 	@staticmethod
-	def from_json(json) -> 'DataBreakpointInfoResponse':
+	def from_json(json: Json):
 		return DataBreakpointInfoResponse(
 			json.get('dataId'),
 			json.get('description', 'no data description'),
@@ -439,7 +444,7 @@ class DataBreakpointInfoResponse:
 			json.get('canPersist', False),
 		)
 
-	def into_json(self) -> dict:
+	def into_json(self) -> Json:
 		return {
 			'dataId': self.id,
 			'description': self.description,
@@ -450,18 +455,18 @@ class DataBreakpointInfoResponse:
 @dataclass
 class FunctionBreakpoint:
 	name: str
-	condition: Optional[str]
-	hitCondition: Optional[str]
+	condition: str|None
+	hitCondition: str|None
 
 	@staticmethod
-	def from_json(json) -> 'FunctionBreakpoint':
+	def from_json(json: Json):
 		return FunctionBreakpoint(
-			json.get('name'),
+			json['name'],
 			json.get('condition'),
 			json.get('hitCondition'),
 		)
 
-	def into_json(self) -> dict:
+	def into_json(self) -> Json:
 		return {
 			'name': self.name,
 			'condition': self.condition,
@@ -471,22 +476,22 @@ class FunctionBreakpoint:
 @dataclass
 class SourceBreakpoint:
 	line: int
-	column: Optional[int]
-	condition: Optional[str]
-	hitCondition: Optional[str]
-	logMessage: Optional[str]
+	column: int|None
+	condition: str|None
+	hitCondition: str|None
+	logMessage: str|None
 
 	@staticmethod
-	def from_json(json) -> 'SourceBreakpoint':
+	def from_json(json: Json):
 		return SourceBreakpoint(
-			json.get('line'),
+			json['line'],
 			json.get('column'),
 			json.get('condition'),
 			json.get('hitCondition'),
 			json.get('logMessage'),
 		)
 
-	def into_json(self) -> dict:
+	def into_json(self) -> Json:
 		# chrome debugger hates null column
 		return _remove_empty({
 			'line': self.line,
@@ -496,8 +501,8 @@ class SourceBreakpoint:
 			'logMessage': self.logMessage,
 		})
 
-def _remove_empty(dict: dict):
-	rm = []
+def _remove_empty(dict: Json):
+	rm: list[str] = []
 	for key, value in dict.items():
 		if value is None:
 			rm.append(key)
@@ -510,7 +515,7 @@ def _remove_empty(dict: dict):
 class BreakpointResult:
 	failed: BreakpointResult
 
-	def __init__(self, verified: bool, line: Optional[int], column: Optional[int], message: Optional[str], id = None) -> None:
+	def __init__(self, verified: bool, line: int|None, column: int|None, message: str|None, id: int|None = None) -> None:
 		self.verified = verified
 		self.line = line
 		self.column = column
@@ -518,7 +523,7 @@ class BreakpointResult:
 		self.id = id
 
 	@staticmethod
-	def from_json(json: dict) -> 'BreakpointResult':
+	def from_json(json: Json):
 		return BreakpointResult(
 			json['verified'],
 			json.get('line'),
@@ -534,7 +539,7 @@ class BreakpointEvent:
 	result: BreakpointResult
 
 	@staticmethod
-	def from_json(json) -> 'BreakpointEvent':
+	def from_json(json: Json):
 		return BreakpointEvent (
 			json['reason'],
 			BreakpointResult.from_json(json['breakpoint']),
@@ -544,17 +549,17 @@ class BreakpointEvent:
 class Module:
 	id: Union[int, str]
 	name: str
-	path: Optional[str]
-	isOptimized: Optional[bool]
-	isUserCode: Optional[bool]
-	version: Optional[str]
-	symbolStatus: Optional[str]
-	symbolFilePath: Optional[str]
-	dateTimeStamp: Optional[str]
-	addressRange: Optional[str]
+	path: str|None
+	isOptimized: bool|None
+	isUserCode: bool|None
+	version: str|None
+	symbolStatus: str|None
+	symbolFilePath: str|None
+	dateTimeStamp: str|None
+	addressRange: str|None
 
 	@staticmethod
-	def from_json(json) -> 'Module':
+	def from_json(json: Json):
 		return Module(
 			id = json['id'],
 			name = json['name'],
@@ -574,9 +579,9 @@ class ModuleEvent:
 	new: ClassVar[str] = 'new'
 	changed: ClassVar[str] = 'changed'
 	removed: ClassVar[str] = 'removed'
-
-	def __init__(self, json: dict):
-		self.reason = json.get('reason')
+	
+	def __init__(self, json: Json):
+		self.reason = json['reason'],
 		self.module = Module.from_json(json['module'])
 
 class LoadedSourceEvent:
@@ -584,7 +589,7 @@ class LoadedSourceEvent:
 	changed: ClassVar[str] = 'changed'
 	removed: ClassVar[str] = 'removed'
 
-	def __init__(self, json: dict):
-		self.reason = json.get('reason')
+	def __init__(self, json: Json):
+		self.reason = json['reason'],
 		self.source = Source.from_json(json['source'])
 

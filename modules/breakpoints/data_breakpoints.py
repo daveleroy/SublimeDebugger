@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from ..import ui
 from ..import dap
@@ -8,7 +10,7 @@ class DataBreakpoint:
 		self.dap = breakpoint
 		self.info = info
 		self.enabled = True
-		self.result = None #type: Optional[dap.BreakpointResult]
+		self.result: dap.BreakpointResult | None = None
 
 	@property
 	def verified(self) -> bool:
@@ -25,14 +27,14 @@ class DataBreakpoint:
 		return ui.Images.shared.dot
 
 	@property
-	def tag(self) -> Optional[str]:
+	def tag(self) -> str|None:
 		return "0x"
 
 	@property
 	def name(self) -> str:
 		return self.info.description
 
-	def into_json(self) -> dict:
+	def into_json(self) -> dict[str, Any]:
 		return {
 			'dap': self.dap.into_json(),
 			'info': self.info.into_json(),
@@ -40,19 +42,18 @@ class DataBreakpoint:
 		}
 
 	@staticmethod
-	def from_json(json: dict) -> 'DataBreakpoint':
+	def from_json(json: dict[str, Any]) -> 'DataBreakpoint':
 		return DataBreakpoint(
 			dap.DataBreakpoint.from_json(json['info']),
 			dap.DataBreakpointInfoResponse.from_json(json['data']),
 			json['enabled']
 		)
 
-
 class DataBreakpoints:
 	def __init__(self):
-		self.breakpoints = [] #type: List[DataBreakpoint]
-		self.on_updated = core.Event() #type: core.Event[List[DataBreakpoint]]
-		self.on_send = core.Event() #type: core.Event[List[DataBreakpoint]]
+		self.breakpoints: list[DataBreakpoint] = []
+		self.on_updated: core.Event[list[DataBreakpoint]] = core.Event()
+		self.on_send: core.Event[list[DataBreakpoint]] = core.Event()
 
 	def __iter__(self):
 		return iter(self.breakpoints)
@@ -115,7 +116,7 @@ class DataBreakpoints:
 			),
 		], placeholder='Edit Breakpoint @ {}'.format(breakpoint.name))
 
-	def add(self, info: dap.DataBreakpointInfoResponse, type: Optional[str]):
+	def add(self, info: dap.DataBreakpointInfoResponse, type: str|None):
 		assert info.id, "this info request has no id"
 		self.breakpoints.append(
 			DataBreakpoint(

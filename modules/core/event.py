@@ -1,9 +1,11 @@
+from __future__ import annotations
 from ..typecheck import *
 
 T = TypeVar('T')
+Args = TypeVarTuple('Args')
 
 class Handle (Generic[T]):
-	def __init__(self, event: 'Event[T]', callback: Callable[[T], Any]) -> None:
+	def __init__(self, event: Event[T], callback: Callable[[T], Any]) -> None:
 		self.callback = callback
 		self.event = event
 
@@ -11,33 +13,31 @@ class Handle (Generic[T]):
 		self.event.handlers.remove(self)
 
 
-class Event (Generic[T]):
+class Event (Generic[Unpack[Args]]):
 	def __init__(self) -> None:
-		self.handlers = [] # type: List[Handle[T]]
+		self.handlers: list[Handle[Any]] = []
 
 	@overload
-	def add(self: 'Event[None]', callback: Callable[[], Any]) -> Handle[None]:
-		...
+	def add(self, callback: Callable[[], Any]) -> Handle[Any]: ...
 
 	@overload
-	def add(self, callback: Callable[[T], Any]) -> Handle[T]:
-		...
+	def add(self, callback: Callable[[Unpack[Args]], Any]) -> Handle[Any]: ...
 
-	def add(self, callback: Callable[[T], Any]) -> Handle[T]: #type: ignore
+	def add(self, callback: Any) -> Handle[Any]:
 		handle = Handle(self, callback)
 		self.handlers.append(handle)
 		return handle
 
-	def add_handle(self, handle: Handle[T]) -> None:
+	def add_handle(self, handle: Handle[Any]) -> None:
 		self.handlers.append(handle)
 
-	def __call__(self, *data: T) -> bool:
-		return self.post(*data)
+	def __call__(self, *data: Unpack[Args]) -> bool:
+		return self.post(*data) #type: ignore
 
 	def __bool__(self) -> bool:
 		return bool(self.handlers)
 
-	def post(self, *data: T) -> bool:
+	def post(self, *data: Unpack[Args]) -> bool:
 		r = False
 		for h in self.handlers:
 			r = r or h.callback(*data)

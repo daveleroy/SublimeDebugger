@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from ..import ui
 from ..import dap
@@ -9,7 +11,7 @@ class ModulesView(ui.div):
 	def __init__(self, sessions: dap.Sessions):
 		super().__init__()
 		self.sessions = sessions
-		self.expanded = {} #type: Dict[Any, bool]
+		self.expanded = {} #type: dict[Any, bool]
 
 	def added(self, layout: ui.Layout):
 		self.on_updated_modules = self.sessions.on_updated_modules.add(self.updated)
@@ -22,7 +24,7 @@ class ModulesView(ui.div):
 		self.on_updated_modules.dispose()
 		self.on_removed_session.dispose()
 
-	def is_expanded(self, module: dap.Module) -> bool:
+	def is_expanded(self, module: dap.Module):
 		return self.expanded.get(module.id, False)
 
 	def toggle_expanded(self, module: dap.Module):
@@ -33,8 +35,8 @@ class ModulesView(ui.div):
 
 		self.dirty()
 
-	def render(self) -> ui.div.Children:
-		items = []
+	def render(self):
+		items: list[ui.div] = []
 		for session in self.sessions:
 			items.append(ui.div(height=css.row_height)[
 				ui.text(session.name)

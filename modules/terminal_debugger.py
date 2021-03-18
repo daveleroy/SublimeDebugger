@@ -1,8 +1,8 @@
 from __future__ import annotations
 from .typecheck import *
-from .import core
 
-from . import dap
+from .import core
+from .import dap
 
 from .terminal import Terminal
 from .panel import OutputPanel
@@ -50,13 +50,13 @@ class TermianlDebugger (Terminal):
 		else:
 			self.append_text(event.category, event.text, event.source, event.line)
 
-	def append_variable(self, session: dap.Session, variable: dap.Variable, source: Optional[dap.Source], line: Optional[int]):
+	def append_variable(self, session: dap.Session, variable: dap.Variable, source: Optional[dap.Source], line: int|None):
 		if source:
 			self.add_variable(variable, dap.SourceLocation(source, line))
 		else:
 			self.add_variable(variable)
 
-	def append_text(self, type: str, text: str, source: Optional[dap.Source], line: Optional[int]):
+	def append_text(self, type: str, text: str, source: Optional[dap.Source], line: int|None):
 		if type == "telemetry":
 			return
 

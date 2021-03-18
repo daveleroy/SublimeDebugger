@@ -1,5 +1,6 @@
 from __future__ import annotations
 from ..typecheck import *
+
 from .. import core
 from . html import span, div, element, phantom_sizer
 from . layout_view import LayoutView
@@ -27,9 +28,9 @@ class Timer:
 		self.cancelable.cancel()
 
 
-_renderables: List[Renderable] = []
-_renderables_remove: List[Renderable] = []
-_renderables_add: List[Renderable] = []
+_renderables: list[Renderable] = []
+_renderables_remove: list[Renderable] = []
+_renderables_add: list[Renderable] = []
 
 
 def reload() -> None:

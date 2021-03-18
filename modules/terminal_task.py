@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Dict, Any, List
 
 import re
@@ -37,7 +38,7 @@ class TerminalTask(Terminal):
 
 
 		self.on_problems_updated: core.Event[None] = core.Event()
-		self.problems_per_file: Dict[str, List[Problem]] = {}
+		self.problems_per_file: dict[str, list[Problem]] = {}
 
 		self.future = core.create_future()
 		self.window = window

@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 from .import ui
 
@@ -10,7 +12,7 @@ import re
 async def select_process():
 	from .libs import psutil
 
-	list = []
+	items: list[ui.InputListItem] = []
 	selected_proc: Any = None
 
 	def select(proc: Any):
@@ -18,9 +20,9 @@ async def select_process():
 		selected_proc = proc
 
 	for proc in psutil.process_iter(['pid', 'name', 'username']):
-		list.append(ui.InputListItem(lambda proc=proc: select(proc), proc.name() + f'\t{proc.pid}'+ f'\t{proc.username()}'))
+		items.append(ui.InputListItem(lambda proc=proc: select(proc), proc.name() + f'\t{proc.pid}'+ f'\t{proc.username()}'))
 
-	await ui.InputList(list, "Select a process to start debugging").run()
+	await ui.InputList(items, "Select a process to start debugging").run()
 
 	if selected_proc:
 		return selected_proc.pid

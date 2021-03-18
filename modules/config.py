@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 
 import os

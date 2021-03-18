@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core, ui
 
 import sublime
@@ -38,8 +40,8 @@ from .views.problems import ProblemsView
 
 class Debugger (dap.SessionsTasksProvider, core.Logger):
 
-	instances: Dict[int, 'Debugger'] = {}
-	creating: Dict[int, bool] = {}
+	instances: dict[int, 'Debugger'] = {}
+	creating: dict[int, bool] = {}
 
 	@staticmethod
 	def should_auto_open_in_window(window: sublime.Window) -> bool:
@@ -53,7 +55,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		return False
 
 	@staticmethod
-	def get(window: sublime.Window, create: bool = False) -> 'Optional[Debugger]':
+	def get(window: sublime.Window, create: bool = False) -> Debugger|None:
 		global instances
 		id = window.id()
 		instance = Debugger.instances.get(id)
@@ -79,7 +81,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 
 	def __init__(self, window: sublime.Window) -> None:
 		self.window = window
-		self.disposeables = [] #type: List[Any]
+		self.disposeables = [] #type: list[Any]
 
 		def on_project_configuration_updated():
 			self.panel.set_ui_scale(self.project.ui_scale)
@@ -101,7 +103,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		autocomplete = Autocomplete.create_for_window(window)
 
 		self.last_run_task = None
-		self.external_terminals: List[ExternalTerminal] = []
+		self.external_terminals: list[ExternalTerminal] = []
 
 		def on_output(session: dap.Session, event: dap.OutputEvent) -> None:
 			self.terminal.program_output(session, event)
@@ -140,7 +142,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 			self.window,
 			on_run_command=self.on_run_command,
 		)
-		self.terminals: List[Terminal] = []
+		self.terminals: list[Terminal] = []
 
 		self.disposeables.append(self.terminal)
 
@@ -293,7 +295,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	def on_navigate_to_source(self, source: dap.SourceLocation):
 		self.source_provider.show_source_location(source)
 
-	async def _on_play(self, no_debug=False) -> None:
+	async def _on_play(self, no_debug: bool = False) -> None:
 		self.show_console_panel()
 		self.terminal.clear()
 		try:
@@ -372,7 +374,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.show()
 		self.run_async(self._on_play(no_debug=True))
 
-	async def catch_error(self, awaitabe):
+	async def catch_error(self, awaitabe: Callable[[], Awaitable[Any]]) -> Any:
 		try:
 			return await awaitabe()
 		except core.Error as e:

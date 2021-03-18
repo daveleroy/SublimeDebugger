@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from ..import ui
 from ..import dap
@@ -39,7 +41,7 @@ class ProblemsView (ui.div):
 		self.dirty()
 
 	def render(self):
-		items = []
+		items: list[ui.div] = []
 
 		if not self.terminal.finished:
 			items.append(ui.div(height=css.row_height)[

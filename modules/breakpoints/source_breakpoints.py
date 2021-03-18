@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from ..import ui
 from ..import dap
@@ -6,31 +8,30 @@ from ..import dap
 import sublime
 import os
 
-
 # note: Breakpoint lines are 1 based (sublime lines are 0 based)
 class SourceBreakpoint:
 	next_id = 0
 
-	def __init__(self, breakpoints: 'SourceBreakpoints', file: str, line: int, column: Optional[int], enabled: bool) -> None:
+	def __init__(self, breakpoints: SourceBreakpoints, file: str, line: int, column: int|None, enabled: bool):
 		SourceBreakpoint.next_id += 1
 		self.id = SourceBreakpoint.next_id
 		self.region_name = 'bp{}'.format(self.id)
-		self.views = [] #type: List[SourceBreakpointView]
+		self.views: list[SourceBreakpointView] = []
 
 		self.dap = dap.SourceBreakpoint(line, column, None, None, None)
 		self._file = file
 		self.enabled = enabled
-		self.result = None #type: Optional[dap.BreakpointResult]
+		self.result: dap.BreakpointResult | None = None
 		self.breakpoints = breakpoints
 
 	@property
-	def tag(self) -> str:
+	def tag(self):
 		if self.column:
 			return '{}:{}'.format(self.line, self.column)
 		return str(self.line)
 
 	@property
-	def name(self) -> str:
+	def name(self):
 		return os.path.basename(self._file)
 
 	@property
@@ -38,13 +39,13 @@ class SourceBreakpoint:
 		return self._file
 
 	@property
-	def line(self) -> int:
+	def line(self):
 		if self.result and self.result.line:
 			return self.result.line
 		return self.dap.line
 
 	@property
-	def column(self) -> Optional[int]:
+	def column(self):
 		if self.result and self.result.column:
 			return self.result.column
 		return self.dap.column
@@ -55,7 +56,7 @@ class SourceBreakpoint:
 			return self.result.verified
 		return True
 
-	def into_json(self) -> dict:
+	def into_json(self) -> dap.Json:
 		return {
 			'file': self.file,
 			'line': self.dap.line,
@@ -67,7 +68,7 @@ class SourceBreakpoint:
 		}
 
 	@staticmethod
-	def from_json(breakoints: 'SourceBreakpoints', json: dict) -> 'SourceBreakpoint':
+	def from_json(breakoints: SourceBreakpoints, json: dap.Json):
 		file = json['file']
 		line = json['line']
 		column = json.get('column')
@@ -79,7 +80,7 @@ class SourceBreakpoint:
 		return breakpoint
 
 	@property
-	def image(self) -> ui.Image:
+	def image(self):
 		if not self.enabled:
 			return ui.Images.shared.dot_disabled
 		if not self.verified:
@@ -90,14 +91,14 @@ class SourceBreakpoint:
 			return ui.Images.shared.dot_expr
 		return ui.Images.shared.dot
 
-	def scope(self) -> str:
+	def scope(self):
 		return 'text'
 
-	def update_views(self) -> None:
+	def update_views(self):
 		for view in self.views:
 			view.render()
 
-	def add_to_view(self, view: sublime.View) -> None:
+	def add_to_view(self, view: sublime.View):
 		for old_view in self.views:
 			if old_view.view.id() == view.id():
 				old_view.render()
@@ -105,24 +106,23 @@ class SourceBreakpoint:
 
 		self.views.append(SourceBreakpointView(self, view, lambda: self.breakpoints.edit(self).run()))
 
-	def clear_views(self) -> None:
+	def clear_views(self):
 		for view in self.views:
 			view.dispose()
 		self.views = []
 
-	def __lt__(self, other: 'SourceBreakpoint'):
+	def __lt__(self, other: SourceBreakpoint):
 		return (self.file, self.line, self.column or 0) < (other.file, other.line, other.column or 0)
-
 
 class SourceBreakpointView:
 	def __init__(self, breakpoint: SourceBreakpoint, view: sublime.View, on_click_inline: Callable[[], None]):
 		self.breakpoint = breakpoint
 		self.view = view
-		self.column_phantom = None #type: Optional[ui.Phantom]
+		self.column_phantom: ui.Phantom|None = None
 		self.on_click_inline = on_click_inline
 		self.render()
 
-	def render(self) -> None:
+	def render(self):
 		self.dispose()
 
 		image = self.breakpoint.image
@@ -137,34 +137,33 @@ class SourceBreakpointView:
 			p = self.view.text_point(line - 1, column - 1)
 			self.column_phantom = ui.Phantom(ui.click(self.on_click_inline)[ui.icon(image)], self.view, sublime.Region(p, p))
 
-	def dispose(self) -> None:
+	def dispose(self):
 		self.view.erase_regions(self.breakpoint.region_name)
 		if self.column_phantom:
 			self.column_phantom.dispose()
 			self.column_phantom = None
 
-
 class SourceBreakpoints:
-	def __init__(self) -> None:
-		self.breakpoints = [] #type: List[SourceBreakpoint]
-		self.on_updated = core.Event() #type: core.Event[SourceBreakpoint]
-		self.on_send = core.Event() #type: core.Event[SourceBreakpoint]
+	def __init__(self):
+		self.breakpoints: list[SourceBreakpoint] = []
+		self.on_updated: core.Event[SourceBreakpoint] = core.Event()
+		self.on_send: core.Event[SourceBreakpoint] = core.Event()
 
 		self.disposeables = [
 			core.on_view_activated.add(self.on_view_activated),
 			core.on_view_modified.add(self.view_modified)
-		] #type: List[Any]
+		]
 
 		self.sync_dirty_scheduled = False
-		self.dirty_views = {} #type: Dict[int, sublime.View]
+		self.dirty_views: dict[int, sublime.View] = {}
 
 	def __iter__(self):
 		return iter(self.breakpoints)
 
-	def into_json(self) -> list:
+	def into_json(self) -> list[Any]:
 		return list(map(lambda b: b.into_json(), self.breakpoints))
 
-	def load_json(self, json: list):
+	def load_json(self, json: list[Any]):
 		self.breakpoints = list(map(lambda j: SourceBreakpoint.from_json(self, j), json))
 		self.breakpoints.sort()
 		self.add_breakpoints_to_current_view()
@@ -181,7 +180,7 @@ class SourceBreakpoints:
 		if send:
 			self.on_send(breakpoint)
 
-	def dispose(self) -> None:
+	def dispose(self):
 		for d in self.disposeables:
 			d.dispose()
 		for bp in self.breakpoints:
@@ -237,28 +236,28 @@ class SourceBreakpoints:
 			),
 		], placeholder="Edit Breakpoint in {} @ {}".format(breakpoint.name, breakpoint.tag))
 
-	def remove(self, breakpoint: SourceBreakpoint) -> None:
+	def remove(self, breakpoint: SourceBreakpoint):
 		breakpoint.clear_views()
 		self.breakpoints.remove(breakpoint)
 		self.updated(breakpoint)
 
-	def toggle_enabled(self, breakpoint: SourceBreakpoint) -> None:
+	def toggle_enabled(self, breakpoint: SourceBreakpoint):
 		breakpoint.enabled = not breakpoint.enabled
 		self.updated(breakpoint)
 
-	def toggle(self, file: str, line: int, column: Optional[int] = None) -> None:
+	def toggle(self, file: str, line: int, column: int|None = None):
 		breakpoint = self.get_breakpoint(file, line, column)
 		if breakpoint:
 			self.remove(breakpoint)
 		else:
 			self.add_breakpoint(file, line, column)
 
-	def breakpoints_for_file(self, file: str) -> List[SourceBreakpoint]:
+	def breakpoints_for_file(self, file: str) -> list[SourceBreakpoint]:
 		r = list(filter(lambda b: b.file == file, self.breakpoints))
 		return r
 
-	def breakpoints_per_file(self) -> Dict[str, List[SourceBreakpoint]]:
-		bps: Dict[str, List[SourceBreakpoint]] = {}
+	def breakpoints_per_file(self) -> dict[str, list[SourceBreakpoint]]:
+		bps: dict[str, list[SourceBreakpoint]] = {}
 		for breakpoint in self.breakpoints:
 			if breakpoint.file in bps:
 				bps[breakpoint.file].append(breakpoint)
@@ -266,17 +265,17 @@ class SourceBreakpoints:
 				bps[breakpoint.file] = [breakpoint]
 		return bps
 
-	def get_breakpoint(self, file: str, line: int, column: Optional[int] = None) -> Optional[SourceBreakpoint]:
+	def get_breakpoint(self, file: str, line: int, column: int|None = None):
 		for b in self.breakpoints:
 			if b.file == file and b.line == line and b.column == column:
 				return b
 		return None
 
-	def get_breakpoints_on_line(self, file: str, line: int) -> List[SourceBreakpoint]:
+	def get_breakpoints_on_line(self, file: str, line: int) -> list[SourceBreakpoint]:
 		r = list(filter(lambda b: b.file == file and b.line == line, self.breakpoints))
 		return r
 
-	def add_breakpoint(self, file: str, line: int, column: Optional[int] = None):
+	def add_breakpoint(self, file: str, line: int, column: int|None = None):
 		# ensure we don't add a breakpoint that is at the same location
 		# note: compare to the uderlying dap module since breakpoint.line/column reflect the actual location of the breakpoint
 		# after it has been verified
@@ -296,7 +295,7 @@ class SourceBreakpoints:
 		if view:
 			self.sync_from_breakpoints(view)
 
-	def set_result(self, breakpoint: SourceBreakpoint, result: dap.BreakpointResult) -> None:
+	def set_result(self, breakpoint: SourceBreakpoint, result: dap.BreakpointResult):
 		breakpoint.result = result
 		self.updated(breakpoint, send=False)
 
@@ -313,14 +312,14 @@ class SourceBreakpoints:
 	def on_view_activated(self, view: sublime.View):
 		self.sync_from_breakpoints(view)
 
-	def sync_dirty(self) -> None:
+	def sync_dirty(self):
 		self.sync_dirty_scheduled = False
 		for view in self.dirty_views.values():
 			self.sync(view)
 
 	# changes the data model to match up with the view regions
 	# adds any breakpoints found in the data model that are not found on the view
-	def sync(self, view: sublime.View) -> None:
+	def sync(self, view: sublime.View):
 		file = view.file_name()
 		if not file:
 			return
@@ -343,7 +342,7 @@ class SourceBreakpoints:
 					self.updated(b, send=False)
 
 	# moves the view regions to match up with the data model
-	def sync_from_breakpoints(self, view: sublime.View) -> None:
+	def sync_from_breakpoints(self, view: sublime.View):
 		file = view.file_name()
 		for breakpoint in self.breakpoints:
 			if breakpoint.file != file:

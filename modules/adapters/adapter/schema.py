@@ -6,7 +6,7 @@ import sublime
 import json
 import os
 
-def save_schema(adapters: List[dap.AdapterConfiguration]):
+def save_schema(adapters: list[dap.AdapterConfiguration]):
 
 	allOf = []
 	for adapter in adapters:

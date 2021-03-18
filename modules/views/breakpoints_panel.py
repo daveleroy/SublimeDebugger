@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import ui
 from ..import core
 from ..breakpoints import (
@@ -66,7 +68,7 @@ class BreakpointsPanel(ui.div):
 		assert False, "unreachable"
 
 	def render(self) -> ui.div.Children:
-		items: List[ui.div] = []
+		items: list[ui.div] = []
 
 		for breakpoints in (self.breakpoints.filters, self.breakpoints.function, self.breakpoints.data, self.breakpoints.source):
 			for breakpoint in breakpoints:

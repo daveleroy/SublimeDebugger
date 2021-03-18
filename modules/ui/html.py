@@ -1,8 +1,10 @@
+from __future__ import annotations
 from ..typecheck import *
-from . layout import Layout
-from . image import Image
-from . style import css, div_inline_css, icon_css, none_css
-from . import style
+
+from .layout import Layout
+from .image import Image
+from .style import css, div_inline_css, icon_css, none_css
+
 import re
 
 class alignable(Protocol):
@@ -14,12 +16,12 @@ class alignable(Protocol):
 
 
 class element:
-	def __init__(self, is_inline: bool, width: Optional[float], height: Optional[float], css: Optional[style.css]) -> None:
+	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
 		super().__init__()
 		self.layout = None #type: Optional[Layout]
 		self.children = [] #type: Sequence[element]
 		self.requires_render = True
-		self._max_allowed_width: Optional[float] = None
+		self._max_allowed_width: float|None = None
 		self._height = height
 		self._width = width
 		self.is_inline = is_inline
@@ -98,7 +100,7 @@ class element:
 class span (element):
 	Children = Optional[Union[Sequence['span'], 'span']]
 
-	def __init__(self, width: Optional[float] = None, height: Optional[float] = None, css: Optional[css] = None) -> None:
+	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(True, width, height, css)
 		self._items = None #type: span.Children
 
@@ -118,7 +120,7 @@ class span (element):
 class div (element):
 	Children = Optional[Union[Sequence['div'], Sequence['span'], 'div', 'span']]
 
-	def __init__(self, width: Optional[float] = None, height: Optional[float] = None, css: Optional[css] = None) -> None:
+	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(False, width, height, css)
 		self._items = None #type: div.Children
 
@@ -160,11 +162,11 @@ html_escape_table = {
 
 
 def html_escape(text: str) -> str:
-	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace(">", "&gt;").replace("<", "&lt;")
+	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace(">", "&gt;").replace("<", "&lt;").replace("\n", "\u00A0")
 
 
 class text (span, alignable):
-	def __init__(self, text: str, width: Optional[float] = None, height: Optional[float] = 1, css: Optional[css] = None) -> None:
+	def __init__(self, text: str, width: float|None = None, height: float|None = 1, css: css|None = None) -> None:
 		super().__init__(width, height, css)
 		self.text = text
 		self.align_required: int = 0

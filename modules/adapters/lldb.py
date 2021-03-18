@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
@@ -47,7 +48,7 @@ class LLDB(adapter.AdapterConfiguration):
 	type = 'lldb'
 	docs = 'https://github.com/vadimcn/vscode-lldb/blob/master/MANUAL.md#starting-a-new-debug-session'
 
-	async def start(self, log: core.Logger, configuration):
+	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = adapter.vscode.install_path(self.type)
 
 		command = [
@@ -69,7 +70,7 @@ class LLDB(adapter.AdapterConfiguration):
 			process.dispose()
 			raise
 
-	async def configuration_resolve(self, configuration):
+	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'custom':
 			configuration.request = 'launch'
 			configuration['request'] = 'launch'
@@ -98,19 +99,19 @@ class LLDB(adapter.AdapterConfiguration):
 
 		await adapter.vscode.install(self.type, url.format(aarch=aarch), log)
 
-	async def installed_status(self, log):
+	async def installed_status(self, log: core.Logger):
 		return await adapter.git.installed_status('vadimcn', 'vscode-lldb', self.installed_version, log)
 
 	@property
-	def installed_version(self) -> Optional[str]:
+	def installed_version(self) -> str|None:
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> Optional[list]:
+	def configuration_snippets(self):
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> Optional[dict]:
+	def configuration_schema(self):
 		return adapter.vscode.configuration_schema(self.type)
 
 	def adapter_settings(self):

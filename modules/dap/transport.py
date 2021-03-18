@@ -8,6 +8,7 @@
 	a list of server implementers can be found here
 	https://microsoft.github.io/debug-adapter-protocol/implementors/adapters/
 '''
+from __future__ import annotations
 from .types import *
 
 from ..typecheck import *
@@ -17,19 +18,19 @@ import json
 import threading
 
 class Transport(Protocol):
-	def write(self, message: bytes) -> None:
+	def write(self, message: bytes):
 		...
 	def readline(self) -> bytes:
 		...
 	def read(self, n: int) -> bytes:
 		...
-	def dispose(self) ->None:
+	def dispose(self):
 		...
 
 class TransportProtocolListener (Protocol):
-	def on_event(self, name: str, data: dict):
+	def on_event(self, event: str, body: dict[str, Any]):
 		...
-	async def on_reverse_request(self, name: str, data: dict) -> dict:
+	async def on_reverse_request(self, command: str, arguments: dict[str, Any]) -> dict[str, Any]:
 		...
 
 class TransportProtocol:
@@ -43,7 +44,7 @@ class TransportProtocol:
 		self.events = events
 		self.transport_log = transport_log
 		self.transport = transport
-		self.pending_requests = {} #type: Dict[int, core.future]
+		self.pending_requests: dict[int, core.Future[dict[str, Any]]] = {}
 		self.seq = 0
 
 		self.transport_log.log('transport', f'⟸ process/started')
@@ -97,18 +98,18 @@ class TransportProtocol:
 			core.call_soon_threadsafe(self.transport_log.log,'transport',  f'⟸ process/closed :: {e}')
 			core.call_soon_threadsafe(self.events.on_event, 'terminated', {})
 
-	def send(self, message):
+	def send(self, message: dict[str, Any]):
 		content = json.dumps(message)
 		self.transport.write(bytes(f'Content-Length: {len(content)}\r\n\r\n{content}', 'utf-8'))
 
 	def dispose(self) -> None:
 		self.transport.dispose()
 
-	def transport_message(self, message: dict) -> None:
+	def transport_message(self, message: dict[str, Any]) -> None:
 		self.recieved_msg(message)
 
-	def send_request_asyc(self, command: str, args: Optional[dict]) -> Awaitable[dict]:
-		future = core.create_future()
+	def send_request_asyc(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
+		future: core.Future[Dict[str, Any]] = core.Future()
 		self.seq += 1
 		request = {
 			'seq': self.seq,
@@ -124,7 +125,7 @@ class TransportProtocol:
 
 		return future
 
-	def send_response(self, request: dict, body: dict, error: Optional[str] = None) -> None:
+	def send_response(self, request: dict[str, Any], body: dict[str, Any], error: str|None = None) -> None:
 		self.seq += 1
 
 		if error:
@@ -144,7 +145,7 @@ class TransportProtocol:
 		self.log_transport(True, data)
 		self.send(data)
 
-	def log_transport(self, out: bool, data: dict):
+	def log_transport(self, out: bool, data: dict[str, Any]):
 		type = data.get('type')
 
 		def sigil(success: bool):
@@ -182,7 +183,7 @@ class TransportProtocol:
 		self.transport_log.log('transport', f'{sigil(False)} {type}/unknown :: {data}')
 
 	@core.schedule
-	async def handle_reverse_request(self, request: dict):
+	async def handle_reverse_request(self, request: dict[str, Any]):
 		command = request['command']
 
 		try:
@@ -191,7 +192,7 @@ class TransportProtocol:
 		except core.Error as e:
 			self.send_response(request, {}, error=str(e))
 
-	def recieved_msg(self, data: dict) -> None:
+	def recieved_msg(self, data: dict[str, Any]) -> None:
 		t = data['type']
 		self.log_transport(False, data)
 
@@ -205,16 +206,15 @@ class TransportProtocol:
 
 			success = data['success']
 			if not success:
-				body = data.get('body')
-				if body:
-					error = body.get('error', '')
+				body: dict[str, Any] = data.get('body', {})
+				if error := body.get('error'):
 					future.set_exception(Error.from_json(error))
 					return
 
 				future.set_exception(Error(True, data.get('message', 'no error message')))
 				return
 			else:
-				body = data.get('body', {})
+				body: dict[str, Any] = data.get('body', {})
 				future.set_result(body)
 			return
 
@@ -222,7 +222,7 @@ class TransportProtocol:
 			core.call_soon(self.handle_reverse_request, data)
 
 		if t == 'event':
-			event_body = data.get('body', {})
+			event_body: dict[str, Any] = data.get('body', {})
 			event = data['event']
 
 			# use call_soon so that events and respones are handled in the same order as the server sent them

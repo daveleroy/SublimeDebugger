@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from os import replace
-from typing import ClassVar, Optional, Type
+from typing import ClassVar, Optional, Type, Any
 
 import sublime
 from .import core
@@ -21,17 +23,21 @@ class Settings:
 	log_exceptions: bool = True
 	log_errors: bool = True
 
-	node: Optional[str] = None
+	node: str|None = None
 
 	# go.
-	go_dlv: Optional[str] = None
+	go_dlv: str|None = None
 
 	# lldb.
 	lldb_show_disassembly: str = "auto"
 	lldb_display_format: str = "auto"
 	lldb_dereference_pointers: bool = True
-	lldb_library: Optional[str] = None
-	lldb_python: Optional[str] = None
+	lldb_library: str|None = None
+	lldb_python: str|None = None
+
+	@staticmethod
+	def on_updated():
+		Settings.updated.post()
 
 	@classmethod
 	def initialize(cls):
@@ -40,10 +46,11 @@ class Settings:
 			'go_': 'go.',
 		}
 		settings = sublime.load_settings('debugger.sublime-settings')
-		settings.add_on_change('debugger_settings', Settings.updated)
+		settings.add_on_change('debugger_settings', Settings.on_updated)
 
 		for variable_name in vars(cls):
 			if variable_name.startswith('__'): continue
+			if variable_name == 'on_updated': continue
 			if variable_name == 'updated': continue
 			if variable_name == 'initialize': continue
 			if variable_name == 'save': continue
@@ -54,13 +61,13 @@ class Settings:
 					key = key.replace(start, replace, 1)
 
 			class Set:
-				def __init__(self, key):
+				def __init__(self, key: str):
 					self.key = key
 
-				def __get__(self, obj, objtype):
+				def __get__(self, obj: Any, objtype: Any):
 					return settings.get(self.key)
 
-				def __set__(self, obj, val):
+				def __set__(self, obj: Any, val: Any):
 					settings.set(self.key, val)
 					sublime.save_settings('debugger.sublime-settings')
 
