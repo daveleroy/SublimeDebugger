@@ -15,6 +15,7 @@ import re
 import threading
 import sublime
 
+
 class LLDBTransport(adapter.SocketTransport):
 	def __init__(self, adapter_process: adapter.Process, port: int, log: core.Logger):
 		self.process = adapter_process
@@ -40,14 +41,14 @@ class LLDBTransport(adapter.SocketTransport):
 	def dispose(self) -> None:
 		self.process.dispose()
 
+
 class LLDB(adapter.AdapterConfiguration):
 
 	type = 'lldb'
 	docs = 'https://github.com/vadimcn/vscode-lldb/blob/master/MANUAL.md#starting-a-new-debug-session'
-	
+
 	async def start(self, log: core.Logger, configuration):
 		install_path = adapter.vscode.install_path(self.type)
-
 
 		command = [
 			f'{install_path}/extension/adapter/codelldb',
@@ -83,16 +84,19 @@ class LLDB(adapter.AdapterConfiguration):
 		return configuration
 
 	async def install(self, log: core.Logger):
+		aarch = core.platform.architecture if core.platform.architecture else 'x86_64'
 		if core.platform.windows:
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-windows.vsix'
+			if aarch != 'x86_64':
+				raise core.Error('unreachable')
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-{aarch}-windows.vsix'
 		elif core.platform.osx:
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-darwin.vsix'
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-{aarch}-darwin.vsix'
 		elif core.platform.linux:
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-linux.vsix'
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-{aarch}-linux.vsix'
 		else:
 			raise core.Error('unreachable')
 
-		await adapter.vscode.install(self.type, url, log)
+		await adapter.vscode.install(self.type, url.format(aarch=aarch), log)
 
 	async def installed_status(self, log):
 		return await adapter.git.installed_status('vadimcn', 'vscode-lldb', self.installed_version)
@@ -184,11 +188,11 @@ class LLDB(adapter.AdapterConfiguration):
 			self.updated_settings(sessions)
 
 		return ui.InputList([
-				ui.InputListItemChecked(lambda: set_display('auto') , 'Auto', 'Auto', Settings.lldb_display_format == 'auto'),
-				ui.InputListItemChecked(lambda: set_display('hex') , 'Hex', 'Hex', Settings.lldb_display_format == 'hex'),
-				ui.InputListItemChecked(lambda: set_display('decimal') , 'Decimal', 'Decimal', Settings.lldb_display_format == 'decimal'),
-				ui.InputListItemChecked(lambda: set_display('binary') , 'Binary', 'Binary', Settings.lldb_display_format == 'binary'),
-			],
+				ui.InputListItemChecked(lambda: set_display('auto'), 'Auto', 'Auto', Settings.lldb_display_format == 'auto'),
+				ui.InputListItemChecked(lambda: set_display('hex'), 'Hex', 'Hex', Settings.lldb_display_format == 'hex'),
+				ui.InputListItemChecked(lambda: set_display('decimal'), 'Decimal', 'Decimal', Settings.lldb_display_format == 'decimal'),
+				ui.InputListItemChecked(lambda: set_display('binary'), 'Binary', 'Binary', Settings.lldb_display_format == 'binary'),
+                ],
 			'Display Options'
 		)
 
