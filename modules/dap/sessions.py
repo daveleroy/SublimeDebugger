@@ -20,7 +20,7 @@ class Sessions (SessionListener):
 
 		self.sessions: list[Session] = []
 
-		self.updated: core.Event[Session, int] = core.Event()
+		self.updated: core.Event[Session, Session.State] = core.Event()
 		self.output: core.Event[Session, OutputEvent] = core.Event()
 		
 		self.transport_log = core.StdioLogger()
@@ -67,7 +67,7 @@ class Sessions (SessionListener):
 		await self.provider.sessions_create_terminal(session, request)
 		return RunInTerminalResponse(processId=None, shellProcessId=None)
 
-	def on_session_state_changed(self, session: Session, state: int):
+	def on_session_state_changed(self, session: Session, state: Session.State):
 		self.updated(session, state)
 
 	def on_session_selected_frame(self, session: Session, frame: Optional[StackFrame]):

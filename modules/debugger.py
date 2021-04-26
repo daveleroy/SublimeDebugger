@@ -219,26 +219,26 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		else:
 			self.source_provider.clear()
 
-	def on_session_state_changed(self, session: dap.Session, state):
+	def on_session_state_changed(self, session: dap.Session, state: dap.Session.State):
 		if self.sessions.has_active and self.sessions.active != session:
 			return
 
-		if state == dap.Session.stopped:
+		if state == dap.Session.State.STOPPED:
 			if self.sessions or session.stopped_reason == dap.Session.stopped_reason_build_failed:
 				... # leave build results open or there is still a running session
 			else:
 				self.show_console_panel()
 
-		elif state == dap.Session.running:
+		elif state == dap.Session.State.RUNNING:
 			self.show_console_panel()
 
-		elif state == dap.Session.paused:
+		elif state == dap.Session.State.PAUSED:
 			# if self.project.bring_window_to_front_on_pause:
 			# figure out a good way to bring sublime to front
 
 			self.show_call_stack_panel()
 
-		elif state == dap.Session.stopping or state == dap.Session.starting:
+		elif state == dap.Session.State.STOPPING or state == dap.Session.State.STARTING:
 			...
 
 	def update_sources_visibility(self):
@@ -345,17 +345,22 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	def is_paused(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state == dap.Session.paused
+		return self.sessions.active.state == dap.Session.State.PAUSED
 
 	def is_running(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state == dap.Session.running
+		return self.sessions.active.state == dap.Session.State.RUNNING
+
+	def is_active(self):
+		if not self.sessions.has_active:
+			return False
+		return True
 
 	def is_stoppable(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state != dap.Session.stopped
+		return self.sessions.active.state != dap.Session.State.STOPPED
 
 	#
 	# commands

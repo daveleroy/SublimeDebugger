@@ -1,6 +1,8 @@
 from __future__ import annotations
-
 from ..typecheck import *
+
+from enum import IntEnum
+
 from ..import core
 
 from ..breakpoints import (
@@ -30,7 +32,7 @@ class SessionListener (Protocol):
 	async def on_session_task_request(self, session: Session, task: TaskExpanded): ...
 	async def on_session_terminal_request(self, session: Session, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse: ...
 
-	def on_session_state_changed(self, session: Session, state: int): ...
+	def on_session_state_changed(self, session: Session, state: Session.State): ...
 	def on_session_selected_frame(self, session: Session, frame: Optional[dap.StackFrame]): ...
 	def on_session_output_event(self, session: Session, event: dap.OutputEvent): ...
 
@@ -41,12 +43,15 @@ class SessionListener (Protocol):
 
 
 class Session(TransportProtocolListener, core.Logger):
-	stopped = 0
-	paused = 1
-	running = 2
 
-	starting = 3
-	stopping = 4
+	class State (IntEnum):
+		STARTING = 3
+		STOPPED = 0
+		STOPPING = 4
+
+		# puased/running is based on selected thread
+		PAUSED = 1
+		RUNNING = 2
 
 	stopped_reason_build_failed=0
 	stopped_reason_launch_error=1
@@ -84,7 +89,8 @@ class Session(TransportProtocolListener, core.Logger):
 		self.capabilities: Optional[dap.Capabilities] = None
 		self.stop_requested = False
 		self.launch_request = True
-		self._state = Session.starting
+
+		self._state = Session.State.STARTING
 		self._status = 'Starting'
 
 		self.disposeables: list[Any] = []
@@ -110,11 +116,11 @@ class Session(TransportProtocolListener, core.Logger):
 		return self.configuration.name
 
 	@property
-	def state(self) -> int:
+	def state(self) -> State:
 		return self._state
 
 	@state.setter
-	def state(self, state: int) -> None:
+	def state(self, state: State) -> None:
 		if self._state == state:
 			return
 
@@ -146,7 +152,7 @@ class Session(TransportProtocolListener, core.Logger):
 
 	async def _launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Any|None, no_debug: bool) -> None:
 		assert self.state == Session.stopped, 'debugger not in stopped state?'
-		self.state = Session.starting
+		self.state = Session.State.STARTING
 		self.adapter_configuration = adapter_configuration
 		self.configuration = configuration
 		self.configuration = await adapter_configuration.configuration_resolve(configuration)
@@ -212,7 +218,7 @@ class Session(TransportProtocolListener, core.Logger):
 
 		# At this point we are running?
 		self._change_status('Running')
-		self.state = Session.running
+		self.state = Session.State.RUNNING
 
 	async def request(self, command: str, arguments: Any) -> Any:
 		if not self._transport:
@@ -258,13 +264,13 @@ class Session(TransportProtocolListener, core.Logger):
 			thread = self.command_thread
 			if thread.stopped:
 				self._change_status('Paused')
-				self.state = Session.paused
+				self.state = Session.State.PAUSED
 			else:
 				self._change_status('Running')
-				self.state = Session.running
+				self.state = Session.State.RUNNING
 
 		except core.Error as e:
-			self.state = Session.running
+			self.state = Session.State.RUNNING
 
 	async def add_breakpoints(self) -> None:
 		assert self._transport
@@ -431,17 +437,17 @@ class Session(TransportProtocolListener, core.Logger):
 
 
 	async def stop_forced(self, reason: int) -> None:
-		if self.state == Session.stopping or self.state == Session.stopped:
+		if self.state == Session.State.STOPPING or self.state == Session.State.STOPPED:
 			return
 
 		self.stopped_reason = reason
-		self.state = Session.stopping
+		self.state = Session.State.STOPPING
 		self.stop_debug_adapter_session()
 
 		await self.run_post_debug_task()
 		self._change_status('Debug session has ended')
 
-		self.state = Session.stopped
+		self.state = Session.State.STOPPED
 
 		print(self.complete)
 		if not self.complete.done():
