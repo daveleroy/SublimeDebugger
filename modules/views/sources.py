@@ -3,25 +3,33 @@ from ..typecheck import *
 
 from ..import ui
 from .. import dap
+from .tabbed_panel import Panel
 
 from . import css
 
-class SourcesView(ui.div):
+class SourcesView(Panel):
 	def __init__(self, sessions: dap.Sessions, on_click: Callable[[dap.SourceLocation], None]):
-		super().__init__()
+		super().__init__('Sources')
 		self.sessions = sessions
 		self.on_click = on_click
+		self._visible = False
 
-	def added(self, layout: ui.Layout):
+		# these cannot be done when the view is added/removed... because of the visible flag
 		self.on_updated_sources = self.sessions.on_updated_sources.add(self.updated)
 		self.on_removed_session = self.sessions.on_removed_session.add(self.updated)
 
-	def updated(self, session: dap.Session):
-		self.dirty()
+	def visible(self) -> bool:
+		return self._visible
 
-	def removed(self):
-		self.on_updated_sources.dispose()
-		self.on_removed_session.dispose()
+	def updated(self, session: dap.Session):
+		self._visible = False
+		for session in self.sessions:
+			if session.sources:
+				self._visible = True
+				break
+
+		self.dirty_header()
+		self.dirty()
 
 	def render(self):
 		items: list[SourceView] = []
@@ -50,7 +58,7 @@ class SourceView(ui.div):
 				]
 			]
 		]
-		for sub_source in self.source.sources:
-			items.append(SourceView(sub_source, self.on_click))
+		# for sub_source in self.source.sources:
+		# 	items.append(SourceView(sub_source, self.on_click))
 
 		return items

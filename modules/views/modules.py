@@ -4,25 +4,36 @@ from ..typecheck import *
 from ..import core
 from ..import ui
 from ..import dap
+
+from .tabbed_panel import Panel
+
 from .import css
 import sublime
 
-class ModulesView(ui.div):
+class ModulesView(Panel):
 	def __init__(self, sessions: dap.Sessions):
-		super().__init__()
+		super().__init__('Modules')
 		self.sessions = sessions
-		self.expanded = {} #type: dict[Any, bool]
+		self.expanded: dict[Any, bool] = {}
+		self._visible = False
 
-	def added(self, layout: ui.Layout):
+		# these cannot be done when the view is added/removed... because of the visible flag
 		self.on_updated_modules = self.sessions.on_updated_modules.add(self.updated)
 		self.on_removed_session = self.sessions.on_removed_session.add(self.updated)
 
-	def updated(self, session: dap.Session):
-		self.dirty()
+	def visible(self) -> bool:
+		return self._visible
 
-	def removed(self):
-		self.on_updated_modules.dispose()
-		self.on_removed_session.dispose()
+	def updated(self, session: dap.Session):
+		self._visible = False
+		for session in self.sessions:
+			print(session)
+			if session.modules:
+				self._visible = True
+				break
+
+		self.dirty_header()
+		self.dirty()
 
 	def is_expanded(self, module: dap.Module):
 		return self.expanded.get(module.id, False)
@@ -55,8 +66,8 @@ class ModulesView(ui.div):
 				]
 				items.append(item)
 				if is_expanded:
-					body = []
-					def add_item(label, value):
+					body: list[ui.div] = []
+					def add_item(label: str, value: Any):
 						if value is None:
 							return
 
@@ -78,6 +89,8 @@ class ModulesView(ui.div):
 							]
 						)
 
+					add_item('version', module.version)
+					add_item('optimized', module.isOptimized)
 					add_item('path', module.path)
 					add_item('symbols', module.symbolStatus)
 					add_item('symbol file path', module.symbolFilePath)

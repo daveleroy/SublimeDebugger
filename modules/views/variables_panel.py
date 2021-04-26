@@ -8,8 +8,6 @@ from ..watch import Watch
 from .variable import VariableComponent
 from . import css
 
-import sublime
-
 
 class VariablesPanel (ui.div):
 	def __init__(self, sessions: dap.Sessions):

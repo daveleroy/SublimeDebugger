@@ -181,9 +181,6 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 			TabbedPanelItem(self.sources_panel, self.sources_panel, 'Sources'),
 		])
 
-		self.update_modules_visibility()
-		self.update_sources_visibility()
-
 		# phantoms
 		phantom_location = self.panel.panel_phantom_location()
 		phantom_view = self.panel.panel_phantom_view()
@@ -193,17 +190,10 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.right = ui.Phantom(self.right_panel, phantom_view, sublime.Region(phantom_location + 0, phantom_location + 2), sublime.LAYOUT_INLINE)
 		self.disposeables.extend([self.left, self.middle, self.right])
 
-		self.sessions.on_updated_modules.add(lambda _: self.update_modules_visibility())
-		self.sessions.on_updated_sources.add(lambda _: self.update_sources_visibility())
-		self.sessions.on_removed_session.add(self.on_session_removed)
 		self.sessions.updated.add(self.on_session_state_changed)
 		self.sessions.on_selected.add(self.on_session_selection_changed)
 
 		on_project_configuration_updated()
-
-	def on_session_removed(self, session: dap.Session):
-		self.update_sources_visibility()
-		self.update_modules_visibility()
 
 	def on_session_selection_changed(self, session: dap.Session):
 		if not self.sessions.has_active:
@@ -240,24 +230,6 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 
 		elif state == dap.Session.State.STOPPING or state == dap.Session.State.STARTING:
 			...
-
-	def update_sources_visibility(self):
-		has_sources = False
-		for session in self.sessions:
-			if session.sources:
-				has_sources = True
-				break
-
-		self.right_panel.set_visible(self.sources_panel, has_sources)
-
-	def update_modules_visibility(self):
-		has_modules = False
-		for session in self.sessions:
-			if session.modules:
-				has_modules = True
-				break
-
-		self.right_panel.set_visible(self.modules_panel, has_modules)
 
 	def show(self) -> None:
 		self.panel.panel_show()
