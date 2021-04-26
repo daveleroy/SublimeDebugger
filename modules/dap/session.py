@@ -605,7 +605,7 @@ class Session(TransportProtocolListener, core.Logger):
 		self.variables = [Variable(self, ScopeReference(scope)) for scope in scopes]
 		self.listener.on_session_updated_variables(self)
 
-	async def get_source(self, source: dap.Source) -> str:
+	async def get_source(self, source: dap.Source) -> tuple[str, str|None]:
 		body = await self.request('source', {
 			'source': {
 				'path': source.path,
@@ -613,7 +613,7 @@ class Session(TransportProtocolListener, core.Logger):
 			},
 			'sourceReference': source.sourceReference
 		})
-		return body['content']
+		return body['content'], body.get('mimeType')
 
 	async def get_variables(self, variablesReference: int, without_names: bool = False) -> list[Variable]:
 		response = await self.request('variables', {
