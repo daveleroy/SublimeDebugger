@@ -117,13 +117,17 @@ class AdaptersRegistry:
 					insert = snippet.get('body', '{ error: no body field}')
 					core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), insert))
 
-				snippet_input_items.append(ui.InputListItem(insert, snippet.get('label', 'label')))
+				snippet_input_items.append(ui.InputListItem(insert, snippet.get('label', 'label'), kind = sublime.KIND_SNIPPET))
 
 			if not snippet_input_items:
-				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, 'launch'), 'Launch'))
-				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, 'attach'), 'Attach'))
+				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, 'launch'), 'Launch', kind = sublime.KIND_SNIPPET))
+				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, 'attach'), 'Attach', kind = sublime.KIND_SNIPPET))
+				subtitle = 'Default Snippets'
 
-			values.append(ui.InputListItem(ui.InputList(snippet_input_items, 'choose a snippet to insert'), adapter.type))
+			else:
+				subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
+
+			values.append(ui.InputListItem(ui.InputList(snippet_input_items, 'choose a snippet to insert'), adapter.type, annotation = subtitle, kind = sublime.KIND_SNIPPET))
 
 		return ui.InputList(values, placeholder='choose a configuration type')
 

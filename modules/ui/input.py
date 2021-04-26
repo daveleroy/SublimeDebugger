@@ -75,8 +75,9 @@ class InputListItem:
 	run: Callable[[], None] | InputList | InputText 
 	text: str
 	name: str | None = None # name of this input when nested
-	kind: tuple[int, str, str] = sublime.KIND_AMBIGUOUS
+	annotation: str = ''
 	details: list[str]|str = ''
+	kind: tuple[int, str, str] = sublime.KIND_AMBIGUOUS
 
 	def display_or_run(self):
 		if callable(self.run):
@@ -113,7 +114,7 @@ class InputList(sublime_plugin.ListInputHandler):
 	def list_items(self):
 		items: list[sublime.ListInputItem] = []
 		for index, value in enumerate(self.values):
-			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind))
+			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind, annotation=value.annotation))
 		return (items, self.index)
 
 	def confirm(self, value):
@@ -203,10 +204,12 @@ class InputText(sublime_plugin.TextInputHandler):
 def InputListItemCheckedText(run: Callable[[str], None], name: str, description: str, value: str|None):
 	if value:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '●', '')
-		input_name = '{}\t {}'.format(name, value)
+		input_name = name
+		annotation = value
 	else:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '○', '')
-		input_name = '{}\t {}'.format(name, description)
+		input_name = name
+		annotation = description
 
 	return InputListItem(
 		InputText(
@@ -216,27 +219,22 @@ def InputListItemCheckedText(run: Callable[[str], None], name: str, description:
 		),
 		input_name,
 		name,
+		annotation=annotation,
 		kind=kind
 	)
 
 def InputListItemOnOff(run: Callable[[], None], true: str, false: str, value: bool):
 	if value:
-		text = '{}\tOn'.format(true)
+		return InputListItem(run, true, annotation='On')
 	else:
-		text = '{}\tOff'.format(false)
-
-	return InputListItem(
-		run,
-		text,
-	)
-
+		return InputListItem(run, false, annotation='Off')
 
 def InputListItemChecked(run: Callable[[], None], true: str, false: str, value: bool|None, details: list[str]|str = ''):
 	if value:
-		kind = (sublime.KIND_ID_AMBIGUOUS, '●', '')
+		kind = (sublime.KIND_ID_AMBIGUOUS, '●', 'On')
 		text = true
 	else:
-		kind = (sublime.KIND_ID_AMBIGUOUS, '○', '')
+		kind = (sublime.KIND_ID_AMBIGUOUS, '○', 'Off')
 		text = false
 
 	return InputListItem(
