@@ -101,4 +101,4 @@ class align (span):
 			width_for_resizeables -= w
 			resizeables_left -= 1
 
-		return super().html(layout)
+		return self.html_inner(layout)
