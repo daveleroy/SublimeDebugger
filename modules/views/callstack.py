@@ -234,22 +234,33 @@ class StackFrameComponent (ui.div):
 
 	def render(self) -> ui.div.Children:
 		frame = self.frame
-		name = os.path.basename(frame.file)
-		if frame.presentation == dap.StackFrame.subtle:
+		source = frame.source
+
+
+		
+
+		if (frame.presentation == dap.StackFrame.label or frame.presentation == dap.StackFrame.subtle or frame.presentation == dap.StackFrame.deemphasize) or (source and source.presentationHint == dap.Source.deemphasize):
 			css_label = css.label_secondary
 		else:
 			css_label = css.label
 
 		line_str = str(frame.line)
 
+		items: list[ui.span] = [
+			ui.spacer([1, 3][self.show_thread_name]),
+			ui.text(frame.name, css=css_label),
+		]
+
+		if source:
+			name = os.path.basename(source.name or '??')
+			items.append(ui.spacer(min=1))
+			items.append(ui.text(name, css=css.label_secondary))
+			items.append(ui.spacer(1))
+			items.append(ui.text(line_str, css=css.button))
+
 		file_and_line = ui.click(self.on_click)[
 			ui.align()[
-				ui.spacer([1, 3][self.show_thread_name]),
-				ui.text(frame.name, css=css_label),
-				ui.spacer(min=1),
-				ui.text(name, css=css.label_secondary),
-				ui.spacer(1),
-				ui.text(line_str, css=css.button),
+				items
 			]
 		]
 
