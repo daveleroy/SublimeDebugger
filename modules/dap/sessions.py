@@ -14,7 +14,7 @@ class SessionsTasksProvider (Protocol):
 		...
 
 class Sessions (SessionListener):
-	def __init__(self, provider: SessionsTasksProvider):
+	def __init__(self, provider: SessionsTasksProvider, log: core.Logger):
 		self.watch = Watch()
 		self.provider = provider
 
@@ -23,7 +23,7 @@ class Sessions (SessionListener):
 		self.updated: core.Event[Session, Session.State] = core.Event()
 		self.output: core.Event[Session, OutputEvent] = core.Event()
 		
-		self.transport_log = core.StdioLogger()
+		self.log = log
 
 		self.on_updated_modules: core.Event[Session] = core.Event()
 		self.on_updated_sources: core.Event[Session] = core.Event()
@@ -47,13 +47,22 @@ class Sessions (SessionListener):
 				await session.stop()
 				# return
 
-		session = Session(breakpoints=breakpoints, watch=self.watch, listener=self, transport_log=self.transport_log, parent=parent)
+		session = Session(
+			adapter_configuration=adapter,
+			configuration=configuration,
+			restart=restart,
+			no_debug=no_debug,
+			breakpoints=breakpoints, 
+			watch=self.watch, 
+			listener=self, 
+			transport_log=self.log, 
+			parent=parent)
 
 		@core.schedule
 		async def run():
 			self.add_session(session)
 
-			await session.launch(adapter, configuration, restart, no_debug)
+			await session.launch()
 
 			await session.wait()
 			session.dispose()

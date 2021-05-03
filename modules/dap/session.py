@@ -61,7 +61,23 @@ class Session(TransportProtocolListener, core.Logger):
 	stopped_reason_manual=5
 
 
-	def __init__(self, breakpoints: Breakpoints, watch: Watch, listener: SessionListener, transport_log: core.Logger, parent: Session|None = None) -> None:
+	def __init__(self, 
+		adapter_configuration: AdapterConfiguration, 
+		configuration: ConfigurationExpanded, 
+		restart: Any|None, 
+		no_debug: bool, 
+		breakpoints: Breakpoints, 
+		watch: Watch, 
+		listener: SessionListener, 
+		transport_log: core.Logger, 
+		parent: Session|None = None
+		) -> None:
+
+		self.adapter_configuration = adapter_configuration
+		self.configuration = configuration
+		self.restart = restart
+		self.no_debug = no_debug
+
 		self.listener = listener
 		self.children: list[Session] = []
 		self.parent = parent
@@ -83,7 +99,6 @@ class Session(TransportProtocolListener, core.Logger):
 		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, self.selected_frame, expr))
 
 		self._transport: Optional[TransportProtocol] = None
-		self.adapter_configuration: Optional[AdapterConfiguration] = None
 
 		self.launching_async: Optional[core.Future] = None
 		self.capabilities: Optional[dap.Capabilities] = None
@@ -136,9 +151,9 @@ class Session(TransportProtocolListener, core.Logger):
 		self.listener.on_session_state_changed(self, self._state)
 
 
-	async def launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Any|None = None, no_debug: bool = False) -> None:
+	async def launch(self) -> None:
 		try:
-			self.launching_async = core.run(self._launch(adapter_configuration, configuration, restart, no_debug))
+			self.launching_async = core.run(self._launch())
 			await self.launching_async
 		except core.Error as e:
 			self.launching_async = None
@@ -150,15 +165,13 @@ class Session(TransportProtocolListener, core.Logger):
 
 		self.launching_async = None
 
-	async def _launch(self, adapter_configuration: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Any|None, no_debug: bool) -> None:
+	async def _launch(self) -> None:
 		assert self.state == Session.stopped, 'debugger not in stopped state?'
 		self.state = Session.State.STARTING
-		self.adapter_configuration = adapter_configuration
-		self.configuration = configuration
-		self.configuration = await adapter_configuration.configuration_resolve(configuration)
+		self.configuration = await self.adapter_configuration.configuration_resolve(self.configuration)
 
-		if not adapter_configuration.installed_version:
-			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(adapter_configuration.type))
+		if not self.adapter_configuration.installed_version:
+			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(self.adapter_configuration.type))
 
 		if not await self.run_pre_debug_task():
 			self.info('Pre debug command failed, not starting session')
@@ -168,7 +181,7 @@ class Session(TransportProtocolListener, core.Logger):
 
 		self._change_status('Starting')
 		try:
-			transport = await adapter_configuration.start(log=self.transport_log, configuration=self.configuration)
+			transport = await self.adapter_configuration.start(log=self.transport_log, configuration=self.configuration)
 		except Exception as e:
 			raise core.Error(f'Unable to start the adapter process: {e}')
 
@@ -182,7 +195,7 @@ class Session(TransportProtocolListener, core.Logger):
 			await self.request('initialize', {
 				'clientID': 'sublime',
 				'clientName': 'Sublime Text',
-				'adapterID': configuration.type,
+				'adapterID': self.configuration.type,
 				'pathFormat': 'path',
 				'linesStartAt1': True,
 				'columnsStartAt1': True,
@@ -196,19 +209,19 @@ class Session(TransportProtocolListener, core.Logger):
 		# remove/add any exception breakpoint filters
 		self.breakpoints.filters.update(self.capabilities.exceptionBreakpointFilters or [])
 
-		if restart:
-			configuration['__restart'] = restart
-		if no_debug:
-			configuration['noDebug'] = True
+		if self.restart:
+			self.configuration['__restart'] = self.restart
+		if self.no_debug:
+			self.configuration['noDebug'] = True
 
-		if configuration.request == 'launch':
+		if self.configuration.request == 'launch':
 			self.launch_request = True
-			await self.request('launch', configuration)
-		elif configuration.request == 'attach':
+			await self.request('launch', self.configuration)
+		elif self.configuration.request == 'attach':
 			self.launch_request = False
-			await self.request('attach', configuration)
+			await self.request('attach', self.configuration)
 		else:
-			raise core.Error('expected configuration to have request of either "launch" or "attach" found {}'.format(configuration.request))
+			raise core.Error('expected configuration to have request of either "launch" or "attach" found {}'.format(self.configuration.request))
 
 		self.adapter_configuration.did_start_debugging(self)
 

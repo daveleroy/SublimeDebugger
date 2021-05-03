@@ -132,10 +132,8 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.breakpoints = Breakpoints()
 		self.disposeables.append(self.breakpoints)
 
-		self.sessions = dap.Sessions(self)
-		self.sessions.transport_log = self
+		self.sessions = dap.Sessions(self, log=self)
 		self.sessions.output.add(on_output)
-
 		self.disposeables.append(self.sessions)
 
 		self.terminal = TermianlDebugger(
@@ -270,6 +268,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	async def _on_play(self, no_debug: bool = False) -> None:
 		self.show_console_panel()
 		self.terminal.clear()
+		self.transport_log.clear()
 		try:
 			active_configurations = self.project.active_configurations()
 			if not active_configurations:
