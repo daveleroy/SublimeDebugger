@@ -11,8 +11,8 @@ import sublime
 
 class VariableComponentState:
 	def __init__(self):
-		self._expanded = {}
-		self._number_expanded = {}
+		self._expanded: dict[int, bool] = {}
+		self._number_expanded: dict[int, int] = {}
 
 	def is_expanded(self, variable: dap.Variable) -> bool:
 		return self._expanded.get(id(variable), False)
@@ -33,7 +33,10 @@ class VariableComponent (ui.div):
 		self.variable = variable
 		self.state = state
 		self.item_right = ui.span()
-		self.variable_children: List[dap.Variable] = []
+		
+		self.variable_children: Optional[list[dap.Variable]] = None
+		self.error: Optional[core.Error] = None
+
 		self.edit_variable_menu = None
 		self.on_clicked_source = on_clicked_source
 		self.source = source
@@ -140,15 +143,25 @@ class VariableComponent (ui.div):
 
 	@core.schedule
 	async def set_expanded(self) -> None:
-		self.state.set_expanded(self.variable,True)
-		self.variable_children = await self.variable.children()
+		self.state.set_expanded(self.variable, True)
+		self.error = None
+		self.dirty()
+		
+		try:
+			self.variable_children = await self.variable.children()
+		except core.Error as error:
+			self.error = error
+
 		self.dirty()
 
 	@core.schedule
 	async def toggle_expand(self) -> None:
-		self.state.set_expanded(self.variable, not self.state.is_expanded(self.variable))
-		self.variable_children = await self.variable.children()
-		self.dirty()
+		is_expanded = self.state.is_expanded(self.variable)
+		if is_expanded:
+			self.state.set_expanded(self.variable, False)
+			self.dirty()
+		else:
+			await self.set_expanded()
 
 	def show_more(self) -> None:
 		count = self.state.number_expanded(self.variable)
@@ -172,7 +185,7 @@ class VariableComponent (ui.div):
 				ui.code(value),
 			]
 
-		if self.source:
+		if source:
 			self.item_right = ui.click(lambda: self.on_clicked_source(self.source))[
 				ui.spacer(min=1),
 				ui.text(source, css=css.label_secondary)
@@ -205,20 +218,34 @@ class VariableComponent (ui.div):
 				variable_label
 			]
 
-		variable_children = [] #type: List[ui.div]
-		count = self.state.number_expanded(self.variable)
-		for variable in self.variable_children[:count]:
-			variable_children.append(VariableComponent(variable, state=self.state))
-
-		more_count = len(self.variable_children) - count
-		if more_count > 0:
+		variable_children: list[ui.div] = []
+		
+		if self.error:
 			variable_children.append(
 				ui.div(height=css.row_height)[
-					ui.click(self.show_more)[
-						ui.text("  {} more items...".format(more_count), css=css.label_secondary)
-					]
+					ui.text(str(self.error), css=css.label_redish_secondary)
 				]
 			)
+		elif self.variable_children is None:
+			variable_children.append(
+				ui.div(height=css.row_height)[
+					ui.text('◌', css=css.label_secondary)
+				]
+			)
+		else:
+			count = self.state.number_expanded(self.variable)
+			for variable in self.variable_children[:count]:
+				variable_children.append(VariableComponent(variable, state=self.state))
+
+			more_count = len(self.variable_children) - count
+			if more_count > 0:
+				variable_children.append(
+					ui.div(height=css.row_height)[
+						ui.click(self.show_more)[
+							ui.text("  {} more items...".format(more_count), css=css.label_secondary)
+						]
+					]
+				)
 
 		return [
 			variable_label,
