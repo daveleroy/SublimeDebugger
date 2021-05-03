@@ -21,6 +21,17 @@ def json_from_array(into_json: Callable[[T], Json], array: list[T]) -> list[Any]
 		json.append(into_json(item))
 	return json
 
+def _remove_empty(dict: Json):
+	rm: list[str] = []
+	for key, value in dict.items():
+		if value is None:
+			rm.append(key)
+
+	for key in rm:
+		del dict[key]
+
+	return dict
+
 class _DefaultDict(Dict[T, V]):
 	def __missing__(self, key: str):
 		return key.join("{}")
@@ -64,6 +75,7 @@ class StackFrame:
 	normal: ClassVar[str] = 'normal'
 	label: ClassVar[str] = 'label'
 	subtle: ClassVar[str] = 'subtle'
+	deemphasize: ClassVar[str] = 'deemphasize'
 
 	@staticmethod
 	def from_json(frame: Json):
@@ -83,7 +95,6 @@ class StackFrame:
 			frame.get('presentationHint', 'normal'),
 			source
 		)
-
 
 @dataclass
 class Scope:
@@ -139,43 +150,32 @@ class CompletionItem:
 			json.get('type', None),
 		)
 
-
+@dataclass
 class Source:
+	name: str|None
+	path: str|None
+	sourceReference: int = 0
+	presentationHint: str|None = 'normal'
+	origin: str|None = None
+	# sources: list['Source'] = []
 
-	normal = 1
-	emphasize = 2
-	deemphasize = 3
+	normal: ClassVar[str] = 'normal'
+	emphasize: ClassVar[str] = 'emphasize'
+	deemphasize: ClassVar[str] = 'deemphasize'
 
-	def __init__(self, name: str|None, path: str|None, sourceReference: int = 0, presentationHint: int = 1, origin: str|None = None, sources: list['Source'] = []) -> None:
-		# no idea how there are supposed to be uniquely identified but there is an event LoadedSourceEvent that seems to assume they are
-		self.id = f'{name}~{path}~{sourceReference}'
-
-		self.name = name or path
-		self.path = path
-		self.sourceReference = sourceReference
-		self.presentationHint = presentationHint
-		self.origin = origin
-		self.sources = sources
+	@property
+	def id(self) -> str:
+		return f'{self.name}~{self.path}~{self.sourceReference}'
 
 	@staticmethod
 	def from_json(json: Json):
-		hint = Source.normal
-		json_hint = json.get('presentationHint')
-		if json_hint:
-			if json_hint == 'emphasize':
-				hint = Source.emphasize
-			elif json_hint == 'deemphasize':
-				hint = Source.deemphasize
-
-		sources = array_from_json(Source.from_json, json.get('sources', []))
-
 		return Source(
 			json.get('name'),
 			json.get('path'),
 			json.get('sourceReference', 0),
-			hint,
+			json.get('presentationHint'),
 			json.get('origin'),
-			sources
+			# array_from_json(Source.from_json, json.get('sources', []))
 		)
 
 @dataclass
@@ -501,26 +501,15 @@ class SourceBreakpoint:
 			'logMessage': self.logMessage,
 		})
 
-def _remove_empty(dict: Json):
-	rm: list[str] = []
-	for key, value in dict.items():
-		if value is None:
-			rm.append(key)
-
-	for key in rm:
-		del dict[key]
-
-	return dict
-
+@dataclass
 class BreakpointResult:
-	failed: BreakpointResult
+	verified: bool
+	line: int|None
+	column: int|None
+	message: str|None
+	id: int|None
 
-	def __init__(self, verified: bool, line: int|None, column: int|None, message: str|None, id: int|None = None) -> None:
-		self.verified = verified
-		self.line = line
-		self.column = column
-		self.message = message
-		self.id = id
+	failed: ClassVar[BreakpointResult] = None #type: ignore
 
 	@staticmethod
 	def from_json(json: Json):
@@ -529,7 +518,8 @@ class BreakpointResult:
 			json.get('line'),
 			json.get('column'),
 			json.get('message'),
-			json.get('id'))
+			json.get('id')
+		)
 
 BreakpointResult.failed = BreakpointResult(False, None, None, None, None)
 
@@ -573,23 +563,34 @@ class Module:
 			addressRange = json.get('addressRange'),
 		)
 
-
-
+@dataclass
 class ModuleEvent:
+	reason: str
+	module: Module
+
 	new: ClassVar[str] = 'new'
 	changed: ClassVar[str] = 'changed'
 	removed: ClassVar[str] = 'removed'
-	
-	def __init__(self, json: Json):
-		self.reason = json['reason'],
-		self.module = Module.from_json(json['module'])
 
+	@staticmethod
+	def from_json(json: Json):
+		return ModuleEvent(
+			json['reason'],
+			Module.from_json(json['module'])
+		)
+
+@dataclass
 class LoadedSourceEvent:
+	reason: str
+	source: Source
+
 	new: ClassVar[str] = 'new'
 	changed: ClassVar[str] = 'changed'
 	removed: ClassVar[str] = 'removed'
 
-	def __init__(self, json: Json):
-		self.reason = json['reason'],
-		self.source = Source.from_json(json['source'])
-
+	@staticmethod
+	def from_json(json: Json):
+		return LoadedSourceEvent(
+			json['reason'],
+			Source.from_json(json['source'])
+		)

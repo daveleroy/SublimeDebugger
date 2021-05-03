@@ -632,9 +632,9 @@ class Session(TransportProtocolListener, core.Logger):
 		return [Variable(self, v) for v in variables]
 
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
-		if id := event.result.id:
-			if b := self.breakpoints_for_id.get(id):
-				self.breakpoints.source.set_result(b, event.result)
+		b = self.breakpoints_for_id.get(event.result.id)
+		if b:
+			self.breakpoints.source.set_result(b, event.result)
 
 	def on_module_event(self, event: dap.ModuleEvent):
 		if event.reason == dap.ModuleEvent.new:
@@ -838,9 +838,9 @@ class Session(TransportProtocolListener, core.Logger):
 		elif event == 'breakpoint':
 			self.on_breakpoint_event(dap.BreakpointEvent.from_json(body))
 		elif event == 'module':
-			self.on_module_event(dap.ModuleEvent(body))
+			self.on_module_event(dap.ModuleEvent.from_json(body))
 		elif event == 'loadedSource':
-			self.on_loaded_source_event(dap.LoadedSourceEvent(body))
+			self.on_loaded_source_event(dap.LoadedSourceEvent.from_json(body))
 		else:
 			raise dap.Error(True, 'event ignored not implemented')
 

@@ -510,10 +510,12 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		if self.project.external_terminal_kind == 'platform':
 			if core.platform.osx:
 				return ExternalTerminalMacDefault(title, cwd, commands, env)
-			if core.platform.windows:
+			elif core.platform.windows:
 				return ExternalTerminalWindowsDefault(title, cwd, commands, env)
-			if core.platform.linux:
+			elif core.platform.linux:
 				raise core.Error('default terminal for linux not implemented')
+			else:
+				raise core.Error('unreachable')
 
 		if self.project.external_terminal_kind == 'terminus':
 			return ExternalTerminalTerminus(title, cwd, commands, env)
