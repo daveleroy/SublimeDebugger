@@ -69,7 +69,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 				instance = Debugger(window)
 				Debugger.instances[id] = instance
 
-			except dap.Error as e:
+			except core.Error as e:
 				core.log_exception()
 
 			Debugger.creating[id] = False
