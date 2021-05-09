@@ -76,9 +76,6 @@ class Terminal:
 		self.lines: list[Line] = []
 		self.on_updated: core.Event[None] = core.Event()
 
-		self.problems_per_file: dict[str, list[Problem]] = []
-		self.on_problems_updated: core.Event[None] = core.Event()
-
 		if file_regex:
 			self.file_regex = re.compile(file_regex)
 		else:

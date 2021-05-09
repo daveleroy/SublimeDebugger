@@ -21,7 +21,7 @@ from .terminal import Terminal
 from .terminal_debugger import TermianlDebugger
 from .terminal_process import TerminalProcess
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
-from .terminal_task import TerminalTask
+from .terminal_task import TerminalTask, Tasks
 
 from .source_navigation import SourceNavigationProvider
 
@@ -35,7 +35,7 @@ from .views.variables_panel import VariablesPanel
 from .views.tabbed_panel import TabbedPanel, TabbedPanelItem
 from .views.selected_line import SelectedLine
 from .views.terminal import TerminalView
-from .views.problems import ProblemsView
+from .views.diagnostics import DiagnosticsPanel
 
 
 class Debugger (dap.SessionsTasksProvider, core.Logger):
@@ -108,33 +108,16 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		def on_output(session: dap.Session, event: dap.OutputEvent) -> None:
 			self.terminal.program_output(session, event)
 
-		def on_terminal_added(terminal: Terminal):
-			if isinstance(terminal, TerminalTask):
-				if terminal.background:
-					return
-				component = ProblemsView(terminal, self.on_navigate_to_source)
-			else:
-				component = TerminalView(terminal, self.on_navigate_to_source)
-
-			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
-			def on_modified():
-				...
-				#self.middle_panel.modified(panel)
-
-			terminal.on_updated.add(on_modified)
-
-			self.middle_panel.add(panel)
-			self.middle_panel.select(id(terminal))
-
-		def on_terminal_removed(terminal: Terminal):
-			self.middle_panel.remove(id(terminal))
-
 		self.breakpoints = Breakpoints()
 		self.disposeables.append(self.breakpoints)
 
 		self.sessions = dap.Sessions(self, log=self)
 		self.sessions.output.add(on_output)
 		self.disposeables.append(self.sessions)
+
+		self.tasks = Tasks()
+		self.disposeables.append(self.tasks.added.add(lambda _: self.show_diagnostics_panel()))
+		self.disposeables.append(self.tasks)
 
 		self.terminal = TermianlDebugger(
 			self.window,
@@ -161,9 +144,12 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.terminal_view = TerminalView(self.terminal, self.on_navigate_to_source)
 
 		self.callstack_view =  CallStackView(self.sessions)
+		self.problems_view = DiagnosticsPanel(self.tasks, self.on_navigate_to_source)
+
 		self.middle_panel.update([
 			TabbedPanelItem(self.terminal_view, self.terminal_view, 'Debugger Console', show_options=lambda: self.terminal.show_backing_panel()),
 			TabbedPanelItem(self.callstack_view, self.callstack_view, 'Callstack'),
+			TabbedPanelItem(self.problems_view, self.problems_view, 'Problems'),
 		])
 
 		# right panels
@@ -243,6 +229,9 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	def show_console_panel(self) -> None:
 		self.middle_panel.select(self.terminal_view)
 
+	def show_diagnostics_panel(self) -> None:
+		self.middle_panel.select(self.problems_view)
+
 	def show_call_stack_panel(self) -> None:
 		self.middle_panel.select(self.callstack_view)
 
@@ -271,9 +260,11 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.source_provider.show_source_location(source)
 
 	async def _on_play(self, no_debug: bool = False) -> None:
-		self.show_console_panel()
+		# self.show_console_panel()
 		self.terminal.clear()
 		self.transport_log.clear()
+		self.tasks.clear()
+
 		try:
 			active_configurations = self.project.active_configurations()
 			if not active_configurations:
@@ -298,13 +289,14 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 					adapter_configuration = AdaptersRegistry.get(configuration.type)
 					configuration_expanded = dap.ConfigurationExpanded(configuration, variables)
 
-					if configuration_expanded.get('pre_debug_task'):
-						pre_debug_task = configuration_expanded.get('pre_debug_task')
+					pre_debug_task = configuration_expanded.get('pre_debug_task')
+					post_debug_task = configuration_expanded.get('post_debug_task')
+
+					if pre_debug_task:
 						configuration_expanded.pre_debug_task = dap.TaskExpanded(self.project.get_task(pre_debug_task), variables)
 
-					if configuration_expanded.get('post_debug_task'):
-						post_debug_task = configuration_expanded.get('post_debug_task')
-						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)
+					if post_debug_task:
+						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)						
 
 					if not adapter_configuration.installed_version:
 						install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
@@ -483,18 +475,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	@core.schedule
 	async def run_task(self, task: dap.Task):
 		variables = self.project.extract_variables()
-		terminal = TerminalTask(self.window, dap.TaskExpanded(task, variables))
-		self.terminals.append(terminal)
-
-		if not terminal.background:
-			self.clear_unused_terminals()
-			component = ProblemsView(terminal, self.on_navigate_to_source)
-			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
-
-			self.middle_panel.add(panel)
-			self.middle_panel.select(id(terminal))
-
-		await terminal.wait()
+		await self.tasks.run(self.window, dap.TaskExpanded(task, variables))
 
 	def add(self, session: dap.Session, terminal: Terminal):
 		self.terminals.append(terminal)
