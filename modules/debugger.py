@@ -229,6 +229,11 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		elif state == dap.Session.State.STOPPING or state == dap.Session.State.STARTING:
 			...
 
+	def clear_all_breakpoints(self):
+		self.breakpoints.data.remove_all()
+		self.breakpoints.source.remove_all()
+		self.breakpoints.function.remove_all()
+
 	def show(self) -> None:
 		self.panel.panel_show()
 

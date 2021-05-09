@@ -236,6 +236,11 @@ class SourceBreakpoints:
 			),
 		], placeholder="Edit Breakpoint in {} @ {}".format(breakpoint.name, breakpoint.tag))
 
+	# todo: fix... this is going to trigger a ton of breakpoint requests if the debugger is active
+	def remove_all(self):
+		while self.breakpoints:
+			self.remove(self.breakpoints[0])
+
 	def remove(self, breakpoint: SourceBreakpoint):
 		breakpoint.clear_views()
 		self.breakpoints.remove(breakpoint)

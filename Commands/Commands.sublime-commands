@@ -119,6 +119,13 @@
         }
     },
     {
+        "caption": "Debugger: Clear Breakpoints",
+        "command": "debugger",
+        "args": {
+            "action": "clear_breakpoints"
+        }
+    },
+    {
         "caption": "Debugger: Add Watch Expression",
         "command": "debugger",
         "args": {

@@ -135,6 +135,13 @@
                 }
             },
             {
+                "caption": "Clear Breakpoints",
+                "command": "debugger",
+                "args": {
+                    "action": "clear_breakpoints"
+                }
+            },
+            {
                 "caption": "Add Watch Expression",
                 "command": "debugger",
                 "args": {

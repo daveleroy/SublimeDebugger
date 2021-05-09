@@ -181,6 +181,7 @@ commands = [
 		name='Input Command',
 		command='input_command',
 		action=Debugger.on_input_command,
+		enabled=Debugger.is_active
 	),
 	CommandDebugger (
 		name='Run Task',
@@ -197,6 +198,11 @@ commands = [
 		name='Add Function Breakpoint',
 		command='add_function_breakpoint',
 		action=Debugger.add_function_breakpoint,
+	),
+	CommandDebugger (
+		name='Clear Breakpoints',
+		command='clear_breakpoints',
+		action=Debugger.clear_all_breakpoints,
 	),
 	CommandDebugger (
 		name='Add Watch Expression',
