@@ -7,25 +7,22 @@ from .terminal import Terminal
 import threading
 import re
 
-try:
-	if core.platform.windows:
-		from winpty import PtyProcess  #type: ignore
+if core.platform.windows:
+	if core.platform.is_64:
+		from .libs.pywinpty.st3_windows_x32.winpty import PtyProcess
 	else:
-		from ..libs.ptyprocess import PtyProcess as _PtyProcess  #type: ignore
+		from .libs.pywinpty.st3_windows_x64.winpty import PtyProcess
 
-		class PtyProcess(_PtyProcess):  #type: ignore
-			def read(self) -> str:
-				return super().read().decode('utf-8')
+else:
+	from .libs.ptyprocess import PtyProcess as _PtyProcess  #type: ignore
 
-	SUPPORTED = True
+	class PtyProcess(_PtyProcess):  #type: ignore
+		def read(self) -> str:
+			return super().read().decode('utf-8')
 
-except ImportError:
-	# this stuff is broken on > 4000 until the packages are 3.8 compatible
-	SUPPORTED = False
 
 # from https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
-
 
 class TtyProcess:
 	def __init__(self, command: list[str], on_output: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, cwd=None) -> None:
