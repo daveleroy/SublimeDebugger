@@ -71,7 +71,7 @@ class Python(adapter.AdapterConfiguration):
 	# TODO: patch in env since python seems to not inherit it from the adapter proccess.
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
 		if configuration.request == "launch":
-			if not configuration.get("program"):
-				sublime.error_message("Warning: Check your debugger configuration.\n\nField `program` in configuration is empty. If it contained a $variable that variable may not have existed.")
+			if not configuration.get("program") and not configuration.get("module"):
+				sublime.error_message("Warning: Check your debugger configuration.\n\nBold fields `program` and `module` in configuration are empty. If they contained a $variable that variable may not have existed.")
 
 		return configuration
