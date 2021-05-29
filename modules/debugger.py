@@ -264,7 +264,8 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.terminal.clear()
 		self.transport_log.clear()
 		self.tasks.clear()
-
+		self.clear_unused_terminals()
+		
 		try:
 			active_configurations = self.project.active_configurations()
 			if not active_configurations:

@@ -83,8 +83,8 @@ class TabbedPanel(ui.div):
 				return
 
 	def patch_selected(self):
-		selected = self.items[self.selected_index]
-		if not isinstance(selected.item, Panel) or selected.item.visible():
+		selected =  self.items[self.selected_index] if self.selected_index < len(self.items) else None
+		if selected and (not isinstance(selected.item, Panel) or selected.item.visible()):
 			return
 
 		for index, item in enumerate(self.items):
@@ -125,7 +125,7 @@ class TabbedPanel(ui.div):
 				if not item.item.visible():
 					continue
 
-				tab = item.item.panel_header()
+				tab = item.item.panel_header(index == self.selected_index)
 			else:
 				tab = [
 					ui.spacer(1),

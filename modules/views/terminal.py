@@ -9,6 +9,7 @@ from ..terminal import Terminal, Line
 from ..autocomplete import Autocomplete
 
 from .variable import VariableComponent
+from .tabbed_panel import Panel
 from .import css
 
 import re
@@ -143,9 +144,9 @@ class LineView (ui.div):
 		self.clicked_menu = None
 
 
-class TerminalView (ui.div):
+class TerminalView (Panel):
 	def __init__(self, terminal: Terminal, on_clicked_source: Callable[[dap.SourceLocation], None]) -> None:
-		super().__init__(css=css.padding_left)
+		super().__init__(terminal.name())
 		self.terminal = terminal
 		self.terminal.on_updated.add(self._on_updated_terminal)
 		self.start_line = 0
@@ -170,7 +171,7 @@ class TerminalView (ui.div):
 	def on_clear(self) -> None:
 		self.terminal.clear()
 
-	def render(self):
+	def render(self) -> list[ui.div]:
 		assert self.layout
 		lines = []
 		height = 0

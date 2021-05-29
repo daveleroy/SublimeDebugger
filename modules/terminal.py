@@ -139,3 +139,9 @@ class Terminal:
 	def dispose(self):
 		pass
 
+	def finish(self, status: int, message: str):
+		self.finished = True
+		self.statusCode = status
+		self.statusMessage = message
+		self.on_updated.post()
+

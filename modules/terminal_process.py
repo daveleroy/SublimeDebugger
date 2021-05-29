@@ -76,7 +76,7 @@ class TtyProcess:
 class TerminalProcess (Terminal):
 	def __init__(self, cwd: str|None, args: list[str]):
 		super().__init__("Terminal", cwd=cwd or None) # turn "" into None
-		self.process = TtyProcess(args, on_output=self.on_process_output, cwd=self.cwd)
+		self.process = TtyProcess(args, on_output=self.on_process_output, cwd=self.cwd, on_close=self.on_close)
 
 	def pid(self) -> int:
 		return self.process.pid
@@ -100,6 +100,10 @@ class TerminalProcess (Terminal):
 
 	def can_escape_input(self):
 		return True
+
+	def on_close(self):
+		print('finished')
+		self.finish(-1, 'closed')
 
 	def dispose(self):
 		self.process.dispose()
