@@ -30,7 +30,7 @@ class DiagnosticsPanel (Panel):
 	def visible(self):
 		return self.diagnostic_count != 0 or len(self.tasks.tasks) != 0
 
-	def panel_header(self) -> list[ui.span] | None:
+	def panel_header(self, expanded: bool) -> list[ui.span] | None:
 		if self.diagnostic_count == 0:
 			return [
 				ui.spacer(1),

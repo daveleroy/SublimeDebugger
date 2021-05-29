@@ -25,7 +25,7 @@ class Panel(ui.div):
 		self.name = name
 		self.parent = None
 
-	def panel_header(self) -> list[ui.span] | None:
+	def panel_header(self, expanded: bool) -> list[ui.span] | None:
 		return [
 			ui.spacer(1),
 			ui.text(self.name, css=css.label_secondary),
