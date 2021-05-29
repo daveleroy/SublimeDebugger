@@ -85,19 +85,22 @@ class LLDB(adapter.AdapterConfiguration):
 		return configuration
 
 	async def install(self, log: core.Logger):
-		aarch = core.platform.architecture if core.platform.architecture else 'x86_64'
-		if core.platform.windows:
-			if aarch != 'x86_64':
-				raise core.Error('unreachable')
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-{aarch}-windows.vsix'
-		elif core.platform.osx:
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-{aarch}-darwin.vsix'
-		elif core.platform.linux:
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-{aarch}-linux.vsix'
-		else:
-			raise core.Error('unreachable')
+		arch = core.platform.architecture
 
-		await adapter.vscode.install(self.type, url.format(aarch=aarch), log)
+		if core.platform.windows and arch == 'x64':
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-windows.vsix'
+		elif core.platform.osx and arch == 'x64':
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-darwin.vsix'
+		elif core.platform.osx and arch == 'arm64':
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-aarch64-darwin.vsix'
+		elif core.platform.linux and arch == 'x64':
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-linux.vsix'
+		elif core.platform.linux and arch == 'arm64':
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-aarch64-linux.vsix'
+		else:
+			raise core.Error('Your platforms architecture is not supported by vscode lldb. See https://github.com/vadimcn/vscode-lldb/releases/latest')
+
+		await adapter.vscode.install(self.type, url, log)
 
 	async def installed_status(self, log: core.Logger):
 		return await adapter.git.installed_status('vadimcn', 'vscode-lldb', self.installed_version, log)

@@ -1,23 +1,14 @@
 from __future__ import annotations
 
-import sys
-import platform
+import sublime
 
-osx = False
-windows = False
-linux = False
+_platform = sublime.platform()
 
-is_64 = platform.machine().endswith('64')
+ # CPU architecture, which may be "x32", "x64" or "arm64"
+architecture = sublime.arch()
 
-if sys.platform == "linux" or sys.platform == "linux2":
-	linux = True
-elif sys.platform == "darwin":
-	osx = True
-elif sys.platform == "win32":
-	windows = True
+osx = _platform == 'osx'
+windows = _platform == 'windows'
+linux = _platform == 'linux'
 
-architecture = None
-if platform.machine() == 'arm64' or platform.machine() == 'aarch64':
-	architecture = 'aarch64'
-elif platform.machine() == 'x86_64':
-	architecture = 'x86_64'
+is_64 = architecture.endswith('64')
