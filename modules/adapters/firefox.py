@@ -20,11 +20,11 @@ class Firefox(adapter.AdapterConfiguration):
 		return adapter.StdioTransport(log, command)
 
 	async def install(self, log: core.Logger):
-		url = await adapter.openvsx.latest_release_vsix('ms-vscode', 'vscode-firefox-debug')
+		url = await adapter.openvsx.latest_release_vsix('firefox-devtools', 'vscode-firefox-debug')
 		await adapter.vscode.install(self.type, url, log)
 
 	async def installed_status(self, log: core.Logger):
-		return await adapter.openvsx.installed_status('ms-vscode', 'vscode-firefox-debug', self.installed_version, log)
+		return await adapter.openvsx.installed_status('firefox-devtools', 'vscode-firefox-debug', self.installed_version, log)
 
 	@property
 	def installed_version(self):
