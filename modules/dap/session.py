@@ -361,8 +361,24 @@ class Session(TransportProtocolListener, core.Logger):
 		if not self._transport:
 			return
 
-		enabled_breakpoints = list(filter(lambda b: b.enabled, breakpoints))
-		dap_breakpoints = list(map(lambda b: b.dap, enabled_breakpoints))
+		assert self.capabilities
+
+		enabled_breakpoints: list[SourceBreakpoint] = []
+		dap_breakpoints: list[dap.SourceBreakpoint] = []
+
+		for breakpoint in breakpoints:
+			if breakpoint.dap.hitCondition and not self.capabilities.supportsHitConditionalBreakpoints:
+				self.error('This debugger does not support hit condition breakpoints')
+
+			if breakpoint.dap.logMessage and not self.capabilities.supportsLogPoints:
+				self.error('This debugger does not support log points')
+
+			if breakpoint.dap.condition and not self.capabilities.supportsConditionalBreakpoints:
+				self.error('This debugger does not support conditional breakpoints')
+
+			if breakpoint.enabled:
+				enabled_breakpoints.append(breakpoint)
+				dap_breakpoints.append(breakpoint.dap)
 
 		try:
 			response = await self.request('setBreakpoints', {
