@@ -236,9 +236,6 @@ class StackFrameComponent (ui.div):
 		frame = self.frame
 		source = frame.source
 
-
-		
-
 		if (frame.presentation == dap.StackFrame.label or frame.presentation == dap.StackFrame.subtle or frame.presentation == dap.StackFrame.deemphasize) or (source and source.presentationHint == dap.Source.deemphasize):
 			css_label = css.label_secondary
 		else:
@@ -252,7 +249,7 @@ class StackFrameComponent (ui.div):
 		]
 
 		if source:
-			name = os.path.basename(source.name or '??')
+			name = os.path.basename(source.name or source.path or '??')
 			items.append(ui.spacer(min=1))
 			items.append(ui.text(name, css=css.label_secondary))
 			items.append(ui.spacer(1))
