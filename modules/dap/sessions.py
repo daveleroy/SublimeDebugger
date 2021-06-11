@@ -8,7 +8,7 @@ from .types import OutputEvent, StackFrame, RunInTerminalRequest, RunInTerminalR
 from ..breakpoints import Breakpoints
 
 class SessionsTasksProvider (Protocol):
-	async def sessions_create_terminal(self, session: Session, request: RunInTerminalRequest):
+	async def sessions_create_terminal(self, session: Session, request: RunInTerminalRequest) -> RunInTerminalResponse:
 		...
 	async def sessions_run_task(self, session: Session, task: TaskExpanded):
 		...

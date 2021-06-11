@@ -54,15 +54,15 @@ class Project(core.disposables):
 
 		return self.project_name
 
-	def into_json(self) -> dict:
+	def into_json(self) -> dict[str, Any]:
 		return {
 			'configuration_name': self.configuration_or_compound and self.configuration_or_compound.name,
 			'configuration_id_ish': self.configuration_or_compound and self.configuration_or_compound.id_ish,
 		}
 
-	def load_from_json(self, json: dict) -> Optional[Union[Configuration, ConfigurationCompound]]:
-		configuration_name = json.get('configuration_name')
-		configuration_id_ish = json.get('configuration_id_ish')
+	def load_from_json(self, json: dict[str, Any]) -> Optional[Union[Configuration, ConfigurationCompound]]:
+		configuration_name: str|None = json.get('configuration_name')
+		configuration_id_ish: str|None = json.get('configuration_id_ish')
 
 		if configuration_name and configuration_id_ish:
 			self.load_configuration(configuration_name, configuration_id_ish)
@@ -166,14 +166,14 @@ class Project(core.disposables):
 			task = Task.from_json(task_json)
 			tasks.append(task)
 
-		configurations = []
+		configurations: list[Configuration] = []
 		configurations_json = data.get("debugger_configurations", [])
 
 		for index, configuration_json in enumerate(configurations_json):
 			configuration = Configuration.from_json(configuration_json, index)
 			configurations.append(configuration)
 
-		compounds = []
+		compounds: list[ConfigurationCompound] = []
 		compounds_json = data.get("debugger_compounds", [])
 
 		for index, compound_json in enumerate(compounds_json):

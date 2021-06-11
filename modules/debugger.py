@@ -448,7 +448,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		else:
 			self.on_run_task()
 
-	def change_configuration_input_items(self) -> List[ui.InputListItem]:
+	def change_configuration_input_items(self) -> list[ui.InputListItem]:
 		values = []
 		for c in self.project.compounds:
 			name = f'{c.name}\tcompound'

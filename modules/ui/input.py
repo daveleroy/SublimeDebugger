@@ -117,7 +117,7 @@ class InputList(sublime_plugin.ListInputHandler):
 			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind, annotation=value.annotation))
 		return (items, self.index)
 
-	def confirm(self, value):
+	def confirm(self, value: int):
 		run = self.values[value].run
 		if callable(run):
 			run()
@@ -139,7 +139,7 @@ class InputList(sublime_plugin.ListInputHandler):
 		if self._on_cancel_internal:
 			self._on_cancel_internal()
 
-	def description(self, value, text):
+	def description(self, value: int, text: str):
 		return self.values[value].name or self.values[value].text
 
 class InputEnable (Protocol):
