@@ -19,7 +19,8 @@ class CommandPaletteInputCommand:
 
 		def _on_cancel():
 			CommandPaletteInputCommand.running_command = None
-			self.future.set_result(None)
+			if not self.future.done():
+				self.future.set_result(None)
 
 		def _on_run_internal():
 			self.future.set_result(None)
@@ -103,7 +104,11 @@ class InputList(sublime_plugin.ListInputHandler):
 
 	@core.schedule
 	async def run(self):
-		await CommandPaletteInputCommand(sublime.active_window(), self).wait()
+		command = CommandPaletteInputCommand(sublime.active_window(), self)
+		try:
+			await command.wait()
+		except core.CancelledError as e:
+			command.hide_overlay()
 
 	def name(self):
 		return self.arg_name
