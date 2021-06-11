@@ -9,9 +9,9 @@ import re
 
 if core.platform.windows:
 	if core.platform.is_64:
-		from .libs.pywinpty.st3_windows_x32.winpty import PtyProcess
-	else:
 		from .libs.pywinpty.st3_windows_x64.winpty import PtyProcess
+	else:
+		from .libs.pywinpty.st3_windows_x32.winpty import PtyProcess
 
 else:
 	from .libs.ptyprocess import PtyProcess as _PtyProcess  #type: ignore
