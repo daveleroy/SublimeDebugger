@@ -8,10 +8,11 @@ import threading
 import re
 
 if core.platform.windows:
-	if core.platform.is_64:
-		from .libs.pywinpty.st3_windows_x64.winpty import PtyProcess
-	else:
-		from .libs.pywinpty.st3_windows_x32.winpty import PtyProcess
+	PTYPROCESS_SUPPORTED = False
+	# if core.platform.is_64:
+	# 	from .libs.pywinpty.st3_windows_x64.winpty import PtyProcess
+	# else:
+	# 	from .libs.pywinpty.st3_windows_x32.winpty import PtyProcess
 
 else:
 	from .libs.ptyprocess import PtyProcess as _PtyProcess  #type: ignore
@@ -20,6 +21,8 @@ else:
 		def read(self) -> str:
 			return super().read().decode('utf-8')
 
+	PTYPROCESS_SUPPORTED = True
+
 
 # from https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
@@ -27,6 +30,8 @@ ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 class TtyProcess:
 	def __init__(self, command: list[str], on_output: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, cwd=None) -> None:
 		print('Starting process: {}'.format(command))
+		if not PTYPROCESS_SUPPORTED:
+			raise core.Error("Unable to start external terminal PtyProcess is not supported on Windows at the moment (try using console instead of integrated terminal in your configuration)")
 
 		self.process: Any = PtyProcess.spawn(command, cwd=cwd)
 		self.pid = self.process.pid
