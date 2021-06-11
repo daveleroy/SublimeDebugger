@@ -1,5 +1,10 @@
 For getting set up see https://github.com/daveleroy/sublime_debugger
 
+Version 0.5.2
+
+- Disable winpty on Windows (needs to be rebuilt for python 3.8)
+
+
 Version 0.5.1
 
 - Fixes 64/32 bit windows importing the wrong winpyty versions
