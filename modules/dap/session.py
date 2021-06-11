@@ -123,9 +123,6 @@ class Session(TransportProtocolListener, core.Logger):
 		self.sources: dict[int|str, dap.Source] = {}
 		self.modules: dict[int|str, dap.Module] = {}
 
-		self.on_threads_selected: core.Event[Thread|None, dap.StackFrame|None] = core.Event()
-		self.on_threads_selected.add(lambda thread, frame: self.load_frame(frame))
-
 	@property
 	def name(self) -> str:
 		return self.configuration.name
@@ -661,6 +658,7 @@ class Session(TransportProtocolListener, core.Logger):
 		return [Variable(self, v) for v in variables]
 
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
+		assert event.result.id
 		b = self.breakpoints_for_id.get(event.result.id)
 		if b:
 			self.breakpoints.source.set_result(b, event.result)
@@ -762,11 +760,8 @@ class Session(TransportProtocolListener, core.Logger):
 			return t
 
 	def set_selected(self, thread: Thread, frame: Optional[dap.StackFrame]):
-		self.selected_explicitly = True
-		self.selected_thread = thread
-		self.selected_frame = frame
+		self.select(thread, frame, explicitly=True)
 		self.listener.on_session_updated_threads(self)
-		self.on_threads_selected(thread, frame)
 		self._refresh_state()
 
 	# after a successfull launch/attach, stopped event, thread event we request all threads
@@ -804,10 +799,7 @@ class Session(TransportProtocolListener, core.Logger):
 		thread.stopped_reason = stopped.text
 
 		if not self.selected_explicitly:
-			self.selected_thread = thread
-			self.selected_frame = None
-
-			self.on_threads_selected(thread, None)
+			self.select(thread, None, explicitly=False)
 
 			@core.schedule
 			async def run(thread: Thread = thread):
@@ -819,9 +811,10 @@ class Session(TransportProtocolListener, core.Logger):
 								return frame
 						return frames[0]
 
-					self.selected_frame = first_non_subtle_frame(children)
+					frame = first_non_subtle_frame(children)
+					self.select(thread, frame, explicitly=False)
+
 					self.listener.on_session_updated_threads(self)
-					self.on_threads_selected(thread, self.selected_frame)
 					self._refresh_state()
 			run()
 
@@ -842,14 +835,16 @@ class Session(TransportProtocolListener, core.Logger):
 		thread.stopped_reason = ''
 
 		if continued.allThreadsContinued or thread is self.selected_thread:
-			self.selected_explicitly = False
-			self.selected_thread = None
-			self.selected_frame = None
-			self.on_threads_selected(None, None)
+			self.select(None, None, explicitly=False)
 
 		self.listener.on_session_updated_threads(self)
 		self._refresh_state()
 
+	def select(self, thread: Optional[Thread], frame: Optional[dap.StackFrame], explicitly: bool):
+		self.selected_explicitly = explicitly
+		self.selected_thread = thread
+		self.selected_frame = frame
+		self.load_frame(frame)
 
 	def on_event(self, event: str, body: dap.Json):
 		if event == 'initialized':
