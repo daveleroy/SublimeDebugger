@@ -36,17 +36,17 @@ class DebuggerLspJdtlsStartDebuggingResponseCommand(sublime_plugin.WindowCommand
 
 
 class Java(adapter.AdapterConfiguration):
-	pending_adapters: Dict[int, core.future] = {}
+	pending_adapters: Dict[int, core.Future] = {}
 	pending_adapters_current_id = 0
 
-	@property
-	def type(self): return 'java'
+	type = 'java'
+	docs = 'https://github.com/redhat-developer/vscode-java/blob/master/README.md'
 
 	async def start(self, log, configuration):
 		# probably need to add some sort of timeout
 		# probably need to ensure lsp_jdts is installed
 		# probably need to ensure lsp_jdts has the plugin jar patched in
-		future = core.create_future()
+		future = core.Future()
 
 		id = Java.pending_adapters_current_id
 		Java.pending_adapters_current_id += 1
@@ -83,7 +83,7 @@ class Java(adapter.AdapterConfiguration):
 		return adapter.SocketTransport(log, 'localhost', args["port"])
 
 	async def install(self, log):
-		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vscjava/vsextensions/vscode-java-debug/latest/vspackage'
+		url = await adapter.openvsx.latest_release_vsix('vscjava', 'vscode-java-debug')
 		await adapter.vscode.install(self.type, url, log)
 
 		install_path = adapter.vscode.install_path(self.type)
@@ -105,6 +105,9 @@ class Java(adapter.AdapterConfiguration):
 		init_options["bundles"] = bundles
 		settings.set("initializationOptions", init_options)
 		sublime.save_settings("LSP-jdtls.sublime-settings")
+
+	async def installed_status(self, log):
+		return await adapter.openvsx.installed_status('vscjava', 'vscode-java-debug', self.installed_version)
 
 	@property
 	def installed_version(self) -> Optional[str]:
