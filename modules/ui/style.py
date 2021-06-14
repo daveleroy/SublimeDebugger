@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .. typecheck import *
 
 # TODO: Reclaulate css when the layout changes and replace REM_WIDTH_SCALE with the real value from rem_width_scale
@@ -45,16 +46,16 @@ class css:
 
 	def __init__(
 		self,
-		raw: Optional[str] = None,
-		width: Optional[float] = None,
-		height: Optional[float] = None,
-		padding_top: Optional[float] = None,
-		padding_bottom: Optional[float] = None,
-		padding_left: Optional[float] = None,
-		padding_right: Optional[float] = None,
-		radius: Optional[float] = None,
-		background_color: Optional[str] = None,
-		color: Optional[str] = None,
+		raw: str|None = None,
+		width: float|None = None,
+		height: float|None = None,
+		padding_top: float|None = None,
+		padding_bottom: float|None = None,
+		padding_left: float|None = None,
+		padding_right: float|None = None,
+		radius: float|None = None,
+		background_color: str|None = None,
+		color: str|None = None,
 	):
 
 		self.id = css.id

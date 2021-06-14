@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .. import core
 
 from .render import *
@@ -10,16 +11,16 @@ from .image import *
 from .input import *
 from .align import *
 
-_update_timer = None #type: Optional[Timer]
+_update_timer: Timer|None = None
 
 
-def startup() -> None:
+def startup():
 	Images.shared = Images()
 	global _update_timer
 	_update_timer = Timer(update, 0.25, True)
 
 
-def shutdown() -> None:
+def shutdown():
 	if _update_timer:
 		_update_timer.dispose()
 

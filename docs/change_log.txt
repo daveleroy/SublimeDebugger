@@ -1,12 +1,47 @@
 For getting set up see https://github.com/daveleroy/sublime_debugger
-If you have issues or need help https://github.com/daveleroy/sublime_debugger
+
+Version 0.5.2
+
+- Disable winpty on Windows (needs to be rebuilt for python 3.8)
+
+
+Version 0.5.1
+
+- Fixes 64/32 bit windows importing the wrong winpyty versions
+
+
+Version 0.5.0
+
+- python: Allow module launch configurations (@anergictcell)
+- lldb: fixes issue with toggle disassembly
+- ruby: added adapter (requires readapt)
+
+- The install adapter menu now checks installed adapters for updates (for most adapters)
+- The install adapter menu now has a link to each adapters documentations
+
+- Added 'Debugger: Clear Breakpoints' command that clears all breakpoints
+
+- Support for exception breakpoint filter conditions (not all adapters support this)
+- Support for debug session hierarchies which is going to be required for some complex adapter setups such as vscode-debug-js
+- Support the "clipboard" context when copying a variables value
+
+- When expanding a variable display a loading indicator when the variables children are fetched.
+- Show error message inline when expanding a variable fails
+- Allow expanding/collapsing a debug session
+- Improved handling of stack frames that marked as labels
+- Improved handling of stack frames that are marked as deemphasized or their source is deemphasized
+- Fixes integrated terminal
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
-Whats new in version 0.4.1
+
+Version 0.4.1
+
 - Adds explicit font setting for debugger panel
 
-Whats new in version 0.4.0
+
+Version 0.4.0
+
 - debugger_configuration replaces debug.configurations and is now defined at the root of the .sublime-project instead of inside settings
 - Adds support for tasks see https://github.com/daveleroy/sublime_debugger#tasks
 - Adds support for pre_debug_task and post_debug_task which can be used to build etc
@@ -18,23 +53,33 @@ Whats new in version 0.4.0
 - Fixes issues with latest release of lldb adapter
 - Fixes default ui scale accross platforms
 
-Whats new in version 0.3.1
+
+Version 0.3.1
+
 - Fixes issue with sizing and alignment of panels on windows
 - Fixes path of go adapter
 
-Whats new in version 0.3.0
+
+Version 0.3.0
+
 - Initial support for multiple debug sessions
 - Use debugpy instead of ptvsd for python adapter
 - Right align line numbers in variables/callstack panel
 - Improved layout of panels
 
-Whats new in version 0.2.3
+
+Version 0.2.3
+
 - Updates path for lldb
 
-Whats new in version 0.2.3
+
+Version 0.2.3
+
 - Updates path for lldb
 
-Whats new in version 0.2.2
+
+Version 0.2.2
+
 - Show dialog with error message when launching fails (to match vscode)
 - In multi-threaded programs the reason for why a specific thread was stopped is now only displayed on that thread even if all threads were stopped
 - If running a build with `sublime_build` in the configuration don't start debugging if the build fails with an exit code
@@ -43,7 +88,8 @@ Whats new in version 0.2.2
 - Fixes gutter icons on windows
 
 
-Whats new in version 0.2.1
+Version 0.2.1
+
 - Debugging with a single thread now just displays the stack frames without the thread header
 - When launching a configuration and the adapter is not installed offer to install it
 - When auto selecting a stack frame prefer the first none subtle stack frame
@@ -51,7 +97,9 @@ Whats new in version 0.2.1
 - Fixes various issues with multi threaded debugging
 - Fixes hover providers
 
-Whats new in version 0.2.0
+
+Version 0.2.0
+
 - Support for column breakpoints (requires adapter support)
 - Support for data breakpoints (requires adapter support, currently only lldb?)
 - Left-click gutter now toggles breakpoints, right-clicking a breakpoint allows editing/advanced options
@@ -65,23 +113,33 @@ Whats new in version 0.2.0
 - Fixes issues that sometimes occurred installing/reinstalling adapters
 - Fixes issues with reloading plugin
 
-Whats new in version 0.1.8
+
+Version 0.1.8
+
 - Fixes core not defined error
 
-Whats new in version 0.1.7
+
+Version 0.1.7
+
 - Allow setting logging options in settings
 - Updated url for vscode-firefox-debugger (@appelgriebsch)
 - Fixes issue preventing Debugger: Install Adapters from being run from the command palette
 - Fixes issue where some debug adapters were failing to be fully unzipped on Windows because of long paths
 
-Whats new in version 0.1.6
+
+Version 0.1.6
+
 - Adds run to cursor command
 - Fixes issue preventing installing debug adapters
 
-Whats new in version 0.1.5
+
+Version 0.1.5
+
 - Fixes issue that prevented debugging on windows
 
-Whats new in version 0.1.4
+
+Version 0.1.4
+
 - New styling of panels and updated layout to better support temporary panels created for build results/integrated terminal (and in the future allow customizing the layout of the panels)
 - New console rendering code to support text wrapping and build results/integrated terminal
 - Support internal terminal requests to allow program input. Requires configuration changes to use this feature which depends on the adapter in question. (LLVM uses "terminal": "integrated")
@@ -90,9 +148,13 @@ Whats new in version 0.1.4
 - Fixes issue where using $file and other variables in a configuration had their values expanded when the debugger was opened not when the debugger was started
 - Fixes some wonkiness that occurred when stepping the debugger that caused it to not update correctly
 
-Whats new in version 0.1.3
+
+Version 0.1.3
+
 - When attempting to open the debugger in a window without a sublime project prompt the user to create one.
 - Fixes some other minor bugs and configuration issues
 
-Whats new in version 0.1.0
+
+Version 0.1.0
+
 - Adds package control support

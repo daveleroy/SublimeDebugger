@@ -5,26 +5,23 @@ scope: output.debugger.log
 
 contexts:
   main:
-    - match: (⟹|⟸)(.*)\((\d*|None)\) (::)
+    - match: '(::)(.*)'
       captures:
-        1: storage.modifier
-        2: variable.function
-        3: constant.numeric.integer
-        4: punctuation.separator
-    - match: (⟹|⟸)(.*) (::)
-      captures:
-        1: storage.modifier
-        2: variable.function
-        3: punctuation.separator
+        1: punctuation.separator
+        2: comment
 
-    - match: (⟾|⟽)(.*)\((\d*|None)\) (::)
+    - match: '([a-zA-Z/]*)'
+      captures:
+        1: entity.name.function
+
+    - match: '(⟽|⟸) '
       captures:
         1: storage.modifier
-        2: storage.modifier
-        3: constant.numeric.integer
-        4: punctuation.separator
-    - match: (⟾|⟽)(.*) (::)
+
+    - match: '(⟾|⟹) '
       captures:
-        1: storage.modifier
-        2: storage.modifier
-        3: punctuation.separator
+        1: storage.type
+
+    - match: '([0-9]*)'
+      captures:
+        1: constant.numeric

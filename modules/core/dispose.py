@@ -1,9 +1,10 @@
+from __future__ import annotations
 from ..typecheck import *
 from .log import log_exception
 
 class Disposables:
 	def __init__(self):
-		self.disposables = {} #type: Dict[int, Any]
+		self.disposables = {} #type: dict[int, Any]
 
 	def __iadd__(self, disposable) -> Any:
 		try:

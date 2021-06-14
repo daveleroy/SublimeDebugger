@@ -1,6 +1,7 @@
+from __future__ import annotations
 from .typecheck import *
-from .import core
 
+from .import core
 from .dap import Configuration, ConfigurationCompound, Task
 from .settings import Settings
 
@@ -26,9 +27,9 @@ class Project(core.disposables):
 		self.window = window
 		self.on_updated: core.Event[None] = core.Event()
 
-		self.tasks: List[Task] = []
-		self.compounds: List[ConfigurationCompound] = []
-		self.configurations: List[Configuration] = []
+		self.tasks: list[Task] = []
+		self.compounds: list[ConfigurationCompound] = []
+		self.configurations: list[Configuration] = []
 		self.configuration_or_compound: Optional[Union[Configuration, ConfigurationCompound]] = None
 
 		self.external_terminal_kind = 'platform'
@@ -53,15 +54,15 @@ class Project(core.disposables):
 
 		return self.project_name
 
-	def into_json(self) -> dict:
+	def into_json(self) -> dict[str, Any]:
 		return {
 			'configuration_name': self.configuration_or_compound and self.configuration_or_compound.name,
 			'configuration_id_ish': self.configuration_or_compound and self.configuration_or_compound.id_ish,
 		}
 
-	def load_from_json(self, json: dict) -> Optional[Union[Configuration, ConfigurationCompound]]:
-		configuration_name = json.get('configuration_name')
-		configuration_id_ish = json.get('configuration_id_ish')
+	def load_from_json(self, json: dict[str, Any]) -> Optional[Union[Configuration, ConfigurationCompound]]:
+		configuration_name: str|None = json.get('configuration_name')
+		configuration_id_ish: str|None = json.get('configuration_id_ish')
 
 		if configuration_name and configuration_id_ish:
 			self.load_configuration(configuration_name, configuration_id_ish)
@@ -91,7 +92,7 @@ class Project(core.disposables):
 				return task
 		raise core.Error(f'Unable to find task with name "{name}"')
 
-	def active_configurations(self) -> List[Configuration]:
+	def active_configurations(self) -> list[Configuration]:
 		if isinstance(self.configuration_or_compound, ConfigurationCompound):
 			configurations = []
 			for configuration_name in self.configuration_or_compound.configurations:
@@ -139,10 +140,10 @@ class Project(core.disposables):
 		self.bring_window_to_front_on_pause = Settings.bring_window_to_front_on_pause
 
 	def load_configurations(self):
-		data = self.window.project_data() or {}
+		data: dict[str, Any] = self.window.project_data() or {}
 
 		# check for old format and suggest a fixit
-		settings = data.get('settings', {})
+		settings: dict[str, Any] = data.get('settings', {})
 		if 'debug.configurations' in settings:
 			r = sublime.ok_cancel_dialog("Debugger configurations should now be added as 'debugger_configurations' at the root level of the project. Would you like Debugger to automatically update your project file.", "Update Project")
 			if r:
@@ -158,21 +159,21 @@ class Project(core.disposables):
 				update()
 
 
-		tasks = []
-		tasks_json = data.get("debugger_tasks", [])
+		tasks: list[Task] = []
+		tasks_json: list[Any]  = data.get("debugger_tasks", [])
 
 		for task_json in tasks_json:
 			task = Task.from_json(task_json)
 			tasks.append(task)
 
-		configurations = []
+		configurations: list[Configuration] = []
 		configurations_json = data.get("debugger_configurations", [])
 
 		for index, configuration_json in enumerate(configurations_json):
 			configuration = Configuration.from_json(configuration_json, index)
 			configurations.append(configuration)
 
-		compounds = []
+		compounds: list[ConfigurationCompound] = []
 		compounds_json = data.get("debugger_compounds", [])
 
 		for index, compound_json in enumerate(compounds_json):
@@ -190,14 +191,14 @@ class Project(core.disposables):
 	def is_source_file(self, view: sublime.View) -> bool:
 		return bool(self.source_file(view))
 
-	def source_file(self, view: sublime.View) -> Optional[str]:
+	def source_file(self, view: sublime.View) -> str|None:
 		if view.window() != self.window:
 			return None
 
 		return view.file_name()
 
-	def extract_variables(self) -> dict:
-		variables = self.window.extract_variables()
+	def extract_variables(self):
+		variables: dict[str, str] = self.window.extract_variables()
 
 		if project := variables.get('project_path'):
 			variables['workspaceFolder'] = project

@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import ui
 from ..import dap
 
@@ -6,11 +8,9 @@ from ..watch import Watch
 from .variable import VariableComponent
 from . import css
 
-import sublime
-
 
 class VariablesPanel (ui.div):
-	def __init__(self, sessions: dap.Sessions) -> None:
+	def __init__(self, sessions: dap.Sessions):
 		super().__init__()
 		self.watch_view = WatchView(sessions.watch)
 		self.variables_view = VariablesView(sessions)
@@ -23,7 +23,7 @@ class VariablesPanel (ui.div):
 
 
 class VariablesView (ui.div):
-	def __init__(self, sessions: dap.Sessions) -> None:
+	def __init__(self, sessions: dap.Sessions):
 		super().__init__()
 		self.sessions = sessions
 		self.sessions.on_updated_variables.add(lambda session: self.on_updated(session))
@@ -40,7 +40,7 @@ class VariablesView (ui.div):
 
 		self.dirty()
 
-	def render(self) -> ui.div.Children:
+	def render(self):
 		session = self.sessions.selected_session
 		if not session:
 			return
@@ -100,7 +100,7 @@ class WatchExpressionView(ui.div):
 	def removed(self):
 		self.on_updated_handle.dispose()
 
-	def render(self) -> ui.div.Children:
+	def render(self):
 		if self.expression.evaluate_response:
 			component = VariableComponent(self.expression.evaluate_response)
 			return [component]

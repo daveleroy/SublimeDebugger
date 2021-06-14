@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..typecheck import *
 from ..import core
 from ..import ui
@@ -9,17 +10,13 @@ from .function_breakpoints import FunctionBreakpoints, FunctionBreakpoint
 from .source_breakpoints import SourceBreakpoints, SourceBreakpoint
 from .exception_filters import ExceptionBreakpointsFilters, ExceptionBreakpointsFilter
 
-
 class IBreakpoint (Protocol):
 	@property
-	def image(self) -> ui.Image:
-		...
+	def image(self) -> ui.Image: ...
 	@property
-	def tag(self) -> Optional[str]:
-		...
+	def tag(self) -> str|None: ...
 	@property
-	def name(self) -> str:
-		...
+	def name(self) -> str: ...
 
 class Breakpoints:
 	def __init__(self) -> None:
@@ -36,12 +33,12 @@ class Breakpoints:
 		self.function.clear_session_data()
 		self.source.clear_session_data()
 
-	def load_from_json(self, json) -> None:
+	def load_from_json(self, json: dap.Json) -> None:
 		self.source.load_json(json.get('source', []))
 		self.function.load_json(json.get('function', []))
 		self.filters.load_json(json.get('filters', []))
 
-	def into_json(self) -> dict:
+	def into_json(self) -> dap.Json:
 		return {
 			'source': self.source.into_json(),
 			'function': self.function.into_json(),

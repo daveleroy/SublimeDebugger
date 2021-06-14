@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 from .import dap
 
@@ -8,16 +10,19 @@ from .debugger import Project
 import sublime
 import sublime_plugin
 
+syntax_name_for_mime_type = {
+	'text/javascript': 'source.js',
+}
 
-def replace_contents(view, characters):
-	def run(edit):
+def replace_contents(view: sublime.View, characters: str):
+	def run(edit: sublime.Edit):
 		view.replace(edit, sublime.Region(0, view.size()), characters)
 		view.sel().clear()
 
 	core.edit(view, run)
 
-def show_line(view, line: int, column: int, move_cursor: bool):
-	def run(edit):
+def show_line(view: sublime.View, line: int, column: int, move_cursor: bool):
+	def run(edit: sublime.Edit):
 		a = view.text_point(line, column)
 		region = sublime.Region(a, a)
 		view.show_at_center(region)
@@ -29,11 +34,14 @@ def show_line(view, line: int, column: int, move_cursor: bool):
 
 class SourceNavigationProvider:
 	def __init__(self, project: Project, sessions: dap.Sessions):
+		super().__init__()
+
 		self.sessions = sessions
 		self.project = project
-		self.updating = None #type: Optional[Any]
-		self.generated_view = None #type: Optional[sublime.View]
-		self.selected_frame_line = None #type: Optional[SelectedLine]
+
+		self.updating: Any|None = None
+		self.generated_view: sublime.View|None = None
+		self.selected_frame_line: SelectedLine|None = None
 
 	def dispose(self):
 		self.clear()
@@ -41,7 +49,8 @@ class SourceNavigationProvider:
 	def select_source_location(self, source: dap.SourceLocation, stopped_reason: str):
 		if self.updating:
 			self.updating.cancel()
-		def on_error(error):
+
+		def on_error(error: BaseException):
 			if error is not core.CancelledError:
 				core.log_error(error)
 
@@ -50,7 +59,7 @@ class SourceNavigationProvider:
 			view = await self.navigate_to_source(source)
 
 			# r = view.line(view.text_point(source.line - 1, 0))
-			# view.add_regions("asdfasdf", [r], scope="region.bluish", annotations=[stopped_reason.ljust(200, '\u00A0')], annotation_color='var(--bluish)', flags=sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE|sublime.DRAW_SOLID_UNDERLINE)
+			# view.add_regions("asdfasdf", [r], scope="region.bluish", annotations=[stopped_reason], annotation_color='color(var(--bluish) alpha(0.5))')
 			self.selected_frame_line = SelectedLine(view, source.line or 1, stopped_reason)
 
 		self.updating = core.run(select_async(source, stopped_reason), on_error=on_error)
@@ -59,7 +68,7 @@ class SourceNavigationProvider:
 		if self.updating:
 			self.updating.cancel()
 
-		def on_error(error):
+		def on_error(error: BaseException):
 			if error is not core.CancelledError:
 				core.log_error(error)
 
@@ -98,12 +107,16 @@ class SourceNavigationProvider:
 
 		if source.source.sourceReference:
 			session = self.sessions.active
-			content = await session.get_source(source.source)
+			content, mime_type = await session.get_source(source.source)
 
 			view = self.generated_view or self.project.window.new_file()
 			self.generated_view = view
 			view.set_name(source.source.name or "")
 			view.set_read_only(False)
+			
+
+			syntax = syntax_name_for_mime_type.get(mime_type or '') or 'text.plain'
+			view.assign_syntax(sublime.find_syntax_by_scope(syntax)[0])
 
 			replace_contents(view, content)
 

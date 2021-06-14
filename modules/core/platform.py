@@ -1,15 +1,14 @@
-import sys
-import platform
+from __future__ import annotations
 
-osx = False
-windows = False
-linux = False
+import sublime
 
-is_64 = platform.machine().endswith('64')
+_platform = sublime.platform()
 
-if sys.platform == "linux" or sys.platform == "linux2":
-	linux = True
-elif sys.platform == "darwin":
-	osx = True
-elif sys.platform == "win32":
-	windows = True
+ # CPU architecture, which may be "x32", "x64" or "arm64"
+architecture = sublime.arch()
+
+osx = _platform == 'osx'
+windows = _platform == 'windows'
+linux = _platform == 'linux'
+
+is_64 = architecture.endswith('64')

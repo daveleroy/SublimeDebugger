@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ...typecheck import *
 from ...import core
 
@@ -7,13 +8,13 @@ import zipfile
 import gzip
 import urllib.request
 import json
-import sublime
-from dataclasses import dataclass
 import pathlib
 import certifi
 import uuid
 
-_info_for_type = {} #type: Dict[str, Optional[AdapterInfo]]
+from dataclasses import dataclass
+
+_info_for_type: dict[str, AdapterInfo] = {}
 
 
 def install_path(type: str) -> str:
@@ -22,7 +23,7 @@ def install_path(type: str) -> str:
 @dataclass
 class AdapterInfo:
 	version: str
-	schema_and_snippets: dict
+	schema_and_snippets: dict[str, Any]
 
 def info(type: str) -> Optional[AdapterInfo]:
 	info = _info_for_type.get(type)
@@ -36,7 +37,7 @@ def info(type: str) -> Optional[AdapterInfo]:
 		return None
 
 	version = "??"
-	contributes = {}
+	contributes: dict[str, Any] = {}
 
 	with open(f'{path}/extension/package.json') as file:
 		package_json = json.load(file)
@@ -56,12 +57,12 @@ def info(type: str) -> Optional[AdapterInfo]:
 	_info_for_type[type] = info
 	return info
 
-def installed_version(type: str) -> Optional[str]:
+def installed_version(type: str) -> str|None:
 	if i := info(type):
 		return i.version
 	return None
 
-def configuration_schema(type: str, vscode_type: Optional[str] = None) -> Optional[dict]:
+def configuration_schema(type: str, vscode_type: str|None = None) -> dict[str, Any] | None:
 	if i := info(type):
 		contributes = i.schema_and_snippets.get(vscode_type or type)
 		if contributes:
@@ -69,7 +70,7 @@ def configuration_schema(type: str, vscode_type: Optional[str] = None) -> Option
 
 	return None
 
-def configuration_snippets(type: str, vscode_type: Optional[str] = None) -> Optional[list]:
+def configuration_snippets(type: str, vscode_type: str|None = None) -> list[Any] | None:
 	if i := info(type):
 		contributes = i.schema_and_snippets.get(vscode_type or type)
 		if contributes:
@@ -77,7 +78,7 @@ def configuration_snippets(type: str, vscode_type: Optional[str] = None) -> Opti
 
 	return None
 
-async def install(type: str, url: str, log: core.Logger, post_download_action: Optional[Callable[[], Awaitable]] = None):
+async def install(type: str, url: str, log: core.Logger, post_download_action: Optional[Callable[[], Awaitable[Any]]] = None):
 	try:
 		del _info_for_type[type]
 	except KeyError:
@@ -128,24 +129,16 @@ async def install(type: str, url: str, log: core.Logger, post_download_action: O
 	log.info(f'Installing adapter: {type}')
 	log.info('from: {}'.format(url))
 
-	try:
-		await core.run_in_executor(blocking)
-		if post_download_action:
-			await post_download_action()
+	await core.run_in_executor(blocking)
+	if post_download_action:
+		await post_download_action()
 
-	except Exception as error:
-		log.error(f'Failed to install adapter: {str(error)}')
-		return
 
 	# successfully installed so add a marker file
 	path_installed = f'{path}/.sublime_debugger'
 	with open(path_installed, 'w') as file_installed:
 		...
 
-	log.info('Successfully Installed Adapter!')
-
-	from ...adapters_registry import AdaptersRegistry
-	AdaptersRegistry.recalculate_schema()
 
 # https://stackoverflow.com/questions/29967487/get-progress-back-from-shutil-file-copy-thread
 def copyfileobj(fsrc, fdst, log_info, total, length=128*1024):

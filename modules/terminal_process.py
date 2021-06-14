@@ -1,35 +1,39 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 from .terminal import Terminal
 
 import threading
 import re
 
-try:
-	if core.platform.windows:
-		from winpty import PtyProcess  #type: ignore
-	else:
-		from ..libs.ptyprocess import PtyProcess as _PtyProcess  #type: ignore
+if core.platform.windows:
+	PTYPROCESS_SUPPORTED = False
+	# if core.platform.is_64:
+	# 	from .libs.pywinpty.st3_windows_x64.winpty import PtyProcess
+	# else:
+	# 	from .libs.pywinpty.st3_windows_x32.winpty import PtyProcess
 
-		class PtyProcess(_PtyProcess):  #type: ignore
-			def read(self):
-				return super().read().decode('utf-8')
+else:
+	from .libs.ptyprocess import PtyProcess as _PtyProcess  #type: ignore
 
-	SUPPORTED = True
+	class PtyProcess(_PtyProcess):  #type: ignore
+		def read(self) -> str:
+			return super().read().decode('utf-8')
 
-except ImportError:
-	# this stuff is broken on > 4000 until the packages are 3.8 compatible
-	SUPPORTED = False
+	PTYPROCESS_SUPPORTED = True
+
 
 # from https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
-
 class TtyProcess:
-	def __init__(self, command: List[str], on_output: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, cwd=None) -> None:
+	def __init__(self, command: list[str], on_output: Optional[Callable[[str], None]], on_close: Optional[Callable[[], None]] = None, cwd=None) -> None:
 		print('Starting process: {}'.format(command))
+		if not PTYPROCESS_SUPPORTED:
+			raise core.Error("Unable to start external terminal PtyProcess is not supported on Windows at the moment (try using console instead of integrated terminal in your configuration)")
 
-		self.process = PtyProcess.spawn(command, cwd=cwd)
+		self.process: Any = PtyProcess.spawn(command, cwd=cwd)
 		self.pid = self.process.pid
 		self.on_close = on_close
 		self.closed = False
@@ -75,22 +79,20 @@ class TtyProcess:
 
 
 class TerminalProcess (Terminal):
-	def __init__(self, cwd: Optional[str], args: List[str]) -> None:
-		cwd = cwd or None # turn "" into None
-
-		super().__init__("Terminal", cwd=cwd)
-		self.process = TtyProcess(args, on_output=self.on_process_output, cwd=cwd)
+	def __init__(self, cwd: str|None, args: list[str]):
+		super().__init__("Terminal", cwd=cwd or None) # turn "" into None
+		self.process = TtyProcess(args, on_output=self.on_process_output, cwd=self.cwd, on_close=self.on_close)
 
 	def pid(self) -> int:
 		return self.process.pid
 
-	def on_process_output(self, output: str) -> None:
+	def on_process_output(self, output: str):
 		self.add('stdout', output)
 
-	def writeable(self) -> bool:
+	def writeable(self):
 		return True
 
-	def writeable_prompt(self) -> str:
+	def writeable_prompt(self):
 		if self.escape_input:
 			return "click to write escaped input to stdin"
 		return "click to write a line to stdin"
@@ -101,8 +103,12 @@ class TerminalProcess (Terminal):
 
 		self.process.write(text + '\n')
 
-	def can_escape_input(self) -> bool:
+	def can_escape_input(self):
 		return True
+
+	def on_close(self):
+		print('finished')
+		self.finish(-1, 'closed')
 
 	def dispose(self):
 		self.process.dispose()

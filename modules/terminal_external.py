@@ -24,7 +24,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 
 import subprocess
@@ -34,7 +36,7 @@ import sublime_plugin
 
 
 class ExternalTerminal(Protocol):
-	def __init__(self, title: str, cwd: str, commands: List[str], env: dict):
+	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
 		...
 
 	def dispose(self):
@@ -45,7 +47,7 @@ class ExternalTerminal(Protocol):
 class ExternalTerminalTerminus(ExternalTerminal):
 	id = 0
 
-	def __init__(self, title: str, cwd: str, commands: List[str], env: dict):
+	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
 		self.window = sublime.active_window()
 		self.tag = 'sublime_debugger_{}'.format(ExternalTerminalTerminus.id)
 		ExternalTerminalTerminus.id += 1
@@ -68,7 +70,7 @@ class ExternalTerminalMacDefault(ExternalTerminal):
 	OSX_TERMINAL_SCRIPT = os.path.join(os.path.dirname(__file__), 'scripts', 'TerminalHelper.scpt')
 	#OSX_ITERM_SCRIPT = os.path.join(os.path.dirname(__file__), 'iTermHelper.scpt')
 
-	def __init__(self, title: str, cwd: str, commands: List[str], env: dict):
+	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
 		args = [
 			"osascript",
 			ExternalTerminalMacDefault.OSX_TERMINAL_SCRIPT,
@@ -95,7 +97,7 @@ class ExternalTerminalMacDefault(ExternalTerminal):
 
 # modified from https://github.com/microsoft/vscode/blob/master/src/vs/workbench/contrib/externalTerminal/node/externalTerminalService.ts
 class ExternalTerminalWindowsDefault(ExternalTerminal):
-	def __init__(self, title: str, cwd: str, commands: List[str], env: dict):
+	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
 		if core.platform.is_64:
 		 	exec = 'C:\\Windows\\Sysnative\\cmd.exe'
 		else:

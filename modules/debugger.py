@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core, ui
 
 import sublime
@@ -19,7 +21,7 @@ from .terminal import Terminal
 from .terminal_debugger import TermianlDebugger
 from .terminal_process import TerminalProcess
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
-from .terminal_task import TerminalTask
+from .terminal_task import TerminalTask, Tasks
 
 from .source_navigation import SourceNavigationProvider
 
@@ -33,13 +35,13 @@ from .views.variables_panel import VariablesPanel
 from .views.tabbed_panel import TabbedPanel, TabbedPanelItem
 from .views.selected_line import SelectedLine
 from .views.terminal import TerminalView
-from .views.problems import ProblemsView
+from .views.diagnostics import DiagnosticsPanel
 
 
 class Debugger (dap.SessionsTasksProvider, core.Logger):
 
-	instances: Dict[int, 'Debugger'] = {}
-	creating: Dict[int, bool] = {}
+	instances: dict[int, 'Debugger'] = {}
+	creating: dict[int, bool] = {}
 
 	@staticmethod
 	def should_auto_open_in_window(window: sublime.Window) -> bool:
@@ -53,7 +55,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		return False
 
 	@staticmethod
-	def get(window: sublime.Window, create: bool = False) -> 'Optional[Debugger]':
+	def get(window: sublime.Window, create: bool = False) -> Debugger|None:
 		global instances
 		id = window.id()
 		instance = Debugger.instances.get(id)
@@ -67,7 +69,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 				instance = Debugger(window)
 				Debugger.instances[id] = instance
 
-			except dap.Error as e:
+			except core.Error as e:
 				core.log_exception()
 
 			Debugger.creating[id] = False
@@ -79,7 +81,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 
 	def __init__(self, window: sublime.Window) -> None:
 		self.window = window
-		self.disposeables = [] #type: List[Any]
+		self.disposeables = [] #type: list[Any]
 
 		def on_project_configuration_updated():
 			self.panel.set_ui_scale(self.project.ui_scale)
@@ -101,46 +103,27 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		autocomplete = Autocomplete.create_for_window(window)
 
 		self.last_run_task = None
-		self.external_terminals: List[ExternalTerminal] = []
+		self.external_terminals: list[ExternalTerminal] = []
 
 		def on_output(session: dap.Session, event: dap.OutputEvent) -> None:
 			self.terminal.program_output(session, event)
 
-		def on_terminal_added(terminal: Terminal):
-			if isinstance(terminal, TerminalTask):
-				if terminal.background:
-					return
-				component = ProblemsView(terminal, self.on_navigate_to_source)
-			else:
-				component = TerminalView(terminal, self.on_navigate_to_source)
-
-			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
-			def on_modified():
-				...
-				#self.middle_panel.modified(panel)
-
-			terminal.on_updated.add(on_modified)
-
-			self.middle_panel.add(panel)
-			self.middle_panel.select(id(terminal))
-
-		def on_terminal_removed(terminal: Terminal):
-			self.middle_panel.remove(id(terminal))
-
 		self.breakpoints = Breakpoints()
 		self.disposeables.append(self.breakpoints)
 
-		self.sessions = dap.Sessions(self)
-		self.sessions.transport_log = self
+		self.sessions = dap.Sessions(self, log=self)
 		self.sessions.output.add(on_output)
-
 		self.disposeables.append(self.sessions)
+
+		self.tasks = Tasks()
+		self.disposeables.append(self.tasks.added.add(lambda _: self.show_diagnostics_panel()))
+		self.disposeables.append(self.tasks)
 
 		self.terminal = TermianlDebugger(
 			self.window,
 			on_run_command=self.on_run_command,
 		)
-		self.terminals: List[Terminal] = []
+		self.terminals: list[Terminal] = []
 
 		self.disposeables.append(self.terminal)
 
@@ -161,9 +144,12 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.terminal_view = TerminalView(self.terminal, self.on_navigate_to_source)
 
 		self.callstack_view =  CallStackView(self.sessions)
+		self.problems_view = DiagnosticsPanel(self.tasks, self.on_navigate_to_source)
+
 		self.middle_panel.update([
 			TabbedPanelItem(self.terminal_view, self.terminal_view, 'Debugger Console', show_options=lambda: self.terminal.show_backing_panel()),
 			TabbedPanelItem(self.callstack_view, self.callstack_view, 'Callstack'),
+			TabbedPanelItem(self.problems_view, self.problems_view, 'Problems'),
 		])
 
 		# right panels
@@ -179,9 +165,6 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 			TabbedPanelItem(self.sources_panel, self.sources_panel, 'Sources'),
 		])
 
-		self.update_modules_visibility()
-		self.update_sources_visibility()
-
 		# phantoms
 		phantom_location = self.panel.panel_phantom_location()
 		phantom_view = self.panel.panel_phantom_view()
@@ -191,17 +174,10 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.right = ui.Phantom(self.right_panel, phantom_view, sublime.Region(phantom_location + 0, phantom_location + 2), sublime.LAYOUT_INLINE)
 		self.disposeables.extend([self.left, self.middle, self.right])
 
-		self.sessions.on_updated_modules.add(lambda _: self.update_modules_visibility())
-		self.sessions.on_updated_sources.add(lambda _: self.update_sources_visibility())
-		self.sessions.on_removed_session.add(self.on_session_removed)
 		self.sessions.updated.add(self.on_session_state_changed)
 		self.sessions.on_selected.add(self.on_session_selection_changed)
 
 		on_project_configuration_updated()
-
-	def on_session_removed(self, session: dap.Session):
-		self.update_sources_visibility()
-		self.update_modules_visibility()
 
 	def on_session_selection_changed(self, session: dap.Session):
 		if not self.sessions.has_active:
@@ -217,45 +193,32 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		else:
 			self.source_provider.clear()
 
-	def on_session_state_changed(self, session: dap.Session, state):
+	def on_session_state_changed(self, session: dap.Session, state: dap.Session.State):
 		if self.sessions.has_active and self.sessions.active != session:
 			return
 
-		if state == dap.Session.stopped:
+		if state == dap.Session.State.STOPPED:
 			if self.sessions or session.stopped_reason == dap.Session.stopped_reason_build_failed:
 				... # leave build results open or there is still a running session
 			else:
 				self.show_console_panel()
 
-		elif state == dap.Session.running:
+		elif state == dap.Session.State.RUNNING:
 			self.show_console_panel()
 
-		elif state == dap.Session.paused:
+		elif state == dap.Session.State.PAUSED:
 			# if self.project.bring_window_to_front_on_pause:
 			# figure out a good way to bring sublime to front
 
 			self.show_call_stack_panel()
 
-		elif state == dap.Session.stopping or state == dap.Session.starting:
+		elif state == dap.Session.State.STOPPING or state == dap.Session.State.STARTING:
 			...
 
-	def update_sources_visibility(self):
-		has_sources = False
-		for session in self.sessions:
-			if session.sources:
-				has_sources = True
-				break
-
-		self.right_panel.set_visible(self.sources_panel, has_sources)
-
-	def update_modules_visibility(self):
-		has_modules = False
-		for session in self.sessions:
-			if session.modules:
-				has_modules = True
-				break
-
-		self.right_panel.set_visible(self.modules_panel, has_modules)
+	def clear_all_breakpoints(self):
+		self.breakpoints.data.remove_all()
+		self.breakpoints.source.remove_all()
+		self.breakpoints.function.remove_all()
 
 	def show(self) -> None:
 		self.panel.panel_show()
@@ -265,6 +228,9 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 
 	def show_console_panel(self) -> None:
 		self.middle_panel.select(self.terminal_view)
+
+	def show_diagnostics_panel(self) -> None:
+		self.middle_panel.select(self.problems_view)
 
 	def show_call_stack_panel(self) -> None:
 		self.middle_panel.select(self.callstack_view)
@@ -293,9 +259,13 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	def on_navigate_to_source(self, source: dap.SourceLocation):
 		self.source_provider.show_source_location(source)
 
-	async def _on_play(self, no_debug=False) -> None:
-		self.show_console_panel()
+	async def _on_play(self, no_debug: bool = False) -> None:
+		# self.show_console_panel()
 		self.terminal.clear()
+		self.transport_log.clear()
+		self.tasks.clear()
+		self.clear_unused_terminals()
+		
 		try:
 			active_configurations = self.project.active_configurations()
 			if not active_configurations:
@@ -320,18 +290,19 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 					adapter_configuration = AdaptersRegistry.get(configuration.type)
 					configuration_expanded = dap.ConfigurationExpanded(configuration, variables)
 
-					if configuration_expanded.get('pre_debug_task'):
-						pre_debug_task = configuration_expanded.get('pre_debug_task')
+					pre_debug_task = configuration_expanded.get('pre_debug_task')
+					post_debug_task = configuration_expanded.get('post_debug_task')
+
+					if pre_debug_task:
 						configuration_expanded.pre_debug_task = dap.TaskExpanded(self.project.get_task(pre_debug_task), variables)
 
-					if configuration_expanded.get('post_debug_task'):
-						post_debug_task = configuration_expanded.get('post_debug_task')
-						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)
+					if post_debug_task:
+						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)						
 
 					if not adapter_configuration.installed_version:
 						install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
 						if sublime.ok_cancel_dialog(install, 'Install'):
-							await adapter_configuration.install(self)
+							await AdaptersRegistry.install(adapter_configuration.type, self)
 
 					await self.sessions.launch(self.breakpoints, adapter_configuration, configuration_expanded, no_debug=no_debug)
 				except core.Error as e:
@@ -343,17 +314,22 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	def is_paused(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state == dap.Session.paused
+		return self.sessions.active.state == dap.Session.State.PAUSED
 
 	def is_running(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state == dap.Session.running
+		return self.sessions.active.state == dap.Session.State.RUNNING
+
+	def is_active(self):
+		if not self.sessions.has_active:
+			return False
+		return True
 
 	def is_stoppable(self):
 		if not self.sessions.has_active:
 			return False
-		return self.sessions.active.state != dap.Session.stopped
+		return self.sessions.active.state != dap.Session.State.STOPPED
 
 	#
 	# commands
@@ -372,7 +348,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.show()
 		self.run_async(self._on_play(no_debug=True))
 
-	async def catch_error(self, awaitabe):
+	async def catch_error(self, awaitabe: Callable[[], Awaitable[Any]]) -> Any:
 		try:
 			return await awaitabe()
 		except core.Error as e:
@@ -472,7 +448,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		else:
 			self.on_run_task()
 
-	def change_configuration_input_items(self) -> List[ui.InputListItem]:
+	def change_configuration_input_items(self) -> list[ui.InputListItem]:
 		values = []
 		for c in self.project.compounds:
 			name = f'{c.name}\tcompound'
@@ -500,18 +476,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	@core.schedule
 	async def run_task(self, task: dap.Task):
 		variables = self.project.extract_variables()
-		terminal = TerminalTask(self.window, dap.TaskExpanded(task, variables))
-		self.terminals.append(terminal)
-
-		if not terminal.background:
-			self.clear_unused_terminals()
-			component = ProblemsView(terminal, self.on_navigate_to_source)
-			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
-
-			self.middle_panel.add(panel)
-			self.middle_panel.select(id(terminal))
-
-		await terminal.wait()
+		await self.tasks.run(self.window, dap.TaskExpanded(task, variables))
 
 	def add(self, session: dap.Session, terminal: Terminal):
 		self.terminals.append(terminal)
@@ -531,10 +496,12 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		if self.project.external_terminal_kind == 'platform':
 			if core.platform.osx:
 				return ExternalTerminalMacDefault(title, cwd, commands, env)
-			if core.platform.windows:
+			elif core.platform.windows:
 				return ExternalTerminalWindowsDefault(title, cwd, commands, env)
-			if core.platform.linux:
+			elif core.platform.linux:
 				raise core.Error('default terminal for linux not implemented')
+			else:
+				raise core.Error('unreachable')
 
 		if self.project.external_terminal_kind == 'terminus':
 			return ExternalTerminalTerminus(title, cwd, commands, env)
@@ -561,9 +528,11 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 	async def change_configuration(self) -> None:
 		await ui.InputList(self.change_configuration_input_items(), "Add or Select Configuration").run()
 
-	def install_adapters(self) -> None:
+	@core.schedule
+	async def install_adapters(self) -> None:
 		self.show_console_panel()
-		AdaptersRegistry.install_menu(log=self).run()
+		menu = await AdaptersRegistry.install_menu(log=self)
+		await menu.run()
 
 	def error(self, value: str):
 		self.terminal.log_error(value)

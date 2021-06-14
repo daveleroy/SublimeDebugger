@@ -1,5 +1,6 @@
 from __future__ import annotations
 from .typecheck import *
+
 from .import core
 from .import ui
 
@@ -15,26 +16,26 @@ class Watch:
 			self.evaluate_response: Optional[dap.Variable] = None
 			self.on_updated: core.Event[None] = core.Event()
 
-		def into_json(self) -> dict:
+		def into_json(self) -> dap.Json:
 			return {
 				'value': self.value,
 			}
 		@staticmethod
-		def from_json(json: dict) -> Watch.Expression:
+		def from_json(json: dap.Json) -> Watch.Expression:
 			return Watch.Expression(
 				json['value'],
 			)
 
 	def __init__(self):
-		self.expressions: List[Watch.Expression] = []
+		self.expressions: list[Watch.Expression] = []
 		self.on_updated: core.Event[None] = core.Event()
 		self.on_added: core.Event[Watch.Expression] = core.Event()
 
-	def load_json(self, json: list):
+	def load_json(self, json: list[dap.Json]):
 		self.expressions = list(map(lambda j: Watch.Expression.from_json(j), json))
 		self.on_updated()
 
-	def into_json(self) -> list:
+	def into_json(self) -> list[dap.Json]:
 		return list(map(lambda e: e.into_json(), self.expressions))
 
 	def add(self, value: str) -> None:
@@ -51,7 +52,7 @@ class Watch:
 		ui.InputText(add, "Expression to watch").run()
 
 	async def evaluate(self, session: dap.Session, frame: dap.StackFrame) -> None:
-		results: List[Awaitable[dap.EvaluateResponse]] = []
+		results: list[Awaitable[dap.EvaluateResponse]] = []
 		for expression in self.expressions:
 			results.append(session.evaluate_expression(expression.value, "watch"))
 

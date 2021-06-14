@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ..import ui
 from .import css
 
@@ -6,19 +8,15 @@ class InputListView (ui.div):
 		super().__init__()
 		self.input = input
 
-	def render(self) -> ui.div.Children:
-		items = []
+	def render(self):
+		items: list[ui.div] = []
 		for input in self.input.values:
-			text = input.text.split('\t')
-			if len(text) == 1:
-				text.append('')
-
 			items.append(ui.div(height=css.row_height)[
 				ui.click(lambda input=input: input.display_or_run())[
 					ui.align()[
-						ui.text(text[0], css=css.label_secondary),
+						ui.text(input.text, css=css.label_secondary),
 						ui.spacer(),
-						ui.text(text[1], css=css.button),
+						ui.text(input.annotation, css=css.button),
 					]
 				]
 			])

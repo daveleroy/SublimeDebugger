@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..typecheck import *
 from ..import core
 
@@ -7,21 +8,22 @@ from .types import OutputEvent, StackFrame, RunInTerminalRequest, RunInTerminalR
 from ..breakpoints import Breakpoints
 
 class SessionsTasksProvider (Protocol):
-	async def sessions_create_terminal(self, session: Session, request: RunInTerminalRequest):
+	async def sessions_create_terminal(self, session: Session, request: RunInTerminalRequest) -> RunInTerminalResponse:
 		...
 	async def sessions_run_task(self, session: Session, task: TaskExpanded):
 		...
 
 class Sessions (SessionListener):
-	def __init__(self, provider: SessionsTasksProvider):
+	def __init__(self, provider: SessionsTasksProvider, log: core.Logger):
 		self.watch = Watch()
 		self.provider = provider
 
-		self.sessions: List[Session] = []
-		self.updated = core.Event()
+		self.sessions: list[Session] = []
 
-		self.output = core.Event()
-		self.transport_log = core.StdioLogger()
+		self.updated: core.Event[Session, Session.State] = core.Event()
+		self.output: core.Event[Session, OutputEvent] = core.Event()
+		
+		self.log = log
 
 		self.on_updated_modules: core.Event[Session] = core.Event()
 		self.on_updated_sources: core.Event[Session] = core.Event()
@@ -39,19 +41,28 @@ class Sessions (SessionListener):
 	def __iter__(self):
 		return iter(self.sessions)
 
-	async def launch(self, breakpoints: Breakpoints, adapter: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Optional[Any] = None, no_debug: bool = False, parent: Optional[Session] = None) -> Session:
+	async def launch(self, breakpoints: Breakpoints, adapter: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Any|None = None, no_debug: bool = False, parent: Session|None = None) -> Session:
 		for session in self.sessions:
 			if configuration.id_ish == session.configuration.id_ish:
 				await session.stop()
 				# return
 
-		session = Session(breakpoints=breakpoints, watch=self.watch, listener=self, transport_log=self.transport_log, parent=parent)
+		session = Session(
+			adapter_configuration=adapter,
+			configuration=configuration,
+			restart=restart,
+			no_debug=no_debug,
+			breakpoints=breakpoints, 
+			watch=self.watch, 
+			listener=self, 
+			transport_log=self.log, 
+			parent=parent)
 
 		@core.schedule
 		async def run():
 			self.add_session(session)
 
-			await session.launch(adapter, configuration, restart, no_debug)
+			await session.launch()
 
 			await session.wait()
 			session.dispose()
@@ -65,7 +76,7 @@ class Sessions (SessionListener):
 		await self.provider.sessions_create_terminal(session, request)
 		return RunInTerminalResponse(processId=None, shellProcessId=None)
 
-	def on_session_state_changed(self, session: Session, state: int):
+	def on_session_state_changed(self, session: Session, state: Session.State):
 		self.updated(session, state)
 
 	def on_session_selected_frame(self, session: Session, frame: Optional[StackFrame]):

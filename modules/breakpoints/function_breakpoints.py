@@ -1,30 +1,31 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from ..import ui
 from ..import dap
 
-
 class FunctionBreakpoint:
-	def __init__(self, breakpoint: dap.FunctionBreakpoint, enabled: bool = True) -> None:
+	def __init__(self, breakpoint: dap.FunctionBreakpoint, enabled: bool = True):
 		self.enabled = enabled
 		self.dap = breakpoint
-		self.result = None #type: Optional[dap.BreakpointResult]
+		self.result: dap.BreakpointResult | None = None
 
-	def into_json(self) -> dict:
+	def into_json(self) -> dap.Json:
 		return {
 			'dap': self.dap.into_json(),
 			'enabled': self.enabled
 		}
 
 	@staticmethod
-	def from_json(json: dict) -> 'FunctionBreakpoint':
+	def from_json(json: dap.Json):
 		return FunctionBreakpoint(
 			dap.FunctionBreakpoint.from_json(json['dap']),
 			json['enabled']
 		)
 
 	@property
-	def image(self) -> ui.Image:
+	def image(self):
 		if not self.enabled:
 			return ui.Images.shared.dot_disabled
 		if not self.verified:
@@ -33,7 +34,7 @@ class FunctionBreakpoint:
 		return ui.Images.shared.dot
 
 	@property
-	def tag(self) -> Optional[str]:
+	def tag(self):
 		return 'ƒn'
 
 	@property
@@ -54,20 +55,19 @@ class FunctionBreakpoint:
 			return self.result.verified
 		return True
 
-
 class FunctionBreakpoints:
 	def __init__(self):
-		self.breakpoints = [] #type: List[FunctionBreakpoint]
-		self.on_updated = core.Event() #type: core.Event[List[FunctionBreakpoint]]
-		self.on_send = core.Event() #type: core.Event[List[FunctionBreakpoint]]
+		self.breakpoints: list[FunctionBreakpoint] = []
+		self.on_updated: core.Event[list[FunctionBreakpoint]] = core.Event()
+		self.on_send: core.Event[list[FunctionBreakpoint]] = core.Event()
 
 	def __iter__(self):
 		return iter(self.breakpoints)
 
-	def into_json(self) -> list:
+	def into_json(self) -> list[Any]:
 		return list(map(lambda b: b.into_json(), self.breakpoints))
 
-	def load_json(self, json: list):
+	def load_json(self, json: list[Any]):
 		self.breakpoints = list(map(lambda j: FunctionBreakpoint.from_json(j), json))
 		self.on_updated(self.breakpoints)
 
@@ -81,7 +81,7 @@ class FunctionBreakpoints:
 		if send:
 			self.on_send(self.breakpoints)
 
-	def set_result(self, breakpoint: FunctionBreakpoint, result: dap.BreakpointResult) -> None:
+	def set_result(self, breakpoint: FunctionBreakpoint, result: dap.BreakpointResult):
 		breakpoint.result = result
 		self.updated(send=False)
 
@@ -141,7 +141,7 @@ class FunctionBreakpoints:
 			),
 		], placeholder="Edit Breakpoint on function {}".format(breakpoint.name))
 
-	def add_command(self) -> None:
+	def add_command(self):
 		ui.InputText(self.add, "Name of function to break on").run()
 
 	def add(self, name: str):

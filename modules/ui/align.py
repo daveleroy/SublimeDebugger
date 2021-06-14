@@ -1,10 +1,11 @@
+from __future__ import annotations
 from ..typecheck import *
 from . html import span, click, alignable
 from . layout import Layout
 
 
 class spacer (span):
-	def __init__(self, width: Optional[int] = None, min: Optional[int] = None):
+	def __init__(self, width: int|None = None, min: int|None = None):
 		super().__init__(width, None, None)
 		self.flex_width = width
 		self.flex_width_min = min
@@ -100,4 +101,4 @@ class align (span):
 			width_for_resizeables -= w
 			resizeables_left -= 1
 
-		return super().html(layout)
+		return self.html_inner(layout)

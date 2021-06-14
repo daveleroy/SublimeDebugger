@@ -1,5 +1,7 @@
 # import Debugger; Debugger.modules.debugger.commands.Commands.generate_commands_and_menus();
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 from .debugger import Debugger
 from .adapters_registry import AdaptersRegistry
@@ -179,6 +181,7 @@ commands = [
 		name='Input Command',
 		command='input_command',
 		action=Debugger.on_input_command,
+		enabled=Debugger.is_active
 	),
 	CommandDebugger (
 		name='Run Task',
@@ -195,6 +198,11 @@ commands = [
 		name='Add Function Breakpoint',
 		command='add_function_breakpoint',
 		action=Debugger.add_function_breakpoint,
+	),
+	CommandDebugger (
+		name='Clear Breakpoints',
+		command='clear_breakpoints',
+		action=Debugger.clear_all_breakpoints,
 	),
 	CommandDebugger (
 		name='Add Watch Expression',
@@ -308,7 +316,7 @@ class Commands:
 					}
 				)
 
-		commands_palette = [] #type: List[Any]
+		commands_palette = [] #type: list[Any]
 		generate_commands(menu_commands, commands_palette, prefix="Debugger: ", include_seperators=False)
 
 		# hidden command used for gathering input from the command palette
@@ -321,7 +329,7 @@ class Commands:
 		with open(current_package + '/Commands/Commands.sublime-commands', 'w') as file:
 			json.dump(commands_palette, file, indent=4, separators=(',', ': '))
 
-		commands_menu = [] #type: List[Any]
+		commands_menu = [] #type: list[Any]
 		generate_commands(menu_main, commands_menu)
 
 		main = [{
@@ -334,7 +342,7 @@ class Commands:
 
 		print('Generating commands')
 
-		commands_context = [] #type: List[Any]
+		commands_context = [] #type: list[Any]
 		generate_commands(menu_context, commands_context)
 
 		with open(current_package + '/Commands/Context.sublime-menu', 'w') as file:

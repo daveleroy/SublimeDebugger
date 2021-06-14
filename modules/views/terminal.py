@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ..typecheck import *
+
 from ..import core
 from ..import ui
 from ..import dap
@@ -7,6 +9,7 @@ from ..terminal import Terminal, Line
 from ..autocomplete import Autocomplete
 
 from .variable import VariableComponent
+from .tabbed_panel import Panel
 from .import css
 
 import re
@@ -31,7 +34,7 @@ _css_for_type = {
 }
 
 class LineSourceView (ui.span):
-	def __init__(self, name: str, line: Optional[int], text_width: int, on_clicked_source: Callable[[], None]):
+	def __init__(self, name: str, line: int|None, text_width: int, on_clicked_source: Callable[[], None]):
 		super().__init__()
 		self.on_clicked_source = on_clicked_source
 		self.name = name
@@ -68,8 +71,8 @@ class LineView (ui.div):
 			component = VariableComponent(self.line.variable, source=self.line.source, on_clicked_source=self.on_clicked_source)
 			return [component]
 
-		span_lines = [] #type: List[ui.div]
-		spans = [] #type: List[ui.span]
+		span_lines = [] #type: list[ui.div]
+		spans = [] #type: list[ui.span]
 		max_line_length = self.max_line_length
 		leftover_line_length = max_line_length
 
@@ -141,9 +144,9 @@ class LineView (ui.div):
 		self.clicked_menu = None
 
 
-class TerminalView (ui.div):
+class TerminalView (Panel):
 	def __init__(self, terminal: Terminal, on_clicked_source: Callable[[dap.SourceLocation], None]) -> None:
-		super().__init__(css=css.padding_left)
+		super().__init__(terminal.name())
 		self.terminal = terminal
 		self.terminal.on_updated.add(self._on_updated_terminal)
 		self.start_line = 0
@@ -168,7 +171,7 @@ class TerminalView (ui.div):
 	def on_clear(self) -> None:
 		self.terminal.clear()
 
-	def render(self):
+	def render(self) -> list[ui.div]:
 		assert self.layout
 		lines = []
 		height = 0

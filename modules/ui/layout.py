@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..typecheck import *
 
 if TYPE_CHECKING:

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..typecheck import *
 
 _should_log_exceptions = True
@@ -15,13 +16,13 @@ def log_configure(log_info: bool, log_errors: bool, log_exceptions: bool):
 	_should_log_info = log_info
 
 
-def log_error(*args) -> None:
+def log_error(*args: Any) -> None:
 	if not _should_log_error:
 		return
 	print('Debugger: error:', *args)
 
 
-def log_exception(*args) -> None:
+def log_exception(*args: Any) -> None:
 	import traceback
 	if not _should_log_exceptions:
 		return
@@ -29,7 +30,7 @@ def log_exception(*args) -> None:
 	print(traceback.format_exc())
 
 
-def log_info(*args) -> None:
+def log_info(*args: Any) -> None:
 	if not _should_log_info:
 		return
 	print('Debugger:', *args)

@@ -1,4 +1,6 @@
+from __future__ import annotations
 from ...typecheck import *
+
 from ...import core
 from ...dap import Transport
 
@@ -9,10 +11,10 @@ import threading
 
 class Process:
 	@staticmethod
-	async def check_output(command: List[str], cwd: Optional[str] = None) -> bytes:
+	async def check_output(command: list[str], cwd: str|None = None) -> bytes:
 		return await core.run_in_executor(lambda: subprocess.check_output(command, cwd=cwd))
 
-	def __init__(self, command: List[str], cwd: Optional[str]):
+	def __init__(self, command: list[str], cwd: str|None = None):
 		# taken from Default/exec.py
 		# Hide the console window on Windows
 		startupinfo = None
@@ -60,11 +62,16 @@ class Process:
 
 
 class StdioTransport(Transport):
-	def __init__(self, log: core.Logger, command: List[str], cwd: Optional[str] = None):
+	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None, ignore_stderr: bool = False):
 		log.log('transport', f'⟸ process/starting :: {command}')
 		self.process = Process(command, cwd)
 
-		thread = threading.Thread(target=self._read, args=(self.process.stderr, log.info))
+
+		if ignore_stderr:
+			thread = threading.Thread(target=self._read, args=(self.process.stderr, print))
+		else:
+			thread = threading.Thread(target=self._read, args=(self.process.stderr, log.info))
+
 		thread.start()
 
 	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
@@ -101,7 +108,7 @@ class StdioTransport(Transport):
 
 
 class SocketTransport(Transport):
-	def __init__(self, log: core.Logger, host: str, port: int, cwd: Optional[str] = None):
+	def __init__(self, log: core.Logger, host: str, port: int, cwd: str|None = None):
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.connect((host, port))
 		self.stdin = self.socket.makefile('wb')

@@ -1,4 +1,6 @@
+from __future__ import annotations
 from .typecheck import *
+
 from .import core
 from .import dap
 
@@ -11,7 +13,7 @@ from dataclasses import dataclass
 default_file_regex = re.compile("(.*):([0-9]+):([0-9]+): error: (.*)")
 
 class Line:
-	def __init__(self, type: Optional[str], cwd: Optional[str] = None):
+	def __init__(self, type: str|None, cwd: str|None = None):
 		self.type = type
 		self.line = ''
 		self.cwd = cwd
@@ -67,15 +69,12 @@ class Problem:
 	source: dap.SourceLocation
 
 class Terminal:
-	def __init__(self, name: str, cwd: Optional[str] = None, file_regex: Optional[str] = None):
+	def __init__(self, name: str, cwd: str|None = None, file_regex: str|None = None):
 		self.cwd = cwd
 		self._name = name
 
-		self.lines: List[Line] = []
+		self.lines: list[Line] = []
 		self.on_updated: core.Event[None] = core.Event()
-
-		self.problems_per_file: Dict[str, List[Problem]] = []
-		self.on_problems_updated: core.Event[None] = core.Event()
 
 		if file_regex:
 			self.file_regex = re.compile(file_regex)
@@ -134,9 +133,15 @@ class Terminal:
 	def writeable_prompt(self) -> str:
 		return ""
 
-	def write(self, text: str):
+	def write(self, text: str) -> None:
 		assert False, "Panel doesn't support writing"
 
 	def dispose(self):
 		pass
+
+	def finish(self, status: int, message: str):
+		self.finished = True
+		self.statusCode = status
+		self.statusMessage = message
+		self.on_updated.post()
 

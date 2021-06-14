@@ -1,5 +1,8 @@
 {
 	"install": "docs/change_log.txt",
+	"0.5.2": "docs/change_log.txt",
+	"0.5.1": "docs/change_log.txt",
+	"0.5.0": "docs/change_log.txt",
 	"0.4.1": "docs/change_log.txt",
 	"0.4.0": "docs/change_log.txt",
 	"0.3.1": "docs/change_log.txt",

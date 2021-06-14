@@ -1,13 +1,14 @@
+from __future__ import annotations
 from ..typecheck import *
 
 import sublime
 import sublime_plugin
 
-from .core import call_soon_threadsafe, create_future, coroutine, awaitable, schedule
+from .core import call_soon_threadsafe, create_future, Future
 from .event import Event
 from .error import Error
 
-async def sublime_open_file_async(window: sublime.Window, file: str, line: Optional[int] = None, column: Optional[int] = None) -> sublime.View:
+async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None) -> sublime.View:
 	if line:
 		file += f':{line}'
 	if column:
@@ -19,7 +20,7 @@ async def sublime_open_file_async(window: sublime.Window, file: str, line: Optio
 
 async def wait_for_view_to_load(view: sublime.View):
 	if view.is_loading():
-		future_view = create_future()
+		future_view: Future[sublime.View] = create_future()
 
 		def loaded_view(v: sublime.View) -> None:
 			if view.id() == v.id():
@@ -29,7 +30,7 @@ async def wait_for_view_to_load(view: sublime.View):
 		await future_view
 		handle.dispose()
 
-def edit(view, run):
+def edit(view: sublime.View, run: Callable[[sublime.Edit], None]):
 	if DebuggerAsyncTextCommand._run:
 		print("there was already an active edit..?")
 
@@ -52,10 +53,11 @@ on_pre_hide_panel: Event[sublime.Window] = Event()
 on_post_show_panel: Event[sublime.Window] = Event()
 
 class DebuggerAsyncTextCommand(sublime_plugin.TextCommand):
-	_run = None
+	_run: Callable[[sublime.Edit], None] | None = None
 
 	def run(self, edit: sublime.Edit):
 		try:
+			assert DebuggerAsyncTextCommand._run
 			DebuggerAsyncTextCommand._run(edit)
 			DebuggerAsyncTextCommand._run = None
 		except Exception as e:
@@ -76,11 +78,10 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 			on_view_drag_select_or_context_menu(view)
 
 			event = args['event']
-
-			view_x, view_y = view.layout_to_window(view.viewport_position()) #type: ignore
-
 			x = event['x']
 			y = event['y']
+
+			view_x, view_y = view.layout_to_window(view.viewport_position()) #type: ignore
 
 			margin = view.settings().get("margin") or 0
 			offset = x - view_x

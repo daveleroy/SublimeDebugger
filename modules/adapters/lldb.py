@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
@@ -14,6 +15,7 @@ import subprocess
 import re
 import threading
 import sublime
+
 
 class LLDBTransport(adapter.SocketTransport):
 	def __init__(self, adapter_process: adapter.Process, port: int, log: core.Logger):
@@ -40,15 +42,14 @@ class LLDBTransport(adapter.SocketTransport):
 	def dispose(self) -> None:
 		self.process.dispose()
 
+
 class LLDB(adapter.AdapterConfiguration):
 
-	@property
-	def type(self):
-		return "lldb"
+	type = 'lldb'
+	docs = 'https://github.com/vadimcn/vscode-lldb/blob/master/MANUAL.md#starting-a-new-debug-session'
 
-	async def start(self, log: core.Logger, configuration):
+	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = adapter.vscode.install_path(self.type)
-
 
 		command = [
 			f'{install_path}/extension/adapter/codelldb',
@@ -69,7 +70,7 @@ class LLDB(adapter.AdapterConfiguration):
 			process.dispose()
 			raise
 
-	async def configuration_resolve(self, configuration):
+	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'custom':
 			configuration.request = 'launch'
 			configuration['request'] = 'launch'
@@ -84,27 +85,36 @@ class LLDB(adapter.AdapterConfiguration):
 		return configuration
 
 	async def install(self, log: core.Logger):
-		if core.platform.windows:
+		arch = core.platform.architecture
+
+		if core.platform.windows and arch == 'x64':
 			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-windows.vsix'
-		elif core.platform.osx:
+		elif core.platform.osx and arch == 'x64':
 			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-darwin.vsix'
-		elif core.platform.linux:
+		elif core.platform.osx and arch == 'arm64':
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-aarch64-darwin.vsix'
+		elif core.platform.linux and arch == 'x64':
 			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-linux.vsix'
+		elif core.platform.linux and arch == 'arm64':
+			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-aarch64-linux.vsix'
 		else:
-			raise core.Error('unreachable')
+			raise core.Error('Your platforms architecture is not supported by vscode lldb. See https://github.com/vadimcn/vscode-lldb/releases/latest')
 
 		await adapter.vscode.install(self.type, url, log)
 
+	async def installed_status(self, log: core.Logger):
+		return await adapter.git.installed_status('vadimcn', 'vscode-lldb', self.installed_version, log)
+
 	@property
-	def installed_version(self) -> Optional[str]:
+	def installed_version(self) -> str|None:
 		return adapter.vscode.installed_version(self.type)
 
 	@property
-	def configuration_snippets(self) -> Optional[list]:
+	def configuration_snippets(self):
 		return adapter.vscode.configuration_snippets(self.type)
 
 	@property
-	def configuration_schema(self) -> Optional[dict]:
+	def configuration_schema(self):
 		return adapter.vscode.configuration_schema(self.type)
 
 	def adapter_settings(self):
@@ -182,11 +192,11 @@ class LLDB(adapter.AdapterConfiguration):
 			self.updated_settings(sessions)
 
 		return ui.InputList([
-				ui.InputListItemChecked(lambda: set_display('auto') , 'Auto', 'Auto', Settings.lldb_display_format == 'auto'),
-				ui.InputListItemChecked(lambda: set_display('hex') , 'Hex', 'Hex', Settings.lldb_display_format == 'hex'),
-				ui.InputListItemChecked(lambda: set_display('decimal') , 'Decimal', 'Decimal', Settings.lldb_display_format == 'decimal'),
-				ui.InputListItemChecked(lambda: set_display('binary') , 'Binary', 'Binary', Settings.lldb_display_format == 'binary'),
-			],
+				ui.InputListItemChecked(lambda: set_display('auto'), 'Auto', 'Auto', Settings.lldb_display_format == 'auto'),
+				ui.InputListItemChecked(lambda: set_display('hex'), 'Hex', 'Hex', Settings.lldb_display_format == 'hex'),
+				ui.InputListItemChecked(lambda: set_display('decimal'), 'Decimal', 'Decimal', Settings.lldb_display_format == 'decimal'),
+				ui.InputListItemChecked(lambda: set_display('binary'), 'Binary', 'Binary', Settings.lldb_display_format == 'binary'),
+                ],
 			'Display Options'
 		)
 
