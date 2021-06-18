@@ -131,9 +131,9 @@ class FunctionBreakpoints:
 			),
 			ui.InputListItemChecked(
 				toggle_enabled,
+				breakpoint.enabled,
 				"Enabled",
 				"Disabled",
-				breakpoint.enabled,
 			),
 			ui.InputListItem(
 				remove,

@@ -120,6 +120,10 @@ class InputList(sublime_plugin.ListInputHandler):
 		items: list[sublime.ListInputItem] = []
 		for index, value in enumerate(self.values):
 			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind, annotation=value.annotation))
+
+		if (not items):
+			return ['Nothing Here\terror?']	
+
 		return (items, self.index)
 
 	def confirm(self, value: int):
@@ -234,13 +238,13 @@ def InputListItemOnOff(run: Callable[[], None], true: str, false: str, value: bo
 	else:
 		return InputListItem(run, false, annotation='Off')
 
-def InputListItemChecked(run: Callable[[], None], true: str, false: str, value: bool|None, details: list[str]|str = ''):
+def InputListItemChecked(run: Callable[[], None], value: bool, true: str, false: str|None = None, details: list[str]|str = ''):
 	if value:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '●', 'On')
 		text = true
 	else:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '○', 'Off')
-		text = false
+		text = false or true
 
 	return InputListItem(
 		run,

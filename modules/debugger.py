@@ -449,14 +449,14 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 			self.on_run_task()
 
 	def change_configuration_input_items(self) -> list[ui.InputListItem]:
-		values = []
+		values: list[ui.InputListItem] = []
 		for c in self.project.compounds:
 			name = f'{c.name}\tcompound'
-			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
+			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), c == self.project.configuration_or_compound, name))
 
 		for c in self.project.configurations:
 			name = f'{c.name}\t{c.type}'
-			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
+			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), c == self.project.configuration_or_compound, name))
 
 		if values:
 			values.append(ui.InputListItem(lambda: ..., ""))

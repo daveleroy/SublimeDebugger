@@ -65,9 +65,8 @@ class AdaptersRegistry:
 
 				return ui.InputListItemChecked(
 					lambda adapter=adapter: core.run(AdaptersRegistry.install(adapter.type, log)), #type: ignore
-					name,
-					name,
 					installed_version != None,
+					name,
 					details=details
 				)
 
@@ -127,7 +126,7 @@ class AdaptersRegistry:
 			else:
 				subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
 
-			values.append(ui.InputListItem(ui.InputList(snippet_input_items, 'choose a snippet to insert'), adapter.type, annotation = subtitle, kind = sublime.KIND_SNIPPET))
+			values.append(ui.InputListItemChecked(ui.InputList(snippet_input_items, 'choose a snippet to insert'), True, adapter.type, details=subtitle))
 
 		return ui.InputList(values, placeholder='choose a configuration type')
 
