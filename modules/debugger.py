@@ -467,7 +467,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		if values:
 			values.append(ui.InputListItem(lambda: ..., ""))
 
-		values.append(ui.InputListItem(AdaptersRegistry.add_configuration(), "Add Configuration"))
+		values.append(ui.InputListItem(AdaptersRegistry.add_configuration(log=self), "Add Configuration"))
 		values.append(ui.InputListItem(lambda: self.open_project_configurations_file(), "Edit Configuration File"))
 		return values
 
