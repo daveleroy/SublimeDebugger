@@ -220,6 +220,12 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.breakpoints.source.remove_all()
 		self.breakpoints.function.remove_all()
 
+	def clear_terminal_panel(self):
+		self.terminal.clear()
+
+	def show_protocol_panel(self):
+		self.transport_log.show()
+
 	def show(self) -> None:
 		self.panel.panel_show()
 

@@ -1,6 +1,8 @@
-# import Debugger; Debugger.modules.debugger.commands.Commands.generate_commands_and_menus();
 from __future__ import annotations
 from .typecheck import *
+
+# import Debugger; Debugger.modules.debugger.commands.Commands.generate_commands_and_menus();
+
 
 from .import core
 from .debugger import Debugger
@@ -11,67 +13,73 @@ import sublime
 import json
 
 
-visible_always = 0
-visible_created = 1
-visible_not_created = 2
 
-menu_context = 1
+menu_context = 1 << 0
 menu_main = 1 << 1
 menu_commands = 1 << 2
 menu_no_prefix = 1 << 3
+menu_widget = 1 << 4
+open_without_running = 1 << 5
+visible_debugger_open = 1 << 6
+visible_debugger_closed = 1 << 7
 
 class Command:
 	menu_context = 1
 	menu_main = 1 << 1
 	menu_commands = 1 << 2
 	menu_no_prefix = 1 << 3
+	menu_widget = 1 << 4
 
-	def __init__(self, name, command, action, menus=menu_commands|menu_main):
+	def __init__(self, name: str, command: str, action: Callable[[sublime.Window], None], flags:int=menu_commands|menu_main):
 		self.name = name
 		self.action = action
-		self.menus = menus
+		self.flags = flags
 		self.command = command
 
-	def parameters(self, window):
-		return window,
-
-	def run(self, window):
+	def run(self, window: sublime.Window):
 		self.action(window)
 
-	def is_visible(self, window):
+	def is_visible(self, window: sublime.Window) -> bool:
 		return True
 
-	def is_enabled(self, window):
+	def is_enabled(self, window: sublime.Window) -> bool:
 		return True
 
 class CommandDebugger(Command):
-	def __init__(self, name: str, command: str, action:Callable[[Debugger], None], enabled: Optional[Callable[[Debugger], bool]]=None, visible=visible_always, menus=menu_commands|menu_main):
+	def __init__(self, name: str, command: str, action:Callable[[Debugger], None], enabled: Callable[[Debugger], bool] | None = None, flags: int = menu_commands|menu_main):
 		self.name = name
 		self.action = action
-		self.visible = visible
 		self.enabled = enabled
-		self.menus = menus
+		self.flags = flags
 		self.command = command
 
-	def parameters(self, window):
+	def parameters(self, window: sublime.Window) -> tuple[sublime.Window, Debugger|None]:
 		return window, Debugger.get(window)
 
-	def run(self, window, debugger):
-		# only run command when the debugger is visible otherwise make the debugger visible (or create it)
+	def run(self, window: sublime.Window):
+		debugger = Debugger.get(window)
 		if not debugger or not debugger.is_panel_visible():
-			Debugger.get(window, True)
+			debugger = Debugger.get(window, True)
+			
+			# don't run this command if the debugger is not visible
+			if self.flags & open_without_running:
+				return
+
+		if not debugger:
 			return
 
 		self.action(debugger)
 
-	def is_visible(self, window, debugger):
-		if self.visible == visible_created:
+	def is_visible(self, window: sublime.Window):
+		debugger = Debugger.get(window)
+		if self.flags & visible_debugger_open:
 			return bool(debugger)
-		if self.visible == visible_not_created:
+		if self.flags &  visible_debugger_closed:
 			return not bool(debugger)
 		return True
 
-	def is_enabled(self, window, debugger):
+	def is_enabled(self, window: sublime.Window):
+		debugger = Debugger.get(window)
 		if not self.enabled:
 			return True
 		if debugger:
@@ -97,25 +105,25 @@ commands = [
 		name='Quit',
 		command='quit',
 		action=Debugger.quit,
-		visible=visible_created,
+		flags=menu_commands|menu_main|visible_debugger_open,
 	),
 	Command(
 		name='Settings',
 		command='settings',
 		action=open_settings,
-		menus=menu_main
+		flags=menu_main
 	),
 	Command(
 		name='Preferences: Debugger Settings',
 		command='settings',
 		action=open_settings,
-		menus=menu_commands | menu_no_prefix
+		flags=menu_commands | menu_no_prefix
 	),
 	Command(
 		name='Generate Commands',
 		command='generate_commands',
 		action=generate_commands,
-		menus=menu_commands
+		flags=menu_commands
 	),
 	None,
 	CommandDebugger (
@@ -133,6 +141,7 @@ commands = [
 		name='Start',
 		command='start',
 		action=Debugger.on_play,
+		flags=menu_commands|menu_main|open_without_running
 	),
 	CommandDebugger (
 		name='Start (no debug)',
@@ -192,7 +201,7 @@ commands = [
 		name='Run Last Task',
 		command='run_last_task',
 		action=Debugger.on_run_last_task,
-		menus=menu_main,
+		flags=menu_main,
 	),
 	CommandDebugger (
 		name='Add Function Breakpoint',
@@ -203,6 +212,18 @@ commands = [
 		name='Clear Breakpoints',
 		command='clear_breakpoints',
 		action=Debugger.clear_all_breakpoints,
+	),
+	CommandDebugger (
+		name='Clear Console',
+		command='clear_console',
+		action=Debugger.clear_terminal_panel,
+		flags=menu_widget,
+	),
+	CommandDebugger (
+		name='Show Protocol',
+		command='show_protocol',
+		action=Debugger.show_protocol_panel,
+		flags=menu_widget,
 	),
 	CommandDebugger (
 		name='Add Watch Expression',
@@ -219,20 +240,20 @@ commands = [
 		name='Toggle Breakpoint',
 		command='toggle_breakpoint',
 		action=Debugger.toggle_breakpoint,
-		menus=menu_context,
+		flags=menu_context,
 	),
 	CommandDebugger (
 		name='Toggle Column Breakpoint',
 		command='toggle_column_breakpoint',
 		action=Debugger.toggle_column_breakpoint,
-		menus=menu_context,
+		flags=menu_context,
 	),
 	CommandDebugger (
 		name='Run To Selected Line',
 		command='run_to_current_line',
 		action=Debugger.run_to_current_line,
 		enabled=Debugger.is_paused,
-		menus=menu_context,
+		flags=menu_context,
 	),
 	None,
 ]
@@ -240,18 +261,15 @@ commands = [
 class DebuggerCommand (sublime_plugin.WindowCommand):
 	def run(self, action: str): #type: ignore
 		command = Commands.commands_by_action[action]
-		instance = command.parameters(self.window)
-		command.run(*instance)
+		command.run(self.window)
 
 	def is_enabled(self, action: str): #type: ignore
 		command = Commands.commands_by_action[action]
-		instance = command.parameters(self.window)
-		return command.is_enabled(*instance)
+		return command.is_enabled(self.window)
 
 	def is_visible(self, action: str): #type: ignore
 		command = Commands.commands_by_action[action]
-		instance = command.parameters(self.window)
-		return command.is_visible(*instance)
+		return command.is_visible(self.window)
 
 
 # allow using debugger_exec to run a build system as a Debugger Task
@@ -267,7 +285,7 @@ class DebuggerExecCommand(sublime_plugin.WindowCommand):
 
 
 class Commands:
-	commands_by_action = {}
+	commands_by_action: dict[str, Command] = {}
 
 	@staticmethod
 	def initialize():
@@ -282,7 +300,7 @@ class Commands:
 
 	@staticmethod
 	def generate_commands_and_menus():
-		all_commands = []
+		all_commands: list[Command|None] = []
 		all_commands.extend(commands)
 
 		for adapter in AdaptersRegistry.all:
@@ -292,16 +310,19 @@ class Commands:
 
 		current_package = core.current_package()
 
-		def generate_commands(menu, out_commands, prefix="", include_seperators=True):
+		def generate_commands(menu: int, prefix: str = "", include_seperators: bool = True):
+			out_commands: list[Any] = []
+
 			for command in all_commands:
 				if not command:
 					if include_seperators:
 						out_commands.append({"caption": '-'})
 					continue
-				if not (command.menus & menu):
+
+				if not (command.flags & menu):
 					continue
 
-				if command.menus & menu_no_prefix:
+				if command.flags & menu_no_prefix:
 					caption = command.name
 				else:
 					caption = prefix + command.name
@@ -315,38 +336,44 @@ class Commands:
 						}
 					}
 				)
+			return out_commands
 
-		commands_palette = [] #type: list[Any]
-		generate_commands(menu_commands, commands_palette, prefix="Debugger: ", include_seperators=False)
+		def save_commands(file: str, commands: Any):
+			with open(current_package + file, 'w') as f:
+				json.dump(commands, f, indent=4, separators=(',', ': '))
 
+		commands_palette = generate_commands(menu_commands, prefix="Debugger: ", include_seperators=False)
 		# hidden command used for gathering input from the command palette
-		input = {
+		commands_palette.append({
 			"caption": "Debugger",
 			"command": "debugger_input"
-		}
-		commands_palette.append(input)
+		})
 
-		with open(current_package + '/Commands/Commands.sublime-commands', 'w') as file:
-			json.dump(commands_palette, file, indent=4, separators=(',', ': '))
+		save_commands('/Commands/Commands.sublime-commands', commands_palette)
 
-		commands_menu = [] #type: list[Any]
-		generate_commands(menu_main, commands_menu)
 
 		main = [{
-			"caption": "Debugger",
-			"id": "debugger",
-			"children": commands_menu}
+			"id": "tools",
+			"children": [
+				{
+					"id": "debugger",
+					"caption": "Debugger",
+					"children": generate_commands(menu_main),
+				}
+			]}
 		]
-		with open(current_package + '/Commands/Main.sublime-menu', 'w') as file:
-			json.dump(main, file, indent=4, separators=(',', ': '))
+		save_commands('/Commands/Main.sublime-menu', main)
+
 
 		print('Generating commands')
 
-		commands_context = [] #type: list[Any]
-		generate_commands(menu_context, commands_context)
+		commands_context = generate_commands(menu_context)
+		save_commands('/Commands/Context.sublime-menu', commands_context)
 
-		with open(current_package + '/Commands/Context.sublime-menu', 'w') as file:
-			json.dump(commands_context, file, indent=4, separators=(',', ': '))
+
+		commands_context = generate_commands(menu_widget)
+		save_commands('/Commands/Widget Debug.sublime-menu', commands_context)
+
 
 		# keymap_commands = []
 
