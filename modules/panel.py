@@ -57,6 +57,9 @@ class DebuggerProtocolLogger(core.Logger):
 	def error(self, message: str):
 		self.panel.write(f'error: {message}\n')
 
+	def show(self):
+		self.panel.open()
+
 	def clear(self):
 		self.panel.clear()
 

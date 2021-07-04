@@ -8,6 +8,7 @@ from .import dap
 import sublime
 import json
 import asyncio
+import functools
 
 class AdaptersRegistry:
 	all: ClassVar[list[dap.AdapterConfiguration]]
@@ -65,9 +66,8 @@ class AdaptersRegistry:
 
 				return ui.InputListItemChecked(
 					lambda adapter=adapter: core.run(AdaptersRegistry.install(adapter.type, log)), #type: ignore
-					name,
-					name,
 					installed_version != None,
+					name,
 					details=details
 				)
 
@@ -96,13 +96,20 @@ class AdaptersRegistry:
 			core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
 
 	@staticmethod
-	def add_configuration():
+	def add_configuration(log: core.Logger = core.stdio):
 		def insert_custom(type: str, request: str):
 			core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), {
 				'name': f'Debug {type}',
 				'type': type,
 				'request': request,
 			}))
+
+		def insert(snippet: Any):
+			insert = snippet.get('body', '{ error: no body field}')
+			core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), insert))
+
+		def install(adapter: dap.AdapterConfiguration):
+			core.run(AdaptersRegistry.install(adapter.type, log))
 
 		values: list[ui.InputListItem] = []
 
@@ -113,21 +120,24 @@ class AdaptersRegistry:
 			snippet_input_items: list[ui.InputListItem] = []
 
 			for snippet in adapter.configuration_snippets or []:
-				def insert(snippet=snippet):
-					insert = snippet.get('body', '{ error: no body field}')
-					core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), insert))
-
-				snippet_input_items.append(ui.InputListItem(insert, snippet.get('label', 'label'), kind = sublime.KIND_SNIPPET))
+				snippet_input_items.append(ui.InputListItem(functools.partial(insert, snippet), snippet.get('label', 'label'), kind = sublime.KIND_SNIPPET))
 
 			if not snippet_input_items:
-				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, 'launch'), 'Launch', kind = sublime.KIND_SNIPPET))
-				snippet_input_items.append(ui.InputListItem(lambda adapter=adapter: insert_custom(adapter.type, 'attach'), 'Attach', kind = sublime.KIND_SNIPPET))
-				subtitle = 'Default Snippets'
+				snippet_input_items.append(ui.InputListItem(functools.partial(insert_custom, adapter.type, 'launch'), 'Launch', kind = sublime.KIND_SNIPPET))
+				snippet_input_items.append(ui.InputListItem(functools.partial(insert_custom, adapter.type, 'attach'), 'Attach', kind = sublime.KIND_SNIPPET))
+				subtitle = '2 Snippets (default)'
 
 			else:
 				subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
 
-			values.append(ui.InputListItem(ui.InputList(snippet_input_items, 'choose a snippet to insert'), adapter.type, annotation = subtitle, kind = sublime.KIND_SNIPPET))
+			values.append(ui.InputListItemChecked(ui.InputList(snippet_input_items, 'choose a snippet to insert'), True, adapter.type, details=subtitle))
+
+		for adapter in AdaptersRegistry.all:
+			if adapter.installed_version:
+				continue
+
+			values.append(ui.InputListItemChecked(functools.partial(install, adapter), False, adapter.type, details='Not Installed'))
+
 
 		return ui.InputList(values, placeholder='choose a configuration type')
 

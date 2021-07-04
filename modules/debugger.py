@@ -220,6 +220,12 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.breakpoints.source.remove_all()
 		self.breakpoints.function.remove_all()
 
+	def clear_terminal_panel(self):
+		self.terminal.clear()
+
+	def show_protocol_panel(self):
+		self.transport_log.show()
+
 	def show(self) -> None:
 		self.panel.panel_show()
 
@@ -449,19 +455,19 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 			self.on_run_task()
 
 	def change_configuration_input_items(self) -> list[ui.InputListItem]:
-		values = []
+		values: list[ui.InputListItem] = []
 		for c in self.project.compounds:
 			name = f'{c.name}\tcompound'
-			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
+			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), c == self.project.configuration_or_compound, name))
 
 		for c in self.project.configurations:
 			name = f'{c.name}\t{c.type}'
-			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), name, name, c == self.project.configuration_or_compound)) #type: ignore
+			values.append(ui.InputListItemChecked(lambda c=c: self.set_configuration(c), c == self.project.configuration_or_compound, name))
 
 		if values:
 			values.append(ui.InputListItem(lambda: ..., ""))
 
-		values.append(ui.InputListItem(AdaptersRegistry.add_configuration(), "Add Configuration"))
+		values.append(ui.InputListItem(AdaptersRegistry.add_configuration(log=self), "Add Configuration"))
 		values.append(ui.InputListItem(lambda: self.open_project_configurations_file(), "Edit Configuration File"))
 		return values
 

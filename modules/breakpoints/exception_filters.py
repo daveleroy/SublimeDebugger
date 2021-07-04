@@ -71,9 +71,9 @@ class ExceptionBreakpointsFilters:
 
 		items: list[ui.InputListItem] = [ui.InputListItemChecked(
 			toggle_enabled,
+			breakpoint.enabled,
 			"Enabled",
 			"Disabled",
-			breakpoint.enabled,
 		)]
 
 		if breakpoint.dap.supportsCondition:

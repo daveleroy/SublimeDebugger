@@ -104,7 +104,10 @@ class SourceBreakpoint:
 				old_view.render()
 				return
 
-		self.views.append(SourceBreakpointView(self, view, lambda: self.breakpoints.edit(self).run()))
+		def show_edit_menu():
+			self.breakpoints.edit(self).run()
+
+		self.views.append(SourceBreakpointView(self, view, show_edit_menu))
 
 	def clear_views(self):
 		for view in self.views:
@@ -226,9 +229,9 @@ class SourceBreakpoints:
 			),
 			ui.InputListItemChecked(
 				toggle_enabled,
-				"Enabled",
-				"Enabled",
 				breakpoint.enabled,
+				"Enabled",
+				"Enabled",
 			),
 			ui.InputListItem(
 				remove,

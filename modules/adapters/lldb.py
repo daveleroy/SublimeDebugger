@@ -11,7 +11,6 @@ from ..import commands
 
 from .import adapter
 
-import subprocess
 import re
 import threading
 import sublime
@@ -137,10 +136,7 @@ class LLDB(adapter.AdapterConfiguration):
 
 		class Command(commands.Command):
 			def __init__(self, name: str, command: str, action: Callable):
-				self.name = name
-				self.command = command
-				self.action = action
-				self.menus = Command.menu_commands
+				super().__init__(name, command, action, flags=Command.menu_commands)
 
 			def parameters(self, window: sublime.Window):
 				return Debugger.get(window),
@@ -192,10 +188,10 @@ class LLDB(adapter.AdapterConfiguration):
 			self.updated_settings(sessions)
 
 		return ui.InputList([
-				ui.InputListItemChecked(lambda: set_display('auto'), 'Auto', 'Auto', Settings.lldb_display_format == 'auto'),
-				ui.InputListItemChecked(lambda: set_display('hex'), 'Hex', 'Hex', Settings.lldb_display_format == 'hex'),
-				ui.InputListItemChecked(lambda: set_display('decimal'), 'Decimal', 'Decimal', Settings.lldb_display_format == 'decimal'),
-				ui.InputListItemChecked(lambda: set_display('binary'), 'Binary', 'Binary', Settings.lldb_display_format == 'binary'),
+				ui.InputListItemChecked(lambda: set_display('auto'), Settings.lldb_display_format == 'auto', 'Auto', 'Auto'),
+				ui.InputListItemChecked(lambda: set_display('hex'), Settings.lldb_display_format == 'hex', 'Hex', 'Hex'),
+				ui.InputListItemChecked(lambda: set_display('decimal'), Settings.lldb_display_format == 'decimal', 'Decimal', 'Decimal'),
+				ui.InputListItemChecked(lambda: set_display('binary'), Settings.lldb_display_format == 'binary', 'Binary', 'Binary'),
                 ],
 			'Display Options'
 		)
