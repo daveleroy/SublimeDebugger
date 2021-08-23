@@ -39,8 +39,24 @@ class AdaptersRegistry:
 		AdaptersRegistry.recalculate_schema()
 
 	@staticmethod
-	async def install_menu(check_status: bool = True, log: core.Logger = core.stdio):
-		items: list[Awaitable[ui.InputListItem]] = []
+	async def install_list_items(show_configurations: bool = True, check_status: bool = True, log: core.Logger = core.stdio):
+
+		def insert_custom(type: str, request: str):
+			core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), {
+				'name': f'Debug {type}',
+				'type': type,
+				'request': request,
+			}))
+
+		def insert(snippet: Any):
+			insert = snippet.get('body', '{ error: no body field}')
+			core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), insert))
+
+		def install(adapter: dap.AdapterConfiguration):
+			core.run(AdaptersRegistry.install(adapter.type, log))
+
+		installed: list[Awaitable[ui.InputListItem]] = []
+		not_installed: list[Awaitable[ui.InputListItem]] = []
 
 		for adapter in AdaptersRegistry.all:
 			async def item(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
@@ -61,19 +77,69 @@ class AdaptersRegistry:
 
 					name += f'{installed_version}'
 
-				if adapter.docs:
-					details.append(f'<a href="{adapter.docs}">documentation</a>')
+				elif installed_version:
+					name += '\t'
+					name += f'{installed_version}'
+				elif check_status:
+					status = await adapter.installed_status(log)
+					if status:
+						name += '\t'
+						name += f'{status}'
 
-				return ui.InputListItemChecked(
-					lambda adapter=adapter: core.run(AdaptersRegistry.install(adapter.type, log)), #type: ignore
-					installed_version != None,
-					name,
-					details=details
-				)
+				if installed_version and not show_configurations:
+					snippet_input_items: list[ui.InputListItem] = []
 
-			items.append(item(adapter))
-		
-		return ui.InputList(list(await asyncio.gather(*items)), 'Install Debug Adapters')
+					for snippet in adapter.configuration_snippets or []:
+						type = snippet.get('body', {}).get('request')
+						snippet_input_items.append(ui.InputListItem(functools.partial(insert, snippet), snippet.get('label', 'label'), details=type))
+
+					if not snippet_input_items:
+						snippet_input_items.append(ui.InputListItem(functools.partial(insert_custom, adapter.type, 'launch'), 'Default Launch', details='configuration snippet'))
+						snippet_input_items.append(ui.InputListItem(functools.partial(insert_custom, adapter.type, 'attach'), 'DefaultAttach', details='configuration snippet'))
+						subtitle = '2 Snippets\t'
+
+					else:
+						subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
+
+
+					snippet_input_items.append(ui.InputListItem(functools.partial(install, adapter), 'Reinstall', details=[' ']))
+
+					return ui.InputListItemChecked(
+						ui.InputList(snippet_input_items, 'choose a snippet to insert'),
+						installed_version != None,
+						name,
+						details=f'{subtitle} <a href="{adapter.docs}">documentation</a>'
+					)
+				elif installed_version:
+					subtitle = 'Reinstall\t'
+					return ui.InputListItemChecked(
+						functools.partial(install, adapter),
+						installed_version != None,
+						name,
+						details=f'{subtitle} <a href="{adapter.docs}">documentation</a>'
+					)
+				else:
+					subtitle = 'Not Installed\t'
+					return ui.InputListItemChecked(
+						functools.partial(install, adapter),
+						installed_version != None,
+						name,
+						details=f'{subtitle} <a href="{adapter.docs}">documentation</a>'
+					)
+
+
+			if adapter.installed_version:
+				installed.append(item(adapter))
+			else:
+				not_installed.append(item(adapter))
+			
+		items = list(await asyncio.gather(*installed)) + list(await asyncio.gather(*not_installed))
+		return items
+
+	@staticmethod
+	async def install_menu(log: core.Logger = core.stdio):
+		items = await AdaptersRegistry.install_list_items(check_status=True, log=log)
+		return ui.InputList(items, 'Install/Update Debug Adapters')
 
 	@staticmethod
 	async def _insert_snippet(window: sublime.Window, snippet: dict[str, Any]):
@@ -96,50 +162,9 @@ class AdaptersRegistry:
 			core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
 
 	@staticmethod
-	def add_configuration(log: core.Logger = core.stdio):
-		def insert_custom(type: str, request: str):
-			core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), {
-				'name': f'Debug {type}',
-				'type': type,
-				'request': request,
-			}))
-
-		def insert(snippet: Any):
-			insert = snippet.get('body', '{ error: no body field}')
-			core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), insert))
-
-		def install(adapter: dap.AdapterConfiguration):
-			core.run(AdaptersRegistry.install(adapter.type, log))
-
-		values: list[ui.InputListItem] = []
-
-		for adapter in AdaptersRegistry.all:
-			if not adapter.installed_version:
-				continue
-
-			snippet_input_items: list[ui.InputListItem] = []
-
-			for snippet in adapter.configuration_snippets or []:
-				snippet_input_items.append(ui.InputListItem(functools.partial(insert, snippet), snippet.get('label', 'label'), kind = sublime.KIND_SNIPPET))
-
-			if not snippet_input_items:
-				snippet_input_items.append(ui.InputListItem(functools.partial(insert_custom, adapter.type, 'launch'), 'Launch', kind = sublime.KIND_SNIPPET))
-				snippet_input_items.append(ui.InputListItem(functools.partial(insert_custom, adapter.type, 'attach'), 'Attach', kind = sublime.KIND_SNIPPET))
-				subtitle = '2 Snippets (default)'
-
-			else:
-				subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
-
-			values.append(ui.InputListItemChecked(ui.InputList(snippet_input_items, 'choose a snippet to insert'), True, adapter.type, details=subtitle))
-
-		for adapter in AdaptersRegistry.all:
-			if adapter.installed_version:
-				continue
-
-			values.append(ui.InputListItemChecked(functools.partial(install, adapter), False, adapter.type, details='Not Installed'))
-
-
-		return ui.InputList(values, placeholder='choose a configuration type')
+	async def add_configuration(log: core.Logger = core.stdio):
+		items = await AdaptersRegistry.install_list_items(show_configurations=False, check_status=False, log=log)
+		return ui.InputList(items, 'Add Debug Configuration')
 
 	@staticmethod
 	def recalculate_schema():

@@ -421,14 +421,15 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		self.persistance.json['watch'] = self.sessions.watch.into_json()
 		self.persistance.save_to_file()
 
-	def on_settings(self) -> None:
+	@core.schedule
+	async def on_settings(self) -> None:
 		def about():
 			webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger#getting-started")
 
 		def report_issue():
 			webbrowser.open_new_tab("https://github.com/daveleroy/sublime_debugger/issues")
 
-		values = self.change_configuration_input_items()
+		values = await self.change_configuration_input_items()
 		values.extend([
 			ui.InputListItem(lambda: ..., ""),
 			ui.InputListItem(report_issue, "Report Issue"),
@@ -454,7 +455,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		else:
 			self.on_run_task()
 
-	def change_configuration_input_items(self) -> list[ui.InputListItem]:
+	async def change_configuration_input_items(self) -> list[ui.InputListItem]:
 		values: list[ui.InputListItem] = []
 		for c in self.project.compounds:
 			name = f'{c.name}\tcompound'
@@ -467,7 +468,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 		if values:
 			values.append(ui.InputListItem(lambda: ..., ""))
 
-		values.append(ui.InputListItem(AdaptersRegistry.add_configuration(log=self), "Add Configuration"))
+		values.append(ui.InputListItem(await AdaptersRegistry.add_configuration(log=self), "Add Configuration"))
 		values.append(ui.InputListItem(lambda: self.open_project_configurations_file(), "Edit Configuration File"))
 		return values
 
@@ -532,7 +533,7 @@ class Debugger (dap.SessionsTasksProvider, core.Logger):
 
 	@core.schedule
 	async def change_configuration(self) -> None:
-		await ui.InputList(self.change_configuration_input_items(), "Add or Select Configuration").run()
+		await ui.InputList(await self.change_configuration_input_items(), "Add or Select Configuration").run()
 
 	@core.schedule
 	async def install_adapters(self) -> None:
