@@ -25,6 +25,19 @@ class AdapterInfo:
 	version: str
 	schema_and_snippets: dict[str, Any]
 
+def replace_localized_placeholders(json: Any, strings: dict[str, str]) -> Any:
+	# print(type(json))
+	if type(json) is str:
+		return strings.get(json, json)
+
+	if type(json) is list:
+		return [replace_localized_placeholders(value, strings) for value in json]
+
+	if type(json) is dict:
+		return { key: replace_localized_placeholders(value, strings) for key, value in json.items() }
+
+	return json
+
 def info(type: str) -> Optional[AdapterInfo]:
 	info = _info_for_type.get(type)
 	if info:
@@ -36,18 +49,28 @@ def info(type: str) -> Optional[AdapterInfo]:
 	if not os.path.exists(path_installed):
 		return None
 
-	version = "??"
+	version = '??'
 	contributes: dict[str, Any] = {}
+	
+	strings: dict[str, str] = {}
+
+	try:
+		with open(f'{path}/extension/package.nls.json') as file:
+			# add % so that we can just match string values directly in the package.json since we are only matching entire strings
+			strings_json = json.load(file)
+			strings = { F'%{key}%' : value for key, value in  strings_json.items() }
+	except:
+		...
 
 	with open(f'{path}/extension/package.json') as file:
-		package_json = json.load(file)
+		package_json = replace_localized_placeholders(json.load(file), strings)
 		version = package_json.get('version')
 		for debugger in package_json.get('contributes', {}).get('debuggers', []):
 			debugger_type = debugger.get('type') or type
 
 			contributes[debugger_type] = {
 				'snippets': debugger.get('configurationSnippets', []),
-				'schema': debugger.get('configurationAttributes', {})
+				'schema': debugger.get('configurationAttributes', {}),
 			}
 
 	info = AdapterInfo(
@@ -153,9 +176,9 @@ def copyfileobj(fsrc, fdst, log_info, total, length=128*1024):
 		
 		# handle the case where the total size isn't known
 		if total:
-			log_info("{:.2f} mb {}%".format(copied/1024/1024, int(copied/total*100)))
+			log_info('{:.2f} mb {}%'.format(copied/1024/1024, int(copied/total*100)))
 		else:
-			log_info("{:.2f} mb".format(copied/1024/1024))
+			log_info('{:.2f} mb'.format(copied/1024/1024))
 
 # Fix for long file paths on windows not being able to be extracted from a zip file
 # Fix for extracted files losing their permission flags
@@ -180,8 +203,8 @@ class ZipfileLongPaths(zipfile.ZipFile):
 def _abspath_fix(path):
 	if core.platform.windows:
 		path = os.path.abspath(path)
-		if path.startswith("\\\\"):
-			path = "\\\\?\\UNC\\" + path[2:]
+		if path.startswith('\\\\'):
+			path = '\\\\?\\UNC\\' + path[2:]
 		else:
-			path = "\\\\?\\" + path
+			path = '\\\\?\\' + path
 	return path
