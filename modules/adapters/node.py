@@ -32,8 +32,8 @@ class Node(adapter.AdapterConfiguration):
 
 	@property
 	def configuration_snippets(self):
-		return adapter.vscode.configuration_snippets(self.type, 'node2')
+		return adapter.vscode.configuration_snippets(self.type, 'legacy-node2')
 
 	@property
 	def configuration_schema(self):
-		return adapter.vscode.configuration_schema(self.type, 'node2')
+		return adapter.vscode.configuration_schema(self.type, 'legacy-node2')
