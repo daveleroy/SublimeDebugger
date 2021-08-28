@@ -18,8 +18,8 @@ class alignable(Protocol):
 class element:
 	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
 		super().__init__()
-		self.layout = None #type: Optional[Layout]
-		self.children = [] #type: Sequence[element]
+		self.layout: Layout|None = None
+		self.children: Sequence[element] = []
 		self.requires_render = True
 		self._max_allowed_width: float|None = None
 		self._height = height
@@ -104,10 +104,10 @@ class span (element):
 		super().__init__(True, width, height, css)
 		self._items = None #type: span.Children
 
-	def render(self) -> 'span.Children':
+	def render(self) -> span.Children:
 		return self._items
 
-	def __getitem__(self, values: 'span.Children'):
+	def __getitem__(self, values: span.Children):
 		self._items = values
 		return self
 
@@ -122,12 +122,12 @@ class div (element):
 
 	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(False, width, height, css)
-		self._items = None #type: div.Children
+		self._items: div.Children = None
 
-	def render(self) -> 'div.Children':
+	def render(self) -> div.Children:
 		return self._items
 
-	def __getitem__(self, values: 'div.Children'):
+	def __getitem__(self, values: div.Children):
 		self._items = values
 		return self
 
@@ -192,14 +192,20 @@ class text (span, alignable):
 
 
 class click (span):
-	def __init__(self, on_click: Callable[[], None]) -> None:
+	def __init__(self, on_click: Callable[[], None], title: str|None = None) -> None:
 		super().__init__()
 		self.on_click = on_click
+		if title:
+			self.title = html_escape(title)
+		else:
+			self.title = None
 
 	def html(self, layout: Layout) -> str:
 		href = layout.register_on_click_handler(self.on_click)
-		html = f'<a href={href}>{self.html_inner(layout)}</a>'
-		return html
+		if self.title:
+			return f'<a href={href} title="{self.title}">{self.html_inner(layout)}</a>'
+		else:
+			return f'<a href={href}>{self.html_inner(layout)}</a>'
 
 
 class icon (span):
@@ -211,7 +217,6 @@ class icon (span):
 		width = 2.5 * layout.rem_width_scale()
 		required_padding = 0.5 * layout.rem_width_scale()
 		return f'<s class="{self.className}" style="padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
-
 
 tokenize_re = re.compile(
 	r'(0x[0-9A-Fa-f]+)' #matches hex
