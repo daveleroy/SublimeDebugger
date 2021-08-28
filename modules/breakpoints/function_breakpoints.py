@@ -42,6 +42,12 @@ class FunctionBreakpoint:
 		return self.dap.name
 
 	@property
+	def description(self) -> str|None:
+		if self.result:
+			return self.result.message
+		return None
+
+	@property
 	def condition(self):
 		return self.dap.condition
 

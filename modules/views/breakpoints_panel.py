@@ -88,7 +88,7 @@ class BreakpointsPanel(ui.div):
 						ui.click(lambda breakpoint=breakpoint: self.on_toggle(breakpoint))[ #type: ignore
 							ui.icon(breakpoint.image),
 						],
-						ui.click(lambda breakpoint=breakpoint: self.on_select(breakpoint))[ #type: ignore
+						ui.click(lambda breakpoint=breakpoint: self.on_select(breakpoint), title=breakpoint.description)[ #type: ignore
 							tag_and_name
 						]
 					]

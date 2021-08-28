@@ -202,7 +202,10 @@ class ExceptionBreakpointsFilter:
 		return {
 			'filter': self.id,
 			'label': self.label,
+			'description': self.description,
 			'default': self.default,
+			'supportsCondition': self.supportsCondition,
+			'conditionDescription': self.conditionDescription,
 		}
 
 @dataclass

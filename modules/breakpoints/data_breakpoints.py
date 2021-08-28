@@ -34,6 +34,12 @@ class DataBreakpoint:
 	def name(self) -> str:
 		return self.info.description
 
+	@property
+	def description(self) -> str|None:
+		if self.result:
+			return self.result.message
+		return None
+
 	def into_json(self) -> dict[str, Any]:
 		return {
 			'dap': self.dap.into_json(),

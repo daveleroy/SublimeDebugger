@@ -28,6 +28,10 @@ class ExceptionBreakpointsFilter:
 	def name(self) -> str:
 		return self.dap.label
 
+	@property
+	def description(self) -> str|None:
+		return self.dap.description
+
 	def into_json(self) -> dap.Json:
 		return {
 			'dap': self.dap.into_json(),

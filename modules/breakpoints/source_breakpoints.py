@@ -35,6 +35,12 @@ class SourceBreakpoint:
 		return os.path.basename(self._file)
 
 	@property
+	def description(self) -> str|None:
+		if self.result:
+			return self.result.message
+		return None
+
+	@property
 	def file(self):
 		return self._file
 
