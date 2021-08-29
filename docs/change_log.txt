@@ -1,5 +1,17 @@
 For getting set up see https://github.com/daveleroy/sublime_debugger
 
+
+Version 0.5.3
+
+- Tool tips when hovering over debugger controls
+- Moved Debugger menu item into tools -> Debugger
+- Improved json schema support for auto completeing adapter configurations (requires LSP-json)
+- Fixes node json schema contributions
+- Fixes issue with installing the php adapter
+- Fixes issues with localized pacakages and json schema/snippets
+- Fixes issue with external terminal on mac
+
+
 Version 0.5.2
 
 - Disable winpty on Windows (needs to be rebuilt for python 3.8)
