@@ -138,6 +138,8 @@ class Listener (sublime_plugin.EventListener):
 			if not file:
 				continue
 
+			view.window().focus_view(view)
+			
 			if button == 1:
 				item = ui.InputListItem(
 					run=lambda breakpoints=breakpoints, file=file: toggle_file_line(breakpoints, file, line),
