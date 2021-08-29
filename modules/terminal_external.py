@@ -67,7 +67,7 @@ class ExternalTerminalTerminus(ExternalTerminal):
 
 
 class ExternalTerminalMacDefault(ExternalTerminal):
-	OSX_TERMINAL_SCRIPT = os.path.join(os.path.dirname(__file__), 'scripts', 'TerminalHelper.scpt')
+	OSX_TERMINAL_SCRIPT = os.path.join(os.path.dirname(__file__), 'libs', 'terminal_scripts', 'TerminalHelper.scpt')
 	#OSX_ITERM_SCRIPT = os.path.join(os.path.dirname(__file__), 'iTermHelper.scpt')
 
 	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
