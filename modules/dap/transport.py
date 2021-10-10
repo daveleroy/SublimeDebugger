@@ -138,6 +138,7 @@ class TransportProtocol:
 			'seq': self.seq,
 			'request_seq': request['seq'],
 			'command': request['command'],
+			'body': body,
 			'success': success,
 			'message': error,
 		}
