@@ -5,10 +5,9 @@ import os
 from .core import *
 from .sublime import *
 from .log import *
-from .event import Handle, Event
+from .event import Handle, Event, EventReturning
 from . import platform
 from .error import Error
-from .dispose import Disposables, disposables
 
 _current_package = __package__.split('.', 1)[0]
 

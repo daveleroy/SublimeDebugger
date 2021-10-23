@@ -71,7 +71,7 @@ class Variable:
 	def __init__(self, session: Session, reference: VariableReference) -> None:
 		self.session = session
 		self.reference = reference
-		self.fetched: core.Future[list[dap.Variable]]|None = None
+		self.fetched: core.Future[list[Variable]]|None = None
 
 	@property
 	def name(self) -> str:

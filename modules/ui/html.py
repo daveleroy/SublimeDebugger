@@ -16,6 +16,8 @@ class alignable(Protocol):
 
 
 class element:
+	Children = Union[Sequence['element'], 'element', None]
+
 	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
 		super().__init__()
 		self.layout: Layout|None = None
@@ -93,12 +95,12 @@ class element:
 	def removed(self) -> None:
 		...
 
-	def render(self) -> Optional[Union[Sequence['element'], 'element']]:
+	def render(self) -> element.Children:
 		...
 
 
 class span (element):
-	Children = Optional[Union[Sequence['span'], 'span']]
+	Children = Union[Sequence['Children'], 'span', None]
 
 	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(True, width, height, css)
@@ -118,7 +120,7 @@ class span (element):
 
 
 class div (element):
-	Children = Optional[Union[Sequence['div'], Sequence['span'], 'div', 'span']]
+	Children = Union[Sequence['Children'], 'span', 'div', None]
 
 	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(False, width, height, css)
@@ -192,7 +194,7 @@ class text (span, alignable):
 
 
 class click (span):
-	def __init__(self, on_click: Callable[[], None], title: str|None = None) -> None:
+	def __init__(self, on_click: Callable[[], Any], title: str|None = None) -> None:
 		super().__init__()
 		self.on_click = on_click
 		if title:

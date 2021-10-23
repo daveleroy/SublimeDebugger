@@ -13,14 +13,13 @@ from ..breakpoints import (
 )
 
 from .import css
-from ..dap import SourceLocation
 
 import os
 import sublime
 
 
 class BreakpointsPanel(ui.div):
-	def __init__(self, breakpoints: Breakpoints, on_navigate: Callable[[SourceLocation], None]) -> None:
+	def __init__(self, breakpoints: Breakpoints, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
 		self.selected = None
@@ -45,7 +44,7 @@ class BreakpointsPanel(ui.div):
 			self.breakpoints.filters.edit(breakpoint).run()
 			return
 		if isinstance(breakpoint, SourceBreakpoint):
-			self.on_navigate(SourceLocation.from_path(breakpoint.file, breakpoint.line, breakpoint.column))
+			self.on_navigate(dap.SourceLocation.from_path(breakpoint.file, breakpoint.line, breakpoint.column))
 			self.breakpoints.source.edit(breakpoint).run()
 			return
 

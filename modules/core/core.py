@@ -15,11 +15,14 @@ CancelledError = asyncio.CancelledError
 
 sublime_event_loop = SublimeEventLoop() #type: ignore
 sublime_event_loop_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8) #type: ignore
-asyncio.set_event_loop(sublime_event_loop)
+# asyncio.set_event_loop(sublime_event_loop)
 
 class Future(asyncio.Future, Generic[T]):
 	def __init__(self):
 		super().__init__(loop=sublime_event_loop)
+
+	def __await__(self) -> Generator[Any, None, T]:
+	    return super().__await__() #type: ignore
 
 	def set_result(self, result: T) -> None:
 	    return super().set_result(result) #type: ignore
@@ -27,10 +30,10 @@ class Future(asyncio.Future, Generic[T]):
 def call_soon_threadsafe(callback: Callable[[Unpack[Args]], None], *args: Unpack[Args]):
 	return sublime_event_loop.call_soon(callback, *args) #type: ignore
 
-def call_soon(callback: Callable[[Unpack[Args]], None], *args: Unpack[Args]):
+def call_soon(callback: Callable[[Unpack[Args]], Any], *args: Unpack[Args]):
 	return sublime_event_loop.call_soon(callback, *args) #type: ignore
 
-def call_later(interval: float, callback: Callable[[Unpack[Args]], None], *args: Unpack[Args]):
+def call_later(interval: float, callback: Callable[[Unpack[Args]], Any], *args: Unpack[Args]):
 	return sublime_event_loop.call_later(interval, callback, *args) #type: ignore
 
 def create_future():

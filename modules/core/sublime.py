@@ -69,7 +69,7 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 	# detects clicks on the gutter
 	# if a click is detected we then reselect the previous selection
 	# This means that a click in the gutter no longer selects that line (at least when a debugger is open)
-	def on_text_command(self, view: sublime.View, cmd: str, args: dict) -> Any:
+	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any]) -> Any:
 		# why bother doing this work if no one wants it
 		if not on_view_gutter_clicked and not on_view_drag_select_or_context_menu:
 			return
@@ -95,12 +95,12 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 				if on_view_gutter_clicked((view, line, event['button'])):
 					return ("null", {})
 
-	def on_window_command(self, window, command_name, args):
+	def on_window_command(self, window: sublime.Window, command_name: str, args: Any):
 		if command_name == 'hide_panel':
 			if on_pre_hide_panel(window):
 				return ("null", {})
 
-	def on_post_window_command(self, window, command_name, args):
+	def on_post_window_command(self, window: sublime.Window, command_name: str, args: Any):
 		if command_name == 'show_panel':
 			on_post_show_panel(window)
 

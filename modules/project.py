@@ -7,7 +7,7 @@ from .settings import Settings
 
 import sublime
 
-class Project(core.disposables):
+class Project():
 	def __init__(self, window: sublime.Window):
 		super().__init__()
 
@@ -37,15 +37,18 @@ class Project(core.disposables):
 		self.bring_window_to_front_on_pause = False
 
 		# add the empty debugger configurations settings if needed
-		data = window.project_data() or {}
+		data: dict[str, Any] = window.project_data() or {}
 		data.setdefault('debugger_configurations', [])
 		window.set_project_data(data)
 
-		self.disposables += Settings.updated.add(self.reload)
+		self.disposables = [
+			Settings.updated.add(self.reload)
+		]
 		self.reload()
 
 	def dispose(self):
-		super().dispose()
+		for dispose in self.disposables:
+			dispose.dispose()
 
 	@property
 	def name(self) -> str:
@@ -94,7 +97,7 @@ class Project(core.disposables):
 
 	def active_configurations(self) -> list[Configuration]:
 		if isinstance(self.configuration_or_compound, ConfigurationCompound):
-			configurations = []
+			configurations: list[Configuration] = []
 			for configuration_name in self.configuration_or_compound.configurations:
 				configuration = None
 				for c in self.configurations:

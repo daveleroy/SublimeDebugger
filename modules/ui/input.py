@@ -5,9 +5,10 @@ from ..import core
 
 import sublime
 import sublime_plugin
+
 from dataclasses import dataclass
 
-core.on_view_drag_select_or_context_menu.add(lambda v: CommandPaletteInputCommand.on_view_drag_select_or_context_menu())
+core.on_view_drag_select_or_context_menu.add(lambda _: CommandPaletteInputCommand.on_view_drag_select_or_context_menu())
 
 class CommandPaletteInputCommand:
 	running_command: CommandPaletteInputCommand|None = None
@@ -25,8 +26,8 @@ class CommandPaletteInputCommand:
 		def _on_run_internal():
 			self.future.set_result(None)
 
-		input._on_cancel_internal = _on_cancel
-		input._on_run_internal = _on_run_internal
+		input._on_cancel_internal = _on_cancel #type: ignore
+		input._on_run_internal = _on_run_internal #type: ignore
 
 		# if you don't clear the text then the debugger_input command can't be found in the command pallete....
 		self.window.run_command('show_overlay', {
@@ -73,7 +74,7 @@ class DebuggerInputCommand(sublime_plugin.WindowCommand):
 
 @dataclass
 class InputListItem:
-	run: Callable[[], None] | InputList | InputText 
+	run: Callable[[], Any] | InputList | InputText 
 	text: str
 	name: str | None = None # name of this input when nested
 	annotation: str = ''
@@ -116,10 +117,11 @@ class InputList(sublime_plugin.ListInputHandler):
 	def placeholder(self):
 		return self._placeholder
 
+
 	def list_items(self):
-		items: list[sublime.ListInputItem] = []
+		items: list[Any] = []
 		for index, value in enumerate(self.values):
-			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind, annotation=value.annotation))
+			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind, annotation=value.annotation)) #type: ignore
 
 		if (not items):
 			return ['Nothing Here\terror?']	
@@ -141,7 +143,7 @@ class InputList(sublime_plugin.ListInputHandler):
 		self._next_input = None
 		return n
 
-	def validate(self, value):
+	def validate(self, value: int):
 		return True
 
 	def cancel(self):
@@ -210,7 +212,7 @@ class InputText(sublime_plugin.TextInputHandler):
 		if self._on_cancel_internal:
 			self._on_cancel_internal()
 
-def InputListItemCheckedText(run: Callable[[str], None], name: str, description: str, value: str|None):
+def InputListItemCheckedText(run: Callable[[str], Any], name: str, description: str, value: str|None):
 	if value:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '●', '')
 		input_name = name
@@ -232,13 +234,13 @@ def InputListItemCheckedText(run: Callable[[str], None], name: str, description:
 		kind=kind
 	)
 
-def InputListItemOnOff(run: Callable[[], None], true: str, false: str, value: bool):
+def InputListItemOnOff(run: Callable[[], Any], true: str, false: str, value: bool):
 	if value:
 		return InputListItem(run, true, annotation='On')
 	else:
 		return InputListItem(run, false, annotation='Off')
 
-def InputListItemChecked(run: Callable[[], None], value: bool, true: str, false: str|None = None, details: list[str]|str = ''):
+def InputListItemChecked(run: Callable[[], Any], value: bool, true: str, false: str|None = None, details: list[str]|str = ''):
 	if value:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '●', 'On')
 		text = true

@@ -30,7 +30,7 @@ class Command:
 	menu_no_prefix = 1 << 3
 	menu_widget = 1 << 4
 
-	def __init__(self, name: str, command: str, action: Callable[[sublime.Window], None], flags:int=menu_commands|menu_main):
+	def __init__(self, name: str, command: str, action: Callable[[sublime.Window], Any], flags:int=menu_commands|menu_main):
 		self.name = name
 		self.action = action
 		self.flags = flags
@@ -46,7 +46,7 @@ class Command:
 		return True
 
 class CommandDebugger(Command):
-	def __init__(self, name: str, command: str, action:Callable[[Debugger], None], enabled: Callable[[Debugger], bool] | None = None, flags: int = menu_commands|menu_main):
+	def __init__(self, name: str, command: str, action:Callable[[Debugger], Any], enabled: Callable[[Debugger], bool] | None = None, flags: int = menu_commands|menu_main):
 		self.name = name
 		self.action = action
 		self.enabled = enabled

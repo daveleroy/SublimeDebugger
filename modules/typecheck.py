@@ -19,6 +19,8 @@ from typing import (
 	Callable,
 	ClassVar,
 	cast,
+	Generator,
+	Mapping,
 )
 
 try:
@@ -26,7 +28,7 @@ try:
 except ImportError as e:
 
 	class _GetAttr(type):
-		def __getitem__(self, x):
+		def __getitem__(self, x: Any):
 			return self
 
 	class _Generic(metaclass=_GetAttr):

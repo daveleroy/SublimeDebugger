@@ -1,5 +1,6 @@
 from __future__ import annotations
 from ...typecheck import *
+from typing import IO
 
 from ...import core
 from ...dap import Transport
@@ -31,26 +32,30 @@ class Process:
 			startupinfo=startupinfo,
 			cwd = cwd)
 
-		self.stdin = self.process.stdin
-		self.stderr = self.process.stderr
-		self.stdout = self.process.stdout
+		stdin = self.process.stdin; assert stdin
+		stderr = self.process.stderr; assert stderr
+		stdout = self.process.stdout; assert stdout
+
+		self.stdin = stdin
+		self.stderr = stderr
+		self.stdout = stdout
 
 		self.closed = False
 
-	def _readline(self, pipe) -> bytes:
+	def _readline(self, pipe: IO[bytes]) -> bytes:
 		if l := pipe.readline():
 			return l
 		raise EOFError
 
-	def _read(self, pipe, n: int) -> bytes:
+	def _read(self, pipe: IO[bytes], n: int) -> bytes:
 		if l := pipe.read(n):
 			return l
 		raise EOFError
 
-	async def readline(self, pipe) -> bytes:
+	async def readline(self, pipe: IO[bytes]) -> bytes:
 		return await core.run_in_executor(lambda: self._readline(pipe))
 
-	async def read(self, pipe, nbytes) -> bytes:
+	async def read(self, pipe: IO[bytes], nbytes: int) -> bytes:
 		return await core.run_in_executor(lambda: self._read(pipe, nbytes))
 
 	def dispose(self):
@@ -65,7 +70,6 @@ class StdioTransport(Transport):
 	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None, ignore_stderr: bool = False):
 		log.log('transport', f'⟸ process/starting :: {command}')
 		self.process = Process(command, cwd)
-
 
 		if ignore_stderr:
 			thread = threading.Thread(target=self._read, args=(self.process.stderr, print))

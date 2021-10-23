@@ -14,7 +14,7 @@ import sublime
 class LayoutComponent (Layout):
 	def __init__(self, item: Union[div, span]) -> None:
 		assert item.layout is None, 'item is already added to a layout'
-		self.on_click_handlers = {} #type: Dict[int, Callable]
+		self.on_click_handlers: dict[int, Callable[[], None]] = {}
 		self.on_click_handlers_id = 0
 		self.requires_render = True
 		self._font_size = 12
@@ -23,7 +23,7 @@ class LayoutComponent (Layout):
 		self.add_component(self.item)
 		self.dirty()
 
-	def __getitem__(self, values: 'div.Children'):
+	def __getitem__(self, values: div.Children):
 		if isinstance(values, element):
 			self.item = phantom_sizer(div()[values])
 		else:
@@ -112,7 +112,7 @@ class LayoutComponent (Layout):
 		if id in self.on_click_handlers:
 			self.on_click_handlers[id]()
 
-	def register_on_click_handler(self, callback: 'Callable') -> str:
+	def register_on_click_handler(self, callback: Callable[[], None]) -> str:
 		self.on_click_handlers_id += 1
 		id = self.on_click_handlers_id
 		self.on_click_handlers[id] = callback
