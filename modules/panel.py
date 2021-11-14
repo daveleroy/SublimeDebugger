@@ -92,6 +92,8 @@ class DebuggerOutputPanel:
 		settings.set('line_spacing', 0)
 		settings.set('context_menu', 'Widget Debug.sublime-menu')
 		settings.set('draw_centered', True)
+		settings.set('draw_unicode_white_space', 'none')
+		settings.set('draw_unicode_bidi', False)
 		settings.set('is_widget', True)
 		settings.set('sublime_debugger', True)
 		settings.set('font_face', Settings.font_face)
