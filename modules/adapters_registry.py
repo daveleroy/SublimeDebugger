@@ -133,7 +133,7 @@ class AdaptersRegistry:
 			else:
 				not_installed.append(item(adapter))
 			
-		items = list(await asyncio.gather(*installed)) + list(await asyncio.gather(*not_installed))
+		items = list(await core.gather(*(installed + not_installed)))
 		return items
 
 	@staticmethod

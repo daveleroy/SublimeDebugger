@@ -56,7 +56,7 @@ class Watch:
 		for expression in self.expressions:
 			results.append(session.evaluate_expression(expression.value, "watch"))
 
-		evaluations = await asyncio.gather(*results, return_exceptions=True)
+		evaluations = await core.gather_results(*results)
 		for expression, evaluation in zip(self.expressions, evaluations):
 			self.evaluated(session, expression, evaluation)
 		self.on_updated()
@@ -69,9 +69,9 @@ class Watch:
 			self.evaluated(session, expression, result)
 		self.on_updated()
 
-	def evaluated(self, session: dap.Session, expression: Watch.Expression, evaluation: Union[dap.Error, dap.EvaluateResponse]):
-		if isinstance(evaluation, dap.Error):
-				expression.message = str(evaluation)
+	def evaluated(self, session: dap.Session, expression: Watch.Expression, evaluation: Union[Exception, dap.EvaluateResponse]):
+		if isinstance(evaluation, Exception):
+			expression.message = str(evaluation)
 		else:
 			expression.evaluate_response = dap.Variable(session, dap.EvaluateReference(expression.value, evaluation))
 

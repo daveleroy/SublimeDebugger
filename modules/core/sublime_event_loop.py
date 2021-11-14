@@ -28,10 +28,10 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 		raise NotImplementedError
 
 	def is_running(self):
-		raise NotImplementedError
+		return True
 
 	def is_closed(self):
-		raise NotImplementedError
+		return False
 
 	def close(self):
 		raise NotImplementedError

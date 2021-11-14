@@ -54,6 +54,13 @@ def schedule(func: Callable[[Unpack[Args]], Coroutine[Any, Any, T]], *args: Any)
 	wrap.__name__ = func.__name__ #type: ignore
 	return wrap
 
+def gather(*coros_or_futures: Awaitable[T]) -> Awaitable[List[T]]:
+	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop)
+
+def gather_results(*coros_or_futures: Awaitable[T]) -> Awaitable[List[T|Exception]]:
+	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop, return_exceptions=True)
+
+
 def run(awaitable: Awaitable[T], on_done: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None) -> Future[T]:
 	task: Future[T] = asyncio.ensure_future(awaitable, loop=sublime_event_loop)
 
