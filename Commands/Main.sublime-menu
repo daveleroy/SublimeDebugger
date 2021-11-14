@@ -72,10 +72,10 @@
                         "caption": "-"
                     },
                     {
-                        "caption": "Resume",
+                        "caption": "Continue",
                         "command": "debugger",
                         "args": {
-                            "action": "resume"
+                            "action": "continue"
                         }
                     },
                     {

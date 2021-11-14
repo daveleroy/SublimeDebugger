@@ -3,6 +3,8 @@ from ..typecheck import *
 
 from ..import ui
 from ..import core
+from ..import dap
+
 from ..breakpoints import (
 	Breakpoints,
 	IBreakpoint,
@@ -14,9 +16,7 @@ from ..breakpoints import (
 
 from .import css
 
-import os
-import sublime
-
+from functools import partial
 
 class BreakpointsPanel(ui.div):
 	def __init__(self, breakpoints: Breakpoints, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
@@ -71,26 +71,21 @@ class BreakpointsPanel(ui.div):
 
 		for breakpoints in (self.breakpoints.filters, self.breakpoints.function, self.breakpoints.data, self.breakpoints.source):
 			for breakpoint in breakpoints:
-				if breakpoint.tag:
-					tag_and_name = [
-						ui.text(breakpoint.name, css=css.label_secondary),
-						ui.spacer(),
-						ui.text(breakpoint.tag, css=css.button),
-					]
-				else:
-					tag_and_name = [
-						ui.text(breakpoint.name, css=css.label_secondary),
-					]
-
-				items.append(ui.div(height=css.row_height)[
-					ui.align()[
-						ui.click(lambda breakpoint=breakpoint: self.on_toggle(breakpoint))[ #type: ignore
-							ui.icon(breakpoint.image),
-						],
-						ui.click(lambda breakpoint=breakpoint: self.on_select(breakpoint), title=breakpoint.description)[ #type: ignore
-							tag_and_name
+				items.append(
+					ui.div(height=css.row_height)[
+						ui.align()[
+							ui.click(partial(self.on_toggle, breakpoint))[
+								ui.icon(breakpoint.image),
+							],
+							ui.click(partial(self.on_select, breakpoint), title=breakpoint.description)[
+								ui.text(breakpoint.name, css=css.label_secondary),
+								[
+									ui.spacer(),
+									ui.text(breakpoint.tag, css=css.button),
+								] 
+								if breakpoint.tag else None
+							]
 						]
-					]
-				])
+					])
 
 		return items

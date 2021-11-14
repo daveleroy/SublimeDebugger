@@ -58,7 +58,7 @@ class CommandDebugger(Command):
 
 	def run(self, window: sublime.Window):
 		debugger = Debugger.get(window)
-		if not debugger or not debugger.is_panel_visible():
+		if not debugger or not debugger.interface.is_open():
 			debugger = Debugger.get(window, True)
 			
 			# don't run this command if the debugger is not visible
@@ -99,12 +99,12 @@ commands = [
 	CommandDebugger (
 		name='Open',
 		command='open',
-		action=Debugger.open,
+		action=lambda debugger: debugger.interface.open(),
 	),
 	CommandDebugger (
 		name='Quit',
 		command='quit',
-		action=Debugger.quit,
+		action=lambda debugger: debugger.dispose(),
 		flags=menu_commands|menu_main|visible_debugger_open,
 	),
 	Command(
@@ -129,68 +129,68 @@ commands = [
 	CommandDebugger (
 		name='Install Adapters',
 		command='install_adapters',
-		action=Debugger.install_adapters,
+		action=lambda debugger: debugger.interface.install_adapters()
 	),
 	CommandDebugger (
 		name='Add or Select Configuration',
 		command='change_configuration',
-		action=Debugger.change_configuration,
+		action=lambda debugger: debugger.interface.change_configuration()
 	),
 	None,
 	CommandDebugger (
 		name='Start',
 		command='start',
-		action=Debugger.on_play,
+		action=lambda debugger: debugger.interface.start(),
 		flags=menu_commands|menu_main|open_without_running
 	),
 	CommandDebugger (
 		name='Start (no debug)',
 		command='start_no_debug',
-		action=Debugger.on_play_no_debug,
+		action=lambda debugger: debugger.interface.start(no_debug=True),
 	),
 	CommandDebugger (
 		name='Stop',
 		command='stop',
-		action=Debugger.on_stop,
+		action=lambda debugger: debugger.interface.stop(),
 		enabled=Debugger.is_stoppable
 	),
 	None,
 	CommandDebugger (
-		name='Resume',
-		command='resume',
-		action=Debugger.on_resume,
+		name='Continue',
+		command='continue',
+		action=lambda debugger: debugger.interface.resume(),
 		enabled=Debugger.is_paused
 	),
 	CommandDebugger (
 		name='Pause',
 		command='pause',
-		action=Debugger.on_pause,
+		action=lambda debugger: debugger.interface.pause(),
 		enabled=Debugger.is_running,
 	),
 	CommandDebugger (
 		name='Step Over',
 		command='step_over',
-		action=Debugger.on_step_over,
+		action=lambda debugger: debugger.interface.step_over(),
 		enabled=Debugger.is_paused
 	),
 	CommandDebugger (
 		name='Step In',
 		command='step_in',
-		action=Debugger.on_step_in,
+		action=lambda debugger: debugger.interface.step_in(),
 		enabled=Debugger.is_paused
 	),
 	CommandDebugger (
 		name='Step Out',
 		command='step_out',
-		action=Debugger.on_step_out,
+		action=lambda debugger: debugger.interface.step_out(),
 		enabled=Debugger.is_paused
 	),
 	None,
 	CommandDebugger (
 		name='Input Command',
 		command='input_command',
-		action=Debugger.on_input_command,
-		enabled=Debugger.is_active
+		action=lambda debugger: debugger.interface.on_input_command(),
+		# enabled=Debugger.is_active
 	),
 	CommandDebugger (
 		name='Run Task',
@@ -206,7 +206,7 @@ commands = [
 	CommandDebugger (
 		name='Add Function Breakpoint',
 		command='add_function_breakpoint',
-		action=Debugger.add_function_breakpoint,
+		action=lambda debugger: debugger.interface.add_function_breakpoint(),
 	),
 	CommandDebugger (
 		name='Clear Breakpoints',
@@ -216,7 +216,7 @@ commands = [
 	CommandDebugger (
 		name='Clear Console',
 		command='clear_console',
-		action=Debugger.clear_terminal_panel,
+		action=lambda debugger: debugger.interface.console.clear(),
 		flags=menu_widget,
 	),
 	CommandDebugger (
@@ -228,7 +228,7 @@ commands = [
 	CommandDebugger (
 		name='Add Watch Expression',
 		command='add_watch_expression',
-		action=Debugger.add_watch_expression,
+		action=lambda debugger: debugger.interface.add_watch_expression(),
 	),
 	CommandDebugger (
 		name='Force Save',
@@ -239,13 +239,13 @@ commands = [
 	CommandDebugger (
 		name='Toggle Breakpoint',
 		command='toggle_breakpoint',
-		action=Debugger.toggle_breakpoint,
+		action=lambda debugger: debugger.interface.toggle_breakpoint(),
 		flags=menu_context,
 	),
 	CommandDebugger (
 		name='Toggle Column Breakpoint',
 		command='toggle_column_breakpoint',
-		action=Debugger.toggle_column_breakpoint,
+		action=lambda debugger: debugger.interface.toggle_column_breakpoint(),
 		flags=menu_context,
 	),
 	CommandDebugger (

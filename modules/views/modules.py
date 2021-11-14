@@ -6,28 +6,27 @@ from ..import ui
 from ..import dap
 
 from .tabbed_panel import Panel
+from ..debugger import Debugger
 
 from .import css
 import sublime
 
-class ModulesView(Panel):
-	def __init__(self, sessions: dap.Sessions):
+class ModulesPanel(Panel):
+	def __init__(self, debugger: Debugger):
 		super().__init__('Modules')
-		self.sessions = sessions
+		self.debugger = debugger
 		self.expanded: dict[Any, bool] = {}
 		self._visible = False
 
-		# these cannot be done when the view is added/removed... because of the visible flag
-		self.on_updated_modules = self.sessions.on_updated_modules.add(self.updated)
-		self.on_removed_session = self.sessions.on_removed_session.add(self.updated)
+		self.debugger.on_session_modules_updated.add(self.updated)
+		self.debugger.on_session_removed.add(self.updated)
 
 	def visible(self) -> bool:
 		return self._visible
 
 	def updated(self, session: dap.Session):
 		self._visible = False
-		for session in self.sessions:
-			print(session)
+		for session in self.debugger.sessions:
 			if session.modules:
 				self._visible = True
 				break
@@ -48,7 +47,7 @@ class ModulesView(Panel):
 
 	def render(self):
 		items: list[ui.div] = []
-		for session in self.sessions:
+		for session in self.debugger.sessions:
 			items.append(ui.div(height=css.row_height)[
 				ui.text(session.name)
 			])

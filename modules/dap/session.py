@@ -475,7 +475,6 @@ class Session(TransportProtocolListener, core.Logger):
 
 		self.state = Session.State.STOPPED
 
-		print(self.complete)
 		if not self.complete.done():
 			self.complete.set_result(None)
 
@@ -618,7 +617,7 @@ class Session(TransportProtocolListener, core.Logger):
 		self.listener.on_session_selected_frame(self, frame)
 		if frame:
 			core.run(self.refresh_scopes(frame))
-			core.run(self.watch.evaluate(self, self.selected_frame))
+			core.run(self.watch.evaluate(self, frame))
 		else:
 			self.variables.clear()
 			self.listener.on_session_updated_variables(self)
@@ -654,6 +653,8 @@ class Session(TransportProtocolListener, core.Logger):
 		if without_names:
 			for v in variables:
 				v.name = ''
+				v.value = v.value.split('\n')[0]
+
 
 		return [Variable(self, v) for v in variables]
 

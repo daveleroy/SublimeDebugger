@@ -63,10 +63,10 @@
         }
     },
     {
-        "caption": "Debugger: Resume",
+        "caption": "Debugger: Continue",
         "command": "debugger",
         "args": {
-            "action": "resume"
+            "action": "continue"
         }
     },
     {

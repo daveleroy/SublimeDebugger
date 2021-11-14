@@ -8,13 +8,13 @@ from .core import call_soon_threadsafe, create_future, Future
 from .event import Event
 from .error import Error
 
-async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None) -> sublime.View:
+async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None, group: int=-1) -> sublime.View:
 	if line:
 		file += f':{line}'
 	if column:
 		file += f':{column}'
 
-	view = window.open_file(file, sublime.ENCODED_POSITION)
+	view = window.open_file(file, sublime.ENCODED_POSITION, group=group)
 	await wait_for_view_to_load(view)
 	return view
 
@@ -39,6 +39,8 @@ def edit(view: sublime.View, run: Callable[[sublime.Edit], None]):
 
 on_view_modified: Event[sublime.View] = Event()
 on_view_load: Event[sublime.View] = Event()
+on_pre_view_closed: Event[sublime.View] = Event()
+
 on_view_hovered: Event[Tuple[sublime.View, int, int]] = Event()
 on_view_activated: Event[sublime.View] = Event()
 on_view_gutter_clicked: Event[Tuple[sublime.View, int, int]] = Event() # view, line, button
@@ -109,6 +111,9 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 
 	def on_modified(self, view: sublime.View) -> None:
 		on_view_modified(view)
+
+	def on_pre_close(self, view: sublime.View) -> None:
+		on_pre_view_closed(view)
 
 	def on_load(self, view: sublime.View) -> None:
 		on_view_load(view)

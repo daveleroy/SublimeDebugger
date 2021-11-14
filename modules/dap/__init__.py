@@ -34,10 +34,6 @@ from .session import (
 	SessionListener,
 	Thread,
 )
-from .sessions import (
-	Sessions,
-	SessionsTasksProvider,
-)
 from .configuration import (
 	AdapterConfiguration,
 	Configuration,
@@ -48,4 +44,8 @@ from .configuration import (
 )
 from .transport import (
 	Transport,
+)
+
+from .debugger import (
+	Debugger,
 )

@@ -50,13 +50,13 @@ class AdapterConfiguration (Protocol):
 	async def on_custom_request(self, session: Session, command: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
 		...
 
-	def commands(self):
+	def commands(self) -> list[Any]:
 		return []
 
-	def settings(self, sessions):
+	def settings(self, debugger: Debugger) -> list[Any]:
 		return []
 
-	def ui(self, sessions):
+	def ui(self, debugger: Debugger) -> Any|None:
 		...
 
 class Configuration(Dict[str, Any]):

@@ -5,6 +5,8 @@ from ..import ui
 from ..import core
 from .. import dap
 from . import css
+from .tabbed_panel import Panel
+from ..debugger import Debugger
 
 import os
 
@@ -26,17 +28,17 @@ class CallStackState:
 	def toggle_expanded(self, item: Any, default: bool = False):
 		self._expanded[id(item)] = not self.is_expanded(item, default)
 
-class CallStackView (ui.div):
-	def __init__(self, sessions: dap.Sessions):
-		super().__init__()
-		self.sessions = sessions
+class CallStackPanel (Panel):
+	def __init__(self, debugger: Debugger):
+		super().__init__('Callstack')
+		self.debugger = debugger
 		self.state = CallStackState()
 
 	def added(self, layout: ui.Layout):
-		self.on_updated = self.sessions.on_updated_threads.add(self.on_threads_updated)
-		self.on_selected = self.sessions.on_selected.add(self.on_threads_updated)
-		self.on_added_session = self.sessions.on_added_session.add(self.on_threads_updated)
-		self.on_removed_session = self.sessions.on_removed_session.add(self.on_threads_updated)
+		self.on_updated = self.debugger.on_session_threads_updated.add(self.on_threads_updated)
+		self.on_selected = self.debugger.on_session_active.add(self.on_threads_updated)
+		self.on_added_session = self.debugger.on_session_added.add(self.on_threads_updated)
+		self.on_removed_session = self.debugger.on_session_removed.add(self.on_threads_updated)
 
 	def removed(self):
 		self.on_updated.dispose()
@@ -47,19 +49,20 @@ class CallStackView (ui.div):
 		self.dirty()
 
 	def selected_session(self, session: dap.Session):
-		self.sessions.active = session
+		self.debugger.active = session
 
 	def render(self) -> ui.div.Children:
 		thread_views: list[SessionView] = []
-		show_session_name = len(self.sessions.sessions) > 1
+		show_session_name = len(self.debugger.sessions) > 1
 
-		if not self.sessions.sessions:
+		if not self.debugger.sessions:
 			return ui.div(height=css.row_height)[
 				ui.spacer(1),
 				ui.text('No Active Debug Sessions', css=css.label_secondary)
 			]
 
-		for session in self.sessions:
+		for session in self.debugger.sessions:
+			# skip sessions that are children of another session since those will be renderer in the parent session
 			if session.parent: continue
 
 
@@ -68,7 +71,7 @@ class CallStackView (ui.div):
 			# 	if is_selected:
 			# 		self.state.set_expanded(thread, True)
 
-			thread_views.append(SessionView(self.sessions, session, self.state))
+			thread_views.append(SessionView(self.debugger, session, self.state))
 
 		return thread_views
 
@@ -84,16 +87,16 @@ def toggle(toggle_expand, item: ui.span, is_expanded) -> ui.div:
 	]
 
 class SessionView (ui.div):
-	def __init__(self, sessions: dap.Sessions, session: dap.Session, state: CallStackState):
+	def __init__(self, debugger: Debugger, session: dap.Session, state: CallStackState):
 		super().__init__()
-		self.sessions = sessions
+		self.debugger = debugger
 		self.session = session
 		self.state = state
-		self.is_selected = session == sessions.selected_session
+		self.is_selected = session == debugger.session
 		self.show_session_name = True
 
 	def selected_session(self):
-		self.sessions.active = self.session
+		self.debugger.active = self.session
 
 	def render(self) -> ui.div.Children:
 		session = self.session
@@ -104,7 +107,7 @@ class SessionView (ui.div):
 
 
 		if True:
-			if session == self.sessions.active:
+			if session == self.debugger.session:
 				session_css_label = css.label
 			else:
 				session_css_label = css.label_secondary
@@ -124,7 +127,7 @@ class SessionView (ui.div):
 			return label_view
 			
 		for session in self.session.children:
-			thread_views.append(SessionView(self.sessions, session, self.state))
+			thread_views.append(SessionView(self.debugger, session, self.state))
 
 		show_thread_name = len(threads) > 1
 

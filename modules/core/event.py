@@ -42,3 +42,33 @@ class Event (Generic[Unpack[Args]]):
 		for h in self.handlers:
 			r = r or h.callback(*data)
 		return bool(r)
+
+class EventReturning (Generic[T, Unpack[Args]]):
+	def __init__(self) -> None:
+		self.handlers: list[Handle[Any]] = []
+
+	@overload
+	def add(self, callback: Callable[[], Any]) -> Handle[Any]: ...
+
+	@overload
+	def add(self, callback: Callable[[Unpack[Args]], T|None]) -> Handle[Any]: ...
+
+	def add(self, callback: Any) -> Handle[Any]:
+		handle = Handle(self, callback)
+		self.handlers.append(handle)
+		return handle
+
+	def add_handle(self, handle: Handle[Any]) -> None:
+		self.handlers.append(handle)
+
+	def __call__(self, *data: Unpack[Args]) -> T:
+		return self.post(*data) #type: ignore
+
+	def __bool__(self) -> bool:
+		return bool(self.handlers)
+
+	def post(self, *data: Unpack[Args]) -> T|None:
+		r = None
+		for h in self.handlers:
+			r = r or h.callback(*data)
+		return r

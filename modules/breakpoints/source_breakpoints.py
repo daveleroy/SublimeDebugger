@@ -245,6 +245,34 @@ class SourceBreakpoints:
 			),
 		], placeholder="Edit Breakpoint in {} @ {}".format(breakpoint.name, breakpoint.tag))
 
+
+	def toggle_file_line(self, file: str, line: int):
+		bps = self.get_breakpoints_on_line(file, line)
+		if bps:
+			for bp in bps:
+				self.remove(bp)
+		else:
+			self.add_breakpoint(file, line)
+
+	def edit_breakpoints(self, source_breakpoints: list[SourceBreakpoint]):
+		if not source_breakpoints:
+			return
+
+		if len(source_breakpoints) == 1:
+			self.edit(source_breakpoints[0]).run()
+			return
+
+		items: list[ui.InputListItem] = []
+		for breakpoint in source_breakpoints:
+			items.append(
+				ui.InputListItem(
+					self.edit(breakpoint),
+					"Breakpoint @ {}".format(breakpoint.tag),
+				)
+			)
+
+		ui.InputList(items).run()
+
 	# todo: fix... this is going to trigger a ton of breakpoint requests if the debugger is active
 	def remove_all(self):
 		while self.breakpoints:

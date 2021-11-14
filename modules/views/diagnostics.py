@@ -233,7 +233,7 @@ badge_css = ui.css(
 	padding_top=-0.3,
 	padding_bottom=-0.3,
 	background_color='color(var(--secondary) alpha(0.1)',
-	raw='border-radius: 1.0rem;'
+	raw='border-radius: 0.65rem;'
 )
 
 

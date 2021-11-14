@@ -22,12 +22,13 @@ class SourceLocation:
 
 	@property
 	def name(self) -> str:
+		name = os.path.basename(self.source.name or '??')
 		if self.column and self.line:
-			return f'{self.source.name}@{self.line}:{self.column}'
+			return f'{name}@{self.line}:{self.column}'
 		if self.line:
-			return f'{self.source.name}@{self.line}'
+			return f'{name}@{self.line}'
 
-		return self.source.name or "??"
+		return name
 
 class VariableReference (Protocol):
 	@property
@@ -90,6 +91,7 @@ class Variable:
 
 		if not self.fetched:
 			self.fetched = core.run(self.fetch())
+
 		children = await self.fetched
 		return children
 

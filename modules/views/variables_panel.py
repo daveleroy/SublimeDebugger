@@ -7,13 +7,14 @@ from ..import dap
 from ..watch import Watch
 from .variable import VariableComponent
 from . import css
+from .tabbed_panel import Panel
+from ..debugger import Debugger
 
-
-class VariablesPanel (ui.div):
-	def __init__(self, sessions: dap.Sessions):
-		super().__init__()
-		self.watch_view = WatchView(sessions.watch)
-		self.variables_view = VariablesView(sessions)
+class VariablesPanel (Panel):
+	def __init__(self, debugger: Debugger):
+		super().__init__('Variables')
+		self.watch_view = WatchView(debugger.watch)
+		self.variables_view = VariablesView(debugger)
 
 	def render(self) -> ui.div.Children:
 		return [
@@ -23,25 +24,26 @@ class VariablesPanel (ui.div):
 
 
 class VariablesView (ui.div):
-	def __init__(self, sessions: dap.Sessions):
+	def __init__(self, debugger: Debugger):
 		super().__init__()
-		self.sessions = sessions
-		self.sessions.on_updated_variables.add(lambda session: self.on_updated(session))
-		self.sessions.on_removed_session.add(lambda session: self.on_updated(session))
+		self.debugger = debugger
+		self.debugger.on_session_variables_updated.add(self.on_updated)
+		self.debugger.on_session_removed.add(self.on_updated)
 		self.variables = []
 
 	def on_updated(self, session: dap.Session):
-		if self.sessions.has_active:
-			self.variables = [VariableComponent(variable) for variable in self.sessions.active.variables]
-			if self.variables:
-				self.variables[0].set_expanded()
+		if self.debugger.session:
+			self.variables = [
+				VariableComponent(variable) for variable in self.debugger.session.variables
+			]
+			self.variables and self.variables[0].set_expanded()
 		else:
 			self.variables = []
 
 		self.dirty()
 
 	def render(self):
-		session = self.sessions.selected_session
+		session = self.debugger.session
 		if not session:
 			return
 
@@ -53,13 +55,13 @@ class VariablesView (ui.div):
 
 
 class WatchView(ui.div):
-	def __init__(self, provider: Watch):
+	def __init__(self, watch: Watch):
 		super().__init__()
-		self.provider = provider
+		self.watch = watch
 		self.open = True
 
 	def added(self, layout: ui.Layout):
-		self.on_updated_handle = self.provider.on_updated.add(self.dirty)
+		self.on_updated_handle = self.watch.on_updated.add(self.dirty)
 
 	def removed(self):
 		self.on_updated_handle.dispose()
@@ -69,7 +71,7 @@ class WatchView(ui.div):
 		self.dirty()
 
 	def render(self) -> ui.div.Children:
-		if not self.provider.expressions:
+		if not self.watch.expressions:
 			return None
 
 		header = ui.div(height=css.row_height)[
@@ -84,7 +86,7 @@ class WatchView(ui.div):
 		return [
 			header,
 			ui.div(css=css.table_inset)[
-				[WatchExpressionView(expresion, on_edit_not_available=self.provider.edit_run) for expresion in self.provider.expressions]
+				[WatchExpressionView(expresion, on_edit_not_available=self.watch.edit_run) for expresion in self.watch.expressions]
 			]
 		]
 

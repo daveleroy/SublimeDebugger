@@ -6,6 +6,7 @@ from .import dap
 
 from .views.selected_line import SelectedLine
 from .debugger import Project
+from .debugger import Debugger
 
 import sublime
 import sublime_plugin
@@ -35,10 +36,10 @@ def show_line(view: sublime.View, line: int, column: int, move_cursor: bool):
 	core.edit(view, run)
 
 class SourceNavigationProvider:
-	def __init__(self, project: Project, sessions: dap.Sessions):
+	def __init__(self, project: Project, debugger: Debugger):
 		super().__init__()
 
-		self.sessions = sessions
+		self.debugger = debugger
 		self.project = project
 
 		self.updating: Any|None = None
@@ -99,19 +100,26 @@ class SourceNavigationProvider:
 
 	async def navigate_to_source(self, source: dap.SourceLocation, move_cursor: bool = False) -> sublime.View:
 
-		# if we aren't going to reuse the previous generated view
-		# or the generated view was closed (no buffer) throw it away
-		if not source.source.sourceReference or self.generated_view and not self.generated_view.buffer_id():
+		# if we aren't going to reuse the previous generated view throw away any generated view
+		if not source.source.sourceReference:
 			self.clear_generated_view()
 
 		line = (source.line or 1) - 1
 		column = (source.column or 1) - 1
 
 		if source.source.sourceReference:
-			session = self.sessions.active
+			session = self.debugger.session
+			if not session:
+				raise core.Error('No Active Debug Session')
+
 			content, mime_type = await session.get_source(source.source)
 
+			# the generated view was closed (no buffer) throw it away
+			if self.generated_view and not self.generated_view.buffer_id():
+				self.clear_generated_view()
+
 			view = self.generated_view or self.project.window.new_file()
+			self.project.window.set_view_index(view, 0, len(self.project.window.views_in_group(0)))
 			self.generated_view = view
 			view.set_name(source.source.name or "")
 			view.set_read_only(False)
@@ -125,7 +133,7 @@ class SourceNavigationProvider:
 			view.set_read_only(True)
 			view.set_scratch(True)
 		elif source.source.path:
-			view = await core.sublime_open_file_async(self.project.window, source.source.path, source.line, source.column)
+			view = await core.sublime_open_file_async(self.project.window, source.source.path, group=0)
 		else:
 			raise core.Error('source has no reference or path')
 

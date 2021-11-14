@@ -135,57 +135,57 @@ class LLDB(adapter.AdapterConfiguration):
 		from ..debugger import Debugger
 
 		class Command(commands.Command):
-			def __init__(self, name: str, command: str, action: Callable):
+			def __init__(self, name: str, command: str, action: Callable[[dap.Debugger], Any]):
 				super().__init__(name, command, action, flags=Command.menu_commands)
 
 			def parameters(self, window: sublime.Window):
-				return Debugger.get(window),
+				return (Debugger.get(window),)
 
-			def run(self, debugger):
+			def run(self, debugger: dap.Debugger):
 				self.action(debugger)
 
 		return [
 			Command(
 				'LLDB Toggle Disassembly',
 				'lldb_toggle_disassembly',
-				lambda debugger: self.toggle_disassembly(debugger.sessions)
+				lambda debugger: self.toggle_disassembly(debugger)
 			),
 			Command(
 				'LLDB Display Options',
 				'lldb_display',
-				lambda debugger: self.display_menu(debugger.sessions).run()
+				lambda debugger: self.display_menu(debugger).run()
 			),
 			Command(
 				'LLDB Toggle Dereference',
 				'lldb_toggle_dereference',
-				lambda debugger: self.toggle_deref(debugger.sessions)
+				lambda debugger: self.toggle_deref(debugger)
 			),
 		]
 
 	# lldb settings must be resent to the debugger when updated
 	# we only resend them when chaging through the ui if not the adapter needs to be restarted
 	@core.schedule
-	async def updated_settings(self, sessions: dap.Sessions):
-		for session in sessions:
+	async def updated_settings(self, debugger: dap.Debugger):
+		for session in debugger.sessions:
 			if session.adapter_configuration == self:
-				await sessions.active.request('_adapterSettings', self.adapter_settings())
+				await session.request('_adapterSettings', self.adapter_settings())
 
-	def toggle_disassembly(self, sessions: dap.Sessions):
+	def toggle_disassembly(self, debugger: dap.Debugger):
 		if Settings.lldb_show_disassembly == 'auto':
 			Settings.lldb_show_disassembly = 'always'
 		else:
 			Settings.lldb_show_disassembly = 'auto'
 
-		self.updated_settings(sessions)
+		self.updated_settings(debugger)
 
-	def toggle_deref(self, sessions: dap.Sessions):
+	def toggle_deref(self, debugger: dap.Debugger):
 		Settings.lldb_dereference_pointers = not Settings.lldb_dereference_pointers
-		self.updated_settings(sessions)
+		self.updated_settings(debugger)
 
-	def display_menu(self, sessions: dap.Sessions):
+	def display_menu(self, debugger: dap.Debugger):
 		def set_display(mode: str):
 			Settings.lldb_display_format = mode
-			self.updated_settings(sessions)
+			self.updated_settings(debugger)
 
 		return ui.InputList([
 				ui.InputListItemChecked(lambda: set_display('auto'), Settings.lldb_display_format == 'auto', 'Auto', 'Auto'),
@@ -196,7 +196,7 @@ class LLDB(adapter.AdapterConfiguration):
 			'Display Options'
 		)
 
-	def ui(self, sessions: dap.Sessions):
+	def ui(self, debugger: dap.Debugger):
 		return InputListView(ui.InputList([
-			ui.InputListItemOnOff(lambda: self.toggle_disassembly(sessions), 'Disassembly', 'Disassembly', Settings.lldb_show_disassembly != 'auto'),
+			ui.InputListItemOnOff(lambda: self.toggle_disassembly(debugger), 'Disassembly', 'Disassembly', Settings.lldb_show_disassembly != 'auto'),
 		]))

@@ -242,7 +242,8 @@ class VariableComponent (ui.div):
 				variable_children.append(
 					ui.div(height=css.row_height)[
 						ui.click(self.show_more)[
-							ui.text("  {} more items...".format(more_count), css=css.label_secondary)
+							ui.spacer(3),
+							ui.text("{} more items...".format(more_count), css=css.label_secondary)
 						]
 					]
 				)
