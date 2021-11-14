@@ -7,7 +7,7 @@ from .typecheck import *
 from .import core
 from .debugger import Debugger
 from .adapters_registry import AdaptersRegistry
-
+from .console_view import generate_console_syntax
 import sublime_plugin
 import sublime
 import json
@@ -300,6 +300,8 @@ class Commands:
 
 	@staticmethod
 	def generate_commands_and_menus():
+		AdaptersRegistry.recalculate_schema()
+		
 		all_commands: list[Command|None] = []
 		all_commands.extend(commands)
 
@@ -373,6 +375,10 @@ class Commands:
 
 		commands_context = generate_commands(menu_widget)
 		save_commands('/Commands/Widget Debug.sublime-menu', commands_context)
+
+		syntax = generate_console_syntax()
+		with open(current_package + '/Commands/DebuggerConsole.sublime-syntax', 'w') as f:
+			f.write(syntax)
 
 
 		# keymap_commands = []
