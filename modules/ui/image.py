@@ -6,7 +6,6 @@ from . layout import Layout
 
 import sublime
 import base64
-import os
 
 def _path_for_image(name): #type: (str) -> str
 	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region?
@@ -19,9 +18,9 @@ def _data_image_png_b64_png_from_resource(path: str) -> str:
 
 def view_background_lightness(view: sublime.View) -> float:
 	style = view.style()
-	if not style or "background" not in style:
+	if not style or 'background' not in style:
 		return 0
-	color = style["background"].lstrip('#')
+	color = style['background'].lstrip('#')
 	rgb = tuple(int(color[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
 	lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
 	return lum

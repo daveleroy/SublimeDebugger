@@ -2,7 +2,7 @@ from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
-from . html import div, span, phantom_sizer, element
+from . html import div, span, phantom_sizer, element, flatten_without_none
 from . layout import Layout
 from . style import css
 from . image import view_background_lightness
@@ -65,17 +65,15 @@ class LayoutComponent (Layout):
 		item.layout = self
 		item.added(self)
 
-	def render_component_tree(self, item: element) -> None:
+	def render_component_tree(self, item: element|None) -> None:
+		if item is None:
+			return
+
 		item.requires_render = False
 		self.remove_component_children(item)
-		children = item.render()
 
-		if children is None:
-			item.children = []
-		elif isinstance(children, element):
-			item.children = (children, )
-		else:
-			item.children = children
+		children = item.render()
+		item.children = list(flatten_without_none(children))
 
 		self.add_component_children(item)
 

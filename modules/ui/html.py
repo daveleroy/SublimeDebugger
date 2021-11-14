@@ -14,7 +14,6 @@ class alignable(Protocol):
 	def align(self, width: int):
 		...
 
-
 class element:
 	Children = Union[Sequence['element'], 'element', None]
 
@@ -46,6 +45,9 @@ class element:
 		height_max = 0.0
 
 		for item in self.children:
+			if item is None:
+				continue
+
 			height += item.height(layout)
 			if item.is_inline and height > height_max:
 				height_max = max(height_max, height)
@@ -81,9 +83,9 @@ class element:
 		self.requires_render = True
 
 	def html_inner(self, layout: Layout) -> str:
-		html = []
-		for child in self.children:
-			html.append(child.html(layout))
+		html: list[str] = []
+		for item in self.children:
+			html.append(item.html(layout))
 		return ''.join(html)
 
 	def html(self, layout: Layout) -> str:
@@ -104,12 +106,12 @@ class span (element):
 
 	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(True, width, height, css)
-		self._items = None #type: span.Children
+		self._items: span.Children = None
 
-	def render(self) -> span.Children:
+	def render(self) -> Children:
 		return self._items
 
-	def __getitem__(self, values: span.Children):
+	def __getitem__(self, values: Children):
 		self._items = values
 		return self
 
@@ -134,11 +136,18 @@ class div (element):
 		return self
 
 	def html(self, layout: Layout) -> str:
-		inner = self.html_inner(layout)
+		inner_list: list[str] = []
+		children_inline = False
+		for item in self.children:
+			inner_list.append(item.html(layout))
+			children_inline = children_inline or item.is_inline
+
+		inner = ''.join(inner_list)
+
 		h = (self.height(layout) - self.padding_height) * layout.rem_width_scale()
 		w = (self.width(layout) - self.padding_width) * layout.rem_width_scale()
 
-		if self.children and self.children[0].is_inline:
+		if children_inline:
 			html = f'<div class="{div_inline_css.class_name} {self.className}" style="height:{h}rem;width:{w}rem;line-height:{h}rem"><img>{inner}</div>'
 		else:
 			html = f'<div class="{self.className}" style="height:{h}rem;width:{w}rem;">{inner}</div>'
@@ -255,3 +264,12 @@ class code(span, alignable):
 				self.text_html += html_escape(other)
 
 		return f'<s style="color:var(--foreground);">{self.text_html}</s>'
+
+def flatten_without_none(items: element.Children) -> Generator[element, None, None]:
+	if items is None: pass
+	elif isinstance(items, element):
+		yield items
+	else:
+		for item in items:
+			yield from flatten_without_none(item)
+		
