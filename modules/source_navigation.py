@@ -10,8 +10,10 @@ from .debugger import Project
 import sublime
 import sublime_plugin
 
-syntax_name_for_mime_type = {
+syntax_name_for_mime_type: dict[str|None, str] = {
+	'text/plain': 'text.plain',
 	'text/javascript': 'source.js',
+	'text/x-lldb.disassembly': 'source.disassembly',
 }
 
 def replace_contents(view: sublime.View, characters: str):
@@ -115,7 +117,7 @@ class SourceNavigationProvider:
 			view.set_read_only(False)
 			
 
-			syntax = syntax_name_for_mime_type.get(mime_type or '') or 'text.plain'
+			syntax = syntax_name_for_mime_type.get(mime_type, 'text.plain')
 			view.assign_syntax(sublime.find_syntax_by_scope(syntax)[0])
 
 			replace_contents(view, content)
