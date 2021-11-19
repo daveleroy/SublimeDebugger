@@ -200,8 +200,8 @@ class Project(core.disposables):
 	def extract_variables(self):
 		variables: dict[str, str] = self.window.extract_variables()
 
-		if project := variables.get('project_path'):
-			variables['workspaceFolder'] = project
+		if folders := self.window.folders():
+			variables['workspaceFolder'] = folders[0]
 		return variables
 
 	def current_file_line_column(self) -> Tuple[str, int, int]:
