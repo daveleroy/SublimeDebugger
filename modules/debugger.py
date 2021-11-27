@@ -89,7 +89,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		self.on_session_output: core.Event[dap.Session, dap.OutputEvent] = core.Event()
 
 		self.on_session_run_terminal_requested: core.EventReturning[Awaitable[dap.RunInTerminalResponse], dap.Session, dap.RunInTerminalRequest] = core.EventReturning()
-		self.on_session_run_task_requested: core.EventReturning[Awaitable[None], dap.Session, dap.TaskExpanded] = core.EventReturning()
+		self.on_session_run_task_requested: core.EventReturning[Awaitable[None], dap.Session|None, dap.TaskExpanded] = core.EventReturning()
 
 
 		self.session: dap.Session|None = None

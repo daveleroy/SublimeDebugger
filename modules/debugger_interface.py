@@ -15,11 +15,10 @@ from .panel import DebuggerOutputPanel, DebuggerProtocolLogger
 
 from .adapters_registry import AdaptersRegistry
 
-from .terminal import Terminal
 from .debugger_console import DebuggerConsole
-from .terminal_process import TerminalProcess
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
 from .terminal_task import TerminalTask, Tasks
+from .terminal_integrated import TerminalIntegrated
 
 from .source_navigation import SourceNavigationProvider
 
@@ -29,8 +28,7 @@ from .views.callstack import CallStackPanel
 
 from .views.debugger_panel import DebuggerPanel
 from .views.variables_panel import VariablesPanel
-from .views.tabbed_panel import TabbedPanel, TabbedPanelItem
-from .views.terminal import TerminalView
+from .views.tabbed_panel import TabbedPanel
 from .views.diagnostics import DiagnosticsPanel
 from .debugger import Debugger
 
@@ -44,6 +42,7 @@ class DebuggerInterface (core.Logger):
 		self.debugger = debugger
 		self.debugger.on_session_state_updated.add(self.on_session_state_updated)
 		self.debugger.on_session_active.add(self.on_session_active)
+		self.debugger.on_session_removed.add(self.on_session_removed)
 		self.debugger.on_session_output.add(self.on_session_output)
 		self.debugger.on_session_run_terminal_requested.add(self.on_session_run_terminal_requested)
 		self.debugger.on_session_run_task_requested.add(self.on_session_run_task_requested)
@@ -86,7 +85,7 @@ class DebuggerInterface (core.Logger):
 			self.console,
 		])
 
-		self.terminals: list[Terminal] = []
+		self.terminals: list[TerminalIntegrated] = []
 		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
 
 		self.callstack_panel =  CallStackPanel(self.debugger)
@@ -118,20 +117,20 @@ class DebuggerInterface (core.Logger):
 			self.panel,
 		])
 
-		# phantoms
-		phantom_location = self.panel.panel_phantom_location()
-		phantom_view = self.panel.panel_phantom_view()
-
-		self.left = ui.Phantom(self.debugger_panel, phantom_view, sublime.Region(phantom_location, phantom_location), sublime.LAYOUT_INLINE)
-		self.middle = ui.Phantom(self.middle_panel, phantom_view, sublime.Region(phantom_location + 0, phantom_location + 1), sublime.LAYOUT_INLINE)
-		self.right = ui.Phantom(self.right_panel, phantom_view, sublime.Region(phantom_location + 0, phantom_location + 2), sublime.LAYOUT_INLINE)
+		self.left = ui.Phantom(self.debugger_panel, self.panel.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE)
+		self.middle = ui.Phantom(self.middle_panel, self.panel.view, sublime.Region(0, 1), sublime.LAYOUT_INLINE)
+		self.right = ui.Phantom(self.right_panel, self.panel.view, sublime.Region(0, 2), sublime.LAYOUT_INLINE)
 		self.disposeables.extend([self.left, self.middle, self.right])
 		
 		self.on_project_configuration_updated()
 
 		def on_view_activated(view: sublime.View):
-			if not self.debugger.is_active() and not view.element() and self.console.panel and view != self.console.panel.view:
-				self.console.panel.close()
+			if self.debugger.is_active() or self.tasks.is_active():
+				return
+			
+			if not view.element() and view.window().active_group() == 0:
+				self.console.close()
+				self.dispose_terminals(unused_only=True)
 					
 
 		self.disposeables.extend([
@@ -185,15 +184,17 @@ class DebuggerInterface (core.Logger):
 		variables = self.project.extract_variables()
 
 		self.dispose_terminals(unused_only=True)
-		self.console.clear()
+
+		# clear console if there are not any currently active sessions
+		if not self.debugger.sessions:
+			self.console.clear()
+
 		self.console.show()
 
 		await self.ensure_installed(active_configurations)
 
-
-
 		for configuration in active_configurations:
-			async def launch():
+			async def launch(configuration: dap.Configuration = configuration):
 				try:
 					adapter_configuration = AdaptersRegistry.get(configuration.type)
 					configuration_expanded = dap.ConfigurationExpanded(configuration, variables)
@@ -232,6 +233,9 @@ class DebuggerInterface (core.Logger):
 		else:
 			self.source_provider.clear()
 
+	def on_session_removed(self, sessions: dap.Session):
+		self.console.show()
+
 	def on_session_state_updated(self, session: dap.Session, state: dap.Session.State):
 		if self.debugger.has_active and self.debugger.active != session:
 			return
@@ -244,7 +248,7 @@ class DebuggerInterface (core.Logger):
 	def on_session_output(self, session: dap.Session, event: dap.OutputEvent) -> None:
 		self.console.program_output(session, event)
 
-	async def on_session_run_task_requested(self, session: dap.Session, task: dap.TaskExpanded) -> None:
+	async def on_session_run_task_requested(self, session: dap.Session|None, task: dap.TaskExpanded) -> None:
 		await self.tasks.run(self.window, task)
 
 	async def on_session_run_terminal_requested(self, session: dap.Session, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
@@ -275,22 +279,18 @@ class DebuggerInterface (core.Logger):
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=None) 
 
 		if request.kind == 'integrated':
-			terminal = TerminalProcess(request.cwd, request.args)
+			terminal = TerminalIntegrated(self.window, request.title, request.args, request.cwd)
 			self.terminals.append(terminal)
-
-			component = TerminalView(terminal, self.on_navigate_to_source)
-			panel = TabbedPanelItem(id(terminal), component, terminal.name(), 0, show_options=lambda: terminal.show_backing_panel())
-
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=terminal.pid())
 
 		raise core.Error("unknown terminal kind requested '{}'".format(request.kind))
 
 	def dispose_terminals(self, unused_only: bool=False):
-		removed_terminals: list[Terminal] = []
+		removed_terminals: list[TerminalIntegrated] = []
 		removed_sessions: list[dap.Session] = []
 
 		for terminal in self.terminals:
-			if not unused_only or terminal.finished:
+			if not unused_only or terminal.closed:
 				terminal.dispose()
 				removed_terminals.append(terminal)
 
@@ -305,6 +305,8 @@ class DebuggerInterface (core.Logger):
 
 		for terminal in removed_terminals:
 			self.terminals.remove(terminal)
+
+		self.tasks.remove_finished()
 
 	def is_open(self):
 		return self.panel.is_panel_visible()

@@ -126,7 +126,6 @@ _phantom_text = '\u200F\u200F\u200F\u200F\u200F'
 class DebuggerOutputPanel(OutputPanel):
 	def __init__(self, window: sublime.Window):
 		super().__init__(window, 'Debugger', show_panel=True)
-		self.window = window
 
 		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
 		# otherwise they will get reordered when one of them gets redrawn
@@ -196,9 +195,4 @@ class DebuggerOutputPanel(OutputPanel):
 			'panel': 'output.{}'.format('Debugger')
 		})
 
-	def panel_phantom_location(self) -> int:
-		return 0
-
-	def panel_phantom_view(self) -> sublime.View:
-		return self.view
 

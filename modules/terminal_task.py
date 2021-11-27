@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Dict, Any, List, TypedDict
+from dataclasses import dataclass
+from typing import Dict, Any, List, TypedDict, Callable
 
 import re
 import sublime
@@ -9,8 +10,13 @@ import time
 from .import core
 from .import dap
 
-from .terminal import Terminal, Problem
 from .panel import OutputPanel
+from .output_view import OutputView
+
+@dataclass
+class Problem:
+	message: str
+	source: dap.SourceLocation
 
 class Position(TypedDict):
 	line: int
@@ -29,8 +35,8 @@ class Diagnostics(TypedDict):
 	base: str
 	errors: list[Diagnostic]
 
-class TerminalTask(Terminal):
-	def __init__(self, window: sublime.Window, task: dap.TaskExpanded):
+class TerminalTask:
+	def __init__(self, window: sublime.Window, task: dap.TaskExpanded, on_closed: Callable[[], None]):
 		arguments = task.copy()
 		name: str
 		cmd: str|list[str]|None = arguments.get('cmd')
@@ -45,8 +51,9 @@ class TerminalTask(Terminal):
 			name = 'Untitled'
 
 		self.background = arguments.get('background', False)
-
-		super().__init__(name, arguments.get('working_dir'), arguments.get('file_regex'))
+		self.name = name
+		self.view = OutputView(window, 'Task', on_closed)
+		self.finished = False
 
 		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
 		if 'name' in arguments:
@@ -90,15 +97,16 @@ class TerminalTask(Terminal):
 		self.command.hide_annotations()
 		self.on_view_load_listener.dispose()
 		self.panel.dispose()
+		self.view.dispose()
 
 	def write_stdout(self, text: str):
-		self.add('terminal.output', text)
+		self.view.write(text)
 
 	async def wait(self) -> None:
 		try:
 			await self.future
 		except core.CancelledError as e:
-			print(f'Command cancelled {self.name()}')
+			print(f'Command cancelled {self.name}')
 			self.command.run(self, {
 				'kill': True
 			})
@@ -133,6 +141,7 @@ class TerminalTask(Terminal):
 
 		self.on_problems_updated()
 
+
 	def on_finished(self, exit_code: int, exit_status: str):
 		self.finished = True
 		self.exit_code = exit_code
@@ -146,9 +155,7 @@ class TerminalTask(Terminal):
 		elif exit_code == 0:
 			self.future.set_result(None)
 		else:
-			self.future.set_exception(core.Error(f'Command {self.name()} failed with exit_code {exit_code}'))
-
-		self.on_updated()
+			self.future.set_exception(core.Error(f'Command {self.name} failed with exit_code {exit_code}'))
 
 
 class Exec(Default.exec.ExecCommand):
@@ -201,9 +208,18 @@ class Tasks:
 		self.updated = core.Event()
 		self.tasks = []
 
+	def is_active(self):
+		for task in self.tasks:
+			if not task.finished:
+				return True
+		return False
+
 	@core.schedule
 	async def run(self, window: sublime.Window, task: dap.TaskExpanded):
-		terminal = TerminalTask(window, task)
+		def on_closed():
+			self.cancel(terminal)
+
+		terminal = TerminalTask(window, task, on_closed)
 		terminal.on_problems_updated.add(lambda: self.updated(terminal))
 
 		self.tasks.append(terminal)
@@ -217,8 +233,20 @@ class Tasks:
 			self.updated(terminal)
 		
 
+	def remove_finished(self):
+		for task in self.tasks:
+			if task.finished:
+				task.dispose()
+
+		self.tasks = list(filter(lambda t: t.finished, self.tasks))
+		return False
+
 	def cancel(self, task: TerminalTask):
-		self.tasks.remove(task)
+		try:
+			self.tasks.remove(task)
+		except ValueError:
+			return
+			
 		# todo actually cancel...
 		self.removed(task)
 		task.dispose()

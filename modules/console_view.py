@@ -20,7 +20,7 @@ class ConsoleView:
 		self.view.assign_syntax('Packages/Debugger/Commands/DebuggerConsole.sublime-syntax')
 		settings = self.view.settings()
 		settings.set('line_numbers', False)
-		# settings.set('gutter', False)
+		settings.set('gutter', False)
 		settings.set('font_size', Settings.ui_scale)
 		settings.set('draw_unicode_white_space', 'none')
 		settings.set('fade_fold_buttons', False)
@@ -39,7 +39,6 @@ class ConsoleView:
 		self.phantoms.clear()
 
 	def clear(self):
-		if not self.view: return
 		view = self.view
 		self.type = None
 		self.view.set_read_only(False)
@@ -48,12 +47,10 @@ class ConsoleView:
 		self.clear_phantoms()
 
 	def at(self):
-		if not self.view: return 0
 		return self.view.size()
 
 	def write_phantom_placeholder(self) -> int:
 		view = self.view
-		if not view: return 0
 		view.set_read_only(False)
 		view.run_command('append', {
 			'characters': '\n',
@@ -65,13 +62,10 @@ class ConsoleView:
 
 	def write_phantom(self, item: ui.div, at: int, index: int = 0):
 		view = self.view
-		if not view: return
 		at = view.size() if at is None else at
 		self.phantoms.append(ui.Phantom(item, view, sublime.Region(at, at + index), layout=sublime.LAYOUT_INLINE))
 
 	def write(self, text: str, type: str = '', item: ui.div|None = None):
-		if not self.view: return
-
 		self.dirty = True
 		self.view.set_read_only(False)
 

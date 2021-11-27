@@ -1,14 +1,46 @@
 from __future__ import annotations
 from .typecheck import *
 
+from .output_view import OutputView
+from .typecheck import *
+
 from .import core
-from .terminal import Terminal
 
 import threading
 import re
 
+import sublime
+
+class TerminalIntegrated:
+	def __init__(self, window: sublime.Window, name: str, command: list[str], cwd: str|None):
+		cwd = cwd or None # turn "" into None or PtyProcess will lockup?
+		self.process = TtyProcess(command, on_output=self.on_process_output, cwd=cwd, on_close=self.on_process_closed)
+		self.panel = OutputView(window, 'Terminal', self.on_output_closed)
+		self.panel.write('')
+		self.closed = False
+
+	def dispose(self):
+		self.panel.dispose()
+
+	def pid(self):
+		return self.process.pid
+
+	def on_output_closed(self):
+		...
+		# self.process.close()
+
+	def on_process_closed(self):
+		self.closed = True
+
+	def on_process_output(self, output: str):
+		self.panel.write(output)
+
+
+
+PTYPROCESS_SUPPORTED: bool = False
+
 if core.platform.windows:
-	PTYPROCESS_SUPPORTED = False
+	...
 	# if core.platform.is_64:
 	# 	from .libs.pywinpty.st3_windows_x64.winpty import PtyProcess
 	# else:
@@ -76,39 +108,3 @@ class TtyProcess:
 			self.close()
 		except Exception as e:
 			core.log_exception(e)
-
-
-class TerminalProcess (Terminal):
-	def __init__(self, cwd: str|None, args: list[str]):
-		super().__init__("Terminal", cwd=cwd or None) # turn "" into None
-		self.process = TtyProcess(args, on_output=self.on_process_output, cwd=self.cwd, on_close=self.on_close)
-
-	def pid(self) -> int:
-		return self.process.pid
-
-	def on_process_output(self, output: str):
-		self.add('stdout', output)
-
-	def writeable(self):
-		return True
-
-	def writeable_prompt(self):
-		if self.escape_input:
-			return "click to write escaped input to stdin"
-		return "click to write a line to stdin"
-
-	def write(self, text: str):
-		if self.escape_input:
-			text = text.encode('utf-8').decode("unicode_escape")
-
-		self.process.write(text + '\n')
-
-	def can_escape_input(self):
-		return True
-
-	def on_close(self):
-		print('finished')
-		self.finish(-1, 'closed')
-
-	def dispose(self):
-		self.process.dispose()

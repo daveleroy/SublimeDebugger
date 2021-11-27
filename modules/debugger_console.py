@@ -23,12 +23,20 @@ class DebuggerConsole:
 
 	def acquire_panel(self) -> OutputView:
 		if not self.panel or self.panel.is_closed:
+			if self.panel:
+				self.panel.dispose()
 			self.panel = OutputView(self.window, 'Debugger Console')
+
 		return self.panel
 
 	def show(self):
-		self.acquire_panel()
+		panel = self.acquire_panel()
+		self.window.focus_view(panel.view)
 
+	def close(self):
+		if self.panel:
+			self.panel.close()
+			
 	def clear(self):
 		self.indent = ''
 		if self.panel:
