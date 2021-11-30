@@ -1,5 +1,11 @@
 For getting set up see https://github.com/daveleroy/sublime_debugger
 
+Version 0.5.4
+
+- Resolve the`$workspaceFolder` variable to first folder project instead of being an alias of `$project_path`  (@rchl)
+- Fix layout positioning in latest ST dev builds (@rchl)
+- lldb: Fixes an issue with the integrated terminal handling
+
 
 Version 0.5.3
 
