@@ -195,10 +195,13 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		self.on_session_removed(session)
 
 		if self.session == session:
-			if self.sessions:
-				self.session = self.sessions[0]
-			else:
-				self.session = None
+			self.session = self.sessions[0] if self.sessions else None
+		
+			# try to select the first session with threads if there is one
+			for session in self.sessions:
+				if session.threads:
+					self.session = session
+					break
 
 			self.on_session_active(session)
 
