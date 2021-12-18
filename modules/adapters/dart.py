@@ -51,7 +51,7 @@ class Dart(adapter.AdapterConfiguration):
 		return adapter.StdioTransport(log, command)
 
 	async def install(self, log: core.Logger):
-		url = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/Dart-Code/vsextensions/dart-code/latest/vspackage'
+		url = await adapter.git.latest_release_vsix('Dart-Code', 'Dart-Code')
 		await adapter.vscode.install(self.type, url, log)
 
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
