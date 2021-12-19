@@ -1,13 +1,3 @@
-'''
-	implements the client side of the Debug Adapter protocol
-
-	documentation can be found here
-	https://microsoft.github.io/debug-adapter-protocol/specification
-	https://microsoft.github.io/debug-adapter-protocol/overview
-
-	a list of server implementers can be found here
-	https://microsoft.github.io/debug-adapter-protocol/implementors/adapters/
-'''
 from __future__ import annotations
 from .types import *
 
@@ -32,6 +22,8 @@ class TransportProtocolListener (Protocol):
 		...
 	async def on_reverse_request(self, command: str, arguments: dict[str, Any]) -> dict[str, Any]:
 		...
+
+# see https://microsoft.github.io/debug-adapter-protocol/overview
 
 class TransportProtocol:
 	def __init__(
@@ -62,27 +54,23 @@ class TransportProtocol:
 	#     }
 	# }
 	def read(self):
-		header = b'Content-Length: '
-		header_length = len(header)
-
 		try:
 			while True:
+				size = None
 
-				# handle Content-Length: 119\r\n
-				line = self.transport.readline()
-				if not header.startswith(header):
-					print('Expecting Content-Length: header but did not...')
-					continue
+				# parse headers
+				# such as Content-Length: 119\r\n
+				while True:
+					line = self.transport.readline()
+					if line == b'\r\n':
+						break
 
-				size = int(line[header_length:].strip())
+					key, value = line.split(b': ') # seperated by a colon and a space
+					if key == b'Content-Length':
+						size = int(value)
 
-				#handle \r\n
-				line = self.transport.readline()
-				if line != b'\r\n':
-					print('Expected \\n\\r but did not find...')
-					print(line)
-					continue
-
+				if size is None:
+					raise core.Error('Expected Content-Length header but did not find one')
 
 				# read message
 				content = b''
