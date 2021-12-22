@@ -240,7 +240,7 @@ class DebuggerInterface (core.Logger):
 		if self.debugger.has_active and self.debugger.active != session:
 			return
 
-		if state == dap.Session.State.PAUSED:
+		if state == dap.Session.State.PAUSED or state == dap.Session.State.RUNNING:
 			# if self.project.bring_window_to_front_on_pause:
 			# figure out a good way to bring sublime to front
 			self.middle_panel.select(self.callstack_panel)
