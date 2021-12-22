@@ -63,6 +63,9 @@ class LLDB(adapter.AdapterConfiguration):
 		try:
 			line = await process.readline(process.stdout)
 			result = re.match(r'Listening on port (.*)', line.decode('utf-8'))
+			if not result:
+				raise core.Error('Unable to find listening port')
+
 			port = int(result.group(1))
 			return LLDBTransport(process, port, log)
 		except:

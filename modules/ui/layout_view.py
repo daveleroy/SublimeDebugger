@@ -7,7 +7,6 @@ from . layout import Layout
 from . style import css
 from . image import view_background_lightness
 
-import os
 import sublime
 
 

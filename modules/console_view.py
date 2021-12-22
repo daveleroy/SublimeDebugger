@@ -7,7 +7,6 @@ from .settings import Settings
 
 import re
 import sublime
-import sublime_plugin
 
 
 class ConsoleView:

@@ -7,7 +7,7 @@ from . layout import Layout
 import sublime
 import base64
 
-def _path_for_image(name): #type: (str) -> str
+def _path_for_image(name: str) -> str:
 	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region?
 	return f'Packages/{core.current_package_name()}/images/{name}'
 
@@ -30,7 +30,7 @@ def reload_images():
 	Images.shared = Images()
 
 class Image:
-	cached = {} #type: dict[str, str]
+	cached: dict[str, str] = {}
 
 	@staticmethod
 	def named(name: str) -> 'Image':
@@ -63,7 +63,7 @@ class Image:
 
 
 class Images:
-	shared = None #type: Images
+	shared: Images
 
 	def __init__(self) -> None:
 		self.dot = Image.named('breakpoint.png')

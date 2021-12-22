@@ -274,7 +274,7 @@ class DebuggerCommand (sublime_plugin.WindowCommand):
 
 # allow using debugger_exec to run a build system as a Debugger Task
 class DebuggerExecCommand(sublime_plugin.WindowCommand):
-	def run(self, **kwargs):
+	def run(self, **kwargs: dict[str, Any]):
 		from .debugger import Debugger
 		from .dap import Task
 		

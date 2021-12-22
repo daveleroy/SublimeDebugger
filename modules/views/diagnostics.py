@@ -152,7 +152,7 @@ def TaskView(tasks: Tasks, task: TerminalTask, on_clicked: Callable[[TerminalTas
 					ui.text(text, css=color)
 				],
 				ui.spacer(1),
-				ui.text(task.name(), css=css.label),
+				ui.text(task.name, css=css.label),
 				ui.spacer(min=1),
 				ui.click(cancel)[
 					ui.text(text='×', css=css.button_secondary),

@@ -105,7 +105,7 @@ class TabbedPanel(ui.div):
 
 		width = (self.layout.width() + self.width_additional) * self.width_scale
 
-		tabs = [] #type: list[ui.span]
+		tabs: list[ui.span] = []
 		for index, item in enumerate(self.items):
 			if not item.visible():
 				continue

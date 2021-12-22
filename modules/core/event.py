@@ -10,7 +10,10 @@ class Handle (Generic[T]):
 		self.event = event
 
 	def dispose(self) -> None:
-		self.event.handlers.remove(self)
+		try:
+			self.event.handlers.remove(self)
+		except ValueError:
+			...
 
 
 class Event (Generic[Unpack[Args]]):

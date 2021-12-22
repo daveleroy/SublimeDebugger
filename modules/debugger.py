@@ -40,7 +40,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		if not Settings.open_at_startup:
 			return False
 
-		if "debugger_configurations" in data:
+		if 'debugger_configurations' in data:
 			return True
 
 		return False

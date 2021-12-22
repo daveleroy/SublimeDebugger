@@ -100,7 +100,7 @@ class Phantom(LayoutView, Renderable):
 
 	def __init__(self, component: Union[span, div], view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
 		super().__init__(component, view)
-		self.cachedPhantom = None #type: Optional[sublime.Phantom]
+		self.cached_phantom: sublime.Phantom|None = None
 		self.region = region
 		self.layout = layout
 		self.view = view
@@ -117,9 +117,9 @@ class Phantom(LayoutView, Renderable):
 
 	def render(self) -> bool:
 		regions = self.view.get_regions(self.region_id)
-		if regions and (super().render() or not self.cachedPhantom):
-			self.cachedPhantom = sublime.Phantom(regions[0], self.html, self.layout, self.on_navigate)
-			self.set.update([self.cachedPhantom])
+		if regions and (super().render() or not self.cached_phantom):
+			self.cached_phantom = sublime.Phantom(regions[0], self.html, self.layout, self.on_navigate)
+			self.set.update([self.cached_phantom])
 			return True
 		return False
 

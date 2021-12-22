@@ -9,7 +9,7 @@ class DataBreakpoint:
 	def __init__(self, breakpoint: dap.DataBreakpoint, info: dap.DataBreakpointInfoResponse, enabled: bool):
 		self.dap = breakpoint
 		self.info = info
-		self.enabled = True
+		self.enabled = enabled
 		self.result: dap.BreakpointResult | None = None
 
 	@property

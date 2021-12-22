@@ -58,11 +58,9 @@ def plugin_unloaded() -> None:
 
 def open(window_or_view: Union[sublime.View, sublime.Window]):
 	if isinstance(window_or_view, sublime.View):
-		view = window_or_view
-		window = view.window()
+		window = window_or_view.window()
 	else:
 		window = window_or_view
-		view = window.active_view()
 
 	if not window:
 		return
@@ -71,10 +69,11 @@ def open(window_or_view: Union[sublime.View, sublime.Window]):
 		was_opened_at_startup.add(window.id())
 		Debugger.get(window, create=True)
 
-def debuggers_for_view(view: sublime.View) -> Iterable[Debugger]:
-	if window := view.window():
-		if debugger := Debugger.get(window):
-			return [debugger]
+# if there is a debugger running in the window then that is the most relevant one
+# otherwise all debuggers are relevant
+def most_relevant_debuggers_for_view(view: sublime.View) -> Iterable[Debugger]:
+	if debugger := debugger_for_view(view):
+		return [debugger]
 
 	return list(Debugger.instances.values())
 
@@ -152,13 +151,13 @@ class Listener (sublime_plugin.EventListener):
 			# on_view_drag_select_or_context_menu(view)
 
 			event = args['event']
-			x = event['x']
-			y = event['y']
+			x: int = event['x']
+			y: int = event['y']
 
-			view_x, view_y = view.layout_to_window(view.viewport_position()) #type: ignore
+			view_x, _ = view.layout_to_window(view.viewport_position()) #type: ignore
 
 			margin = view.settings().get("margin") or 0
-			offset = x - view_x
+			offset = x - view_x #type: ignore
 
 			if offset < -30 - margin:
 				pt = view.window_to_text((x, y))
@@ -172,7 +171,7 @@ class Listener (sublime_plugin.EventListener):
 	def on_view_gutter_clicked(self, view: sublime.View, line: int, button: int) -> bool:
 		line += 1 # convert to 1 based lines
 
-		debuggers = debuggers_for_view(view)
+		debuggers = most_relevant_debuggers_for_view(view)
 		if not debuggers:
 			return False
 
@@ -181,8 +180,7 @@ class Listener (sublime_plugin.EventListener):
 		for debugger in debuggers:
 			breakpoints = debugger.breakpoints
 			file = view.file_name()
-			if not file:
-				continue
+			if not file: continue
 
 			view.window().focus_view(view)
 			

@@ -81,7 +81,7 @@ class StackFrame:
 	def from_json(frame: Json):
 		file = '??'
 		source_json = frame.get('source')
-		source = None #type: Source|None
+		source: Source|None = None
 		if source_json:
 			source = Source.from_json(source_json)
 			file = source.name or "??"
@@ -358,6 +358,7 @@ class OutputEvent:
 	variablesReference: int
 	source: Source|None = None
 	line: int|None = None
+	group: str|None = None
 
 	@staticmethod
 	def from_json(json: Json):
@@ -371,7 +372,8 @@ class OutputEvent:
 			json['output'],
 			json.get('variablesReference', 0),
 			source,
-			json.get('line'))
+			json.get('line'),
+			json.get('group'))
 
 
 @dataclass

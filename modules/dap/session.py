@@ -285,7 +285,7 @@ class Session(TransportProtocolListener, core.Logger):
 	async def add_breakpoints(self) -> None:
 		assert self._transport
 
-		requests = [] #type: list[Awaitable[Any]]
+		requests: list[Awaitable[Any]] = []
 
 		requests.append(self.set_exception_breakpoint_filters())
 		requests.append(self.set_function_breakpoints())

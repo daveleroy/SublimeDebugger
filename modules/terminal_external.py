@@ -72,7 +72,7 @@ class ExternalTerminalMacDefault(ExternalTerminal):
 
 	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
 		args = [
-			"osascript",
+			'osascript',
 			ExternalTerminalMacDefault.OSX_TERMINAL_SCRIPT,
 			'-t', title,
 		]
