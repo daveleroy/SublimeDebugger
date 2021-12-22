@@ -9,6 +9,7 @@
 			"name": "Node",
 			"type": "node",
 			"request": "launch",
+			"cwd": "${project_path}",
 			"program": "${project_path}/main.js",
 		},
 		{
@@ -28,15 +29,16 @@
 		{
 			"name": "Chrome (Future)",
 			"type": "pwa-chrome",
-			"__workspaceFolder": "${project_path}",
 			"request": "launch",
 			"file": "${project_path}/index.html",
 		},
 		{
 			"name": "Node (Future)",
 			"type": "pwa-node",
-			"__workspaceFolder": "${project_path}",
 			"request": "launch",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
 			"program": "${project_path}/main.js",
 		},
 	],

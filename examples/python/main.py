@@ -1,11 +1,10 @@
-
 import time
-from threading import Thread
 import sys
-import os
+
+from threading import Thread
+from typing import List
 
 print(sys.version)
-
 # print(os.environ)
 
 def some_random_variables():
@@ -30,11 +29,12 @@ def some_random_variables():
 def test():
 	some_random_variables()
 
-def sleep(duration):
+def sleep(duration: float):
 	print("Sleeping thread for {}".format(duration))
 	time.sleep(duration)
 
-threads = []
+threads: List[Thread] = []
+
 for i in range(1, 5):
 	thread = Thread(name='Thread #{}'.format(i), target=sleep, args=(i/2.0,))
 	thread.start()

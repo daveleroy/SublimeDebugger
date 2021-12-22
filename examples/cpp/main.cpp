@@ -1,8 +1,9 @@
 
-#include <stdio.h>
+#include <cstdio>
 #include <thread>
 #include <chrono>
 #include <vector>
+extern char **environ;
 
 void spawn_threads(int count) {
 	std::vector<std::thread> threads;
@@ -20,12 +21,18 @@ void spawn_threads(int count) {
 }
 
 void test() {
-	fprintf(stderr, "printed from stderr");
-	
+	for (int i = 0; i < 25; i++)
+		fprintf(stderr, "abcdefghijklmopqrstuvwxyz\n");
 }
 
 int main(int argc, char ** argv) {
-	test();
+	char **vars = environ;
+	while (*vars) {
+		printf("%s\n", *vars);
+		vars += 1;
+	}
+
+	test(); 
 	spawn_threads(5);
 	return 1;
 }
