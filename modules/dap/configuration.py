@@ -135,7 +135,12 @@ def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, st
 		for key, value in platform.items():
 			json[key] = value
 
-	if variables is not None:
-		return sublime.expand_variables(json, variables)
+	# This allows us to add a list of variables to each configuration which case be use throughout the configuration.
+	# Its mostly so we can redefine $project_path when specifying a project file in debugger_configurations so $project_path refers to the correct location
+	if json_variables := json.get('$'):
+		json = sublime.expand_variables(json, json_variables)
+
+	if variables := variables:
+		json = sublime.expand_variables(json, variables)
 
 	return json

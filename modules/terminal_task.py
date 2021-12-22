@@ -60,7 +60,8 @@ class TerminalTask:
 			del arguments['name']
 		if 'background' in arguments:
 			del arguments['background']
-
+		if '$' in arguments:
+			del arguments['$']
 
 		self.on_problems_updated: core.Event[None] = core.Event()
 		self.diagnostics_per_file: list[Diagnostics] = []
