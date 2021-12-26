@@ -1,5 +1,6 @@
 from __future__ import annotations
 from ..typecheck import *
+from typing import Literal
 
 from ..import core
 from ..import ui
@@ -10,7 +11,7 @@ class DataBreakpoint:
 		self.dap = breakpoint
 		self.info = info
 		self.enabled = enabled
-		self.result: dap.BreakpointResult | None = None
+		self.result: dap.Breakpoint | None = None
 
 	@property
 	def verified(self) -> bool:
@@ -42,16 +43,16 @@ class DataBreakpoint:
 
 	def into_json(self) -> dict[str, Any]:
 		return {
-			'dap': self.dap.into_json(),
-			'info': self.info.into_json(),
+			'dap': self.dap,
+			'info': self.info,
 			'enabled': self.enabled,
 		}
 
 	@staticmethod
 	def from_json(json: dict[str, Any]) -> 'DataBreakpoint':
 		return DataBreakpoint(
-			dap.DataBreakpoint.from_json(json['info']),
-			dap.DataBreakpointInfoResponse.from_json(json['data']),
+			json['info'],
+			json['data'],
 			json['enabled']
 		)
 
@@ -73,7 +74,7 @@ class DataBreakpoints:
 		self.breakpoints = list(filter(lambda b: b.info.canPersist, self.breakpoints))
 		self.updated(send=False)
 
-	def set_result(self, breakpoint: DataBreakpoint, result: dap.BreakpointResult):
+	def set_result(self, breakpoint: DataBreakpoint, result: dap.Breakpoint):
 		breakpoint.result = result
 		self.updated(send=False)
 
@@ -122,11 +123,11 @@ class DataBreakpoints:
 			),
 		], placeholder='Edit Breakpoint @ {}'.format(breakpoint.name))
 
-	def add(self, info: dap.DataBreakpointInfoResponse, type: str|None):
-		assert info.id, "this info request has no id"
+	def add(self, info: dap.DataBreakpointInfoResponse, type: Literal['read','write','readWrite']|None):
+		assert info.dataId, "this info request has no id"
 		self.breakpoints.append(
 			DataBreakpoint(
-				dap.DataBreakpoint(info.id, type, None, None),
+				dap.DataBreakpoint(info.dataId, type),
 				info,
 				enabled=True
 			)

@@ -9,13 +9,13 @@
 	https://microsoft.github.io/debug-adapter-protocol/implementors/adapters/
 '''
 from __future__ import annotations
-from .types import *
-
 from ..typecheck import *
-from ..import core
 
-import json
+from ..import core
+from .error import Error
+
 import threading
+
 
 class Transport(Protocol):
 	def write(self, message: bytes):
@@ -32,6 +32,8 @@ class TransportProtocolListener (Protocol):
 		...
 	async def on_reverse_request(self, command: str, arguments: dict[str, Any]) -> dict[str, Any]:
 		...
+
+	def on_transport_closed(self): ...
 
 class TransportProtocol:
 	def __init__(
@@ -67,7 +69,6 @@ class TransportProtocol:
 
 		try:
 			while True:
-
 				# handle Content-Length: 119\r\n
 				line = self.transport.readline()
 				if not header.startswith(header):
@@ -90,16 +91,14 @@ class TransportProtocol:
 					bytes_left = size - len(content)
 					content += self.transport.read(bytes_left)
 
-
-				json_message = json.loads(content)
-				core.call_soon_threadsafe(self.recieved_msg, json_message)
+				core.call_soon_threadsafe(self.recieved_msg, core.json_decode(content))
 
 		except Exception as e:
 			core.call_soon_threadsafe(self.transport_log.log,'transport',  f'⟸ process/closed :: {e}')
-			core.call_soon_threadsafe(self.events.on_event, 'terminated', {})
+			core.call_soon_threadsafe(self.events.on_transport_closed)
 
 	def send(self, message: dict[str, Any]):
-		content = json.dumps(message)
+		content = core.json_encode(message)
 		self.transport.write(bytes(f'Content-Length: {len(content)}\r\n\r\n{content}', 'utf-8'))
 
 	def dispose(self) -> None:
@@ -209,10 +208,10 @@ class TransportProtocol:
 			if not success:
 				body: dict[str, Any] = data.get('body', {})
 				if error := body.get('error'):
-					future.set_exception(Error.from_json(error))
+					future.set_exception(Error.from_message(error))
 					return
 
-				future.set_exception(Error(True, data.get('message', 'no error message')))
+				future.set_exception(Error(data.get('message', 'no error message')))
 				return
 			else:
 				body: dict[str, Any] = data.get('body', {})

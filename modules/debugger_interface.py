@@ -42,6 +42,7 @@ class DebuggerInterface (core.Logger):
 		self.debugger = debugger
 		self.debugger.on_session_state_updated.add(self.on_session_state_updated)
 		self.debugger.on_session_active.add(self.on_session_active)
+		self.debugger.on_session_added.add(self.on_session_added)
 		self.debugger.on_session_removed.add(self.on_session_removed)
 		self.debugger.on_session_output.add(self.on_session_output)
 		self.debugger.on_session_run_terminal_requested.add(self.on_session_run_terminal_requested)
@@ -110,7 +111,7 @@ class DebuggerInterface (core.Logger):
 		])
 
 		self.panel = DebuggerOutputPanel(window)
-		self.panel.on_hidden = lambda: (self.dispose_terminals(unused_only=True), self.console.panel.dispose())
+		self.panel.on_hidden = lambda: (self.dispose_terminals(unused_only=True), self.console.close())
 		# self.panel.on_opened = lambda: self.console.show_backing_panel()
 
 		self.disposeables.extend([
@@ -125,10 +126,11 @@ class DebuggerInterface (core.Logger):
 		self.on_project_configuration_updated()
 
 		def on_view_activated(view: sublime.View):
-			if self.debugger.is_active() or self.tasks.is_active():
+			if self.debugger.is_active or self.tasks.is_active():
 				return
 			
-			if not view.element() and view.window().active_group() == 0:
+			window = view.window()
+			if not view.element() and window and window.active_group() == 0:
 				self.console.close()
 				self.dispose_terminals(unused_only=True)
 					
@@ -220,7 +222,7 @@ class DebuggerInterface (core.Logger):
 		self.debugger_panel.dirty()
 
 	def on_session_active(self, session: dap.Session):
-		if not self.debugger.has_active:
+		if not self.debugger.is_active:
 			self.source_provider.clear()
 			return
 
@@ -233,11 +235,14 @@ class DebuggerInterface (core.Logger):
 		else:
 			self.source_provider.clear()
 
+	def on_session_added(self, sessions: dap.Session):
+		self.console.show()
+
 	def on_session_removed(self, sessions: dap.Session):
 		self.console.show()
 
 	def on_session_state_updated(self, session: dap.Session, state: dap.Session.State):
-		if self.debugger.has_active and self.debugger.active != session:
+		if self.debugger.is_active and self.debugger.active != session:
 			return
 
 		if state == dap.Session.State.PAUSED or state == dap.Session.State.RUNNING:
@@ -251,7 +256,7 @@ class DebuggerInterface (core.Logger):
 	async def on_session_run_task_requested(self, session: dap.Session|None, task: dap.TaskExpanded) -> None:
 		await self.tasks.run(self.window, task)
 
-	async def on_session_run_terminal_requested(self, session: dap.Session, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
+	async def on_session_run_terminal_requested(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		title = request.title or session.configuration.name
 		env = request.env or {}
 		cwd = request.cwd
@@ -279,7 +284,7 @@ class DebuggerInterface (core.Logger):
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=None) 
 
 		if request.kind == 'integrated':
-			terminal = TerminalIntegrated(self.window, request.title, request.args, request.cwd)
+			terminal = TerminalIntegrated(self.window, request.title or 'Untitled', request.args, request.cwd)
 			self.terminals.append(terminal)
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=terminal.pid())
 

@@ -14,11 +14,10 @@ for m in modules_to_remove:
 
 
 # import all the commands so that sublime sees them
-from .modules.commands import DebuggerCommand, DebuggerExecCommand #type: ignore
-from .modules.ui.input import DebuggerInputCommand #type: ignore
-from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener #type: ignore
-from .modules.autocomplete import AutocompleteEventListener #type: ignore
-
+from .modules.commands import DebuggerCommand, DebuggerExecCommand
+from .modules.ui.input import DebuggerInputCommand
+from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
+from .modules.autocomplete import AutocompleteEventListener
 from .modules.typecheck import *
 
 from .modules import core
@@ -142,7 +141,7 @@ class Listener (sublime_plugin.EventListener):
 
 		# errors trying to evaluate a hover expression should be ignored
 		except dap.Error as e:
-			core.log_error("adapter failed hover evaluation", e)
+			core.log_error('adapter failed hover evaluation', e)
 
 	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any]) -> Any:
 		if self.ignore(view): return
@@ -156,7 +155,7 @@ class Listener (sublime_plugin.EventListener):
 
 			view_x, _ = view.layout_to_window(view.viewport_position()) #type: ignore
 
-			margin = view.settings().get("margin") or 0
+			margin = view.settings().get('margin') or 0
 			offset = x - view_x #type: ignore
 
 			if offset < -30 - margin:
@@ -166,7 +165,7 @@ class Listener (sublime_plugin.EventListener):
 				# only rewrite this command if someone actually consumed it
 				# otherwise let sublime do its thing
 				if self.on_view_gutter_clicked(view, line, event['button']):
-					return ("null", {})
+					return ('null', {})
 
 	def on_view_gutter_clicked(self, view: sublime.View, line: int, button: int) -> bool:
 		line += 1 # convert to 1 based lines
@@ -182,7 +181,8 @@ class Listener (sublime_plugin.EventListener):
 			file = view.file_name()
 			if not file: continue
 
-			view.window().focus_view(view)
+			if window := view.window():
+				window.focus_view(view)
 			
 			if button == 1:
 				debugger.breakpoints.source.toggle_file_line(file, line)

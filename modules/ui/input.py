@@ -212,7 +212,7 @@ class InputText(sublime_plugin.TextInputHandler):
 		if self._on_cancel_internal:
 			self._on_cancel_internal()
 
-def InputListItemCheckedText(run: Callable[[str], Any], name: str, description: str, value: str|None):
+def InputListItemCheckedText(run: Callable[[str], Any] | InputList | InputText, name: str, description: str, value: str|None):
 	if value:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '●', '')
 		input_name = name
@@ -234,13 +234,13 @@ def InputListItemCheckedText(run: Callable[[str], Any], name: str, description: 
 		kind=kind
 	)
 
-def InputListItemOnOff(run: Callable[[], Any], true: str, false: str, value: bool):
+def InputListItemOnOff(run: Callable[[], Any] | InputList | InputText, true: str, false: str, value: bool):
 	if value:
 		return InputListItem(run, true, annotation='On')
 	else:
 		return InputListItem(run, false, annotation='Off')
 
-def InputListItemChecked(run: Callable[[], Any], value: bool, true: str, false: str|None = None, details: list[str]|str = ''):
+def InputListItemChecked(run: Callable[[], Any] | InputList | InputText, value: bool, true: str, false: str|None = None, details: list[str]|str = ''):
 	if value:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '●', 'On')
 		text = true

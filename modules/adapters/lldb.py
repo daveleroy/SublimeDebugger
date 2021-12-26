@@ -137,28 +137,18 @@ class LLDB(adapter.AdapterConfiguration):
 	def commands(self):
 		from ..debugger import Debugger
 
-		class Command(commands.Command):
-			def __init__(self, name: str, command: str, action: Callable[[dap.Debugger], Any]):
-				super().__init__(name, command, action, flags=Command.menu_commands)
-
-			def parameters(self, window: sublime.Window):
-				return (Debugger.get(window),)
-
-			def run(self, debugger: dap.Debugger):
-				self.action(debugger)
-
 		return [
-			Command(
+			commands.CommandDebugger(
 				'LLDB Toggle Disassembly',
 				'lldb_toggle_disassembly',
 				lambda debugger: self.toggle_disassembly(debugger)
 			),
-			Command(
+			commands.CommandDebugger(
 				'LLDB Display Options',
 				'lldb_display',
 				lambda debugger: self.display_menu(debugger).run()
 			),
-			Command(
+			commands.CommandDebugger(
 				'LLDB Toggle Dereference',
 				'lldb_toggle_dereference',
 				lambda debugger: self.toggle_deref(debugger)

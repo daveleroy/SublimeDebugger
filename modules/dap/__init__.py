@@ -1,22 +1,19 @@
 
 from .variable import (
-	VariableReference,
-	EvaluateReference,
-	ScopeReference,
-
 	Variable,
 	SourceLocation,
 )
-from .types import (
-	Json,
 
-	Error,
+from .error import Error, Json
+
+from .dap import (
 	StackFrame,
 	OutputEvent,
 
 	EvaluateResponse,
-
-	BreakpointResult,
+	ReadMemoryResponse,
+	
+	Breakpoint,
 	FunctionBreakpoint,
 	DataBreakpoint,
 	DataBreakpointInfoResponse,
@@ -25,9 +22,11 @@ from .types import (
 
 	RunInTerminalRequest,
 	RunInTerminalResponse,
-
+	RunInTerminalRequestArguments,
+	
 	Module,
 	Source,
+	CompletionItem,
 )
 from .session import (
 	Session,

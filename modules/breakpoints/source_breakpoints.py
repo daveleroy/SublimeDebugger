@@ -21,7 +21,7 @@ class SourceBreakpoint:
 		self.dap = dap.SourceBreakpoint(line, column, None, None, None)
 		self._file = file
 		self.enabled = enabled
-		self.result: dap.BreakpointResult | None = None
+		self.result: dap.Breakpoint | None = None
 		self.breakpoints = breakpoints
 
 	@property
@@ -337,7 +337,7 @@ class SourceBreakpoints:
 		if view:
 			self.sync_from_breakpoints(view)
 
-	def set_result(self, breakpoint: SourceBreakpoint, result: dap.BreakpointResult):
+	def set_result(self, breakpoint: SourceBreakpoint, result: dap.Breakpoint):
 		breakpoint.result = result
 		self.updated(breakpoint, send=False)
 

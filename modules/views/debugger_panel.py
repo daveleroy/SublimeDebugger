@@ -78,11 +78,11 @@ class DebuggerPanel(ui.div):
 		# current status
 		# breakpoints ...
 
-		if self.debugger.has_active:
+		if self.debugger.is_active:
 			self.last_active_adapter = self.debugger.active.adapter_configuration or self.last_active_adapter
 
 		panel_items: list[ui.div] = []
-		if self.debugger.has_active:
+		if self.debugger.is_active:
 			session = self.debugger.active
 			status = session.status
 			if status:

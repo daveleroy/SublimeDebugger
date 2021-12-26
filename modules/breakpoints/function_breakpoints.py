@@ -9,18 +9,18 @@ class FunctionBreakpoint:
 	def __init__(self, breakpoint: dap.FunctionBreakpoint, enabled: bool = True):
 		self.enabled = enabled
 		self.dap = breakpoint
-		self.result: dap.BreakpointResult | None = None
+		self.result: dap.Breakpoint | None = None
 
 	def into_json(self) -> dap.Json:
 		return {
-			'dap': self.dap.into_json(),
+			'dap': self.dap,
 			'enabled': self.enabled
 		}
 
 	@staticmethod
 	def from_json(json: dap.Json):
 		return FunctionBreakpoint(
-			dap.FunctionBreakpoint.from_json(json['dap']),
+			json['dap'],
 			json['enabled']
 		)
 
@@ -87,7 +87,7 @@ class FunctionBreakpoints:
 		if send:
 			self.on_send(self.breakpoints)
 
-	def set_result(self, breakpoint: FunctionBreakpoint, result: dap.BreakpointResult):
+	def set_result(self, breakpoint: FunctionBreakpoint, result: dap.Breakpoint):
 		breakpoint.result = result
 		self.updated(send=False)
 

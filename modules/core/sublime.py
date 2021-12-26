@@ -30,7 +30,7 @@ async def wait_for_view_to_load(view: sublime.View):
 		await future_view
 		handle.dispose()
 
-def edit(view: sublime.View, run: Callable[[sublime.Edit], None]):
+def edit(view: sublime.View, run: Callable[[sublime.Edit], Any]):
 	if DebuggerAsyncTextCommand._run:
 		print("there was already an active edit..?")
 

@@ -143,7 +143,7 @@ class TerminalTask:
 		self.on_problems_updated()
 
 
-	def on_finished(self, exit_code: int, exit_status: str):
+	def on_finished(self, exit_code: int|None, exit_status: str):
 		self.finished = True
 		self.exit_code = exit_code
 		self.exit_status = exit_status
@@ -179,10 +179,10 @@ class Exec(Default.exec.ExecCommand):
 		if self.instance:
 			if proc.killed:
 				status = "[Cancelled]"
-				code = None
+				code: int|None = None
 			else:
 				elapsed = time.time() - proc.start_time
-				code: int = proc.exit_code() or 0
+				code: int|None = proc.exit_code() or 0
 				if code == 0:
 					status = "[Finished in %.1fs]" % elapsed
 				else:

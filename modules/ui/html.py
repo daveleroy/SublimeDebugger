@@ -7,9 +7,10 @@ from .style import css, div_inline_css, icon_css, none_css
 
 import re
 
-class alignable(Protocol):
+class alignable:
 	align_required: int
 	align_desired: int
+	css: css
 
 	def align(self, width: int):
 		...

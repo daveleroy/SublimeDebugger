@@ -3,7 +3,7 @@ from ..typecheck import *
 from ..import core
 from ..import ui
 
-from ..dap import types as dap
+from .. import dap
 
 from .data_breakpoints import DataBreakpoints, DataBreakpoint
 from .function_breakpoints import FunctionBreakpoints, FunctionBreakpoint

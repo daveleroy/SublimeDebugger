@@ -3,13 +3,13 @@ from .typecheck import *
 
 from .import core
 
-from .dap import types as dap
+from .import dap
 
 import sublime
 import sublime_plugin
 
 class Autocomplete:
-	_for_window = {} #type: dict[int, Autocomplete]
+	_for_window: dict[int, Autocomplete] = {}
 
 	@staticmethod
 	def for_window(window: sublime.Window):
@@ -43,22 +43,22 @@ class Autocomplete:
 class AutocompleteEventListener(sublime_plugin.EventListener):
 	def __init__(self) -> None:
 		super().__init__()
-		self.completions = [] #type: list[dap.CompletionItem]
+		self.completions: list[dap.CompletionItem] = []
 		self.getting_completions_text = "."
 		self.used_completions = False
 		self.ignore_next_modification = False
 
 	def on_query_completions(self, view: sublime.View, prefix: str, locations: list[int]) -> Any:
+		if not view.settings().get('debugger.autocomplete'):
+			return
+
 		window = view.window()
 		if not window:
 			return
-		autocomplete = Autocomplete.for_window(window)
-		if not autocomplete or not autocomplete.enabled:
-			return
 
 		from .debugger import Debugger
-		debugger = Debugger.get(view.window())
-		if not debugger or not debugger.sessions.has_active:
+		debugger = Debugger.get(window)
+		if not debugger or not debugger.is_active:
 			return
 
 		completions = sublime.CompletionList()
@@ -68,9 +68,16 @@ class AutocompleteEventListener(sublime_plugin.EventListener):
 
 		@core.schedule
 		async def fetch():
-			items = []
-			for completion in await debugger.sessions.active.completions(text, col + 1):
-				items.append([completion.label, completion.text or completion.label])
+			items: list[sublime.CompletionItem] = []
+			for completion in await debugger.active.completions(text, col + 1):
+				item = sublime.CompletionItem(
+					completion.sortText or completion.label,
+					annotation=completion.label,
+					completion=completion.text or completion.label,
+					completion_format=sublime.COMPLETION_FORMAT_TEXT,
+					kind=sublime.KIND_AMBIGUOUS
+				)
+				items.append(item)
 			completions.set_completions(items)
 
 		core.run(fetch())
@@ -78,11 +85,7 @@ class AutocompleteEventListener(sublime_plugin.EventListener):
 		return completions
 
 	def on_modified(self, view: sublime.View) -> None:
-		window = view.window()
-		if not window:
-			return
-		autocomplete = Autocomplete.for_window(window)
-		if not autocomplete or not autocomplete.enabled:
+		if not view.settings().get('debugger.autocomplete'):
 			return
 
 		view.run_command("auto_complete", {

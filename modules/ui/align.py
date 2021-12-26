@@ -20,7 +20,7 @@ class spacer (span):
 
 		return 0
 
-	def resize(self, leftover: int = None) -> int:
+	def resize(self, leftover: int) -> int:
 		if self.flex_width is not None:
 			return 0
 
@@ -30,6 +30,7 @@ class spacer (span):
 		return leftover
 
 	def html(self, layout: Layout) -> str:
+		assert self.flex_width
 		return '\u00A0' * self.flex_width
 
 

@@ -19,9 +19,9 @@ def load(project_name: str) -> Any:
 	file_name = file_name_for_project_name(project_name)
 	try:
 		with open(file_name, 'r') as file:
-			contents = file.read()
+			contents = file.read() or "{}"
 
-		json = sublime.decode_value(contents) or {}
+		json = core.json_decode(contents)
 		if json.get("version") == VERSION_NUMBER:
 			return json
 
@@ -33,7 +33,7 @@ def save(project_name: str, data: Any):
 	file_name = file_name_for_project_name(project_name)
 	with open(file_name, 'w') as file:
 		data['version'] = VERSION_NUMBER
-		file.write(sublime.encode_value(data, True))
+		file.write(core.json_encode(data))
 
 
 

@@ -18,7 +18,7 @@ from .watch import Watch
 
 
 class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
-
+	
 	instances: dict[int, 'Debugger'] = {}
 	creating: dict[int, bool] = {}
 
@@ -46,6 +46,12 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		return False
 
 	@staticmethod
+	def create(window: sublime.Window) -> Debugger:
+		debugger = Debugger.get(window, True)
+		assert debugger
+		return debugger
+
+	@staticmethod
 	def get(window: sublime.Window, create: bool = False) -> Debugger|None:
 		global instances
 		id = window.id()
@@ -60,7 +66,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 				instance = Debugger(window)
 				Debugger.instances[id] = instance
 
-			except core.Error as e:
+			except core.Error as _:
 				core.log_exception()
 
 			Debugger.creating[id] = False
@@ -88,7 +94,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		self.on_session_output: core.Event[dap.Session, dap.OutputEvent] = core.Event()
 		self.on_session_output: core.Event[dap.Session, dap.OutputEvent] = core.Event()
 
-		self.on_session_run_terminal_requested: core.EventReturning[Awaitable[dap.RunInTerminalResponse], dap.Session, dap.RunInTerminalRequest] = core.EventReturning()
+		self.on_session_run_terminal_requested: core.EventReturning[Awaitable[dap.RunInTerminalResponse], dap.Session, dap.RunInTerminalRequestArguments] = core.EventReturning()
 		self.on_session_run_task_requested: core.EventReturning[Awaitable[None], dap.Session|None, dap.TaskExpanded] = core.EventReturning()
 
 
@@ -105,7 +111,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 
 		self.breakpoints = Breakpoints()
 		self.watch = Watch()
-
+		
 		autocomplete = Autocomplete.create_for_window(window)
 		
 		self.interface = DebuggerInterface(self, window)
@@ -154,7 +160,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		if not response: raise core.Error('No run task response')
 		return await response
 
-	async def on_session_terminal_request(self, session: dap.Session, request: dap.RunInTerminalRequest) -> dap.RunInTerminalResponse:
+	async def on_session_terminal_request(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		response = self.on_session_run_terminal_requested(session, request)
 		if not response: raise core.Error('No terminal session response')
 		return await response
@@ -184,15 +190,14 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 
 	def add_session(self, session: dap.Session):
 		self.sessions.append(session)
-		self.on_session_added(session)
-
 		# if a session is added select it
 		self.session = session
+
+		self.on_session_added(session)
 		self.on_session_active(session)
 
 	def remove_session(self, session: dap.Session):
 		self.sessions.remove(session)
-		self.on_session_removed(session)
 
 		if self.session == session:
 			self.session = self.sessions[0] if self.sessions else None
@@ -207,10 +212,12 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 
 		self.on_session_state_updated(session, dap.Session.State.STOPPED)
 
+		self.on_session_removed(session)
+
 		session.dispose()
 
 	@property
-	def has_active(self):
+	def is_active(self):
 		return self.session != None
 
 	@property
@@ -235,7 +242,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 
 	def set_diagnostics(self, id: str, errors: Any) -> None:
 		self.interface.problems_panel.update(id, errors)
-		if not self.has_active:
+		if not self.is_active:
 			self.interface.middle_panel.select(self.interface.problems_panel)
 
 	def set_configuration(self, configuration: Union[dap.Configuration, dap.ConfigurationCompound]):
@@ -255,16 +262,13 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		core.run(awaitable, on_error=lambda e: self.error(str(e)))
 
 	def is_paused(self):
-		return self.has_active and self.active.state == dap.Session.State.PAUSED
+		return self.is_active and self.active.state == dap.Session.State.PAUSED
 
 	def is_running(self):
-		return self.has_active and self.active.state == dap.Session.State.RUNNING
-
-	def is_active(self):
-		return self.has_active
+		return self.is_active and self.active.state == dap.Session.State.RUNNING
 
 	def is_stoppable(self):
-		return self.has_active and self.active.state != dap.Session.State.STOPPED
+		return self.is_active and self.active.state != dap.Session.State.STOPPED
 
 	def run_to_current_line(self) -> None:
 		raise core.Error("Not implemented right now...")

@@ -73,7 +73,7 @@ class Watch:
 		if isinstance(evaluation, Exception):
 			expression.message = str(evaluation)
 		else:
-			expression.evaluate_response = dap.Variable(session, dap.EvaluateReference(expression.value, evaluation))
+			expression.evaluate_response = dap.Variable.from_evaluate(session, expression.value, evaluation)
 
 	def clear_session_data(self, session: dap.Session):
 		for expression in self.expressions:

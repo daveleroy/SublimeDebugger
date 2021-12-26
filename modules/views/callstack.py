@@ -239,7 +239,7 @@ class StackFrameComponent (ui.div):
 		frame = self.frame
 		source = frame.source
 
-		if (frame.presentation == dap.StackFrame.label or frame.presentation == dap.StackFrame.subtle or frame.presentation == dap.StackFrame.deemphasize) or (source and source.presentationHint == dap.Source.deemphasize):
+		if (frame.presentationHint == 'label' or frame.presentationHint == 'subtle' or frame.presentationHint == 'deemphasize') or (source and source.presentationHint == 'deemphasize'):
 			css_label = css.label_secondary
 		else:
 			css_label = css.label

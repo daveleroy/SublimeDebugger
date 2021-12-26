@@ -1,9 +1,6 @@
 from __future__ import annotations
 from .typecheck import *
 
-# import Debugger; Debugger.modules.debugger.commands.Commands.generate_commands_and_menus();
-
-
 from .import core
 from .debugger import Debugger
 from .adapters_registry import AdaptersRegistry
@@ -11,7 +8,6 @@ from .console_view import generate_console_syntax
 import sublime_plugin
 import sublime
 import json
-
 
 
 menu_context = 1 << 0
@@ -278,7 +274,7 @@ class DebuggerExecCommand(sublime_plugin.WindowCommand):
 		from .debugger import Debugger
 		from .dap import Task
 		
-		debugger = Debugger.get(self.window, create=True)
+		debugger = Debugger.create(self.window)
 
 		task = Task.from_json(kwargs)
 		debugger.run_task(task)

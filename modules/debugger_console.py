@@ -66,7 +66,7 @@ class DebuggerConsole:
 				except core.CancelledError:
 					print('Unable to fetch variables: Cancelled')
 					# todo: this should be inserted into the place the phantom was going to be
-					self.append_text(event.category, self.indent + event.text, event.source, event.line)
+					self.append_text(event.category or 'console', self.indent + event.output, event.source, event.line)
 
 			core.run(appendVariabble(at))
 		else:
@@ -75,7 +75,7 @@ class DebuggerConsole:
 			if event.group == 'end':
 				self.indent = self.indent[:-1]
 
-			self.append_text(event.category, self.indent + event.text, event.source, event.line)
+			self.append_text(event.category or 'console', self.indent + event.output, event.source, event.line)
 
 			if event.group == 'start' or event.group == 'startCollapsed':
 				self.indent += '\t'
