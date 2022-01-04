@@ -59,7 +59,8 @@ def edit_breakpoints_at_line(breakpoints: Breakpoints, source_breakpoints: list[
 class Listener (sublime_plugin.EventListener):
 
 	def ignore(self, view: sublime.View):
-		return not bool(Debugger.instances)
+		window = view.window()
+		return not window or not bool(Debugger.get(window))
 
 	@core.schedule
 	async def on_hover(self, view: sublime.View, point: int, hover_zone: int):
