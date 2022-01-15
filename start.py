@@ -14,8 +14,8 @@ for m in modules_to_remove:
 
 
 # import all the commands so that sublime sees them
-from .modules.commands import DebuggerCommand, DebuggerExecCommand
-from .modules.ui.input import DebuggerInputCommand
+from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
+
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
 from .modules.autocomplete import AutocompleteEventListener
 from .modules.typecheck import *
@@ -27,11 +27,11 @@ from .modules import dap
 from .modules.debugger import Debugger
 from .modules.views.variable import VariableComponent
 
-from .modules.commands import Commands
-from .modules.settings import Settings
+from .modules.adapters import * 
+#import all the adapters so Adapters.initialize() will see them
 
-from .modules.adapters import * #import all the adapters so Adapters.initialize() will see them
 from .modules.adapters_registry import AdaptersRegistry
+from .modules.settings import SettingsRegistery, Settings
 
 was_opened_at_startup: Set[int] = set()
 
@@ -39,9 +39,9 @@ was_opened_at_startup: Set[int] = set()
 def plugin_loaded() -> None:
 	core.log_info('startup')
 	ui.startup()
-	Settings.initialize()
+	SettingsRegistery.initialize()
 	AdaptersRegistry.initialize()
-	Commands.initialize()
+	CommandsRegistry.initialize()
 
 	for window in sublime.windows():
 		open(window)

@@ -42,6 +42,13 @@
         }
     },
     {
+        "caption": "Debugger: Add Configuration",
+        "command": "debugger",
+        "args": {
+            "action": "add_configuration"
+        }
+    },
+    {
         "caption": "Debugger: Start",
         "command": "debugger",
         "args": {

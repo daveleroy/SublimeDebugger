@@ -435,13 +435,17 @@ class DebuggerInterface (core.Logger):
 		await ui.InputList(await self.change_configuration_input_items(), "Add or Select Configuration").run()
 
 	@core.schedule
+	async def add_configuration(self) -> None:
+		await (await AdaptersRegistry.add_configuration(log=self)).run()
+
+	@core.schedule
 	async def install_adapters(self) -> None:
 		self.console.show()
 		menu = await AdaptersRegistry.install_menu(log=self)
 		await menu.run()
 
 	def on_input_command(self) -> None:
-		label = 'Input Debugger Command'
+		self.console.show()
 
 		def run(value: str):
 			# re-open
@@ -450,5 +454,5 @@ class DebuggerInterface (core.Logger):
 				# self.show_console_panel()
 				core.run(self.on_run_command(value))
 
-		input = ui.InputText(run, label, enable_when_active=Autocomplete.for_window(self.window))
+		input = ui.InputText(run, 'Input Debugger Command', enable_when_active=Autocomplete.for_window(self.window))
 		input.run()

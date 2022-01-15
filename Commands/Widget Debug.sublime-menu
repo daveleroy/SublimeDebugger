@@ -3,15 +3,6 @@
         "caption": "-"
     },
     {
-        "caption": "-"
-    },
-    {
-        "caption": "-"
-    },
-    {
-        "caption": "-"
-    },
-    {
         "caption": "Clear Console",
         "command": "debugger",
         "args": {
@@ -24,9 +15,6 @@
         "args": {
             "action": "show_protocol"
         }
-    },
-    {
-        "caption": "-"
     },
     {
         "caption": "-"

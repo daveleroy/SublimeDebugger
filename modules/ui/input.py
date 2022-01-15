@@ -57,21 +57,6 @@ class CommandPaletteInputCommand:
 		if CommandPaletteInputCommand.running_command:
 			CommandPaletteInputCommand.running_command.hide_overlay()
 
-class DebuggerInputCommand(sublime_plugin.WindowCommand):
-	def input(self, args: Any):
-		if not CommandPaletteInputCommand.running_command:
-			raise core.Error('expected running_command')
-
-		input = CommandPaletteInputCommand.running_command.input
-		CommandPaletteInputCommand.running_command = None
-		return input
-
-	def run(self, **args: Any):
-		...
-
-	def is_visible(self):
-		return CommandPaletteInputCommand.running_command is not None
-
 @dataclass
 class InputListItem:
 	run: Callable[[], Any] | InputList | InputText 

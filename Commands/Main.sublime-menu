@@ -21,16 +21,6 @@
                         }
                     },
                     {
-                        "caption": "Settings",
-                        "command": "debugger",
-                        "args": {
-                            "action": "settings"
-                        }
-                    },
-                    {
-                        "caption": "-"
-                    },
-                    {
                         "caption": "Install Adapters",
                         "command": "debugger",
                         "args": {
@@ -42,6 +32,13 @@
                         "command": "debugger",
                         "args": {
                             "action": "change_configuration"
+                        }
+                    },
+                    {
+                        "caption": "Add Configuration",
+                        "command": "debugger",
+                        "args": {
+                            "action": "add_configuration"
                         }
                     },
                     {
@@ -67,9 +64,6 @@
                         "args": {
                             "action": "stop"
                         }
-                    },
-                    {
-                        "caption": "-"
                     },
                     {
                         "caption": "Continue",
@@ -105,9 +99,6 @@
                         "args": {
                             "action": "step_out"
                         }
-                    },
-                    {
-                        "caption": "-"
                     },
                     {
                         "caption": "Input Command",
@@ -162,7 +153,25 @@
                         "caption": "-"
                     },
                     {
-                        "caption": "-"
+                        "caption": "LLDB Toggle Disassembly",
+                        "command": "debugger",
+                        "args": {
+                            "action": "lldb_toggle_disassembly"
+                        }
+                    },
+                    {
+                        "caption": "LLDB Display Options",
+                        "command": "debugger",
+                        "args": {
+                            "action": "lldb_display"
+                        }
+                    },
+                    {
+                        "caption": "LLDB Toggle Dereference",
+                        "command": "debugger",
+                        "args": {
+                            "action": "lldb_toggle_dereference"
+                        }
                     }
                 ]
             }

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from os import replace
-from typing import ClassVar, Optional, Type, Any
+from typing import Any
 
 import sublime
 from .import core
-
 
 class Settings:
 	updated: core.Event[None] = core.Event()
@@ -25,40 +23,34 @@ class Settings:
 
 	node: str|None = None
 
-	# go.
 	go_dlv: str|None = None
 
-	# lldb.
 	lldb_show_disassembly: str = "auto"
 	lldb_display_format: str = "auto"
 	lldb_dereference_pointers: bool = True
 	lldb_library: str|None = None
 	lldb_python: str|None = None
 
+
+class SettingsRegistery:
 	@staticmethod
 	def on_updated():
-		Settings.updated.post()
+		Settings.updated()
 
-	@classmethod
-	def initialize(cls):
-		dot_prefix_conversions = {
-			'lldb_': 'lldb.',
-			'go_': 'go.',
-		}
-		settings = sublime.load_settings('debugger.sublime-settings')
-		settings.add_on_change('debugger_settings', Settings.on_updated)
+	@staticmethod
+	def initialize_class(Class, settings):
+		core.debug('--', Class.__name__, '--')
 
-		for variable_name in vars(cls):
-			if variable_name.startswith('__'): continue
+		for variable_name in vars(Class):
+			if variable_name.startswith('_'): continue
+			core.debug('setting:', variable_name)
+
 			if variable_name == 'on_updated': continue
 			if variable_name == 'updated': continue
 			if variable_name == 'initialize': continue
 			if variable_name == 'save': continue
 
 			key = variable_name
-			for start, replace in dot_prefix_conversions.items():
-				if key.startswith(start):
-					key = key.replace(start, replace, 1)
 
 			class Set:
 				def __init__(self, key: str):
@@ -72,11 +64,18 @@ class Settings:
 					sublime.save_settings('debugger.sublime-settings')
 
 			s = Set(key)
-			setattr(cls, variable_name, s)
+			setattr(Class, variable_name, s)
+
+	@staticmethod
+	def initialize():
+		settings = sublime.load_settings('debugger.sublime-settings')
+		settings.add_on_change('debugger_settings', SettingsRegistery.on_updated)
+
+		SettingsRegistery.initialize_class(Settings, settings)
+		for Class in Settings.__subclasses__():
+			SettingsRegistery.initialize_class(Class, settings)
 
 	@staticmethod
 	def save():
 		sublime.save_settings('debugger.sublime-settings')
 
-
-Settings = Settings() #type: ignore
