@@ -96,7 +96,7 @@ class Listener (sublime_plugin.EventListener):
 		if view.settings().get('debugger.OutputView'):
 			window = view.window()
 			assert window
-			DebuggerPostConsoleWindowHooks(window).run(view.name())
+			DebuggerPostConsoleWindowHooks(window).run()
 
 	def ignore(self, view: sublime.View):
 		return not bool(Debugger.instances)

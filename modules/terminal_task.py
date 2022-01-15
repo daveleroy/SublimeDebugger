@@ -32,7 +32,7 @@ class Diagnostic(TypedDict):
 
 class Diagnostics(TypedDict):
 	file: str
-	base: str
+	base: str|None
 	errors: list[Diagnostic]
 
 class TerminalTask:

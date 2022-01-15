@@ -21,11 +21,11 @@ class DebuggerPreConsoleWindowHooks(sublime_plugin.WindowCommand):
 			self.window.run_command(command['command'],  args=command.get('args'))
 
 class DebuggerPostConsoleViewHooks(sublime_plugin.TextCommand):
-	def run(self, name: str):
+	def run(self):
 		self.view.settings().set('debugger.OutputView', True)
 
 class DebuggerPostConsoleWindowHooks(sublime_plugin.WindowCommand):
-	def run(self, name: str):
+	def run(self):
 		def run():
 			if not _window_has_output_views(self.window):
 				for command in Settings.console_layout_end:
@@ -43,9 +43,9 @@ def _window_has_output_views(window: sublime.Window):
 class OutputView(ConsoleView):	
 	def __init__(self, window: sublime.Window, name: str, on_close: Callable[[], None]|None = None):
 
-		DebuggerPreConsoleWindowHooks(window).run(name)
+		DebuggerPreConsoleWindowHooks(window).run()
 		view = window.new_file(flags=sublime.SEMI_TRANSIENT)
-		DebuggerPostConsoleViewHooks(view).run(name)
+		DebuggerPostConsoleViewHooks(view).run()
 
 		super().__init__(view)
 
