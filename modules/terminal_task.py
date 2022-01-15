@@ -233,6 +233,10 @@ class Tasks:
 		finally:
 			self.updated(terminal)
 		
+	def remove_finished_terminals(self):
+		for task in self.tasks:
+			if task.finished:
+				task.view.close()
 
 	def remove_finished(self):
 		for task in self.tasks:

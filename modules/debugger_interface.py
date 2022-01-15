@@ -186,6 +186,7 @@ class DebuggerInterface (core.Logger):
 		variables = self.project.extract_variables()
 
 		self.dispose_terminals(unused_only=True)
+		self.tasks.remove_finished()
 
 		# clear console if there are not any currently active sessions
 		if not self.debugger.sessions:
@@ -312,7 +313,7 @@ class DebuggerInterface (core.Logger):
 		for terminal in removed_terminals:
 			self.terminals.remove(terminal)
 
-		self.tasks.remove_finished()
+		self.tasks.remove_finished_terminals()
 
 	def is_open(self):
 		return self.panel.is_panel_visible()
