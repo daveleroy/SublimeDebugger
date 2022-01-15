@@ -56,7 +56,13 @@ class ExternalTerminalTerminus(ExternalTerminal):
 			'cmd': commands,
 			'env': env,
 			'auto_close': False,
-			'tag': self.tag
+			'tag': self.tag,
+			'pre_window_hooks': [
+				['debugger_pre_console_window_hooks', {}],
+			],
+			'post_view_hooks': [
+				['debugger_post_console_view_hooks', {}],
+			],
 		})
 
 	def dispose(self):

@@ -18,6 +18,7 @@ from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerComm
 
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
 from .modules.autocomplete import AutocompleteEventListener
+from .modules.output_view import DebuggerPreConsoleWindowHooks, DebuggerPostConsoleViewHooks, DebuggerPostConsoleWindowHooks
 from .modules.typecheck import *
 
 from .modules import core
@@ -84,6 +85,18 @@ def debugger_for_view(view: sublime.View) -> Debugger|None:
 	return None
 
 class Listener (sublime_plugin.EventListener):
+
+	def on_init(self, views: list[sublime.View]):
+		# close any forgotten output views
+		for view in views:
+			if view.settings().get('debugger.OutputView'):
+				view.close()
+
+	def on_pre_close(self, view: sublime.View):
+		if view.settings().get('debugger.OutputView'):
+			window = view.window()
+			assert window
+			DebuggerPostConsoleWindowHooks(window).run(view.name())
 
 	def ignore(self, view: sublime.View):
 		return not bool(Debugger.instances)

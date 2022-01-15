@@ -10,32 +10,51 @@ import re
 import sublime
 import sublime_plugin
 
+
+class DebuggerPreConsoleWindowHooks(sublime_plugin.WindowCommand):
+	def run(self):
+		if not _window_has_output_views(self.window):
+			for command in Settings.console_layout_begin:
+				self.window.run_command(command['command'],  args=command.get('args'))
+
+		for command in Settings.console_layout_focus:
+			self.window.run_command(command['command'],  args=command.get('args'))
+
+class DebuggerPostConsoleViewHooks(sublime_plugin.TextCommand):
+	def run(self, name: str):
+		self.view.settings().set('debugger.OutputView', True)
+
+class DebuggerPostConsoleWindowHooks(sublime_plugin.WindowCommand):
+	def run(self, name: str):
+		def run():
+			if not _window_has_output_views(self.window):
+				for command in Settings.console_layout_end:
+					self.window.run_command(command['command'],  args=command.get('args'))
+
+		sublime.set_timeout(run, 0)
+
+def _window_has_output_views(window: sublime.Window):
+	for view in window.views():
+		if view.settings().has('debugger.OutputView'):
+			return True
+	return False
+
+
 class OutputView(ConsoleView):	
-	@staticmethod
-	def layout_double_column(window: sublime.Window):
-		if window.num_groups() == 1:
-			window.run_command('set_layout', {'cells': [[0, 0, 1, 1], [1, 0, 2, 1]], 'cols': [0.0, 0.5, 1.0], 'rows': [0.0, 1.0]})
-			window.set_minimap_visible(False)
-
-		window.run_command('focus_group', { 'group': 1})
-
-	@staticmethod
-	def layout_single_column(window: sublime.Window):
-		if window.num_groups() >= 2 and not window.views_in_group(1):
-			window.run_command('set_layout', {'cells': [[0, 0, 1, 1]], 'cols': [0.0, 1.0], 'rows': [0.0, 1.0]})
-			window.set_minimap_visible(True)
-
 	def __init__(self, window: sublime.Window, name: str, on_close: Callable[[], None]|None = None):
-		OutputView.layout_double_column(window)
 
-		view = window.new_file(flags=sublime.TRANSIENT)
+		DebuggerPreConsoleWindowHooks(window).run(name)
+		view = window.new_file(flags=sublime.SEMI_TRANSIENT)
+		DebuggerPostConsoleViewHooks(view).run(name)
+
 		super().__init__(view)
 
 		self.on_close = on_close
 		self.window = window
-
+		self.name = name
 		self.on_pre_view_closed_handle = core.on_pre_view_closed.add(self.view_closed)
 		self.view.set_name(name)
+		self.write('')
 
 	def close(self):
 		if not self.is_closed:
@@ -53,5 +72,5 @@ class OutputView(ConsoleView):
 		super().dispose()
 		self.close()
 		if self.on_close: self.on_close()
-		OutputView.layout_single_column(self.window)
+
 
