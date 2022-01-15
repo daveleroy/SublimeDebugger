@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from ..typecheck import *
 
 from ..import core
@@ -22,7 +23,10 @@ class LLDBTransport(adapter.SocketTransport):
 
 		super().__init__(log, 'localhost', port)
 
-		thread = threading.Thread(target=self._read, args=(self.process.stderr, lambda line: log.log('process', line)))
+		def log_stderr(data: str):
+			log.log('transport', f'⟸ process/stderr :: {data}')
+
+		thread = threading.Thread(target=self._read, args=(self.process.stderr, log_stderr))
 		thread.start()
 
 	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
@@ -30,9 +34,9 @@ class LLDBTransport(adapter.SocketTransport):
 			try:
 				line = file.read(2**15).decode('UTF-8')
 				if not line:
-					core.log_info("Nothing to read from process, closing")
+					core.info('Nothing to read from process, closing')
 					break
-				core.log_info(line)
+				core.info(line)
 				core.call_soon_threadsafe(callback, line)
 			except Exception as e:
 				core.log_exception()

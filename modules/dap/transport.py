@@ -49,7 +49,7 @@ class TransportProtocol:
 		self.pending_requests: dict[int, core.Future[dict[str, Any]]] = {}
 		self.seq = 0
 
-		self.transport_log.log('transport', f'⟸ process/started')
+		self.transport_log.log('transport', f'⟸ process/started ::')
 		self.thread = threading.Thread(target=self.read)
 		self.thread.start()
 
@@ -94,7 +94,7 @@ class TransportProtocol:
 				core.call_soon_threadsafe(self.recieved_msg, core.json_decode(content))
 
 		except Exception as e:
-			core.call_soon_threadsafe(self.transport_log.log,'transport',  f'⟸ process/closed :: {e}')
+			core.call_soon_threadsafe(self.transport_log.log,'transport',  f'⟸ process/stopped :: {e}')
 			core.call_soon_threadsafe(self.events.on_transport_closed)
 
 	def send(self, message: dict[str, Any]):
@@ -201,7 +201,7 @@ class TransportProtocol:
 				future = self.pending_requests.pop(data['request_seq'])
 			except KeyError:
 				# the python adapter seems to send multiple initialized responses?
-				core.log_info("ignoring request request_seq not found")
+				core.info("ignoring request request_seq not found")
 				return
 
 			success = data['success']

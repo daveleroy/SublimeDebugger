@@ -7,8 +7,8 @@ from .import dap
 
 import sublime
 import json
-import asyncio
 import functools
+
 
 class AdaptersRegistry:
 	all: ClassVar[list[dap.AdapterConfiguration]]
@@ -49,7 +49,7 @@ class AdaptersRegistry:
 			}))
 
 		def insert(snippet: Any):
-			insert = snippet.get('body', '{ error: no body field}')
+			insert = snippet.get('body', '{ error: no body field }')
 			core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), insert))
 
 		def install(adapter: dap.AdapterConfiguration):
@@ -62,8 +62,6 @@ class AdaptersRegistry:
 			async def item(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
 				name = adapter.type
 				installed_version = adapter.installed_version
-
-				details: list[str] = []
 
 				if check_status and installed_version:
 					name += '\t'
@@ -90,7 +88,7 @@ class AdaptersRegistry:
 					snippet_input_items: list[ui.InputListItem] = []
 
 					for snippet in adapter.configuration_snippets or []:
-						type = snippet.get('body', {}).get('request')
+						type = snippet.get('body', {}).get('request', '??')
 						snippet_input_items.append(ui.InputListItem(functools.partial(insert, snippet), snippet.get('label', 'label'), details=type))
 
 					if not snippet_input_items:
@@ -111,22 +109,19 @@ class AdaptersRegistry:
 						details=f'{subtitle} <a href="{adapter.docs}">documentation</a>'
 					)
 				elif installed_version:
-					subtitle = 'Reinstall\t'
 					return ui.InputListItemChecked(
 						functools.partial(install, adapter),
 						installed_version != None,
 						name,
-						details=f'{subtitle} <a href="{adapter.docs}">documentation</a>'
+						details=f'Reinstall\t<a href="{adapter.docs}">documentation</a>'
 					)
 				else:
-					subtitle = 'Not Installed\t'
 					return ui.InputListItemChecked(
 						functools.partial(install, adapter),
 						installed_version != None,
 						name,
-						details=f'{subtitle} <a href="{adapter.docs}">documentation</a>'
+						details=f'Not Installed\t<a href="{adapter.docs}">documentation</a>'
 					)
-
 
 			if adapter.installed_version:
 				installed.append(item(adapter))

@@ -30,11 +30,29 @@ def log_exception(*args: Any) -> None:
 	print(traceback.format_exc())
 
 
-def log_info(*args: Any) -> None:
+def info(*args: Any) -> None:
 	if not _should_log_info:
 		return
 	print('Debugger:', *args)
 
+def error(*args: Any) -> None:
+	if not _should_log_error:
+		return
+	print('Debugger: error:', *args)
+
+
+def exception(*args: Any) -> None:
+	import traceback
+	if not _should_log_exceptions:
+		return
+	print(*args, end='')
+	print(traceback.format_exc())
+
+
+def debug(*args: Any) -> None:
+	if not _should_log_info:
+		return
+	print('Debugger:', *args)
 
 class Logger(Protocol):
 	def error(self, value: str):

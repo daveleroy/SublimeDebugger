@@ -196,7 +196,8 @@ class DebuggerInterface (core.Logger):
 		await self.ensure_installed(active_configurations)
 
 		for configuration in active_configurations:
-			async def launch(configuration: dap.Configuration = configuration):
+			@core.schedule
+			async def launch(configuration: dap.Configuration):
 				try:
 					adapter_configuration = AdaptersRegistry.get(configuration.type)
 					configuration_expanded = dap.ConfigurationExpanded(configuration, variables)
@@ -215,7 +216,7 @@ class DebuggerInterface (core.Logger):
 					if sublime.ok_cancel_dialog("Error Launching Configuration\n\n{}".format(str(e)), 'Open Project'):
 						self.project.open_project_configurations_file()
 
-			core.schedule(launch)()
+			launch(configuration)
 
 	def on_project_configuration_updated(self):
 		self.panel.set_ui_scale(self.project.ui_scale)

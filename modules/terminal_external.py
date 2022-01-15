@@ -32,7 +32,6 @@ from .import core
 import subprocess
 import os
 import sublime
-import sublime_plugin
 
 
 class ExternalTerminal(Protocol):
@@ -99,7 +98,7 @@ class ExternalTerminalMacDefault(ExternalTerminal):
 class ExternalTerminalWindowsDefault(ExternalTerminal):
 	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
 		if core.platform.is_64:
-		 	exec = 'C:\\Windows\\Sysnative\\cmd.exe'
+			exec = 'C:\\Windows\\Sysnative\\cmd.exe'
 		else:
 			exec = 'C:\\Windows\\System32\\cmd.exe'
 

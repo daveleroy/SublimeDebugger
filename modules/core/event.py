@@ -37,14 +37,15 @@ class Event (Generic[Unpack[Args]]):
 	def __call__(self, *data: Unpack[Args]) -> bool:
 		return self.post(*data) #type: ignore
 
-	def __bool__(self) -> bool:
-		return bool(self.handlers)
-
 	def post(self, *data: Unpack[Args]) -> bool:
 		r = False
 		for h in self.handlers:
 			r = r or h.callback(*data)
 		return bool(r)
+
+	def __bool__(self) -> bool:
+		return bool(self.handlers)
+
 
 class EventReturning (Generic[T, Unpack[Args]]):
 	def __init__(self) -> None:

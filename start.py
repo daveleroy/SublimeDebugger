@@ -37,7 +37,7 @@ was_opened_at_startup: Set[int] = set()
 
 
 def plugin_loaded() -> None:
-	core.log_info('startup')
+	core.info('startup')
 	ui.startup()
 	SettingsRegistery.initialize()
 	AdaptersRegistry.initialize()
@@ -48,7 +48,7 @@ def plugin_loaded() -> None:
 
 
 def plugin_unloaded() -> None:
-	core.log_info('shutdown')
+	core.info('shutdown')
 	for key, instance in dict(Debugger.instances).items():
 		instance.dispose()
 	Debugger.instances = {}
@@ -64,8 +64,9 @@ def open(window_or_view: Union[sublime.View, sublime.Window]):
 	if not window:
 		return
 
-	if Settings.open_at_startup and (not window.id() in was_opened_at_startup) and Debugger.should_auto_open_in_window(window):
-		was_opened_at_startup.add(window.id())
+	id = window.id()
+	if Settings.open_at_startup and (not id in was_opened_at_startup) and Debugger.should_auto_open_in_window(window):
+		was_opened_at_startup.add(id)
 		Debugger.get(window, create=True)
 
 # if there is a debugger running in the window then that is the most relevant one
@@ -95,7 +96,7 @@ class Listener (sublime_plugin.EventListener):
 			debugger.dispose()
 
 	def on_exit(self):
-		core.log_info('saving project data: {}'.format(Debugger.instances))
+		core.info('saving project data: {}'.format(Debugger.instances))
 		for key, instance in dict(Debugger.instances).items():
 			instance.save_data()
 

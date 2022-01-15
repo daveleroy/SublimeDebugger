@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import sublime
-import threading
 
 class Handle:
 	def __init__(self, callback, args):

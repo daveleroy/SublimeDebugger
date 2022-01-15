@@ -36,7 +36,6 @@ def call_soon(callback: Callable[[Unpack[Args]], Any], *args: Unpack[Args]):
 def call_later(interval: float, callback: Callable[[Unpack[Args]], Any], *args: Unpack[Args]):
 	return sublime_event_loop.call_later(interval, callback, *args) #type: ignore
 
-
 def create_future() -> Future[Any]:
 	return sublime_event_loop.create_future() #type: ignore
 
@@ -60,7 +59,6 @@ def gather(*coros_or_futures: Awaitable[T]) -> Awaitable[tuple[T]]:
 
 def gather_results(*coros_or_futures: Awaitable[T]) -> Awaitable[list[T|Exception]]:
 	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop, return_exceptions=True)
-
 
 def run(awaitable: Awaitable[T], on_done: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None) -> Future[T]:
 	task: Future[T] = asyncio.ensure_future(awaitable, loop=sublime_event_loop) #type: ignore

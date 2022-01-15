@@ -5,23 +5,28 @@ scope: output.debugger.log
 
 contexts:
   main:
-    - match: '(::)(.*)'
-      captures:
-        1: punctuation.separator
-        2: comment
-
-    - match: '([a-zA-Z/]*)'
-      captures:
-        1: entity.name.function
-
     - match: '(⟽|⟸) '
       captures:
         1: storage.modifier
+      push: request
 
     - match: '(⟾|⟹) '
       captures:
         1: storage.type
+      push: request
 
+
+
+
+  request:
+    - match: '(::)'
+      captures:
+        1: punctuation.separator
+        # 2: comment
+      pop: true
     - match: '([0-9]*)'
       captures:
         1: constant.numeric
+    - match: '([a-zA-Z/]*)'
+      captures:
+        1: entity.name.function

@@ -127,7 +127,7 @@ class Project:
 			view.show_at_center(region)
 
 	def reload(self):
-		core.log_info("ProjectConfiguration.reload")
+		core.info("ProjectConfiguration.reload")
 		self.load_settings()
 		self.load_configurations()
 		self.on_updated()
@@ -229,8 +229,10 @@ class Project:
 	def extract_variables(self):
 		variables: dict[str, str] = self.window.extract_variables()
 
-		if folders := self.window.folders():
-			variables['workspaceFolder'] = folders[0]
+		# patch in some vscode variables
+		if folder := variables['folder']:
+			variables['workspaceFolder'] = folder
+			variables['workspaceRoot'] = folder
 		return variables
 
 	def current_file_line_column(self) -> Tuple[str, int, int]:

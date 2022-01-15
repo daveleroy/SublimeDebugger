@@ -67,7 +67,6 @@ def info(type: str) -> Optional[AdapterInfo]:
 		version = package_json.get('version')
 		for debugger in package_json.get('contributes', {}).get('debuggers', []):
 			debugger_type = debugger.get('type') or type
-
 			contributes[debugger_type] = {
 				'snippets': debugger.get('configurationSnippets', []),
 				'schema': debugger.get('configurationAttributes', {}),
@@ -87,16 +86,14 @@ def installed_version(type: str) -> str|None:
 
 def configuration_schema(type: str, vscode_type: str|None = None) -> dict[str, Any] | None:
 	if i := info(type):
-		contributes = i.schema_and_snippets.get(vscode_type or type)
-		if contributes:
+		if contributes := i.schema_and_snippets.get(vscode_type or type):
 			return contributes['schema']
 
 	return None
 
 def configuration_snippets(type: str, vscode_type: str|None = None) -> list[Any] | None:
 	if i := info(type):
-		contributes = i.schema_and_snippets.get(vscode_type or type)
-		if contributes:
+		if contributes := i.schema_and_snippets.get(vscode_type or type):
 			return contributes['snippets']
 
 	return None

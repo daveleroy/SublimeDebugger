@@ -54,6 +54,7 @@ class DebuggerConsole:
 			# Some of the messages are junk like 'output' that we probably don't want to display
 			async def appendVariabble(at: int) -> None:
 				try:
+					assert variablesReference
 					variables = await session.get_variables(variablesReference, without_names=True)
 
 					for i, variable in enumerate(variables):
@@ -88,6 +89,7 @@ class DebuggerConsole:
 
 		if source:
 			def on_clicked_source():
+				assert source
 				self.on_navigate(dap.SourceLocation(source, line))
 
 			source_text = source.name or '??'
@@ -107,11 +109,11 @@ class DebuggerConsole:
 
 		if source:
 			def on_clicked_source():
+				assert source
 				self.on_navigate(dap.SourceLocation(source, line))
 
-			source_text = source.name or '??'
 			item = ui.div(height=css.line_height)[
-				ui.click(on_clicked_source, title=source_text)[
+				ui.click(on_clicked_source, title=source.name or '??')[
 					ui.text('↗', css=css.label_secondary)
 				]
 			]

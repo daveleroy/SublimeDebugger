@@ -67,15 +67,14 @@ class Process:
 
 
 class StdioTransport(Transport):
-	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None, ignore_stderr: bool = False):
+	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None):
 		log.log('transport', f'⟸ process/starting :: {command}')
 		self.process = Process(command, cwd)
+		
+		def log_stderr(data: str):
+			log.log('transport', f'⟸ process/stderr :: {data}')
 
-		if ignore_stderr:
-			thread = threading.Thread(target=self._read, args=(self.process.stderr, print))
-		else:
-			thread = threading.Thread(target=self._read, args=(self.process.stderr, log.info))
-
+		thread = threading.Thread(target=self._read, args=(self.process.stderr, log_stderr))
 		thread.start()
 
 	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
@@ -83,7 +82,7 @@ class StdioTransport(Transport):
 			try:
 				line = file.read(2**15).decode('UTF-8')
 				if not line:
-					core.log_info('Nothing to read from process, closing')
+					core.info('Nothing to read from process, closing')
 					break
 
 				core.call_soon_threadsafe(callback, line)

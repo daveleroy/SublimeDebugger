@@ -156,7 +156,7 @@ class DebuggerOutputPanel(OutputPanel):
 
 			# show main debugger panel after closing other debugger panels
 			if window == self.window and name != 'output.Debugger' and name.startswith('output.Debugger:'):
-				core.log_info(f'Showing debug panel')
+				core.info(f'Showing debug panel')
 				self.panel_show()
 				return True
 

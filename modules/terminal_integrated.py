@@ -78,7 +78,7 @@ class TtyProcess:
 			try:
 				characters = self.process.read()
 				if not characters:
-					core.log_info("Nothing to read from process, closing")
+					core.info("Nothing to read from process, closing")
 					break
 
 				#this isn't perfect we can easily miss some escapes since characters could span part of a single escape sequence...
