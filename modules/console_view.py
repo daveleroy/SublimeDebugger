@@ -116,38 +116,43 @@ ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
 escape_codes: list[dict[str, Any]] = [
 	{
+		'color': 'foreground',
+		'escape': ['\u001b[30m', '\u001b[37m', '\u001b[39m', '\u001b[0m', '\u001b[90m'],
+		'match': '\u200c',
+	},
+	{
 		'color': 'red',
-		'escape': ['\u001b[31m'],
+		'escape': ['\u001b[31m', '\u001b[91m'],
 		'scope': 'region.redish.debugger region.background.debugger',
 		'match': '\u200b',
 	},
 	{
 		'color': 'green',
-		'escape': ['\u001b[32m'],
+		'escape': ['\u001b[32m', '\u001b[92m'],
 		'scope': 'region.greenish.debugger region.background.debugger',
 		'match': '\u200b\u200b',
 	},
 	{
 		'color': 'yellow',
-		'escape': ['\u001b[33m'],
+		'escape': ['\u001b[33m', '\u001b[93m'],
 		'scope': 'region.yellowish.debugger region.background.debugger',
 		'match': '\u200b\u200b\u200b',
 	},
 	{
 		'color': 'blue',
-		'escape': ['\u001b[34m'],
+		'escape': ['\u001b[34m', '\u001b[94m'],
 		'scope': 'region.bluish.debugger region.background.debugger',
 		'match': '\u200b\u200b\u200b\u200b',
 	},
 	{
 		'color': 'magenta',
-		'escape': ['\u001b[35m'],
+		'escape': ['\u001b[35m', '\u001b[95m'],
 		'scope': 'region.purplish.debugger region.background.debugger',
 		'match': '\u200b\u200b\u200b\u200b\u200b',
 	},
 	{
 		'color': 'cyan',
-		'escape': ['\u001b[36m'],
+		'escape': ['\u001b[36m', '\u001b[96m'],
 		'scope': 'region.cyanish.debugger region.background.debugger',
 		'match': '\u200b\u200b\u200b\u200b\u200b\u200b',
 	},
@@ -174,13 +179,16 @@ contexts:
 '''
 
 	for item in reversed(escape_codes):
-		
+		scope = item.get('scope')
+		if not scope:
+			continue
+
 		yaml += f'''		- match: '{item['match']}'
-			scope: {item['scope']}
+			scope: {scope}
 			push:
-				- meta_scope: {item['scope']}
+				- meta_scope: {scope}
 				- match: '\u200c'
-					scope: {item['scope']}
+					scope: {scope}
 					pop: true
 '''
 	return yaml.replace('\t', '  ')
