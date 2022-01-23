@@ -17,6 +17,8 @@ class Settings:
 	keep_panel_open: bool = False
 	bring_window_to_front_on_pause: bool = False
 
+	development: bool = False
+
 	log_info: bool = False
 	log_exceptions: bool = True
 	log_errors: bool = True

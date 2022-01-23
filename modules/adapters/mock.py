@@ -11,6 +11,7 @@ class Mock(adapter.AdapterConfiguration):
 
 	type = 'mock'
 	docs = 'https://github.com/microsoft/vscode-mock-debug#vs-code-mock-debug'
+	development = True
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		node = await adapter.get_and_warn_require_node(self.type, log)

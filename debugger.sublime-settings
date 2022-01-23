@@ -52,6 +52,7 @@
 		},
 	],
 
+	"development": false,
 	"log_info": false,
 	"log_exceptions": true,
 	"log_errors": true,

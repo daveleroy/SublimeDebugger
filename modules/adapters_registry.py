@@ -4,6 +4,7 @@ from .typecheck import *
 from .import core
 from .import ui
 from .import dap
+from .settings import Settings
 
 import sublime
 import json
@@ -59,6 +60,8 @@ class AdaptersRegistry:
 		not_installed: list[Awaitable[ui.InputListItem]] = []
 
 		for adapter in AdaptersRegistry.all:
+			if not Settings.development and adapter.development:
+				continue
 			async def item(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
 				name = adapter.type
 				installed_version = adapter.installed_version

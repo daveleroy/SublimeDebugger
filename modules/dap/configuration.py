@@ -10,9 +10,10 @@ if TYPE_CHECKING:
 	from .session import Session
 	from .debugger import Debugger
 
-class AdapterConfiguration (Protocol):
+class AdapterConfiguration:
 	type: str
 	docs: str | None
+	development: bool = False
 
 	async def start(self, log: core.Logger, configuration: ConfigurationExpanded) -> Transport: ...
 
