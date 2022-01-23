@@ -243,7 +243,7 @@ class Tasks:
 			if task.finished:
 				task.dispose()
 
-		self.tasks = list(filter(lambda t: t.finished, self.tasks))
+		self.tasks = list(filter(lambda t: not t.finished, self.tasks))
 		return False
 
 	def cancel(self, task: TerminalTask):
