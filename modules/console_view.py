@@ -90,7 +90,7 @@ class ConsoleView:
 				text = '\n' + text
 
 			self.view.run_command('append', {
-				'characters': sequences_for_types.get(type, '\u200c'),
+				'characters': '\u200c' + sequences_for_types.get(type, ''),
 				'force': True,
 				'scroll_to_end': True
 			})
@@ -115,12 +115,6 @@ class ConsoleView:
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
 escape_codes: list[dict[str, Any]] = [
-	{
-		'color': 'foreground',
-		'escape': ['\u001b[30m', '\u001b[37m', '\u001b[39m', '\u001b[0m'],
-		'scope': 'region.foreground.debugger region.background.debugger',
-		'match': '\u200c',
-	},
 	{
 		'color': 'red',
 		'escape': ['\u001b[31m'],

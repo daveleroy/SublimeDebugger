@@ -1,0 +1,50 @@
+%YAML 1.2
+---
+hidden: true
+scope: output.debugger.log
+name: Debugger Console
+
+contexts:
+  main:
+    - match: '​​​​​​'
+      scope: region.cyanish.debugger region.background.debugger
+      push:
+        - meta_scope: region.cyanish.debugger region.background.debugger
+        - match: '‌'
+          scope: region.cyanish.debugger region.background.debugger
+          pop: true
+    - match: '​​​​​'
+      scope: region.purplish.debugger region.background.debugger
+      push:
+        - meta_scope: region.purplish.debugger region.background.debugger
+        - match: '‌'
+          scope: region.purplish.debugger region.background.debugger
+          pop: true
+    - match: '​​​​'
+      scope: region.bluish.debugger region.background.debugger
+      push:
+        - meta_scope: region.bluish.debugger region.background.debugger
+        - match: '‌'
+          scope: region.bluish.debugger region.background.debugger
+          pop: true
+    - match: '​​​'
+      scope: region.yellowish.debugger region.background.debugger
+      push:
+        - meta_scope: region.yellowish.debugger region.background.debugger
+        - match: '‌'
+          scope: region.yellowish.debugger region.background.debugger
+          pop: true
+    - match: '​​'
+      scope: region.greenish.debugger region.background.debugger
+      push:
+        - meta_scope: region.greenish.debugger region.background.debugger
+        - match: '‌'
+          scope: region.greenish.debugger region.background.debugger
+          pop: true
+    - match: '​'
+      scope: region.redish.debugger region.background.debugger
+      push:
+        - meta_scope: region.redish.debugger region.background.debugger
+        - match: '‌'
+          scope: region.redish.debugger region.background.debugger
+          pop: true

@@ -536,7 +536,7 @@ class Session(TransportProtocolListener, core.Logger):
 			raise Error('expression did not return a result')
 
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
-		event = dap.OutputEvent('console', result.result, variablesReference=result.variablesReference)
+		event = dap.OutputEvent(result.result, 'console', variablesReference=result.variablesReference)
 		self.listener.on_session_output_event(self, event)
 
 	async def evaluate_expression(self, expression: str, context: str|None) -> dap.EvaluateResponse:
@@ -598,7 +598,7 @@ class Session(TransportProtocolListener, core.Logger):
 		return response
 
 	def log_output(self, string: str) -> None:
-		output = dap.OutputEvent('debugger.output', string + '\n')
+		output = dap.OutputEvent(string + '\n', 'debugger.output')
 		self.listener.on_session_output_event(self, output)
 
 	def log(self, type: str, value: str) -> None:
@@ -606,11 +606,11 @@ class Session(TransportProtocolListener, core.Logger):
 			self.transport_log.info(f'⟹ process/stderr :: {value.strip()}')
 			return
 		if type == 'error':
-			output = dap.OutputEvent('debugger.error', value + '\n')
+			output = dap.OutputEvent(value + '\n', 'debugger.error')
 			self.listener.on_session_output_event(self, output)
 			return
 
-		output = dap.OutputEvent('debugger.info', value + '\n')
+		output = dap.OutputEvent(value + '\n', 'debugger.info')
 		self.listener.on_session_output_event(self, output)
 
 	def load_frame(self, frame: Optional[dap.StackFrame]):
