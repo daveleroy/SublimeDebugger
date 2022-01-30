@@ -1,5 +1,12 @@
 For getting set up see https://github.com/daveleroy/sublime_debugger
 
+Version 0.6.0
+
+- This update changes how the output is handled. Instead of showing up as a tab in the debugger UI the layout is changed to a split view and the output is created in a standard view. This isn't perfect but it at least allows copy/paste/scrolling etc. The output view now also supports some ansi escape codes. You can customize the layout/placement of the view in the settings.
+- Adds dissasembly syntax for LLDB
+- Elixer support (@timfjord)
+
+
 Version 0.5.4
 
 - Resolve the`$workspaceFolder` variable to first folder project instead of being an alias of `$project_path`  (@rchl)
