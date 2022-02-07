@@ -49,7 +49,7 @@ on_view_drag_select_or_context_menu: Event[sublime.View] = Event()
 on_load_project: Event[sublime.Window] = Event()
 on_new_window: Event[sublime.Window] = Event()
 on_pre_close_window: Event[sublime.Window] = Event()
-on_exit: Event[sublime.Window] = Event()
+on_exit: Event[None] = Event()
 
 on_pre_hide_panel: Event[sublime.Window] = Event()
 on_post_show_panel: Event[sublime.Window] = Event()
@@ -131,4 +131,4 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 		on_pre_close_window(window)
 
 	def on_exit(self):
-		on_exit()
+		on_exit.post()

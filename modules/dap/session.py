@@ -96,7 +96,7 @@ class Session(TransportProtocolListener, core.Logger):
 		self.breakpoints.source.on_send.add(self.on_send_source_breakpoint)
 
 		self.watch = watch
-		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, self.selected_frame, expr))
+		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, expr))
 
 		self._transport: Optional[TransportProtocol] = None
 

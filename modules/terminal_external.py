@@ -99,6 +99,8 @@ class ExternalTerminalMacDefault(ExternalTerminal):
 
 		subprocess.check_call(args)
 
+	def dispose(self):
+		...
 
 # modified from https://github.com/microsoft/vscode/blob/master/src/vs/workbench/contrib/externalTerminal/node/externalTerminalService.ts
 class ExternalTerminalWindowsDefault(ExternalTerminal):
@@ -128,6 +130,8 @@ class ExternalTerminalWindowsDefault(ExternalTerminal):
 
 		subprocess.check_call(['cmd.exe'] + args, cwd=cwd, env=cmd_env)
 
+	def dispose(self):
+		...
 
 # export class LinuxExternalTerminalService implements IExternalTerminalService {
 # 	public _serviceBrand: undefined;

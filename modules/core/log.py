@@ -60,7 +60,7 @@ class Logger(Protocol):
 	def info(self, value: str):
 		self.log('info', value)
 	def log(self, type: str, value: str):
-		...
+		self.log(type, value)
 
 class StdioLogger(Logger):
 	def log(self, type: str, value: str):

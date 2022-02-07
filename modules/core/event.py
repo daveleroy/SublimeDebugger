@@ -35,13 +35,14 @@ class Event (Generic[Unpack[Args]]):
 		self.handlers.append(handle)
 
 	def __call__(self, *data: Unpack[Args]) -> bool:
-		return self.post(*data) #type: ignore
-
-	def post(self, *data: Unpack[Args]) -> bool:
 		r = False
 		for h in self.handlers:
 			r = r or h.callback(*data)
 		return bool(r)
+		return self.post(*data) #type: ignore
+
+	def post(self) -> bool:
+		return self() #type: ignore
 
 	def __bool__(self) -> bool:
 		return bool(self.handlers)

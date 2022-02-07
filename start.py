@@ -40,7 +40,8 @@ was_opened_at_startup: Set[int] = set()
 def plugin_loaded() -> None:
 	core.info('startup')
 	ui.startup()
-	SettingsRegistery.initialize()
+	SettingsRegistery.initialize(on_updated=updated_settings)
+
 	AdaptersRegistry.initialize()
 	CommandsRegistry.initialize()
 
@@ -83,6 +84,11 @@ def debugger_for_view(view: sublime.View) -> Debugger|None:
 		if debugger := Debugger.get(window):
 			return debugger
 	return None
+
+
+def updated_settings():
+	for debugger in Debugger.instances.values():
+		debugger.project.reload()
 
 class Listener (sublime_plugin.EventListener):
 

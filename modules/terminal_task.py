@@ -140,7 +140,7 @@ class TerminalTask:
 				'errors': diagnostics
 			})
 
-		self.on_problems_updated()
+		self.on_problems_updated.post()
 
 
 	def on_finished(self, exit_code: int|None, exit_status: str):

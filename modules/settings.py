@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 import sublime
 from .import core
 
 class Settings:
-	updated: core.Event[None] = core.Event()
-
 	open_at_startup: bool = True
 	ui_scale: int = 10
 	ui_estimated_width_scale: int = 1
@@ -42,10 +40,6 @@ class Settings:
 
 class SettingsRegistery:
 	@staticmethod
-	def on_updated():
-		Settings.updated()
-
-	@staticmethod
 	def initialize_class(Class, settings):
 		core.debug('--', Class.__name__, '--')
 
@@ -53,8 +47,6 @@ class SettingsRegistery:
 			if variable_name.startswith('_'): continue
 			core.debug('setting:', variable_name)
 
-			if variable_name == 'on_updated': continue
-			if variable_name == 'updated': continue
 			if variable_name == 'initialize': continue
 			if variable_name == 'save': continue
 
@@ -75,9 +67,9 @@ class SettingsRegistery:
 			setattr(Class, variable_name, s)
 
 	@staticmethod
-	def initialize():
+	def initialize(on_updated: Callable[[], None]):
 		settings = sublime.load_settings('debugger.sublime-settings')
-		settings.add_on_change('debugger_settings', SettingsRegistery.on_updated)
+		settings.add_on_change('debugger_settings', on_updated)
 
 		SettingsRegistery.initialize_class(Settings, settings)
 		for Class in Settings.__subclasses__():

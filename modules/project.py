@@ -125,7 +125,7 @@ class Project:
 		core.info("ProjectConfiguration.reload")
 		self.load_settings()
 		self.load_configurations()
-		self.on_updated()
+		self.on_updated.post()
 
 	def load_settings(self):
 		core.log_configure(
