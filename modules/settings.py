@@ -10,6 +10,8 @@ class Settings:
 
 	open_at_startup: bool = True
 	ui_scale: int = 10
+	ui_estimated_width_scale: int = 1
+
 	font_face: str = 'Monospace'
 
 	external_terminal: str = "terminus"

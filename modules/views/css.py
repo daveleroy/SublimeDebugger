@@ -77,7 +77,7 @@ tab_panel_selected = ui.css(
 	padding_left=1.5,
 	padding_right=1.5,
 	raw='''
-	padding-bottom:2rem;
+	padding-bottom:0.33rem;
 	border-top-left-radius: 0.33rem;
 	border-top-right-radius: 0.33rem;
 	'''

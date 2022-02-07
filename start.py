@@ -141,18 +141,29 @@ class Listener (sublime_plugin.EventListener):
 		word_string, region = r
 
 		try:
-			response = await session.evaluate_expression(word_string, 'hover')
-			await core.sleep(0.25)
-			variable = dap.types.Variable("", response.result, response.variablesReference)
-			view.add_regions('selected_hover', [region], scope="comment", flags=sublime.DRAW_NO_OUTLINE)
 
-			def on_close() -> None:
+			def on_close():
 				view.erase_regions('selected_hover')
+			
+			# ensure we take at least 0.5 seconds... and then redraw the popup
+			# this is is a hack because we are competing against lsp and other popups on hover...
+			sleep = core.sleep(0.5)
 
-			component = VariableComponent(dap.Variable(session, variable))
+			response = await session.evaluate_expression(word_string, 'hover')
+			component = VariableComponent(dap.Variable.from_evaluate(session, '', response))
 			component.toggle_expand()
-			ui.Popup(ui.div(width=100)[component], view, region.a, on_close=on_close)
+			
+			view.add_regions('selected_hover', [region], scope='comment', flags=sublime.DRAW_NO_OUTLINE)
 
+			popup = ui.Popup(view, region.a, on_close=on_close)[
+				component
+			]
+			await sleep
+			popup[
+				component
+			]
+
+	
 		# errors trying to evaluate a hover expression should be ignored
 		except dap.Error as e:
 			core.log_error('adapter failed hover evaluation', e)

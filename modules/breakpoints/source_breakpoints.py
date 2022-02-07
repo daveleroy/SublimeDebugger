@@ -144,7 +144,11 @@ class SourceBreakpointView:
 
 		if column and self.breakpoint.dap.column:
 			p = self.view.text_point(line - 1, column - 1)
-			self.column_phantom = ui.Phantom(ui.click(self.on_click_inline)[ui.icon(image)], self.view, sublime.Region(p, p))
+			self.column_phantom = ui.Phantom(self.view, sublime.Region(p, p))[
+				ui.click(self.on_click_inline)[
+					ui.icon(image)
+				]
+			]
 
 	def dispose(self):
 		self.view.erase_regions(self.breakpoint.region_name)
@@ -346,7 +350,7 @@ class SourceBreakpoints:
 			return
 
 		if not self.sync_dirty_scheduled:
-			ui.Timer(self.sync_dirty, 1, False)
+			core.timer(self.sync_dirty, 1, False)
 			self.sync_dirty_scheduled = True
 
 		self.dirty_views[view.id()] = view

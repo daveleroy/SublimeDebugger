@@ -45,9 +45,19 @@ class SelectedLine:
 
 		end_of_selected_line = view.line(pt_current_line).b
 
-		self.text = ui.Phantom(SelectedLineText(text), view, sublime.Region(end_of_selected_line, end_of_selected_line), sublime.LAYOUT_INLINE)
-		self.top_line = ui.Phantom(UnderlineComponent(True), view, sublime.Region(line_current.a, line_current.a), sublime.LAYOUT_BLOCK) if line != 1 else None
-		self.bottom_line = ui.Phantom(UnderlineComponent(False), view, line_prev, sublime.LAYOUT_BLOCK)
+		self.text = ui.Phantom(view, sublime.Region(end_of_selected_line, end_of_selected_line), sublime.LAYOUT_INLINE)[
+			SelectedLineText(text)
+		]
+		if line != 1:
+			self.top_line = ui.Phantom(view, sublime.Region(line_current.a, line_current.a), sublime.LAYOUT_BLOCK) [
+				UnderlineComponent(True)
+			]
+		else:
+			self.top_line = None
+
+		self.bottom_line = ui.Phantom(view, line_prev, sublime.LAYOUT_BLOCK)[
+			UnderlineComponent(False)
+		]
 
 	def dispose(self):
 		if self.top_line: self.top_line.dispose()

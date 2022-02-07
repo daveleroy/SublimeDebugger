@@ -332,4 +332,4 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		core.edit(file, lambda edit: file.insert(edit, file.size(), sublime.encode_value(json, True)))
 
 	def refresh_phantoms(self) -> None:
-		ui.reload()
+		ui.Layout.render_layouts()

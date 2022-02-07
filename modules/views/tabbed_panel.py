@@ -103,7 +103,10 @@ class TabbedPanel(ui.div):
 
 		self.patch_selected()
 
-		width = (self.layout.width() + self.width_additional) * self.width_scale
+		# each phantom takes up 10 extra dip 5 on each side it looks like
+		layout_width = self.layout.width() -  self.layout.from_dip(30)
+
+		width = (layout_width + self.width_additional) * self.width_scale
 
 		tabs: list[ui.span] = []
 		for index, item in enumerate(self.items):
@@ -125,7 +128,8 @@ class TabbedPanel(ui.div):
 					tabs
 				]
 			],
-			ui.div(width=width, height=1000, css=css.rounded_panel)[
+			ui.div(width=width - css.rounded_panel.padding_width, height=1000, css=css.rounded_panel)[
+				None,
 				self.items[self.selected_index]
 			],
 		]

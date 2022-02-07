@@ -104,7 +104,7 @@ class DebuggerPanel(ui.div):
 		return [
 			ui.div()[
 				ui.div(height=css.header_height)[items],
-				ui.div(width=27, height=1000, css=css.rounded_panel)[
+				ui.div(width=30 - css.rounded_panel.padding_width, height=1000, css=css.rounded_panel)[
 					panel_items
 				],
 			]

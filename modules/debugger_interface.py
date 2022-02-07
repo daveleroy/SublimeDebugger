@@ -51,7 +51,7 @@ class DebuggerInterface (core.Logger):
 		self.debugger.on_error.add(self.on_error)
 
 		self.project = debugger.project
-		self.project.on_updated.add(self.on_project_configuration_updated)
+		self.project.on_updated.add(self.on_project_or_settings_updated)
 
 		self.transport_log = DebuggerProtocolLogger(window)
 
@@ -76,7 +76,7 @@ class DebuggerInterface (core.Logger):
 		self.debugger_panel.on_step_in = lambda: self.step_in()
 
 		# middle panels
-		self.middle_panel = TabbedPanel([], 0, width_scale=0.666, width_additional=-41)
+		self.middle_panel = TabbedPanel([], 0, width_scale=0.65, width_additional=-30)
 
 		self.console = DebuggerConsole(
 			window,
@@ -98,7 +98,7 @@ class DebuggerInterface (core.Logger):
 		])
 
 		# right panels
-		self.right_panel = TabbedPanel([], 0, width_scale=0.333, width_additional=-41)
+		self.right_panel = TabbedPanel([], 0, width_scale=0.35, width_additional=-30)
 
 		self.variables_panel = VariablesPanel(self.debugger)
 		self.modules_panel = ModulesPanel(self.debugger)
@@ -118,12 +118,18 @@ class DebuggerInterface (core.Logger):
 			self.panel,
 		])
 
-		self.left = ui.Phantom(self.debugger_panel, self.panel.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE)
-		self.middle = ui.Phantom(self.middle_panel, self.panel.view, sublime.Region(0, 1), sublime.LAYOUT_INLINE)
-		self.right = ui.Phantom(self.right_panel, self.panel.view, sublime.Region(0, 2), sublime.LAYOUT_INLINE)
+		self.left = ui.Phantom(self.panel.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE)[
+			self.debugger_panel
+		]
+		self.middle = ui.Phantom(self.panel.view, sublime.Region(0, 1), sublime.LAYOUT_INLINE)[
+			self.middle_panel
+		]
+		self.right = ui.Phantom(self.panel.view, sublime.Region(0, 2), sublime.LAYOUT_INLINE)[
+			self.right_panel
+		]
 		self.disposeables.extend([self.left, self.middle, self.right])
 		
-		self.on_project_configuration_updated()
+		self.on_project_or_settings_updated()
 
 		def on_view_activated(view: sublime.View):
 			if self.debugger.is_active or self.tasks.is_active():
@@ -219,9 +225,12 @@ class DebuggerInterface (core.Logger):
 
 			launch(configuration)
 
-	def on_project_configuration_updated(self):
-		self.panel.set_ui_scale(self.project.ui_scale)
-		self.debugger_panel.dirty()
+	def on_project_or_settings_updated(self):
+		# these settings control the size of the ui calculated in ui/layout
+		settings = self.panel.view.settings()
+		settings['font_size'] = Settings.ui_scale
+		settings['estimated_width_scale'] = Settings.ui_estimated_width_scale
+
 
 	def on_session_active(self, session: dap.Session):
 		if not self.debugger.is_active:

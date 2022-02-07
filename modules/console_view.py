@@ -62,7 +62,11 @@ class ConsoleView:
 	def write_phantom(self, item: ui.div, at: int, index: int = 0):
 		view = self.view
 		at = view.size() if at is None else at
-		self.phantoms.append(ui.Phantom(item, view, sublime.Region(at, at + index), layout=sublime.LAYOUT_INLINE))
+		self.phantoms.append(
+			ui.Phantom(view, sublime.Region(at, at + index), layout=sublime.LAYOUT_INLINE)[
+				item
+			]
+		)
 
 	def write(self, text: str, type: str = '', item: ui.div|None = None):
 		self.dirty = True
@@ -109,7 +113,11 @@ class ConsoleView:
 
 		if item:
 			at = self.view.size() + offset
-			self.phantoms.append(ui.Phantom(item, self.view, sublime.Region(at, at)))
+			self.phantoms.append(
+				ui.Phantom(self.view, sublime.Region(at, at))[
+					item, 
+				]
+			)
 
 # from https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')

@@ -1,11 +1,13 @@
 from __future__ import annotations
 from ..typecheck import *
 
-from .layout import Layout
 from .image import Image
 from .style import css, div_inline_css, icon_css, none_css
 
 import re
+
+if TYPE_CHECKING:
+	from .layout import Layout
 
 class alignable:
 	align_required: int
@@ -27,14 +29,22 @@ class element:
 		self._height = height
 		self._width = width
 		self.is_inline = is_inline
+		self.css = css
+
+	@property
+	def css(self):
+		return self._css
+
+	@css.setter
+	def css(self, css: css|None):
 		if css:
-			self.css = css
-			self.className = css.class_name
+			self._css = css
+			self.css_id = css.css_id
 			self.padding_height = css.padding_height
 			self.padding_width = css.padding_width
 		else:
-			self.css = none_css
-			self.className = none_css.class_name
+			self._css = none_css
+			self.css_id = none_css.css_id
 			self.padding_height = 0
 			self.padding_width = 0
 
@@ -74,20 +84,16 @@ class element:
 
 		return max(width_max, width) + self.padding_width
 
-	def add_class(self, name: str) -> None:
-		self.className += ' '
-		self.className += name
-
 	def dirty(self):
 		if self.layout:
 			self.layout.dirty()
 		self.requires_render = True
 
 	def html_inner(self, layout: Layout) -> str:
-		html: list[str] = []
+		html = ''
 		for item in self.children:
-			html.append(item.html(layout))
-		return ''.join(html)
+			html += item.html(layout)
+		return html
 
 	def html(self, layout: Layout) -> str:
 		...
@@ -118,8 +124,7 @@ class span (element):
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
-		html = f'<s class="{self.className}">{inner}</s>'
-		return html
+		return f'<s id="{self.css_id}">{inner}</s>'
 
 
 class div (element):
@@ -137,23 +142,21 @@ class div (element):
 		return self
 
 	def html(self, layout: Layout) -> str:
-		inner_list: list[str] = []
+		html = ''
 		children_inline = False
 		for item in self.children:
-			inner_list.append(item.html(layout))
+			html += item.html(layout)
 			children_inline = children_inline or item.is_inline
 
-		inner = ''.join(inner_list)
-
-		h = (self.height(layout) - self.padding_height) * layout.rem_width_scale()
-		w = (self.width(layout) - self.padding_width) * layout.rem_width_scale()
+		h = layout.to_rem(self.height(layout) - self.padding_height)
+		w = layout.to_rem(self.width(layout) - self.padding_width)
+		one = layout.to_rem(1)
 
 		if children_inline:
-			html = f'<div class="{div_inline_css.class_name} {self.className}" style="height:{h}rem;width:{w}rem;line-height:{h}rem"><img>{inner}</div>'
+			# this makes it so that divs with an img in them and divs without an img in them all align the same
+			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;line-height:{h}rem;padding:{-one}rem 0 {one}rem 0"><img>{html}</d>'
 		else:
-			html = f'<div class="{self.className}" style="height:{h}rem;width:{w}rem;">{inner}</div>'
-		return html
-
+			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;">{html}</d>'
 
 # uses an img tag to force the width of the phantom to be the width of the item being rendered
 class phantom_sizer (div):
@@ -189,7 +192,7 @@ class text (span, alignable):
 		return self._text
 
 	def align(self, width: int):
-		self.text = self.text[0:width]
+		self.text = self.text[0:int(width)]
 
 	@text.setter
 	def text(self, text: str):
@@ -200,7 +203,7 @@ class text (span, alignable):
 
 	def html(self, layout: Layout) -> str:
 		self.text_html = html_escape(self._text)
-		return f'<s class="{self.className}">{self.text_html}</s>'
+		return f'<s id="{self.css_id}">{self.text_html}</s>'
 
 
 class click (span):
@@ -226,9 +229,9 @@ class icon (span):
 		self.image = image
 
 	def html(self, layout: Layout) -> str:
-		width = 2.5 * layout.rem_width_scale()
-		required_padding = 0.5 * layout.rem_width_scale()
-		return f'<s class="{self.className}" style="padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
+		width = layout.to_rem(2.5)
+		required_padding = layout.to_rem(0.5)
+		return f'<s id="{self.css_id}" style="padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
 
 tokenize_re = re.compile(
 	r'(0x[0-9A-Fa-f]+)' #matches hex
@@ -250,7 +253,7 @@ class code(span, alignable):
 		return len(self.text) + self.padding_width
 
 	def align(self, width: int):
-		self.text = self.text[0:width]
+		self.text = self.text[0:int(width)]
 
 	def html(self, layout: Layout) -> str:
 		self.text_html = ''
@@ -266,11 +269,11 @@ class code(span, alignable):
 
 		return f'<s style="color:var(--foreground);">{self.text_html}</s>'
 
-def flatten_without_none(items: element.Children) -> Generator[element, None, None]:
-	if items is None: pass
-	elif isinstance(items, element):
-		yield items
+def flatten_lists(item_or_list: list[Any]|Any) -> Generator[Any, None, None]:
+	if type(item_or_list) == list:
+		for item in item_or_list:
+			yield from flatten_lists(item)
 	else:
-		for item in items:
-			yield from flatten_without_none(item)
+		yield item_or_list
+		
 		

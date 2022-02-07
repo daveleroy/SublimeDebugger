@@ -121,7 +121,7 @@ class DebuggerProtocolLogger(core.Logger):
 		self.on_post_show_panel.dispose()
 		self.on_pre_hide_panel.dispose()
 
-_phantom_text = '\u200F\u200F\u200F\u200F\u200F'
+_phantom_text = '\u200F\u200F'
 
 class DebuggerOutputPanel(OutputPanel):
 	def __init__(self, window: sublime.Window):
@@ -138,17 +138,21 @@ class DebuggerOutputPanel(OutputPanel):
 		settings.set('margin', 0)
 		settings.set('line_padding_top', 3)
 		settings.set('gutter', False)
+
+		# for some reason if word_wrap is False there is a horizontal scrollbar when the UI fits the window perfectly
+		# If set to True and the wrap_width set to bigger than the window then there is no scrollbar unlesss the UI is sized too large
 		settings.set('word_wrap', True)
-		settings.set('wrap_width', 0)
+		settings.set('wrap_width', 100000)
+
 		settings.set('line_spacing', 0)
 		settings.set('context_menu', 'Widget Debug.sublime-menu')
-		settings.set('draw_centered', True)
 		settings.set('draw_unicode_white_space', 'none')
 		settings.set('draw_unicode_bidi', False)
 		settings.set('is_widget', True)
 		settings.set('sublime_debugger', True)
 		settings.set('font_face', Settings.font_face)
 		self.view.sel().clear()
+		self.view.set_viewport_position((0, 0), False)
 		self.view.set_read_only(True)
 		
 		def on_hide_panel(window: sublime.Window):
@@ -178,9 +182,6 @@ class DebuggerOutputPanel(OutputPanel):
 
 	def is_panel_visible(self) -> bool:
 		return self.window.active_panel() == 'output.Debugger'
-
-	def set_ui_scale(self, ui_scale: float):
-		self.view.settings().set('font_size', ui_scale)
 
 	def panel_show(self) -> None:
 		self.window.run_command('show_panel', {

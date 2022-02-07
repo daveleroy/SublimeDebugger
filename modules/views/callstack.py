@@ -210,7 +210,7 @@ class ThreadView (ui.div):
 			]
 
 		if self.is_selected and not self.session.selected_frame:
-			thread_item.add_class(css.selected.class_name)
+			thread_item.css = css.selected
 
 		if not self.show_thread_name:
 			thread_item = ui.div()
@@ -232,8 +232,9 @@ class StackFrameComponent (ui.div):
 		self.frame = frame
 		self.on_click = on_click
 		self.show_thread_name = show_thread_name
-		if is_selected:
-			self.add_class(css.selected.class_name)
+
+		if session.selected_frame == frame:
+			self.css = css.selected
 
 	def render(self) -> ui.div.Children:
 		frame = self.frame

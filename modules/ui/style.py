@@ -1,15 +1,10 @@
 from __future__ import annotations
 from .. typecheck import *
 
-# TODO: Reclaulate css when the layout changes and replace REM_WIDTH_SCALE with the real value from rem_width_scale
-# close enough for now but it means that every padding calculation will be slightly off
-# better to overestimate and add less padding than more ( calculations don't overlap the side of things)
+from .debug import DEBUG_DRAW
 
-# REM_WIDTH_SCALE = 13/8 font size 13
-# REM_WIDTH_SCALE = 12/7 font size 12
-# REM_WIDTH_SCALE = 11/7 font size 11
-
-REM_WIDTH_SCALE = 7.0/12.0
+if TYPE_CHECKING:
+	from .layout import Layout
 
 base_css = '''
 .dark {
@@ -38,11 +33,69 @@ a {
 img {
 	height: 1.6rem;
 }
+d {
+	display: block;
+}
+i {
+	display: inline-block;
+}
+'''
+
+
+if DEBUG_DRAW:
+	base_css += '''
+d {
+	background-color: color(red alpha(0.25));
+	--panel-color: color(red alpha(0.25));
+	--segment-color: color(red alpha(0.25));
+
+	--text-color: var(--foreground);
+	--label-color: var(--text-color);
+}
+s {
+	background-color: color(blue alpha(0.25));
+	--panel-color: color(blue alpha(0.25));
+	--segment-color: color(blue alpha(0.25));
+
+	--text-color: var(--foreground);
+	--label-color: var(--text-color);
+}
+
 '''
 
 class css:
-	all = base_css
 	id = 0
+	instances = []
+
+	@staticmethod
+	def generate(layout: Layout):
+		css_string = base_css
+		for c in css.instances:
+			css_string += '#{}{{'.format(c.css_id)
+			if not c.height is None:
+				css_string += 'height:{}rem;'.format(layout.to_rem(c.height))
+			if not c.width is None:
+				css_string += 'width:{}rem;'.format(layout.to_rem(c.width))
+			if not c.padding_top is None:
+				css_string += 'padding-top:{}rem;'.format(layout.to_rem(c.padding_top))
+			if not c.padding_bottom is None:
+				css_string += 'padding-bottom:{}rem;'.format(layout.to_rem(c.padding_bottom))
+			if not c.padding_left is None:
+				css_string += 'padding-left:{}rem;'.format(layout.to_rem(c.padding_left))
+			if not c.padding_right is None:
+				css_string += 'padding-right:{}rem;'.format(layout.to_rem(c.padding_right))
+			if not c.background_color is None:
+				css_string += 'background-color:{};'.format(c.background_color)
+			if not c.color is None:
+				css_string += 'color:{};'.format(c.color)
+			if not c.radius is None:
+				css_string += 'border-radius:{}rem;'.format(layout.to_rem(c.radius))
+			if not c.raw is None:
+				css_string += c.raw
+
+			css_string += '}'
+		
+		return css_string
 
 	def __init__(
 		self,
@@ -58,48 +111,43 @@ class css:
 		color: str|None = None,
 	):
 
+		self.raw = raw
+		self.width = width
+		self.height = height
+		self.padding_top = padding_top
+		self.padding_bottom = padding_bottom
+		self.padding_left = padding_left
+		self.padding_right = padding_right
+		self.radius = radius
+		self.background_color = background_color
+		self.color = color
+
 		self.id = css.id
 		css.id += 1
 
-		self.class_name = '_{}'.format(self.id)
+		self.css_id = '_{}'.format(self.id)
 
-		css_string = '.{} {{'.format(self.class_name)
+		css.instances.append(self)
 
 		additional_width = 0.0
 		additional_height = 0.0
 
 		if not height is None:
-			css_string += 'height:{}rem;'.format(height * REM_WIDTH_SCALE)
 			additional_height += height
 		if not width is None:
-			css_string += 'width:{}rem;'.format(width * REM_WIDTH_SCALE)
 			additional_width += width
 		if not padding_top is None:
-			css_string += 'padding-top:{}rem;'.format(padding_top * REM_WIDTH_SCALE)
 			additional_height += padding_top
 		if not padding_bottom is None:
-			css_string += 'padding-bottom:{}rem;'.format(padding_bottom * REM_WIDTH_SCALE)
 			additional_height += padding_bottom
 		if not padding_left is None:
-			css_string += 'padding-left:{}rem;'.format(padding_left * REM_WIDTH_SCALE)
 			additional_width += padding_left
 		if not padding_right is None:
-			css_string += 'padding-right:{}rem;'.format(padding_right * REM_WIDTH_SCALE)
 			additional_width += padding_right
-		if not background_color is None:
-			css_string += 'background-color:{};'.format(background_color)
-		if not color is None:
-			css_string += 'color:{};'.format(color)
-		if not radius is None:
-			css_string += 'border-radius:{}rem;'.format(radius * REM_WIDTH_SCALE)
-		if not raw is None:
-			css_string += raw
-
-		css_string += '}'
-		css.all += css_string
 
 		self.padding_height = additional_height
 		self.padding_width = additional_width
+
 
 
 div_inline_css = css(

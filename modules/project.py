@@ -41,15 +41,10 @@ class Project:
 		data: dict[str, Any] = window.project_data() or {}
 		data.setdefault('debugger_configurations', [])
 		window.set_project_data(data)
-
-		self.disposables = [
-			Settings.updated.add(self.reload)
-		]
 		self.reload()
 
 	def dispose(self):
-		for dispose in self.disposables:
-			dispose.dispose()
+		...
 
 	@property
 	def name(self) -> str:

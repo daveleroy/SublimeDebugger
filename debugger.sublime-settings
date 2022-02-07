@@ -5,6 +5,11 @@
 	// Sets the entire scale of the UI
 	"ui_scale": 10,
 
+	// Only change this value if the UI is overflowing or underflowing the debugger panel
+	// (defaults to 0.773 on Windows)
+	// (defaults to 0.773 on Linux)
+	"ui_estimated_width_scale": 1,
+
 	// change at your own risk it may break the interface. Restart required to take effect
 	"font_face": "Monospace",
 
