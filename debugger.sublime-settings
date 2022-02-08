@@ -70,6 +70,9 @@
 	"lldb_dereference_pointers": true,
 	// probably shouldn't set these
 	"lldb_library": null, // which lldb library to use
-	"lldb_python": null // path to python (3.5 or greater?) that lldb will use
+	"lldb_python": null, // path to python (3.5 or greater?) that lldb will use
+
+	// This value will automatically adjust itself
+	"ui_rem_width_scale": 1.0,
 }
 
