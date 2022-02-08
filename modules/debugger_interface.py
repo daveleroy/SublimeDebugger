@@ -229,7 +229,7 @@ class DebuggerInterface (core.Logger):
 		# these settings control the size of the ui calculated in ui/layout
 		settings = self.panel.view.settings()
 		settings['font_size'] = Settings.ui_scale
-		settings['estimated_width_scale'] = Settings.ui_estimated_width_scale
+		settings['rem_width_scale'] = Settings.ui_rem_width_scale
 
 
 	def on_session_active(self, session: dap.Session):

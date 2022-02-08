@@ -230,24 +230,23 @@ class Layout:
 		size = self.view.viewport_extent()
 		settings = self.view.settings()
 		font_size = settings.get('font_size') or 1
-		width_scale = settings.get('estimated_width_scale') or 1
+		rem_width_scale = settings.get('rem_width_scale') or 1
 		em_width = (self.view.em_width() or 1)
 		# print(self.view.viewport_extent())
 		# check if anything has changed so we can avoid invalidating the layout
-		all = (background, font_size, width_scale, em_width, size[0], size[1])
+		all = (background, font_size, rem_width_scale, em_width, size[0], size[1])
 		# print(all, self._all, size)
 		if self._all == all:
 			return
 
 		self._all = all
 
-		self._width = size[0] / em_width * width_scale
+		self._width = size[0] / em_width
 		self._height = size[1] / em_width
-		
 		self._lightness = lightness_from_color(background)
 
 		# units in minihtml are based on the font_size of the character however we want our units to be 1 character wide
-		self._em_width_to_rem = em_width/font_size
+		self._em_width_to_rem = em_width / font_size *  rem_width_scale
 		self._em_width = em_width
 
 		self.item.dirty()
