@@ -155,6 +155,8 @@ class DebuggerOutputPanel(OutputPanel):
 		self.view.set_viewport_position((0, 0), False)
 		self.view.set_read_only(True)
 		
+		self.timer = core.timer(self.adjust_rem_width_scale, 1, True)
+
 		def on_hide_panel(window: sublime.Window):
 			name = window.active_panel() or ''
 
@@ -180,6 +182,35 @@ class DebuggerOutputPanel(OutputPanel):
 		core.on_pre_hide_panel.add(on_hide_panel)
 		core.on_post_show_panel.add(on_show_panel)
 
+	def dispose(self):
+		super().dispose()
+		self.timer.dispose()
+
+	def adjust_rem_width_scale(self):
+		layout_width = self.view.layout_extent()[0]
+		viewport_width = self.view.viewport_extent()[0]
+
+		# sometimes the viewport is not visible and then returns 0?
+		if viewport_width == 0:
+			return
+
+		overlap = layout_width - viewport_width
+
+		# good enough if we are in this range
+		if overlap <= 0 and overlap >= -5:
+			return
+
+		adjustment = 0.005 * int(abs(overlap) / 10 + 1)
+		value = Settings.ui_rem_width_scale
+		if overlap > 0:
+			print(f'overscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')
+			value = Settings.ui_rem_width_scale - adjustment
+		else:
+			value = Settings.ui_rem_width_scale + adjustment
+			print(f'underscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')
+
+		Settings.ui_rem_width_scale = min(max(value, 0.5), 1.5)
+		
 	def is_panel_visible(self) -> bool:
 		return self.window.active_panel() == 'output.Debugger'
 
