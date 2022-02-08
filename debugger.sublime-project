@@ -17,6 +17,7 @@
 		"examples/python/python.sublime-project",
 		"examples/ruby/ruby.sublime-project",
 		"examples/web/web.sublime-project",
+		"examples/elixir/elixir.sublime-project",
 	],
 	"debugger_compounds": [
 		"examples/cpp/cpp.sublime-project",
@@ -26,6 +27,7 @@
 		"examples/python/python.sublime-project",
 		"examples/ruby/ruby.sublime-project",
 		"examples/web/web.sublime-project",
+		"examples/elixir/elixir.sublime-project",
 	],
 	"debugger_configurations": [
 		"examples/cpp/cpp.sublime-project",
@@ -35,5 +37,6 @@
 		"examples/python/python.sublime-project",
 		"examples/ruby/ruby.sublime-project",
 		"examples/web/web.sublime-project",
+		"examples/elixir/elixir.sublime-project",
 	],
 }

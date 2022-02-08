@@ -67,12 +67,14 @@ class Process:
 
 
 class StdioTransport(Transport):
-	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None):
+	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None, stderr: Callable[[str], None] | None = None):
 		log.log('transport', f'⟸ process/starting :: {command}')
 		self.process = Process(command, cwd)
 		
 		def log_stderr(data: str):
 			log.log('transport', f'⟸ process/stderr :: {data}')
+			if stderr:
+				stderr(data)
 
 		thread = threading.Thread(target=self._read, args=(self.process.stderr, log_stderr))
 		thread.start()

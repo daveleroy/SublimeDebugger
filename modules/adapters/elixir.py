@@ -9,8 +9,8 @@ import shutil
 
 class Elixir(adapter.AdapterConfiguration):
 
-	type = "elixir"
-	docs = "https://github.com/elixir-lsp/elixir-ls#debugger-support"
+	type = 'elixir'
+	docs = 'https://github.com/elixir-lsp/elixir-ls#debugger-support'
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 
@@ -19,7 +19,7 @@ class Elixir(adapter.AdapterConfiguration):
 		command = [
 			f'{install_path}/extension/elixir-ls-release/debugger.{extension}'
 		]
-		return adapter.StdioTransport(log, command)
+		return adapter.StdioTransport(log, command, stderr=log.error)
 
 	async def install(self, log: core.Logger):
 
