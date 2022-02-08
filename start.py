@@ -39,11 +39,11 @@ was_opened_at_startup: Set[int] = set()
 
 def plugin_loaded() -> None:
 	core.info('startup')
-	ui.startup()
 	SettingsRegistery.initialize(on_updated=updated_settings)
-
-	AdaptersRegistry.initialize()
 	CommandsRegistry.initialize()
+	AdaptersRegistry.initialize()
+
+	ui.startup()
 
 	for window in sublime.windows():
 		open(window)

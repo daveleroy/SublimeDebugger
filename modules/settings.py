@@ -5,7 +5,15 @@ from typing import Any, Callable
 import sublime
 from .import core
 
-class Settings:
+class SettingsMeta(type):
+	def __getattribute__(self, key: str) -> Any:
+		return SettingsRegistery.settings.get(key)
+
+	def __setattr__(self, key: str, value: Any) -> None:
+		SettingsRegistery.settings.set(key, value)
+		sublime.save_settings('debugger.sublime-settings')
+
+class Settings(metaclass=SettingsMeta):
 	open_at_startup: bool = True
 	ui_scale: int = 10
 	ui_rem_width_scale: float = 1
@@ -39,41 +47,13 @@ class Settings:
 
 
 class SettingsRegistery:
-	@staticmethod
-	def initialize_class(Class, settings):
-		core.debug('--', Class.__name__, '--')
-
-		for variable_name in vars(Class):
-			if variable_name.startswith('_'): continue
-			core.debug('setting:', variable_name)
-
-			if variable_name == 'initialize': continue
-			if variable_name == 'save': continue
-
-			key = variable_name
-
-			class Set:
-				def __init__(self, key: str):
-					self.key = key
-
-				def __get__(self, obj: Any, objtype: Any):
-					return settings.get(self.key)
-
-				def __set__(self, obj: Any, val: Any):
-					settings.set(self.key, val)
-					sublime.save_settings('debugger.sublime-settings')
-
-			s = Set(key)
-			setattr(Class, variable_name, s)
+	settings: sublime.Settings
 
 	@staticmethod
 	def initialize(on_updated: Callable[[], None]):
-		settings = sublime.load_settings('debugger.sublime-settings')
-		settings.add_on_change('debugger_settings', on_updated)
-
-		SettingsRegistery.initialize_class(Settings, settings)
-		for Class in Settings.__subclasses__():
-			SettingsRegistery.initialize_class(Class, settings)
+		SettingsRegistery.settings = sublime.load_settings('debugger.sublime-settings')
+		SettingsRegistery.settings.clear_on_change('debugger_settings')
+		SettingsRegistery.settings.add_on_change('debugger_settings', on_updated)
 
 	@staticmethod
 	def save():
