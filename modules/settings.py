@@ -16,7 +16,9 @@ class SettingsMeta(type):
 class Settings(metaclass=SettingsMeta):
 	open_at_startup: bool = True
 	ui_scale: int = 10
+
 	ui_rem_width_scale: float = 1
+	ui_rem_width_scale_adjust_automatically: bool = False
 
 	font_face: str = 'Monospace'
 

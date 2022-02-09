@@ -187,6 +187,9 @@ class DebuggerOutputPanel(OutputPanel):
 		self.timer.dispose()
 
 	def adjust_rem_width_scale(self):
+		if not Settings.ui_rem_width_scale_adjust_automatically:
+			return
+
 		layout_width = self.view.layout_extent()[0]
 		viewport_width = self.view.viewport_extent()[0]
 
@@ -200,7 +203,7 @@ class DebuggerOutputPanel(OutputPanel):
 		if overlap <= 0 and overlap >= -5:
 			return
 
-		adjustment = 0.005 * int(abs(overlap) / 10 + 1)
+		adjustment = 0.001 * int(abs(overlap) / 2 + 1)
 		value = Settings.ui_rem_width_scale
 		if overlap > 0:
 			print(f'overscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')

@@ -5,6 +5,12 @@
 	// Sets the entire scale of the UI
 	"ui_scale": 10,
 
+	// This value adjusts the estimated character width calculations used to align the ui
+	"ui_rem_width_scale": 1.0,
+	// If true ui_rem_width_scale will be adjusted based on if the debugger layout is over/under shooting the panel.
+	// Defaults to true on Windows/Linux
+	"ui_rem_width_scale_adjust_automatically": false,
+
 	// change at your own risk it may break the interface. Restart required to take effect
 	"font_face": "Monospace",
 
@@ -28,7 +34,7 @@
 			"command": "set_layout", 
 			"args": {
 				"cells": [[0, 0, 1, 1], [1, 0, 2, 1]],
-				"cols": [0, 0.5, 1],
+				"cols": [0, 0.666, 1],
 				"rows": [0, 1],
 			}		
 		},
@@ -71,8 +77,5 @@
 	// probably shouldn't set these
 	"lldb_library": null, // which lldb library to use
 	"lldb_python": null, // path to python (3.5 or greater?) that lldb will use
-
-	// This value will automatically adjust itself
-	"ui_rem_width_scale": 1.0,
 }
 
