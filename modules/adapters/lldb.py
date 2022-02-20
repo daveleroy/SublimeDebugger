@@ -11,14 +11,14 @@ from ..views.input_list_view import InputListView
 from ..import commands
 from ..import settings
 
-from .import adapter
+from .import util
 
 import re
 import threading
 
 
-class LLDBTransport(adapter.SocketTransport):
-	def __init__(self, adapter_process: adapter.Process, port: int, log: core.Logger):
+class LLDBTransport(dap.SocketTransport):
+	def __init__(self, adapter_process: dap.Process, port: int, log: core.Logger):
 		self.process = adapter_process
 
 		super().__init__(log, 'localhost', port)
@@ -68,13 +68,41 @@ class LLDBSettings(settings.Settings):
 	lldb_library: str|None = None
 	lldb_python: str|None = None
 
-class LLDB(adapter.AdapterConfiguration):
+class LLDB(dap.AdapterConfiguration):
 
 	type = 'lldb'
 	docs = 'https://github.com/vadimcn/vscode-lldb/blob/master/MANUAL.md#starting-a-new-debug-session'
 
+
+	# toggle_disassembly = commands.CommandDebugger(
+	# 	'LLDB Toggle Disassembly',
+	# 	lambda debugger: LLDB.toggle_disassembly(debugger)
+	# )
+
+	# display = commands.CommandDebugger(
+	# 	'LLDB Display Options',
+	# 	lambda debugger: LLDB.display_menu(debugger).run()
+	# )
+	# toggle_dereference = commands.CommandDebugger(
+	# 	'LLDB Toggle Dereference',
+	# 	lambda debugger: LLDB.toggle_deref(debugger)
+	# )
+
+	# show_disassembly: str = settings.Setting(
+	# 	'auto',
+	# 	description
+	# )
+
+	# display_format: str = settings.Setting('auto')
+
+	dereference_pointers: bool = True
+	library: str|None = None
+	python: str|None = None
+
+	
+
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
-		install_path = adapter.vscode.install_path(self.type)
+		install_path = util.vscode.install_path(self.type)
 
 		command = [
 			f'{install_path}/extension/adapter/codelldb',
@@ -84,7 +112,7 @@ class LLDB(adapter.AdapterConfiguration):
 		if liblldb:
 			command.extend(['--liblldb', liblldb])
 
-		process = adapter.Process(command, None)
+		process = dap.Process(command, None)
 
 		try:
 			line = await process.readline(process.stdout)
@@ -128,22 +156,22 @@ class LLDB(adapter.AdapterConfiguration):
 		else:
 			raise core.Error('Your platforms architecture is not supported by vscode lldb. See https://github.com/vadimcn/vscode-lldb/releases/latest')
 
-		await adapter.vscode.install(self.type, url, log)
+		await util.vscode.install(self.type, url, log)
 
 	async def installed_status(self, log: core.Logger):
-		return await adapter.git.installed_status('vadimcn', 'vscode-lldb', self.installed_version, log)
+		return await util.git.installed_status('vadimcn', 'vscode-lldb', self.installed_version, log)
 
 	@property
 	def installed_version(self) -> str|None:
-		return adapter.vscode.installed_version(self.type)
+		return util.vscode.installed_version(self.type)
 
 	@property
 	def configuration_snippets(self):
-		return adapter.vscode.configuration_snippets(self.type)
+		return util.vscode.configuration_snippets(self.type)
 
 	@property
 	def configuration_schema(self):
-		return adapter.vscode.configuration_schema(self.type)
+		return util.vscode.configuration_schema(self.type)
 
 	@staticmethod
 	def adapter_settings():
@@ -172,6 +200,7 @@ class LLDB(adapter.AdapterConfiguration):
 
 	@staticmethod
 	def toggle_disassembly(debugger: dap.Debugger):
+		print('toggle_disassembly')
 		if LLDBSettings.lldb_show_disassembly == 'auto':
 			LLDBSettings.lldb_show_disassembly = 'always'
 		else:

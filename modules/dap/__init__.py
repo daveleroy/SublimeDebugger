@@ -41,10 +41,14 @@ from .configuration import (
 	Task,
 	TaskExpanded,
 )
-from .transport import (
-	Transport,
-)
 
 from .debugger import (
 	Debugger,
+)
+
+from .transports import (
+	Transport,
+	Process,
+	StdioTransport,
+	SocketTransport,
 )

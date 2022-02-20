@@ -1,9 +1,9 @@
 from __future__ import annotations
-from ...typecheck import *
+from ..typecheck import *
 from typing import IO
 
-from ...import core
-from ...dap import Transport
+from ..import core
+from .transport import Transport
 
 import socket
 import os
@@ -11,6 +11,32 @@ import subprocess
 import threading
 
 class Process:
+	processes: set[subprocess.Popen] = set()
+
+	@staticmethod
+	def cleanup_processes():
+		for self in Process.processes:
+			if self.poll() is not None:
+				core.info('killing process')
+				self.kill()
+
+		Process.processes.clear()
+
+	@staticmethod
+	def remove_finished_processes():
+		finished = []
+		for self in Process.processes:
+			if self.poll() is not None:
+				finished.append(self)
+
+		for f in finished:
+			Process.processes.remove(f)
+
+	@staticmethod
+	def add_subprocess(process: subprocess.Popen):
+		Process.remove_finished_processes()
+		Process.processes.add(process)
+
 	@staticmethod
 	async def check_output(command: list[str], cwd: str|None = None) -> bytes:
 		return await core.run_in_executor(lambda: subprocess.check_output(command, cwd=cwd))
@@ -32,6 +58,8 @@ class Process:
 			startupinfo=startupinfo,
 			cwd = cwd)
 
+		Process.add_subprocess(self.process)
+
 		stdin = self.process.stdin; assert stdin
 		stderr = self.process.stderr; assert stderr
 		stdout = self.process.stdout; assert stdout
@@ -41,6 +69,7 @@ class Process:
 		self.stdout = stdout
 
 		self.closed = False
+
 
 	def _readline(self, pipe: IO[bytes]) -> bytes:
 		if l := pipe.readline():
@@ -61,8 +90,8 @@ class Process:
 	def dispose(self):
 		self.closed = True
 		try:
-			self.process.terminate()
-		except Exception as e:
+			self.process.kill()
+		except Exception:
 			core.log_exception()
 
 
@@ -138,3 +167,35 @@ class SocketTransport(Transport):
 			self.socket.close()
 		except:
 			core.log_exception()
+
+
+# class StdioSocketTransport(Transport):
+# 	def __init__(self, regex: Any, port: int, log: core.Logger):
+# 		self.process = adapter_process
+
+# 		super().__init__(log, 'localhost', port)
+
+# 		def log_stderr(data: str):
+# 			log.log('transport', f'⟸ process/stderr :: {data}')
+
+# 		thread = threading.Thread(target=self._read, args=(self.process.stderr, log_stderr))
+# 		thread.start()
+
+# 	def connect(self):
+# 		adapter.SocketTransport
+
+# 	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
+# 		while True:
+# 			try:
+# 				line = file.read(2**15).decode('UTF-8')
+# 				if not line:
+# 					core.info('Nothing to read from process, closing')
+# 					break
+# 				core.info(line)
+# 				core.call_soon_threadsafe(callback, line)
+# 			except Exception as e:
+# 				core.log_exception()
+# 				break
+
+# 	def dispose(self) -> None:
+# 		self.process.dispose()

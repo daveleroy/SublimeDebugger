@@ -2,14 +2,15 @@ from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
+from ..import ui
 from ..import dap
 
-from .import adapter
+from .import util
 
 import re
 
 
-class Transport(adapter.SocketTransport):
+class Transport(dap.SocketTransport):
 	def __init__(self, log: core.Logger, process: Any, port: int, cwd: str|None = None):
 		super().__init__(log, 'localhost', port, cwd)
 		self.process = process
@@ -31,44 +32,44 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 	sessions: dict[dap.Session, Any] = {}
 
 	@property
-	def info(self): return adapter.vscode.info('js')
+	def info(self): return util.vscode.info('js')
 
 	@property
 	def configuration_snippets(self):
-		return adapter.vscode.configuration_snippets('js', self.type_internal)
+		return util.vscode.configuration_snippets('js', self.type_internal)
 
 	@property
 	def configuration_schema(self):
-		return adapter.vscode.configuration_schema('js', self.type_internal)
+		return util.vscode.configuration_schema('js', self.type_internal)
 
 	async def install(self, log: core.Logger):
-		url = await adapter.git.latest_release_vsix('daveleroy', 'vscode-js-debug')
-		await adapter.vscode.install('js', url, log)
+		url = await util.git.latest_release_vsix('daveleroy', 'vscode-js-debug')
+		await util.vscode.install('js', url, log)
 
 	async def installed_status(self, log: core.Logger):
-		return await adapter.git.installed_status('daveleroy', 'vscode-js-debug', self.installed_version, log)
+		return await util.git.installed_status('daveleroy', 'vscode-js-debug', self.installed_version, log)
 
 	@property
 	def installed_version(self) -> str|None:
-		return adapter.vscode.installed_version('js')
+		return util.vscode.installed_version('js')
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		__jsDebugChildServer = configuration.get('__jsDebugChildServer')
 
 		if __jsDebugChildServer is not None:
 			server = int(__jsDebugChildServer)
-			transport = adapter.SocketTransport(log, 'localhost', server)
+			transport = dap.SocketTransport(log, 'localhost', server)
 			return transport
 
-		node = await adapter.get_and_warn_require_node(self.type, log)
-		install_path = adapter.vscode.install_path('js')
+		node = await util.get_and_warn_require_node(self.type, log)
+		install_path = util.vscode.install_path('js')
 		command = [
 			node,
 			# '/Users/david/Desktop/vscode-js-debug-master 3/dist/src/vsDebugServer.js'
 			f'{install_path}/extension/src/vsDebugServer.bundle.js'
 		]
 
-		process = adapter.Process(command, None)
+		process = dap.Process(command, None)
 
 		try:
 			try:

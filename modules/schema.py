@@ -1,7 +1,7 @@
 from __future__ import annotations
-from ...typecheck import*
-from ...import dap
-from ...import core
+from .typecheck import*
+from .import dap
+from .import core
 
 import sublime
 import json
@@ -17,9 +17,11 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 			installed_adapters.append(adapter.type)
 
 	definitions = {}
+	debugger_snippets = []
 
 	for adapter in adapters:
 		schema = adapter.configuration_schema or {}
+		snippets = adapter.configuration_snippets or []
 
 		requests: list[str] = []
 		for key, value in schema.items():
@@ -77,6 +79,15 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 					'$ref': F'#/definitions/{adapter.type}_{key}'
 				},
 			})
+		
+		for snippet in snippets:
+			debugger_snippets.append({
+				'label': snippet['label'],
+				'body': snippet['body'],
+				# 'bodyText': core.json_encode_json_language_service_format(snippet['body']),
+				'description': snippet.get('description')
+			})
+			print(snippet)
 
 	debugger_configurations = {
 		'type': 'object',
@@ -87,9 +98,12 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 				'enum': installed_adapters,
 			},
 		},
+		 'defaultSnippets': debugger_snippets,
 		'required': ['type', 'name', 'request'],
 		'allOf': allOf,
 	}
+
+
 
 	debugger_tasks = {
 		'allOf': [
@@ -106,20 +120,17 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 	}
 
 	debugger_compounds = {
-		'allOf': [
-			{
-				'properties': {
-					'name': {
-						'type': 'string'
-					},
-					'configurations': {
-						'type': 'array',
-						'items': { 'type': 'string' }
-					}
-				},
-				'required': ['name', 'configurations']
+		'type': 'object',
+		'properties': {
+			'name': {
+				'type': 'string'
+			},
+			'configurations': {
+				'type': 'array',
+				'items': { 'type': 'string' }
 			}
-		]
+		},
+		'required': ['name', 'configurations']
 	}
 
 	schema_debug_configurations = {

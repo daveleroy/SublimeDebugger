@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import BinaryIO
 from ...typecheck import *
 from ...import core
 
@@ -10,7 +11,7 @@ import urllib.request
 import json
 import pathlib
 import certifi
-import uuid
+
 
 from dataclasses import dataclass
 
@@ -44,9 +45,8 @@ def info(type: str) -> Optional[AdapterInfo]:
 		return info
 
 	path = f'{core.current_package()}/data/adapters/{type}'
-	path_installed = f'{path}/.sublime_debugger'
 
-	if not os.path.exists(path_installed):
+	if not os.path.exists(path):
 		return None
 
 	version = '??'
@@ -55,14 +55,15 @@ def info(type: str) -> Optional[AdapterInfo]:
 	strings: dict[str, str] = {}
 
 	try:
-		with open(f'{path}/extension/package.nls.json') as file:
+		with open(f'{path}/extension/package.nls.json', encoding='utf8') as file:
 			# add % so that we can just match string values directly in the package.json since we are only matching entire strings
+			# strings_json = core.json_decode_readable(file)
 			strings_json = json.load(file)
-			strings = { F'%{key}%' : value for key, value in  strings_json.items() }
+			strings = { F'%{key}%' : value for key, value in strings_json.items() }
 	except:
 		...
 
-	with open(f'{path}/extension/package.json') as file:
+	with open(f'{path}/extension/package.json', encoding='utf8') as file:
 		package_json = replace_localized_placeholders(json.load(file), strings)
 		version = package_json.get('version')
 		for debugger in package_json.get('contributes', {}).get('debuggers', []):
@@ -98,53 +99,96 @@ def configuration_snippets(type: str, vscode_type: str|None = None) -> list[Any]
 
 	return None
 
+
+
+@dataclass
+class Config:
+	headers: dict[str, str]|None = None
+	body: bytes|None = None
+	method: str|None = None
+
+
+@dataclass
+class Response:
+	headers: dict[str, str]
+	data: BinaryIO
+
+async def request(url: str, config: Config = Config()):
+	headers = {
+		'Accept-Encoding': 'gzip, deflate'
+	}
+	if config.headers:
+		for h, v in config.headers.items():
+			headers[h] = v
+
+	request = urllib.request.Request(url, headers=headers, data=config.body)
+	response = urllib.request.urlopen(request, cafile=certifi.where())
+
+	content_encoding = response.headers.get('Content-Encoding')
+	if content_encoding == 'gzip':
+		data_file = gzip.GzipFile(fileobj=response) #type: ignore
+	elif content_encoding == 'deflate':
+		data_file = response
+	elif content_encoding:
+		raise core.Error(f'Unknown Content-Encoding {content_encoding}')
+	else:
+		data_file = response
+
+	return Response(headers=response.headers, data=data_file) #type: ignore
+
+# async def request_json(url: str, config: Config):
+# 	file = request(url, config)
+# 	return json file.read()
+
 async def install(type: str, url: str, log: core.Logger, post_download_action: Optional[Callable[[], Awaitable[Any]]] = None):
 	try:
 		del _info_for_type[type]
 	except KeyError:
 		...
+	
+	def log_info(value: str):
+		core.call_soon_threadsafe(log.info, value)
+
 	path = install_path(type)
+	temporary_path = path + '_temp'
+
+	# ensure adapters folder exists
+	adapters_path = pathlib.Path(path).parent
+
+	if not adapters_path.is_dir():
+		adapters_path.mkdir()
+
+	if os.path.isdir(path):
+		log_info('removing previous installation...')
+		shutil.rmtree(_abspath_fix(path))
+		log_info('...removed')
+
+	if os.path.isdir(temporary_path):
+		log_info('removing previous temporary installation...')
+		shutil.rmtree(_abspath_fix(path))
+		log_info('...removed')
+
+
+	log_info('downloading...')
+	response = await request(url)
 
 	def blocking():
-		def log_info(value: str):
-			core.call_soon_threadsafe(log.info, value)
-
-		# ensure adapters folder exists
-		adapters_path = pathlib.Path(path).parent
-
-		if not adapters_path.is_dir():
-			adapters_path.mkdir()
-
-		if os.path.isdir(path):
-			log_info('removing previous installation...')
-			shutil.rmtree(_abspath_fix(path))
-			log_info('...removed')
-
-		log_info('downloading...')
-		request = urllib.request.Request(url, headers={
-			'Accept-Encoding': 'gzip',
-			'X-Market-User-Id': str(uuid.uuid4()),
-		})
-		response = urllib.request.urlopen(request, cafile=certifi.where())
-		os.mkdir(path)
-
-		content_encoding = response.headers.get('Content-Encoding')
-		if content_encoding == 'gzip':
-			data_file = gzip.GzipFile(fileobj=response) #type: ignore
-		else:
-			data_file = response
+		
+		os.mkdir(temporary_path)	
 
 		archive_name = '{}.zip'.format(path)
 		with open(archive_name, 'wb') as out_file:
-			copyfileobj(data_file, out_file, log_info, int(response.headers.get('Content-Length', '0')))
+			copyfileobj(response.data, out_file, log_info, int(response.headers.get('Content-Length', '0')))
 
 		log_info('...downloaded')
 
 		log_info('extracting...')
 		with ZipfileLongPaths(archive_name) as zf:
-			zf.extractall(path)
+			zf.extractall(temporary_path)
 		log_info('...extracted')
 		os.remove(archive_name)
+		os.rename(temporary_path, path)
+
 
 	log.info(f'Installing adapter: {type}')
 	log.info('from: {}'.format(url))

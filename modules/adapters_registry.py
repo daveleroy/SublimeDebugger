@@ -187,5 +187,5 @@ class AdaptersRegistry:
 
 	@staticmethod
 	def recalculate_schema():
-		from .adapters.adapter.schema import save_schema
+		from .schema import save_schema
 		save_schema(AdaptersRegistry.all)

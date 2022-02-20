@@ -1,14 +1,14 @@
 from __future__ import annotations
 from ..typecheck import *
 
-from .import adapter
+from .import util
 from .. import dap
 from .. import core
 
 import sublime
 import shutil
 
-class Python(adapter.AdapterConfiguration):
+class Python(dap.AdapterConfiguration):
 
 	type = 'python'
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
@@ -20,18 +20,18 @@ class Python(adapter.AdapterConfiguration):
 				host = connect.get('host', 'localhost')
 				port = connect.get('port')
 
-				return adapter.SocketTransport(log, host, port)
+				return dap.SocketTransport(log, host, port)
 
 			port = configuration.get('port')
 			if port:
 				host = configuration.get('host', 'localhost')
 
-				return adapter.SocketTransport(log, host, port)
+				return dap.SocketTransport(log, host, port)
 
 			if not configuration.get('listen') and not configuration.get('processId'):
 				sublime.error_message('Warning: Check your debugger configuration.\n\n"attach" requires "connect", "listen" or "processId".\n\nIf they contain a $variable that variable may not have existed.')
 
-		install_path = adapter.vscode.install_path(self.type)
+		install_path = util.vscode.install_path(self.type)
 
 		python = configuration.get('pythonPath')
 
@@ -46,26 +46,26 @@ class Python(adapter.AdapterConfiguration):
 			f'{install_path}/extension/pythonFiles/lib/python/debugpy/adapter',
 		]
 
-		return adapter.StdioTransport(log, command)
+		return dap.StdioTransport(log, command)
 
 	async def install(self, log: core.Logger):
-		url = await adapter.git.latest_release_vsix('microsoft', 'vscode-python')
-		await adapter.vscode.install(self.type, url, log)
+		url = await util.git.latest_release_vsix('microsoft', 'vscode-python')
+		await util.vscode.install(self.type, url, log)
 
 	async def installed_status(self, log: core.Logger):
-		return await adapter.git.installed_status('microsoft', 'vscode-python', self.installed_version, log)
+		return await util.git.installed_status('microsoft', 'vscode-python', self.installed_version, log)
 
 	@property
 	def installed_version(self) -> str|None:
-		return adapter.vscode.installed_version(self.type)
+		return util.vscode.installed_version(self.type)
 
 	@property
 	def configuration_snippets(self):
-		return adapter.vscode.configuration_snippets(self.type)
+		return util.vscode.configuration_snippets(self.type)
 
 	@property
 	def configuration_schema(self):
-		return adapter.vscode.configuration_schema(self.type)
+		return util.vscode.configuration_schema(self.type)
 
 	# TODO: patch in env since python seems to not inherit it from the adapter proccess.
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
