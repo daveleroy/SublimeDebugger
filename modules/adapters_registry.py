@@ -12,17 +12,34 @@ import functools
 
 
 class AdaptersRegistry:
-	all: ClassVar[list[dap.AdapterConfiguration]]
+	all: ClassVar[list[dap.AdapterConfiguration]] = []
+	types: ClassVar[dict[str, dap.AdapterConfiguration]] = {}
 
 	@staticmethod
 	def initialize():
-		AdaptersRegistry.all = [klass() for klass in dap.AdapterConfiguration.__subclasses__()]
+		def subclasses(cls=dap.AdapterConfiguration):
+			all_subclasses = []
+			for subclass in cls.__subclasses__():
+				all_subclasses.append(subclass)
+				all_subclasses.extend(subclasses(subclass))
+			return all_subclasses
+
+		# create and register all the adapters
+		for klass in subclasses():
+			AdaptersRegistry.register(klass())
+
+	@staticmethod
+	def register(adapter: dap.AdapterConfiguration):
+		AdaptersRegistry.all.append(adapter)
+		
+		AdaptersRegistry.types[adapter.type] = adapter
+		for type in adapter.types:
+			AdaptersRegistry.types[type] = adapter
 
 	@staticmethod
 	def get(type: str) -> dap.AdapterConfiguration:
-		for adapter in AdaptersRegistry.all:
-			if type == adapter.type:
-				return adapter
+		if adapter := AdaptersRegistry.types.get(type):
+			return adapter
 
 		raise core.Error(f'Unable to find debug adapter with the type name "{type}"')
 
@@ -62,9 +79,13 @@ class AdaptersRegistry:
 		for adapter in AdaptersRegistry.all:
 			if not Settings.development and adapter.development:
 				continue
+
 			async def item(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
 				name = adapter.type
 				installed_version = adapter.installed_version
+
+				if adapter.development:
+					name += '\tdev'
 
 				if check_status and installed_version:
 					name += '\t'

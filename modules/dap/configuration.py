@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 class AdapterConfiguration:
 	type: str
+	types: list[str] = []
+	
 	docs: str | None
 	development: bool = False
 
