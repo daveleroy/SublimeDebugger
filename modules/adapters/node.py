@@ -5,9 +5,9 @@ from .import adapter
 from .. import dap
 from .. import core
 
-class Node(adapter.AdapterConfiguration):
+class NodeLegacy(adapter.AdapterConfiguration):
 
-	type = 'node'
+	type = 'node-legacy'
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/nodejs/nodejs-debugging.md#nodejs-debugging-in-vs-code'
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
