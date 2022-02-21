@@ -1,6 +1,5 @@
 from __future__ import annotations
 from ..typecheck import *
-from ..import core
 from ..import ui
 
 from .. import dap

@@ -72,7 +72,7 @@ class TransportProtocol:
 				# handle Content-Length: 119\r\n
 				line = self.transport.readline()
 				if not header.startswith(header):
-					print('Expecting Content-Length: header but did not...')
+					core.error('Expecting Content-Length: header but did not...')
 					continue
 
 				size = int(line[header_length:].strip())
@@ -80,8 +80,8 @@ class TransportProtocol:
 				#handle \r\n
 				line = self.transport.readline()
 				if line != b'\r\n':
-					print('Expected \\n\\r but did not find...')
-					print(line)
+					core.error('Expected \\n\\r but did not find...')
+					core.error(line)
 					continue
 
 

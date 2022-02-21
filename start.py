@@ -18,7 +18,8 @@ from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerComm
 
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
 from .modules.autocomplete import AutocompleteEventListener
-from .modules.output_view import DebuggerPreConsoleWindowHooks, DebuggerPostConsoleViewHooks, DebuggerPostConsoleWindowHooks
+from .modules.console_output_view import DebuggerPreConsoleWindowHooks, DebuggerPostConsoleViewHooks, DebuggerPostConsoleWindowHooks
+
 from .modules.typecheck import *
 
 from .modules import core
@@ -46,7 +47,7 @@ def plugin_loaded() -> None:
 	ui.startup()
 
 	for window in sublime.windows():
-		open(window)
+		open_debugger_in_window_or_view(window)
 
 
 def plugin_unloaded() -> None:
@@ -57,7 +58,7 @@ def plugin_unloaded() -> None:
 	ui.shutdown()
 
 
-def open(window_or_view: Union[sublime.View, sublime.Window]):
+def open_debugger_in_window_or_view(window_or_view: Union[sublime.View, sublime.Window]):
 	if isinstance(window_or_view, sublime.View):
 		window = window_or_view.window()
 	else:
@@ -108,7 +109,7 @@ class Listener (sublime_plugin.EventListener):
 		return not bool(Debugger.instances)
 
 	def on_new_window(self, window: sublime.Window):
-		open(window)
+		open_debugger_in_window_or_view(window)
 
 	def on_pre_close_window(self, window: sublime.Window):
 		if debugger := Debugger.get(window):
@@ -172,7 +173,7 @@ class Listener (sublime_plugin.EventListener):
 	
 		# errors trying to evaluate a hover expression should be ignored
 		except dap.Error as e:
-			core.log_error('adapter failed hover evaluation', e)
+			core.error('adapter failed hover evaluation', e)
 
 	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any]) -> Any:
 		if self.ignore(view): return
@@ -204,8 +205,6 @@ class Listener (sublime_plugin.EventListener):
 		debuggers = most_relevant_debuggers_for_view(view)
 		if not debuggers:
 			return False
-
-		items: list[ui.InputListItem] = []
 
 		for debugger in debuggers:
 			breakpoints = debugger.breakpoints

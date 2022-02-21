@@ -206,11 +206,11 @@ class DebuggerOutputPanel(OutputPanel):
 		adjustment = 0.001 * int(abs(overlap) / 2 + 1)
 		value = Settings.ui_rem_width_scale
 		if overlap > 0:
-			print(f'overscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')
+			core.info(f'overscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')
 			value = Settings.ui_rem_width_scale - adjustment
 		else:
 			value = Settings.ui_rem_width_scale + adjustment
-			print(f'underscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')
+			core.info(f'underscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')
 
 		Settings.ui_rem_width_scale = min(max(value, 0.5), 1.5)
 		

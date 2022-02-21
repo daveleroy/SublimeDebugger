@@ -5,12 +5,13 @@ import time
 
 from .core import *
 from .sublime import *
-from .log import *
 from .event import Handle, Event, EventReturning
 from . import platform
 from .error import Error
 
 from .json import json_encode, json_decode
+
+from .log import *
 
 _current_package = __package__.split('.', 1)[0]
 _current_package_path = os.path.join(sublime.packages_path(), _current_package)

@@ -7,7 +7,6 @@ import subprocess
 import shutil
 
 def version_tuple(v):
-	print(v)
 	return tuple(v.split('.'))
 
 def get_node_path(adapter_type: str) -> str:

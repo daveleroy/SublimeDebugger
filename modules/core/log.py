@@ -15,21 +15,6 @@ def log_configure(log_info: bool, log_errors: bool, log_exceptions: bool):
 	_should_log_error = log_errors
 	_should_log_info = log_info
 
-
-def log_error(*args: Any) -> None:
-	if not _should_log_error:
-		return
-	print('Debugger: error:', *args)
-
-
-def log_exception(*args: Any) -> None:
-	import traceback
-	if not _should_log_exceptions:
-		return
-	print(*args, end='')
-	print(traceback.format_exc())
-
-
 def info(*args: Any) -> None:
 	if not _should_log_info:
 		return
@@ -45,8 +30,9 @@ def exception(*args: Any) -> None:
 	import traceback
 	if not _should_log_exceptions:
 		return
-	print(*args, end='')
+	print('Debugger:', *args, end='')
 	print(traceback.format_exc())
+	print('--')
 
 
 def debug(*args: Any) -> None:

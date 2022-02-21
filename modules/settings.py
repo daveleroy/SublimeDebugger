@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Callable
 
 import sublime
-from .import core
 
 class SettingsMeta(type):
 	def __getattribute__(self, key: str) -> Any:

@@ -67,7 +67,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 				Debugger.instances[id] = instance
 
 			except core.Error as _:
-				core.log_exception()
+				core.exception()
 
 			Debugger.creating[id] = False
 
@@ -141,6 +141,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 			watch=self.watch, 
 			listener=self, 
 			transport_log=self,
+			debugger=self,
 			parent=parent)
 
 		@core.schedule

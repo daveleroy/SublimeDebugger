@@ -39,7 +39,7 @@ class LLDBTransport(dap.SocketTransport):
 				core.info(line)
 				core.call_soon_threadsafe(callback, line)
 			except Exception as e:
-				core.log_exception()
+				core.exception()
 				break
 
 	def dispose(self) -> None:

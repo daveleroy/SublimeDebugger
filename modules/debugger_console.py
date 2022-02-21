@@ -7,25 +7,25 @@ from .import ui
 
 from .views import css
 from .views.variable import VariableComponent
-from .output_view import OutputView
+from .console_output_view import ConsoleOutputView
 import sublime
 
 class DebuggerConsole:
 	def __init__(self, window: sublime.Window, on_navigate: Callable[[dap.SourceLocation], None]):
 		self.on_navigate = on_navigate
 		self.window = window
-		self.panel: OutputView|None = None
+		self.panel: ConsoleOutputView|None = None
 		self.indent = ''
 
 	def dispose(self):
 		if self.panel:
 			self.panel.dispose()
 
-	def acquire_panel(self) -> OutputView:
+	def acquire_panel(self) -> ConsoleOutputView:
 		if not self.panel or self.panel.is_closed:
 			if self.panel:
 				self.panel.dispose()
-			self.panel = OutputView(self.window, 'Debugger Console')
+			self.panel = ConsoleOutputView(self.window, 'Debugger Console')
 
 		return self.panel
 

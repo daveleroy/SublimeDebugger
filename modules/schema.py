@@ -87,7 +87,6 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 				# 'bodyText': core.json_encode_json_language_service_format(snippet['body']),
 				'description': snippet.get('description')
 			})
-			print(snippet)
 
 	debugger_configurations = {
 		'type': 'object',

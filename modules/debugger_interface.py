@@ -181,26 +181,26 @@ class DebuggerInterface (core.Logger):
 			if not active_configurations:
 				return
 
+			# grab variables before we open the console because the console will become the focus
+			# and then things like $file would point to the console
+			variables = self.project.extract_variables()
+
+			self.dispose_terminals(unused_only=True)
+			self.tasks.remove_finished()
+
+			# clear console if there are not any currently active sessions
+			if not self.debugger.sessions:
+				self.console.clear()
+
+			self.console.show()
+			
+			await self.ensure_installed(active_configurations)
+
+
 		except Exception as e:
-			core.log_exception()
+			core.exception()
 			core.display(e)
 			return
-
-
-		# grab variables before we open the console because the console will become the focus
-		# and then things like $file would point to the console
-		variables = self.project.extract_variables()
-
-		self.dispose_terminals(unused_only=True)
-		self.tasks.remove_finished()
-
-		# clear console if there are not any currently active sessions
-		if not self.debugger.sessions:
-			self.console.clear()
-
-		self.console.show()
-
-		await self.ensure_installed(active_configurations)
 
 		for configuration in active_configurations:
 			@core.schedule

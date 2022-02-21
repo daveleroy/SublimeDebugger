@@ -92,7 +92,7 @@ class Process:
 		try:
 			self.process.kill()
 		except Exception:
-			core.log_exception()
+			core.exception()
 
 
 class StdioTransport(Transport):
@@ -118,7 +118,7 @@ class StdioTransport(Transport):
 
 				core.call_soon_threadsafe(callback, line)
 			except Exception as e:
-				core.log_exception()
+				core.exception()
 				break
 
 		self.process.dispose()
@@ -166,7 +166,7 @@ class SocketTransport(Transport):
 		try:
 			self.socket.close()
 		except:
-			core.log_exception()
+			core.exception()
 
 
 # class StdioSocketTransport(Transport):
@@ -194,7 +194,7 @@ class SocketTransport(Transport):
 # 				core.info(line)
 # 				core.call_soon_threadsafe(callback, line)
 # 			except Exception as e:
-# 				core.log_exception()
+# 				core.exception()
 # 				break
 
 # 	def dispose(self) -> None:

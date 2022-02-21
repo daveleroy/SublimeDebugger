@@ -55,7 +55,7 @@ class SourceNavigationProvider:
 
 		def on_error(error: BaseException):
 			if error is not core.CancelledError:
-				core.log_error(error)
+				core.error(error)
 
 		async def select_async(source: dap.SourceLocation, stopped_reason: str):
 			self.clear_selected()
@@ -73,7 +73,7 @@ class SourceNavigationProvider:
 
 		def on_error(error: BaseException):
 			if error is not core.CancelledError:
-				core.log_error(error)
+				core.error(error)
 
 		async def navigate_async(source: dap.SourceLocation):
 			self.clear_generated_view()

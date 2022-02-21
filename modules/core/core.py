@@ -5,7 +5,7 @@ import sublime
 import concurrent
 import asyncio
 
-from .log import log_exception
+from .log import exception
 from .sublime_event_loop import SublimeEventLoop
 
 T = TypeVar('T')
@@ -72,7 +72,7 @@ def run(awaitable: Awaitable[T], on_done: Callable[[T], None] | None = None, on_
 			try:
 				raise exception
 			except Exception as e:
-				log_exception()
+				exception()
 
 			return
 

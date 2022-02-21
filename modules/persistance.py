@@ -4,7 +4,6 @@ from .typecheck import *
 from .import core
 
 import os
-import sublime
 import hashlib
 
 
@@ -22,7 +21,7 @@ def load(project_name: str) -> Any:
 			contents = file.read() or "{}"
 
 		json = core.json_decode(contents)
-		if json.get("version") == VERSION_NUMBER:
+		if json.get("_version") == VERSION_NUMBER:
 			return json
 
 	except FileNotFoundError:
@@ -32,8 +31,9 @@ def load(project_name: str) -> Any:
 def save(project_name: str, data: Any):
 	file_name = file_name_for_project_name(project_name)
 	with open(file_name, 'w') as file:
-		data['version'] = VERSION_NUMBER
-		file.write(core.json_encode(data))
+		data['_version'] = VERSION_NUMBER
+		data['_project_name'] = project_name
+		file.write(core.json_encode(data, pretty=True))
 
 
 

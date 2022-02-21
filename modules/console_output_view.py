@@ -3,10 +3,8 @@ from .typecheck import *
 from .console_view import ConsoleView
 
 from .import core
-from .import ui
 from .settings import Settings
 
-import re
 import sublime
 import sublime_plugin
 
@@ -40,7 +38,7 @@ def _window_has_output_views(window: sublime.Window):
 	return False
 
 
-class OutputView(ConsoleView):	
+class ConsoleOutputView(ConsoleView):	
 	def __init__(self, window: sublime.Window, name: str, on_close: Callable[[], None]|None = None):
 
 		DebuggerPreConsoleWindowHooks(window).run()

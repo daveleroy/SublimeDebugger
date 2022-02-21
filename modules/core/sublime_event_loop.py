@@ -98,7 +98,7 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 		raise NotImplementedError
 
 	def call_exception_handler(self, context):
-		from .log import log_exception
+		from .log import exception
 		from .error import Error
 
 		try:
@@ -108,7 +108,7 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 				raise Error(context['message'])
 
 		except Exception as e:
-			log_exception()
+			exception()
 
 	# Debug flag management.
 	def get_debug(self):

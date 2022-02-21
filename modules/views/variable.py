@@ -69,7 +69,7 @@ class VariableComponent (ui.div):
 				self.variable.fetched = None
 				self.dirty()
 			except core.Error as e:
-				core.log_exception()
+				core.exception()
 				core.display(e)
 
 		def on_edit_variable(value: str):
@@ -88,7 +88,7 @@ class VariableComponent (ui.div):
 					return
 
 				except dap.Error as e:
-					core.log_exception()
+					core.exception()
 
 			sublime.set_clipboard(value)
 

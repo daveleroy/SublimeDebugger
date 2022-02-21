@@ -1,20 +1,19 @@
 from __future__ import annotations
-
 from ..typecheck import *
 
 from enum import IntEnum
 
 from ..import core
+from .import dap
+
+from ..watch import Watch
+from .debugger import Debugger
+from .error import Error
 
 from ..breakpoints import (
 	Breakpoints,
 	SourceBreakpoint,
 )
-
-from ..watch import Watch
-
-from .import dap
-from .error import Error
 
 from .variable import (
 	Variable,
@@ -60,7 +59,6 @@ class Session(TransportProtocolListener, core.Logger):
 	stopped_reason_terminated_event=4
 	stopped_reason_manual=5
 
-
 	def __init__(self, 
 		adapter_configuration: AdapterConfiguration, 
 		configuration: ConfigurationExpanded, 
@@ -69,7 +67,8 @@ class Session(TransportProtocolListener, core.Logger):
 		breakpoints: Breakpoints, 
 		watch: Watch, 
 		listener: SessionListener, 
-		transport_log: core.Logger, 
+		transport_log: core.Logger,
+		debugger: Debugger,
 		parent: Session|None = None
 		) -> None:
 
@@ -81,7 +80,8 @@ class Session(TransportProtocolListener, core.Logger):
 		self.listener = listener
 		self.children: list[Session] = []
 		self.parent = parent
-		
+		self.debugger = debugger
+
 		if parent:
 			parent.children.append(self)
 
@@ -154,7 +154,7 @@ class Session(TransportProtocolListener, core.Logger):
 			await self.launching_async
 		except core.Error as e:
 			self.launching_async = None
-			core.log_exception(e)
+			core.exception(e)
 			self.error('... an error occured, ' + str(e))
 			await self.stop_forced(reason=Session.stopped_reason_launch_error)
 		except core.CancelledError:
@@ -266,7 +266,7 @@ class Session(TransportProtocolListener, core.Logger):
 			return False
 
 		except Exception as e:
-			core.log_exception()
+			core.exception()
 			self.error(f'{name}: {e}')
 			return False
 
@@ -432,7 +432,7 @@ class Session(TransportProtocolListener, core.Logger):
 				})
 				return
 			except Error as e:
-				core.log_exception()
+				core.exception()
 
 
 		# we couldn't terminate either not a launch request or the terminate request failed
@@ -885,7 +885,7 @@ class Session(TransportProtocolListener, core.Logger):
 		elif event == 'loadedSource':
 			self.on_loaded_source_event(body)
 		else:
-			core.log_error(f'event ignored not implemented {event}')
+			core.error(f'event ignored not implemented {event}')
 
 
 class Thread:

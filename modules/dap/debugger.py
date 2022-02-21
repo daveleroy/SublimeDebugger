@@ -2,12 +2,12 @@ from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
-from . import Session
-from . import OutputEvent
 
 if TYPE_CHECKING:
 	from .configuration import AdapterConfiguration, ConfigurationExpanded
 	from ..breakpoints import Breakpoints
+	from . import Session
+	from . import OutputEvent
 
 class Debugger(Protocol):
 	on_error: core.Event[str]

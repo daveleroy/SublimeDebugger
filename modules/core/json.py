@@ -7,7 +7,9 @@ import dataclasses
 def json_decode(contents: str|bytes) -> DottedDict:
 	return json.loads(contents, object_hook=object_hook)
 
-def json_encode(obj: Any):
+def json_encode(obj: Any, pretty=False):
+	if pretty:
+		return json.dumps(obj, cls=JSONEncoder, indent='\t')
 	return json.dumps(obj, cls=JSONEncoder)
 
 class DottedDict(dict): #type: ignore
