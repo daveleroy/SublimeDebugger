@@ -146,7 +146,7 @@ class SourceBreakpointView:
 			p = self.view.text_point(line - 1, column - 1)
 			self.column_phantom = ui.Phantom(self.view, sublime.Region(p, p))[
 				ui.click(self.on_click_inline)[
-					ui.icon(image)
+					ui.icon(image, height=2, width=2, padding=0)
 				]
 			]
 

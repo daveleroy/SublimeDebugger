@@ -74,8 +74,9 @@ class TabbedPanel(ui.div):
 	def select(self, panel: Any):
 		for index, item in enumerate(self.items):
 			if item == panel:
-				self.selected_index = index
-				self.dirty()
+				if self.selected_index != index:
+					self.selected_index = index
+					self.dirty()
 				return
 
 	def patch_selected(self):

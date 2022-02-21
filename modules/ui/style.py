@@ -30,9 +30,6 @@ base_css = '''
 a {
 	text-decoration: none;
 }
-img {
-	height: 1.6rem;
-}
 d {
 	display: block;
 }
@@ -149,11 +146,6 @@ class css:
 		self.padding_width = additional_width
 
 
-
-div_inline_css = css(
-	padding_top=-1.0,
-	padding_bottom=1.0
-)
 
 none_css = css()
 

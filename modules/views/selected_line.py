@@ -27,7 +27,7 @@ class SelectedLineText(ui.div):
 
 	def render(self) -> ui.div.Children:
 		return [
-			ui.div(height=2.8)[
+			ui.div(height=2.6)[
 				ui.text(self.text, css=css.selected_text),
 			],
 		]

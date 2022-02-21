@@ -53,23 +53,18 @@ class CallStackPanel (Panel):
 
 	def render(self) -> ui.div.Children:
 		thread_views: list[SessionView] = []
-		show_session_name = len(self.debugger.sessions) > 1
 
 		if not self.debugger.sessions:
-			return ui.div(height=css.row_height)[
-				ui.spacer(1),
-				ui.text('No Active Debug Sessions', css=css.label_secondary)
+			return [
+				ui.div(height=css.row_height)[
+					ui.spacer(1),
+					ui.text('No Active Debug Sessions', css=css.label_secondary)
+				],
 			]
 
 		for session in self.debugger.sessions:
 			# skip sessions that are children of another session since those will be renderer in the parent session
 			if session.parent: continue
-
-
-			# for thread in threads:
-			# 	is_selected = session == self.sessions.selected_session and session.selected_thread == thread
-			# 	if is_selected:
-			# 		self.state.set_expanded(thread, True)
 
 			thread_views.append(SessionView(self.debugger, session, self.state))
 
@@ -93,7 +88,6 @@ class SessionView (ui.div):
 		self.session = session
 		self.state = state
 		self.is_selected = session == debugger.session
-		self.show_session_name = True
 
 	def selected_session(self):
 		self.debugger.active = self.session
@@ -105,15 +99,16 @@ class SessionView (ui.div):
 		thread_views: list[SessionView|ThreadView] = []
 		label_view: ui.div | None = None
 
+		is_session_active = self.session == self.debugger.session
 
 		if True:
-			if session == self.debugger.session:
+			if is_session_active:
 				session_css_label = css.label
 			else:
 				session_css_label = css.label_secondary
 
 			session_label = ui.click(lambda session=session: self.selected_session()) [
-				ui.text(session.name, css=session_css_label)
+				ui.text(session.name, css=session_css_label),
 			]
 
 			def on_toggle(session: dap.Session):
@@ -129,14 +124,13 @@ class SessionView (ui.div):
 		for session in self.session.children:
 			thread_views.append(SessionView(self.debugger, session, self.state))
 
-		show_thread_name = len(threads) > 1
 
 		for thread in threads:
 			is_selected = self.is_selected and session.selected_thread == thread
 			if is_selected:
 				self.state.set_expanded(thread, True)
 
-			thread_views.append(ThreadView(session, thread, is_selected, self.state, show_thread_name))
+			thread_views.append(ThreadView(session, thread, is_selected, self.state))
 
 		return [
 			label_view,
@@ -146,14 +140,14 @@ class SessionView (ui.div):
 		]
 
 class ThreadView (ui.div):
-	def __init__(self, session: dap.Session, thread: dap.Thread, is_selected: bool, state: CallStackState, show_thread_name: bool):
+	def __init__(self, session: dap.Session, thread: dap.Thread, is_selected: bool, state: CallStackState):
 		super().__init__()
 		self.session = session
-		self.is_selected = is_selected
-		self.show_thread_name = show_thread_name
+		self.is_selected = session.selected_thread == thread
+		self.show_thread_name = len(session.threads) > 1
 		self.thread = thread
 		self.state = state
-		self.frames = [] #type: list[dap.StackFrame]
+		self.frames: list[dap.StackFrame] = []
 		self.fetch()
 
 	@property
@@ -186,6 +180,12 @@ class ThreadView (ui.div):
 		expandable = self.thread.has_children()
 		is_expanded = self.is_expanded
 
+		is_thread_active = self.session.selected_thread == self.thread
+		if is_thread_active:
+			thread_css = css.label
+		else:
+			thread_css = css.label_secondary
+
 		if expandable:
 			thread_item = ui.div(height=css.row_height)[
 				ui.align()[
@@ -193,7 +193,7 @@ class ThreadView (ui.div):
 						ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close),
 					],
 					ui.click(self.on_select_thread)[
-						ui.text(self.thread.name, css=css.label),
+						ui.text(self.thread.name, css=thread_css),
 						ui.spacer(1),
 						ui.text(self.thread.stopped_reason, css=css.label_secondary),
 					],
@@ -228,7 +228,7 @@ class ThreadView (ui.div):
 
 class StackFrameComponent (ui.div):
 	def __init__(self, session: dap.Session, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None], show_thread_name: bool) -> None:
-		super().__init__()
+		super().__init__(height=css.row_height)
 		self.frame = frame
 		self.on_click = on_click
 		self.show_thread_name = show_thread_name
@@ -266,7 +266,5 @@ class StackFrameComponent (ui.div):
 		]
 
 		return [
-			ui.div(height=css.row_height)[
-				file_and_line,
-			]
+			file_and_line
 		]

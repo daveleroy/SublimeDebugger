@@ -4,6 +4,7 @@ from ..typecheck import *
 from . html import span, click, alignable
 from . layout import Layout
 
+# spacers are integers so they can always undershoot the available space
 
 class spacer (span):
 	def __init__(self, width: int|None = None, min: int|None = None):

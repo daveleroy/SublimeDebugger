@@ -4,7 +4,7 @@ from ..typecheck import *
 
 from ..import core
 from .style import css
-from .html import phantom_sizer, div, span, element
+from .html import div, span, element
 from .debug import DEBUG_TIMING, DEBUG_TIMING_STATUS
 
 import sublime
@@ -82,7 +82,7 @@ class Layout:
 		self.on_click_handlers_id = 0
 		self.requires_render = True
 		self.html = ""
-		self.item = phantom_sizer(div()[item])
+		self.item = div()[item]
 		self.add_component(self.item)
 		self.dirty()
 		self.view = view
@@ -99,11 +99,7 @@ class Layout:
 		Layout.layouts_to_remove.append(self)
 
 	def __getitem__(self, values: div.Children):
-		if isinstance(values, element):
-			self.item = phantom_sizer(div()[values])
-		else:
-			self.item = phantom_sizer(div()[values])
-
+		self.item = div()[values]
 		self.add_component(self.item)
 		self.dirty()
 		return self
@@ -111,18 +107,6 @@ class Layout:
 	def dirty(self) -> None:
 		self.requires_render = True
 		Layout._schedule_render_layouts()
-
-	def remove_component_children(self, item: element) -> None:
-		for child in item.children:
-			assert child.layout
-			child.layout.remove_component(child)
-
-		item.children = []
-
-	def remove_component(self, item: element) -> None:
-		self.remove_component_children(item)
-		item.removed()
-		item.layout = None
 
 	def add_component_children(self, item: element) -> None:
 		if item._width is not None:
@@ -138,6 +122,19 @@ class Layout:
 		assert not item.layout, 'This item already has a layout?'
 		item.layout = self
 		item.added(self)
+
+	def remove_component(self, item: element) -> None:
+		self.remove_component_children(item)
+		item.removed()
+		item.layout = None
+
+	def remove_component_children(self, item: element) -> None:
+		for child in item.children:
+			assert child.layout
+			child.layout.remove_component(child)
+
+		item.children = []
+
 
 	def render_component_tree(self, item: element|None) -> None:
 		if item is None:

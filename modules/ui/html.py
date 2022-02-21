@@ -2,7 +2,7 @@ from __future__ import annotations
 from ..typecheck import *
 
 from .image import Image
-from .style import css, div_inline_css, icon_css, none_css
+from .style import css, none_css
 
 import re
 
@@ -150,30 +150,11 @@ class div (element):
 
 		h = layout.to_rem(self.height(layout) - self.padding_height)
 		w = layout.to_rem(self.width(layout) - self.padding_width)
-		one = layout.to_rem(1)
-
 		if children_inline:
 			# this makes it so that divs with an img in them and divs without an img in them all align the same
-			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;line-height:{h}rem;padding:{-one}rem 0 {one}rem 0"><img>{html}</d>'
+			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;line-height: {h}rem; padding: -{h/2}rem 0 {h/2}rem 0"><img style="height: {h}rem">{html}</d>'
 		else:
 			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;">{html}</d>'
-
-# uses an img tag to force the width of the phantom to be the width of the item being rendered
-class phantom_sizer (div):
-	def __init__(self, item: Union[div, span]) -> None:
-		super().__init__()
-		self.item = item
-
-	def render(self) -> div.Children:
-		return self.item
-
-
-html_escape_table = {
-	"&": "&amp;",
-	">": "&gt;",
-	"<": "&lt;",
-	" ": "\u00A0" # HACK spaces inside <a> tags are not clickable. We replaces spaces with no break spaces
-}
 
 
 def html_escape(text: str) -> str:
@@ -224,14 +205,17 @@ class click (span):
 
 
 class icon (span):
-	def __init__(self, image: Image) -> None:
-		super().__init__(width=3, height=1, css=icon_css)
+	def __init__(self, image: Image, width: float = 3, height: float = 3, padding: float = 0.5) -> None:
+		super().__init__(width=width, height=height)
+		self.padding = padding
 		self.image = image
 
 	def html(self, layout: Layout) -> str:
-		width = layout.to_rem(2.5)
-		required_padding = layout.to_rem(0.5)
-		return f'<s id="{self.css_id}" style="padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
+		assert self._height
+		width = layout.to_rem(self._height - self.padding)
+		required_padding = layout.to_rem(self.padding)
+		top = layout.to_rem(0.75)
+		return f'<s id="{self.css_id}" style="position: relative; top: {top}rem; line-height:0; padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
 
 tokenize_re = re.compile(
 	r'(0x[0-9A-Fa-f]+)' #matches hex
