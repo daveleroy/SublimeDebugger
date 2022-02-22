@@ -162,12 +162,25 @@ class AdaptersRegistry:
 
 	@staticmethod
 	async def _insert_snippet(window: sublime.Window, snippet: dict[str, Any]):
+		for (key, value) in snippet.items():
+			if isinstance(value, str) and value.startswith('^"') and value.endswith('"'):
+				snippet[key] = value[2:-1]
+
 		content = json.dumps(snippet, indent="\t")
 		content = content.replace('\\\\', '\\') # remove json encoded \ ...
-		project = window.project_file_name()
-		if project:
+		content = content.replace('${workspaceFolder}', '${folder}')
+
+		try:
+
+			project = window.project_file_name()
+			if not project:
+				raise core.Error('Expected project file in window')
+
 			view = await core.sublime_open_file_async(window, project)
 			region = view.find(r'''"\s*debugger_configurations\s*"\s*:\s*\[''', 0)
+			if not region:
+				raise core.Error('Unable to find debugger_configurations')
+
 			view.sel().clear()
 			view.sel().add(sublime.Region(region.b, region.b))
 			view.run_command('insert', {
@@ -176,7 +189,7 @@ class AdaptersRegistry:
 			view.run_command('insert_snippet', {
 				'contents': content + ','
 			})
-		else:
+		except core.Error as e:
 			sublime.set_clipboard(content)
 			core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
 
