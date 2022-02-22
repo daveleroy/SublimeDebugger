@@ -1,9 +1,16 @@
 For getting set up see https://github.com/daveleroy/sublime_debugger
 
+Version 0.6.4
+
+- Added support for vscode-js-debug for chrome/node/edge adapters
+- Improved snippet support
+
+
 Version 0.6.3
 
 - Adjusted the calculation for determining a good value for ui_rem_width_scale
 - Added setting ui_rem_width_scale_adjust_automatically for disabling automatic calculation of ui_rem_width_scale
+
 
 Version 0.6.2
 
