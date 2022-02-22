@@ -1,6 +1,5 @@
 from .lldb import LLDB
 from .gdb import GDB
-from .cppvsdbg import CppVsDbg
 
 from .firefox import Firefox
 
