@@ -149,7 +149,7 @@ class DebuggerOutputPanel(OutputPanel):
 		settings.set('draw_unicode_white_space', 'none')
 		settings.set('draw_unicode_bidi', False)
 		settings.set('is_widget', True)
-		settings.set('sublime_debugger', True)
+		settings.set('debugger', True)
 		settings.set('font_face', Settings.font_face)
 		self.view.sel().clear()
 		self.view.set_viewport_position((0, 0), False)

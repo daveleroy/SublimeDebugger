@@ -9,7 +9,6 @@ from .import dap
 from .import persistance
 
 from .settings import Settings
-from .autocomplete import Autocomplete
 from .breakpoints import Breakpoints
 from .project import Project
 from .panel import DebuggerProtocolLogger
@@ -23,25 +22,10 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 	creating: dict[int, bool] = {}
 
 	@staticmethod
-	def for_session(session: dap.Session):
-		for debugger in Debugger.instances.values():
-			for s in debugger.sessions:
-				if session == s:
-					return debugger
-
-		raise core.Error('Unable to find debugger for session')
-
-	@staticmethod
 	def should_auto_open_in_window(window: sublime.Window) -> bool:
-		data = window.project_data()
-		if not data:
-			return False
-
-		if not Settings.open_at_startup:
-			return False
-
-		if 'debugger_configurations' in data:
-			return True
+		if Settings.open_at_startup:
+			if data := window.project_data():
+				return 'debugger_configurations' in data
 
 		return False
 
@@ -52,8 +36,16 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		return debugger
 
 	@staticmethod
-	def get(window: sublime.Window, create: bool = False) -> Debugger|None:
+	def get(window_or_view: sublime.Window|sublime.View, create: bool = False) -> Debugger|None:
 		global instances
+		if isinstance(window_or_view, sublime.View):
+			window = window_or_view.window()
+		else:
+			window = window_or_view
+
+		if window is None:
+			return None
+
 		id = window.id()
 		instance = Debugger.instances.get(id)
 
@@ -66,7 +58,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 				instance = Debugger(window)
 				Debugger.instances[id] = instance
 
-			except core.Error as _:
+			except core.Error:
 				core.exception()
 
 			Debugger.creating[id] = False
@@ -110,10 +102,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 		self.transport_log = DebuggerProtocolLogger(self.window)
 
 		self.breakpoints = Breakpoints()
-		self.watch = Watch()
-		
-		autocomplete = Autocomplete.create_for_window(window)
-		
+		self.watch = Watch()		
 		self.interface = DebuggerInterface(self, window)
 
 		self.disposeables.extend([

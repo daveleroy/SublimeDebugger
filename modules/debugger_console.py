@@ -1,6 +1,8 @@
 from __future__ import annotations
 from .typecheck import *
 
+import sublime
+
 from .import core
 from .import dap
 from .import ui
@@ -8,11 +10,13 @@ from .import ui
 from .views import css
 from .views.variable import VariableComponent
 from .console_output_view import ConsoleOutputView
-import sublime
+
 
 class DebuggerConsole:
-	def __init__(self, window: sublime.Window, on_navigate: Callable[[dap.SourceLocation], None]):
-		self.on_navigate = on_navigate
+	def __init__(self, window: sublime.Window):
+		self.on_input: core.Event[str] = core.Event()
+		self.on_navigate: core.Event[dap.SourceLocation] = core.Event()
+
 		self.window = window
 		self.panel: ConsoleOutputView|None = None
 		self.indent = ''
@@ -26,6 +30,8 @@ class DebuggerConsole:
 			if self.panel:
 				self.panel.dispose()
 			self.panel = ConsoleOutputView(self.window, 'Debugger Console')
+			self.panel.on_input = self.on_input
+			self.panel.on_escape.add(self.dispose)
 
 		return self.panel
 
@@ -47,18 +53,18 @@ class DebuggerConsole:
 		variablesReference = event.variablesReference
 		if variablesReference:
 			# save a place for these phantoms to be written to since we have to evaluate them first
-			panel.write(self.indent)
-			at = panel.write_phantom_placeholder()
+			# panel.write(self.indent)
+			placeholder = panel.write_phantom_placeholder()
 
 			# this seems to be what vscode does it ignores the actual message here.
 			# Some of the messages are junk like 'output' that we probably don't want to display
-			async def appendVariabble(at: int) -> None:
+			async def appendVariabble() -> None:
 				try:
 					assert variablesReference
 					variables = await session.get_variables(variablesReference, without_names=True)
 
 					for i, variable in enumerate(variables):
-						self.append_variable(variable, event.source, event.line, at, i)
+						self.append_variable(variable, event.source, event.line, placeholder(), i)
 
 
 				# if a request is cancelled it is because the debugger session ended
@@ -69,7 +75,7 @@ class DebuggerConsole:
 					# todo: this should be inserted into the place the phantom was going to be
 					self.append_text(event.category or 'console', self.indent + event.output, event.source, event.line)
 
-			core.run(appendVariabble(at))
+			core.run(appendVariabble())
 		else:
 			at = panel.at()
 
@@ -83,46 +89,55 @@ class DebuggerConsole:
 
 	def append_variable(self, variable: dap.Variable, source: Optional[dap.Source], line: int|None, at: int, index: int):
 		panel = self.acquire_panel()
-		panel.write_phantom(ui.div(width=75)[
-			VariableComponent(variable)
-		], at=at, index=index*2)
-
 		if source:
-			def on_clicked_source():
-				assert source
-				self.on_navigate(dap.SourceLocation(source, line))
+			location = dap.SourceLocation(source, line)
+			# def on_clicked_source(location: dap.SourceLocation):
+			# 	self.on_navigate(location)
 
-			source_text = source.name or '??'
-			item = ui.div(height=css.line_height)[
-				ui.click(on_clicked_source, title=source_text)[
-					ui.text(' ↗', css=css.label_secondary)
-				],
+			panel.phantom_block(at, index=index)[
+				VariableComponent(variable)
 			]
-			panel.write_phantom(item, at, index=index*2 + 1)
+		else:
+			panel.phantom_block(at, index=index)[
+				VariableComponent(variable)
+			]
 
-
-	def append_text(self, type: str, text: str, source: Optional[dap.Source], line: int|None):
+	def append_text(self, type: str|None, text: str, source: Optional[dap.Source], line: int|None):
 		if type == 'telemetry':
 			return
 
+		sequences_for_types: dict[str|None, str] = {
+			'debugger.error': 'red',
+			'stderr': 'red',
+			'debugger.info': 'blue',
+		}
+
+		type = sequences_for_types.get(type)
+
 		panel = self.acquire_panel()
 
+		panel.write(text, type)
+
 		if source:
+			location = dap.SourceLocation(source, line)
 			def on_clicked_source():
 				assert source
-				self.on_navigate(dap.SourceLocation(source, line))
+				self.on_navigate(location)
 
-			item = ui.div(height=css.line_height)[
-				ui.click(on_clicked_source, title=source.name or '??')[
-					ui.text('↗', css=css.label_secondary)
-				]
-			]
-			panel.write(text, type)
-		else:
-			panel.write(text, type)
+			# panel.phantom_inline(panel.at() - 1) [
+			# 	ui.div(height=2.8)[
+			# 		ui.spacer(1),
+			# 		ui.click(on_clicked_source, title=source.name or '??')[
+			# 			ui.text(f'@{location.name}', css=css.label_placeholder)
+			# 		]
+			# 	]
+			# ]
+
 
 	def log_error(self, text: str) -> None:
-		self.append_text('debugger.error', text + '\n', None, None)
+		panel = self.acquire_panel()
+		panel.write(text + '\n', 'red')
 
 	def log_info(self, text: str) -> None:
-		self.append_text('debugger.info', text + '\n', None, None)
+		panel = self.acquire_panel()
+		panel.write(text + '\n', 'blue')

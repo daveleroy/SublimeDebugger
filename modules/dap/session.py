@@ -458,7 +458,6 @@ class Session(TransportProtocolListener, core.Logger):
 			self._transport.dispose()
 			self._transport = None
 
-
 	async def stop_forced(self, reason: int) -> None:
 		if self.state == Session.State.STOPPING or self.state == Session.State.STOPPED:
 			return
@@ -528,14 +527,12 @@ class Session(TransportProtocolListener, core.Logger):
 		})
 
 	async def evaluate(self, expression: str, context: str = 'repl'):
-		self.info(expression)
-
 		result = await self.evaluate_expression(expression, context)
 		if not result:
 			raise Error('expression did not return a result')
 
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
-		event = dap.OutputEvent(result.result, 'console', variablesReference=result.variablesReference)
+		event = dap.OutputEvent(result.result + '\n', 'console', variablesReference=result.variablesReference)
 		self.listener.on_session_output_event(self, event)
 
 	async def evaluate_expression(self, expression: str, context: str|None) -> dap.EvaluateResponse:
@@ -595,10 +592,6 @@ class Session(TransportProtocolListener, core.Logger):
 			'name': name,
 		})
 		return response
-
-	def log_output(self, string: str) -> None:
-		output = dap.OutputEvent(string + '\n', 'debugger.output')
-		self.listener.on_session_output_event(self, output)
 
 	def log(self, type: str, value: str) -> None:
 		if type == 'process':

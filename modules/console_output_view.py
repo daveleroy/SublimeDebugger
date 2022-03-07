@@ -52,8 +52,8 @@ class ConsoleOutputView(ConsoleView):
 		self.name = name
 		self.on_pre_view_closed_handle = core.on_pre_view_closed.add(self.view_closed)
 		self.view.set_name(name)
-		self.write('')
 
+	
 	def close(self):
 		if not self.is_closed:
 			self.view.close()

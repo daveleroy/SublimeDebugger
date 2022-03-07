@@ -6,11 +6,8 @@ from .import core, ui
 import sublime
 from functools import partial
 from .import dap
-from .import persistance
 
 from .settings import Settings
-from .autocomplete import Autocomplete
-from .project import Project
 from .panel import DebuggerOutputPanel, DebuggerProtocolLogger
 
 from .adapters_registry import AdaptersRegistry
@@ -78,10 +75,10 @@ class DebuggerInterface (core.Logger):
 		# middle panels
 		self.middle_panel = TabbedPanel([], 0, width_scale=0.65, width_additional=-30)
 
-		self.console = DebuggerConsole(
-			window,
-			on_navigate=self.on_navigate_to_source
-		)
+		self.console = DebuggerConsole(window)
+		self.console.on_input.add(self.on_run_command)
+		self.console.on_navigate.add(self.on_navigate_to_source)
+
 		self.disposeables.extend([
 			self.console,
 		])
@@ -420,7 +417,7 @@ class DebuggerInterface (core.Logger):
 	@core.schedule
 	async def on_run_command(self, command: str) -> None:
 		try: await self.debugger.active.evaluate(command)
-		except core.Error as e: self.error(f'Unable to run command: {e}')
+		except core.Error as e: self.error(f'{e}')
 
 	def toggle_breakpoint(self):
 		file, line, _ = self.project.current_file_line_column()
@@ -479,5 +476,5 @@ class DebuggerInterface (core.Logger):
 				# self.show_console_panel()
 				core.run(self.on_run_command(value))
 
-		input = ui.InputText(run, 'Input Debugger Command', enable_when_active=Autocomplete.for_window(self.window))
+		input = ui.InputText(run, 'Input Debugger Command')
 		input.run()

@@ -1473,6 +1473,8 @@ class CompletionItem:
 	text: Optional[str]
 	"""If text is not falsy then it is inserted instead of the label."""
 	sortText: Optional[str]
+	"""A human-readable string with additional information about this item, like type or symbol information."""
+	detail: Optional[str]
 	"""A string that should be used when comparing this item with other items. When `falsy` the label is used."""
 	type: Optional[CompletionItemType]
 	"""The item's type. Typically the client uses this information to render the item in the UI with an icon."""
