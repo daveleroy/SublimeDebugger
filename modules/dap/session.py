@@ -480,14 +480,13 @@ class Session(TransportProtocolListener, core.Logger):
 		for disposeable in self.disposeables:
 			disposeable.dispose()
 
-		# clean up hierarchy if needed
-		for child in self.children:
-			child.parent = None
-
 		if self.parent:
 			self.parent.children.remove(self)
 			self.parent = None
 
+		# clean up hierarchy if needed
+		for child in self.children:
+			child.parent = None
 	async def resume(self):
 		body = await self.request('continue', {
 			'threadId': self.command_thread.id

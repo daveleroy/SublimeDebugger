@@ -199,6 +199,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 
 	def remove_session(self, session: dap.Session):
 		self.sessions.remove(session)
+		session.dispose()
 
 		if self.session == session:
 			self.session = self.sessions[0] if self.sessions else None
@@ -212,10 +213,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 			self.on_session_active(session)
 
 		self.on_session_state_updated(session, dap.Session.State.STOPPED)
-
 		self.on_session_removed(session)
-
-		session.dispose()
 
 	@property
 	def is_active(self):
@@ -323,7 +321,6 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 	def log(self, type: str, value: str):
 		if type == 'transport':
 			self.transport_log.info(value)
-			...
 		else:
 			self.on_info(value)
 

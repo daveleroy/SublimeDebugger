@@ -52,7 +52,7 @@ class CallStackPanel (Panel):
 		self.debugger.active = session
 
 	def render(self) -> ui.div.Children:
-		thread_views: list[SessionView] = []
+		session_views: list[SessionView] = []
 
 		if not self.debugger.sessions:
 			return [
@@ -66,9 +66,9 @@ class CallStackPanel (Panel):
 			# skip sessions that are children of another session since those will be renderer in the parent session
 			if session.parent: continue
 
-			thread_views.append(SessionView(self.debugger, session, self.state))
+			session_views.append(SessionView(self.debugger, session, self.state))
 
-		return thread_views
+		return session_views
 
 def toggle(toggle_expand, item: ui.span, is_expanded) -> ui.div:
 	return ui.div(height=css.row_height)[
@@ -82,10 +82,11 @@ def toggle(toggle_expand, item: ui.span, is_expanded) -> ui.div:
 	]
 
 class SessionView (ui.div):
-	def __init__(self, debugger: Debugger, session: dap.Session, state: CallStackState):
+	def __init__(self, debugger: Debugger, session: dap.Session, state: CallStackState, prefix: str|None = None):
 		super().__init__()
 		self.debugger = debugger
 		self.session = session
+		self.prefix = prefix
 		self.state = state
 		self.is_selected = session == debugger.session
 
@@ -93,61 +94,71 @@ class SessionView (ui.div):
 		self.debugger.active = self.session
 
 	def render(self) -> ui.div.Children:
-		session = self.session
-		threads = session.threads
-		expanded = self.state.is_expanded(session, default=True)
-		thread_views: list[SessionView|ThreadView] = []
-		label_view: ui.div | None = None
 
-		is_session_active = self.session == self.debugger.session
-
-		if True:
-			if is_session_active:
-				session_css_label = css.label
-			else:
-				session_css_label = css.label_secondary
-
-			session_label = ui.click(lambda session=session: self.selected_session()) [
-				ui.text(session.name, css=session_css_label),
+		# if this session has no threads and a single child session then only render the child session and prefix the name with the parent session
+		if not self.session.threads and len(self.session.children) == 1:
+			return [
+				SessionView(self.debugger, session, self.state, self.session.name) for session in self.session.children
 			]
 
-			def on_toggle(session: dap.Session):
-				self.state.toggle_expanded(session, default=True)
-				self.dirty()
+		if self.prefix:
+			name = f'{self.prefix}: {self.session.name}'
+		else:
+			name = self.session.name
 
-			label_view = toggle(lambda session=session: on_toggle(session), session_label, expanded)
+		is_expanded = self.state.is_expanded(self.session, default=True)
+		label_view: ui.div | None = None
+
+		if self.session == self.debugger.session:
+			session_css_label = css.label
+		else:
+			session_css_label = css.label_secondary
+
+		session_label = ui.click(lambda session=self.session: self.selected_session()) [
+			ui.text(name, css=session_css_label),
+		]
+
+		def on_toggle(session: dap.Session):
+			self.state.toggle_expanded(session, default=True)
+			self.dirty()
+
+		label_view = toggle(lambda session=self.session: on_toggle(session), session_label, is_expanded)
 
 
-		if not expanded:
+		if not is_expanded:
 			return label_view
 			
+
+		items: list[SessionView|ThreadView] = []
+
 		for session in self.session.children:
-			thread_views.append(SessionView(self.debugger, session, self.state))
+			items.append(SessionView(self.debugger, session, self.state))
 
-
-		for thread in threads:
-			is_selected = self.is_selected and session.selected_thread == thread
-			if is_selected:
-				self.state.set_expanded(thread, True)
-
-			thread_views.append(ThreadView(session, thread, is_selected, self.state))
+		for thread in self.session.threads:
+			items.append(ThreadView(self.debugger, self.session, thread, self.state))
 
 		return [
 			label_view,
 			ui.div(css=css.table_inset)[
-				thread_views
+				items
 			]
 		]
 
 class ThreadView (ui.div):
-	def __init__(self, session: dap.Session, thread: dap.Thread, is_selected: bool, state: CallStackState):
+	def __init__(self, debugger: Debugger, session: dap.Session, thread: dap.Thread, state: CallStackState):
 		super().__init__()
 		self.session = session
-		self.is_selected = session.selected_thread == thread
+		self.is_selected = session.selected_thread == thread and debugger.session == session
+	
+		
 		self.show_thread_name = len(session.threads) > 1
 		self.thread = thread
 		self.state = state
 		self.frames: list[dap.StackFrame] = []
+
+		if self.is_selected:
+			self.state.set_expanded(thread, True)
+
 		self.fetch()
 
 	@property
@@ -180,8 +191,7 @@ class ThreadView (ui.div):
 		expandable = self.thread.has_children()
 		is_expanded = self.is_expanded
 
-		is_thread_active = self.session.selected_thread == self.thread
-		if is_thread_active:
+		if self.is_selected:
 			thread_css = css.label
 		else:
 			thread_css = css.label_secondary
@@ -219,7 +229,7 @@ class ThreadView (ui.div):
 			return [
 				thread_item,
 				ui.div()[
-					[StackFrameComponent(self.session, frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame), self.show_thread_name) for frame in self.frames] #type: ignore
+					[StackFrameComponent(frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame), self.show_thread_name) for frame in self.frames] #type: ignore
 				]
 			]
 		else:
@@ -227,13 +237,13 @@ class ThreadView (ui.div):
 
 
 class StackFrameComponent (ui.div):
-	def __init__(self, session: dap.Session, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None], show_thread_name: bool) -> None:
+	def __init__(self, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None], show_thread_name: bool) -> None:
 		super().__init__(height=css.row_height)
 		self.frame = frame
 		self.on_click = on_click
 		self.show_thread_name = show_thread_name
 
-		if session.selected_frame == frame:
+		if is_selected:
 			self.css = css.selected
 
 	def render(self) -> ui.div.Children:

@@ -374,8 +374,22 @@ class DebuggerInterface (core.Logger):
 
 	# COMMANDS
 	@core.schedule
-	async def stop(self) -> None:
-		try: await self.debugger.active.stop()
+	async def stop(self, session: dap.Session|None = None) -> None:
+		try: 
+			if not session:
+				root = self.debugger.active
+				while root.parent:
+					root = root.parent
+
+				self.stop(root)
+				return
+
+			session_stop = session.stop()
+			for child in session.children:
+				self.stop(child)
+			
+			await session_stop
+
 		except core.Error as e: self.error(f'Unable to stop: {e}')
 
 	@core.schedule
