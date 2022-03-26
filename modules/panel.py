@@ -161,7 +161,7 @@ class DebuggerOutputPanel(OutputPanel):
 			name = window.active_panel() or ''
 
 			# show main debugger panel after closing other debugger panels
-			if window == self.window and name != 'output.Debugger' and name.startswith('output.Debugger:'):
+			if window == self.window and name != self.output_panel_name and name.startswith('output.Debugger:'):
 				core.info(f'Showing debug panel')
 				self.panel_show()
 				return True
@@ -174,7 +174,7 @@ class DebuggerOutputPanel(OutputPanel):
 		def on_show_panel(window: sublime.Window):
 			name = window.active_panel()
 			if Settings.hide_status_bar:
-				if name != 'output.Debugger':
+				if name != self.output_panel_name:
 					self.window.set_status_bar_visible(True)
 				else:
 					self.window.set_status_bar_visible(False)
@@ -215,11 +215,11 @@ class DebuggerOutputPanel(OutputPanel):
 		Settings.ui_rem_width_scale = min(max(value, 0.5), 1.5)
 		
 	def is_panel_visible(self) -> bool:
-		return self.window.active_panel() == 'output.Debugger'
+		return self.window.active_panel() == self.output_panel_name
 
 	def panel_show(self) -> None:
 		self.window.run_command('show_panel', {
-			'panel': 'output.{}'.format('Debugger')
+			'panel': self.output_panel_name
 		})
 
 	def panel_hide(self) -> None:
@@ -227,7 +227,7 @@ class DebuggerOutputPanel(OutputPanel):
 			return
 
 		self.window.run_command('hide_panel', {
-			'panel': 'output.{}'.format('Debugger')
+			'panel': self.output_panel_name
 		})
 
 

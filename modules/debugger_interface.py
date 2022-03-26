@@ -50,10 +50,6 @@ class DebuggerInterface (core.Logger):
 		self.project = debugger.project
 		self.project.on_updated.add(self.on_project_or_settings_updated)
 
-		self.transport_log = DebuggerProtocolLogger(window)
-
-		self.disposeables.append(self.transport_log)
-
 		self.source_provider = SourceNavigationProvider(self.project, self.debugger)
 
 		self.tasks = Tasks()
@@ -188,6 +184,7 @@ class DebuggerInterface (core.Logger):
 			# clear console if there are not any currently active sessions
 			if not self.debugger.sessions:
 				self.console.clear()
+				self.debugger.transport_log.clear()
 
 			self.console.show()
 			
@@ -342,8 +339,6 @@ class DebuggerInterface (core.Logger):
 	def log(self, type: str, value: str):
 		if type == 'error':
 			self.console.log_error(value)
-		elif type == 'transport':
-			self.transport_log.info(value)
 		else:
 			self.console.log_info(value)
 
