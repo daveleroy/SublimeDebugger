@@ -133,6 +133,20 @@
         }
     },
     {
+        "caption": "Debugger: Clear Console",
+        "command": "debugger",
+        "args": {
+            "action": "clear_console"
+        }
+    },
+    {
+        "caption": "Debugger: Show Protocol",
+        "command": "debugger",
+        "args": {
+            "action": "show_protocol"
+        }
+    },
+    {
         "caption": "Debugger: Add Watch Expression",
         "command": "debugger",
         "args": {

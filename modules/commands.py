@@ -112,16 +112,17 @@ class Commands:
 	clear_breakpoints = CommandDebugger (
 		name='Clear Breakpoints',
 		action=Debugger.clear_all_breakpoints,
+		flags=Command.menu_widget|Command.menu_commands|Command.menu_main,
 	)
 	clear_console = CommandDebugger (
 		name='Clear Console',
 		action=lambda debugger: debugger.interface.console.clear(),
-		flags=Command.menu_widget,
+		flags=Command.menu_widget|Command.menu_commands|Command.menu_main,
 	)
 	show_protocol = CommandDebugger (
 		name='Show Protocol',
 		action=Debugger.show_protocol_panel,
-		flags=Command.menu_widget,
+		flags=Command.menu_widget|Command.menu_commands|Command.menu_main,
 	)
 	add_watch_expression = CommandDebugger (
 		name='Add Watch Expression',
