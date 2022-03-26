@@ -1,7 +1,7 @@
 from __future__ import annotations
 from .typecheck import *
 
-from .console_output_view import ConsoleOutputView
+from .console_view import ConsoleView
 from .typecheck import *
 
 from .import core
@@ -15,8 +15,7 @@ class TerminalIntegrated:
 	def __init__(self, window: sublime.Window, name: str, command: list[str], cwd: str|None):
 		cwd = cwd or None # turn "" into None or PtyProcess will lockup?
 		self.process = TtyProcess(command, on_output=self.on_process_output, cwd=cwd, on_close=self.on_process_closed)
-		self.panel = ConsoleOutputView(window, 'Terminal', self.on_output_closed)
-		self.panel.write('')
+		self.panel = ConsoleView(window, 'Terminal', self.on_output_closed)
 		self.closed = False
 
 	def dispose(self):

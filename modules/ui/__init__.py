@@ -3,7 +3,7 @@ from .. import core
 
 from .phantom import Phantom, Popup
 
-from .html import div, span, text, icon, click, code
+from .html import div, span, text, icon, click, code, html_escape
 from .style import css
 
 from .layout import Layout

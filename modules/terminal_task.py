@@ -11,7 +11,7 @@ from .import core
 from .import dap
 
 from .panel import OutputPanel
-from .console_output_view import ConsoleOutputView
+from .console_view import ConsoleView
 
 @dataclass
 class Problem:
@@ -53,7 +53,7 @@ class TerminalTask:
 
 		self.background = arguments.get('background', False)
 		self.name = name
-		self.view = ConsoleOutputView(window, 'Task', on_closed)
+		self.view = ConsoleView(window, 'Task', on_closed)
 		self.finished = False
 
 		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy

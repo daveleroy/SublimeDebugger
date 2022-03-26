@@ -29,10 +29,11 @@ class VariableComponentState:
 
 
 class VariableComponent (ui.div):
-	def __init__(self, variable: dap.Variable, source: Optional[dap.SourceLocation] = None, on_clicked_source: Optional[Callable[[dap.SourceLocation], None]] = None, state: VariableComponentState = VariableComponentState()) -> None:
+	def __init__(self, variable: dap.Variable, source: Optional[dap.SourceLocation] = None, on_clicked_source: Optional[Callable[[dap.SourceLocation], None]] = None, state = VariableComponentState(), children_only = False) -> None:
 		super().__init__()
 		self.variable = variable
 		self.state = state
+		self.children_only = children_only
 		self.item_right = ui.span()
 		
 		self.variable_children: Optional[list[dap.Variable]] = None
@@ -255,6 +256,11 @@ class VariableComponent (ui.div):
 						]
 					]
 				)
+
+		if self.children_only:
+			return ui.div(css=css.table_inset)[
+				variable_children
+			]
 
 		return [
 			variable_label,

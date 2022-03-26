@@ -17,8 +17,7 @@ for m in modules_to_remove:
 from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
 
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
-from .modules.console_output_view import DebuggerPreConsoleWindowHooks, DebuggerPostConsoleViewHooks, DebuggerPostConsoleWindowHooks
-from .modules.console_view import DebuggerConsoleViewEventListener, DebuggerConsoleViewEscapeCommand
+from .modules.console_view import DebuggerConsoleLayoutPostViewHooks, DebuggerConsoleLayoutPostWindowHooks, DebuggerConsoleLayoutPreWindowHooks, DebuggerConsoleViewEventListener, DebuggerConsoleViewEscapeCommand
 from .modules.typecheck import *
 
 from .modules import core

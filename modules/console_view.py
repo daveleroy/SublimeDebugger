@@ -14,11 +14,21 @@ import sublime
 class ConsoleView:
 	console_views: ClassVar[Dict[int, ConsoleView]] = {}
 
-	def __init__(self, view: sublime.View):
+	def __init__(self, window: sublime.Window, name: str, on_close: Callable[[], None]|None = None):
 		self.on_escape: core.Event[None] = core.Event()
 		self.on_input: core.Event[str] = core.Event()
 
+		DebuggerConsoleLayoutPreWindowHooks(window).run()
+		view = window.new_file(flags=sublime.SEMI_TRANSIENT)
+		DebuggerConsoleLayoutPostViewHooks(view).run()
+
+		self.on_close = on_close
+		self.window = window
 		self.view = view
+		self.name = name
+		self.on_pre_view_closed_handle = core.on_pre_view_closed.add(self.view_closed)
+		self.view.set_name(name)
+		
 		ConsoleView.console_views[self.view.id()] = self
 
 		self.type: None|str = None
@@ -41,6 +51,26 @@ class ConsoleView:
 
 		self.clear()
 	
+	def close(self):
+		if not self.is_closed:
+			self.view.close()
+
+	@property
+	def is_closed(self):
+		return not self.view.is_valid()
+
+	def view_closed(self, view: sublime.View):
+		if view == self.view:
+			sublime.set_timeout(self.dispose, 0)
+
+	def dispose(self):
+		self.clear_phantoms()
+		try: del ConsoleView.console_views[self.view.id()]
+		except: ...
+
+		self.close()
+		if self.on_close: self.on_close()
+
 	def ensure_new_line(self, text: str, at: int|None = None):
 		if at is None:
 			at = self.at()
@@ -62,11 +92,6 @@ class ConsoleView:
 
 		core.edit(self.view, edit)
 	
-
-	def dispose(self):
-		self.clear_phantoms()
-		try: del ConsoleView.console_views[self.view.id()]
-		except: ...
 
 	def clear_phantoms(self):
 		for phantom in self.phantoms:
@@ -122,30 +147,14 @@ class ConsoleView:
 	def at(self):
 		return self.input_region().a
 
-	def write_phantom_placeholder(self) -> Callable[[], int]:
+	def write_phantom_placeholder(self, type) -> Callable[[], int]:
 		at = self.at()
+		self.write('\n', type)
+
 		id = self.placeholder_id
 		self.placeholder_id += 1
-		self.view.add_regions(f'placeholder_{id}', [sublime.Region(at-1, at-1)])
+		self.view.add_regions(f'placeholder_{id}', [sublime.Region(at, at)])
 		return lambda: self.view.get_regions(f'placeholder_{id}')[0].a
-
-	def phantom_block(self, at: int, index: int = 0):
-		def edit(edit: sublime.Edit):
-			self.view.insert(edit, at, '\u200c')
-
-		core.edit(self.view, edit)
-
-		phantom = ui.Phantom(self.view, sublime.Region(at, at + index), layout=sublime.LAYOUT_BLOCK)
-		self.phantoms.append(phantom)
-		self.scroll_to_end()
-		return phantom
-
-	def phantom_inline(self, at: int, index: int = 0):
-		at = self.view.size() if at is None else at
-		phantom = ui.Phantom(self.view, sublime.Region(at, at + index), layout=sublime.LAYOUT_INLINE)
-		self.phantoms.append(phantom)
-		self.scroll_to_end()
-		return phantom
 
 	def write(self, text: str, type: str|None = None):
 		self.dirty = True
@@ -192,11 +201,42 @@ class ConsoleView:
 			self.view.show(self.view.size(), animate=False)
 
 
+
+
+def _window_has_output_views(window: sublime.Window):
+	for view in window.views():
+		if view.settings().has('debugger.console_layout'):
+			return True
+	return False
+
+
 class DebuggerConsoleViewEscapeCommand(sublime_plugin.TextCommand):
 	def run(self, edit: sublime.Edit):
 		print("DebuggerConsoleViewEscapeCommand")
 		console = ConsoleView.console_views[self.view.id()]
 		console.on_escape.post()
+
+class DebuggerConsoleLayoutPreWindowHooks(sublime_plugin.WindowCommand):
+	def run(self):
+		if not _window_has_output_views(self.window):
+			for command in Settings.console_layout_begin:
+				self.window.run_command(command['command'],  args=command.get('args'))
+
+		for command in Settings.console_layout_focus:
+			self.window.run_command(command['command'],  args=command.get('args'))
+
+class DebuggerConsoleLayoutPostViewHooks(sublime_plugin.TextCommand):
+	def run(self):
+		self.view.settings().set('debugger.console_layout', True)
+
+class DebuggerConsoleLayoutPostWindowHooks(sublime_plugin.WindowCommand):
+	def run(self):
+		def run():
+			if not _window_has_output_views(self.window):
+				for command in Settings.console_layout_end:
+					self.window.run_command(command['command'],  args=command.get('args'))
+
+		sublime.set_timeout(run, 0)
 
 class DebuggerConsoleViewEventListener(sublime_plugin.ViewEventListener):
 	@classmethod
@@ -205,7 +245,26 @@ class DebuggerConsoleViewEventListener(sublime_plugin.ViewEventListener):
 
 	def __init__(self, view: sublime.View) -> None:
 		super().__init__(view)
-		self.console = ConsoleView.console_views[self.view.id()]
+		try:
+			self.console = ConsoleView.console_views[self.view.id()]
+		except KeyError:
+			core.error('Closing Debugger Console View it is not attached to a console')
+			
+			window = view.window()
+			if window:
+				DebuggerConsoleLayoutPostWindowHooks(window).run()
+
+			view.close()
+
+
+	def on_pre_close(self):
+		window = self.view.window()
+		if window:
+			DebuggerConsoleLayoutPostWindowHooks(window).run()
+
+	def on_close(self):
+		if self.console:
+			self.console.dispose()
 
 	def on_query_completions(self, prefix: str, locations: list[int]) -> Any:
 		from .debugger import Debugger
