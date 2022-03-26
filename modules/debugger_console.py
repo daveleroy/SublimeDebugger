@@ -119,19 +119,34 @@ class DebuggerConsole:
 		panel.write(text, type)
 
 		if source:
-			location = dap.SourceLocation(source, line)
-			def on_clicked_source():
-				assert source
-				self.on_navigate(location)
+			self.append_source(None, source, line)
 
-			# panel.phantom_inline(panel.at() - 1) [
-			# 	ui.div(height=2.8)[
-			# 		ui.spacer(1),
-			# 		ui.click(on_clicked_source, title=source.name or '??')[
-			# 			ui.text(f'@{location.name}', css=css.label_placeholder)
-			# 		]
-			# 	]
-			# ]
+	def append_source(self, at: int|None, source: dap.Source, line: int|None):
+		location = dap.SourceLocation(source, line)
+		panel = self.acquire_panel()
+		at = at or (panel.at() - 1)
+
+		name = ui.html_escape(f'@{location.name}')
+		html = f'''
+			<style>
+			html {{
+				background-color: var(--background);
+			}}
+			a {{
+				color: color(var(--foreground) alpha(0.25));
+				text-decoration: none;
+			}}
+			</style>
+			<body id="debugger">
+				<a href="">{name}</a>
+			</body>
+		'''
+	
+		def on_navigate(path: str):
+			self.on_navigate(location)
+
+		self.annotation_id += 1
+		panel.view.add_regions(f'an{self.annotation_id}', [sublime.Region(at, at)], annotation_color="#fff0", annotations=[html], on_navigate=on_navigate)
 
 
 	def log_error(self, text: str) -> None:
