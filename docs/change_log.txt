@@ -1,5 +1,14 @@
 For getting set up see https://github.com/daveleroy/sublime_debugger
 
+For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
+
+Version 0.6.6
+
+- Allow inputing debugger commands directly into the debugger console
+- Auto complete for debugger commands (not all adapters support this)
+- A number of performance/usability improvements for the debugger console
+
+
 Version 0.6.4
 
 - Added support for vscode-js-debug for chrome/node/edge adapters
@@ -79,8 +88,6 @@ Version 0.5.0
 - Improved handling of stack frames that marked as labels
 - Improved handling of stack frames that are marked as deemphasized or their source is deemphasized
 - Fixes integrated terminal
-
-For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
 
 Version 0.4.1
