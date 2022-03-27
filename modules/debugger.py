@@ -16,7 +16,7 @@ from .panel import DebuggerProtocolLogger
 from .watch import Watch
 
 
-class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
+class Debugger (dap.Debugger, dap.SessionListener, core.Logger):
 	
 	instances: dict[int, 'Debugger'] = {}
 	creating: dict[int, bool] = {}
@@ -211,7 +211,7 @@ class Debugger (dap.SessionListener, dap.Debugger, core.Logger):
 	@property
 	def active(self):
 		if not self.session:
-			raise core.Error("No active debug sessions")
+			raise core.Error("No Active Debug Sessions")
 		return self.session
 
 	@active.setter

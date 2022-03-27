@@ -1,6 +1,8 @@
 from __future__ import annotations
 from ..typecheck import *
 
+import traceback
+
 _should_log_exceptions = True
 _should_log_error = True
 _should_log_info = True
@@ -27,7 +29,6 @@ def error(*args: Any) -> None:
 
 
 def exception(*args: Any) -> None:
-	import traceback
 	if not _should_log_exceptions:
 		return
 	print('Debugger:', *args, end='')

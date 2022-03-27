@@ -233,7 +233,7 @@ class Session(TransportProtocolListener, core.Logger):
 
 	async def request(self, command: str, arguments: Any) -> Any:
 		if not self._transport:
-			raise core.Error('debugger not running')
+			raise core.Error(f'Debug Session {self.status}')
 
 		return await self._transport.send_request_asyc(command, arguments)
 
@@ -421,7 +421,7 @@ class Session(TransportProtocolListener, core.Logger):
 			return
 
 
-		self._change_status('Stop requested')
+		self._change_status('Stop Requested')
 		self.stop_requested = True
 
 		# first try to terminate if we can
@@ -467,7 +467,7 @@ class Session(TransportProtocolListener, core.Logger):
 		self.stop_debug_adapter_session()
 
 		await self.run_post_debug_task()
-		self._change_status('Debug session has ended')
+		self._change_status('Ended')
 
 		self.state = Session.State.STOPPED
 
