@@ -36,6 +36,11 @@ class AdapterConfiguration:
 	async def installed_status(self, log: core.Logger) -> str | None: ...
 
 	def on_hover_provider(self, view: sublime.View, point: int) -> tuple[str, sublime.Region] | None:
+		for region in view.sel():
+			if region.begin() <= point <= region.end():
+				word = region
+				word_string = view.substr(word)
+				return (word_string, word)
 		word = view.word(point)
 		if word_string := view.substr(word) if word else None:
 			return (word_string, word)
