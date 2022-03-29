@@ -2,6 +2,12 @@ For getting set up see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+
+Version 0.6.7
+
+- Fixes an issue with the latest version of vscode lldb
+
+
 Version 0.6.6
 
 - Allow inputing debugger commands directly into the debugger console
