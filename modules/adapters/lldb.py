@@ -15,12 +15,11 @@ from .import util
 
 import re
 import threading
-
+import socket
 
 class LLDBTransport(dap.SocketTransport):
 	def __init__(self, adapter_process: dap.Process, port: int, log: core.Logger):
 		self.process = adapter_process
-
 		super().__init__(log, 'localhost', port)
 
 		def log_stderr(data: str):
@@ -104,27 +103,33 @@ class LLDB(dap.AdapterConfiguration):
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = util.vscode.install_path(self.type)
 
+
+		# grab a free port
+		sock = socket.socket()
+		sock.bind(('localhost', 0))
+		port = sock.getsockname()[1]
+		sock.close()
+
 		command = [
 			f'{install_path}/extension/adapter/codelldb',
+			f'--port',
+			f'{port}',
 		]
-
-		liblldb = LLDBSettings.lldb_library
-		if liblldb:
-			command.extend(['--liblldb', liblldb])
 
 		process = dap.Process(command, None)
 
-		try:
-			line = await process.readline(process.stdout)
-			result = re.match(r'Listening on port (.*)', line.decode('utf-8'))
-			if not result:
-				raise core.Error('Unable to find listening port')
+		# try a few times to connect to codelldb
+		exception: Exception|None = None
+		for _ in range(0, 5):
+			try:
+				return LLDBTransport(process, port, log)
+			except Exception as e:
+				await core.sleep(0.25)
+				exception = e
 
-			port = int(result.group(1))
-			return LLDBTransport(process, port, log)
-		except:
-			process.dispose()
-			raise
+		# dont leak codelldb when if there was an issue connecting
+		process.dispose()
+		raise exception or core.Error('unreachable')
 
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'custom':
