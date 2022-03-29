@@ -116,6 +116,10 @@ class LLDB(dap.AdapterConfiguration):
 			f'{port}',
 		]
 
+		liblldb = LLDBSettings.lldb_library
+		if liblldb:
+			command.extend(['--liblldb', liblldb])
+
 		process = dap.Process(command, None)
 
 		# try a few times to connect to codelldb
