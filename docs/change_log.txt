@@ -3,6 +3,12 @@ For getting set up see https://github.com/daveleroy/sublime_debugger
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
 
+Version 0.6.8
+
+- python: fixes issue with installing adapter
+- python: allow specifying the python interpreter with `python`
+
+
 Version 0.6.7
 
 - Fixes an issue with the latest version of vscode lldb
