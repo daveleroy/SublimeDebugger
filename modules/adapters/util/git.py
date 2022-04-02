@@ -43,26 +43,24 @@ async def request_json(url: str, timeout: int|None = 30) -> Any:
 	result = await core.run_in_executor(blocking)
 	return result
 
-async def latest_release_vsix_release(owner: str, repo: str):
+async def latest_release_with_vsix_asset(owner: str, repo: str):
 	url = f'https://api.github.com/repos/{owner}/{repo}/releases'
 	releases = await request_json(url)
 	for release in releases:
 		if release['draft'] or release['prerelease']:
 			continue
 
-		return release
+		for asset in release.get('assets', []):
+			if asset['name'].endswith('.vsix'):
+				url: str = asset['browser_download_url']
+				return (release, url)
 
 	raise core.Error(f'Unable to find a suitable release in {owner} {repo}')
 
 
 async def latest_release_vsix(owner: str, repo: str) -> str:
-	release = await latest_release_vsix_release(owner, repo)
-	for asset in release.get('assets', []):
-		if asset['name'].endswith('.vsix'):
-			return asset['browser_download_url']
-
-	raise core.Error(f'Unable to find a suitable asset in latest release of {owner} {repo}')
-
+	_, url = await latest_release_with_vsix_asset(owner, repo)
+	return url
 
 def removeprefix(text: str, prefix: str):
 	return text[text.startswith(prefix) and len(prefix):]
@@ -74,7 +72,7 @@ async def installed_status(owner: str, repo: str, version: str|None, log: core.L
 	
 	log.info(f'github {owner} {repo} checking for updates')
 
-	release = await latest_release_vsix_release(owner, repo)
+	release, _ = await latest_release_with_vsix_asset(owner, repo)
 	tag: str = removeprefix(release['tag_name'], 'v')
 
 	if semver.compare(tag, removeprefix(version, 'v')) != 0:
