@@ -5,6 +5,7 @@ from ..import core
 from .transport import Transport
 
 import sublime
+import re
 
 if TYPE_CHECKING:
 	from .session import Session
@@ -37,8 +38,19 @@ class AdapterConfiguration:
 
 	def on_hover_provider(self, view: sublime.View, point: int) -> tuple[str, sublime.Region] | None:
 		word = view.word(point)
-		if word_string := view.substr(word) if word else None:
-			return (word_string, word)
+		if not word:
+			return None
+
+		# for expressions such as `a.b->c`
+		# hovering over `a` returns `a`
+		# hovering over `b` returns `a.b`
+		# hovering over `c` returns `a.b->c`
+		line = view.line(word)
+		line_up_to_and_including_word = view.substr(sublime.Region(line.a, word.b))
+		match = re.search(r'(([\\\$a-zA-Z0-9_])|(->)|(\.))*$', line_up_to_and_including_word)
+		if word_string := match.group(0) if match else None:
+			region = sublime.Region(word.b - len(word_string), word.b)
+			return (word_string, region)
 		return None
 
 	def did_start_debugging(self, session: Session):

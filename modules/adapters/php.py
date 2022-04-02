@@ -41,17 +41,3 @@ class PHP(dap.AdapterConfiguration):
 	@property
 	def configuration_schema(self):
 		return util.vscode.configuration_schema(self.type)
-
-	def on_hover_provider(self, view: sublime.View, point: int):
-		seperators = "./\\()\"'-:,.;<>~!@#%^&*|+=[]{}`~?."
-		word = view.expand_by_class(point, sublime.CLASS_WORD_START | sublime.CLASS_WORD_END, separators=seperators)
-		if not word:
-			return None
-
-		word_string = view.substr(word)
-		match = re.search("\\$[a-zA-Z0-9_]*", word_string)
-		if not match:
-			return None
-
-		word_string = match.group()
-		return (match.group(), word)
