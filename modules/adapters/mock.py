@@ -23,12 +23,12 @@ class Mock(dap.AdapterConfiguration):
 		return dap.StdioTransport(log, command)
 
 	async def install(self, log: core.Logger):
-		url = 'https://github.com/microsoft/vscode-mock-debug/archive/master.zip'
+		url = 'https://codeload.github.com/microsoft/vscode-mock-debug/zip/refs/heads/main'
 
 		async def post_download_action():
 			install_path = util.vscode.install_path(self.type)
 			
-			original_folder = os.path.join(install_path, 'vscode-mock-debug-master')
+			original_folder = os.path.join(install_path, 'vscode-mock-debug-main')
 			extension_folder = os.path.join(install_path, 'extension')
 			
 			# rename the folder so it matches the vscode convention
