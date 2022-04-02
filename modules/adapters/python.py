@@ -33,7 +33,7 @@ class Python(dap.AdapterConfiguration):
 
 		install_path = util.vscode.install_path(self.type)
 
-		python = configuration.get('pythonPath')
+		python = configuration.get('pythonPath') or configuration.get('python')
 
 		if not python:
 			if shutil.which('python3'):
