@@ -1,9 +1,9 @@
 from __future__ import annotations
 from .. import core
 
-from .phantom import Phantom, Popup
+from .phantom import Phantom, RawPhantom, Popup
 
-from .html import div, span, text, icon, click, code, html_escape
+from .html import div, span, text, icon, click, code, html_escape, html_escape_multi_line
 from .style import css
 
 from .layout import Layout

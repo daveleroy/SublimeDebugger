@@ -76,15 +76,12 @@ class Layout:
 	def to_rem(self, character_widths: float) -> float:
 		return self._em_width_to_rem * character_widths
 
-	def __init__(self, item: Union[div, span], view: sublime.View) -> None:
-		assert item.layout is None, 'item is already added to a layout'
+	def __init__(self, view: sublime.View) -> None:
 		self.on_click_handlers: dict[int, Callable[[], None]] = {}
 		self.on_click_handlers_id = 0
 		self.requires_render = True
 		self.html = ""
-		self.item = div()[item]
-		self.add_component(self.item)
-		self.dirty()
+		self.item: div|None = None
 		self.view = view
 		self._width = 0.0
 		self._height = 0.0
@@ -95,7 +92,8 @@ class Layout:
 		Layout.layouts_to_add.append(self)
 
 	def dispose(self) -> None:
-		self.remove_component(self.item)
+		if self.item:
+			self.remove_component(self.item)
 		Layout.layouts_to_remove.append(self)
 
 	def __getitem__(self, values: div.Children):
@@ -155,7 +153,6 @@ class Layout:
 			self.render_component_tree(child)
 
 	def render_component(self, item: element) -> None:
-	
 		if item.requires_render:
 			self.render_component_tree(item)
 		else:
@@ -166,30 +163,30 @@ class Layout:
 		if not self.requires_render:
 			return False
 
+		if not self.item:
+			return False
+
 		self.on_click_handlers.clear()
 		self.requires_render = False
 
-		if self.item:
-			timer = core.stopwatch('render')
-			self.render_component(self.item)
-			if DEBUG_TIMING: timer()
+		timer = core.stopwatch('render')
+		self.render_component(self.item)
+		if DEBUG_TIMING: timer()
 
-			timer = core.stopwatch('css')
-			css_string = css.generate(self)
+		timer = core.stopwatch('css')
+		css_string = css.generate(self)
 
-			if DEBUG_TIMING:
-				timer(f'{len(css_string)}')
+		if DEBUG_TIMING:
+			timer(f'{len(css_string)}')
 
-			timer = core.stopwatch('html')
-			html = f'<body id="debugger"><style>{css_string}</style>{self.item.html(self)}</body>'
-	
-			self.html = html
+		timer = core.stopwatch('html')
+		html = f'<body id="debugger"><style>{css_string}</style>{self.item.html(self)}</body>'
 
-			if DEBUG_TIMING:
-				timer(f'{len(self.html)}')
+		self.html = html
 
-		else:
-			self.html = ""
+		if DEBUG_TIMING:
+			timer(f'{len(self.html)}')
+
 
 		self.count = {}
 		return True
@@ -246,7 +243,8 @@ class Layout:
 		self._em_width_to_rem = em_width / font_size *  rem_width_scale
 		self._em_width = em_width
 
-		self.item.dirty()
+		if self.item:
+			self.item.dirty()
 
 
 def lightness_from_color(color: str|None) -> float:

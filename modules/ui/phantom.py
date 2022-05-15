@@ -2,7 +2,6 @@ from __future__ import annotations
 from ..typecheck import *
 
 from .. import core
-from .html import span, div
 from .layout import Layout
 from .debug import DEBUG_TIMING
 
@@ -14,13 +13,11 @@ class Phantom(Layout):
 	id = 0
 	
 	def __init__(self, view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
-		super().__init__(div(), view)
+		super().__init__(view)
 		self.cached_phantom: sublime.Phantom|None = None
 		self.region = region
 		self.layout = layout
 		self.view = view
-
-		self.set = sublime.PhantomSet(self.view)
 
 		Phantom.id += 1
 
@@ -46,8 +43,8 @@ class Phantom(Layout):
 		render_count += 1
 		
 		timer = core.stopwatch('phantom')
-		self.cached_phantom = sublime.Phantom(regions[0], self.html, self.layout, self.on_navigate)
-		self.set.update([self.cached_phantom])
+		self.view.erase_phantoms(self.region_id)
+		self.view.add_phantom(self.region_id, regions[0], self.html, self.layout, self.on_navigate)
 		if DEBUG_TIMING: timer()
 		self.last_render_time = total.elapsed()
 		return True
@@ -55,35 +52,50 @@ class Phantom(Layout):
 	def dispose(self) -> None:
 		super().dispose()
 		self.view.erase_regions(self.region_id)
-		self.set.update([])
+		self.view.erase_phantoms(self.region_id)
+
+
+class RawPhantom:	
+	def __init__(self, view: sublime.View, region: sublime.Region, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[str], Any]|None = None) -> None:
+		self.region = region
+		self.view = view
+		self.pid = self.view.add_phantom(f'{id(self)}', region, html, layout, on_navigate)
+
+	def dispose(self) -> None:
+		self.view.erase_phantom_by_id(self.pid)
 
 
 class Popup(Layout):
 	def __init__(self, view: sublime.View, location: int = -1, on_close: Optional[Callable[[], None]] = None) -> None:
-		super().__init__(div(), view)
+		super().__init__(view)
 
 		self.on_close = on_close
 		self.location = location
 		self.max_height = 500
 		self.max_width = 1000
-		self.render()
-
-		self.is_hidden = False
+		self.is_closed = False
+		self.created_popup = False
 
 	def on_hide(self) -> None:
-		self.is_hidden = True
+		self.is_closed = True
 		if self.on_close:
 			self.on_close()
 
 	def render(self) -> bool:
+		if self.is_closed:
+			return False
+		
 		total = core.stopwatch()
 		updated = super().render()
 		if not updated:
 			return False
 
 		timer = core.stopwatch('popup')
-	
-		if not self.view.is_popup_visible():
+
+		if self.created_popup:
+			self.view.update_popup(self.html)
+		else:
+			self.created_popup = True
 			self.view.show_popup(
 				self.html,
 				location=self.location,
@@ -93,15 +105,13 @@ class Popup(Layout):
 				flags=sublime.COOPERATE_WITH_AUTO_COMPLETE | sublime.HIDE_ON_MOUSE_MOVE_AWAY,
 				on_hide=self.on_hide
 			)
-		else:
-			self.view.update_popup(self.html)
-		
+			
 		if DEBUG_TIMING: timer()
 		self.last_render_time = total.elapsed()
 		return True
 
 	def dispose(self) -> None:
 		super().dispose()
-		if not self.is_hidden:
-			self.is_hidden = True
+		if not self.is_closed:
+			self.is_closed = True
 			self.view.hide_popup()

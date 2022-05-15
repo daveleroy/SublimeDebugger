@@ -32,7 +32,7 @@ class ConsoleView:
 		ConsoleView.console_views[self.view.id()] = self
 
 		self.type: None|str = None
-		self.phantoms: list[ui.Phantom] = []
+		self.phantoms: list[ui.RawPhantom] = []
 		self.placeholder_id = 0
 
 		self.view.assign_syntax('Packages/Debugger/Commands/DebuggerConsole.sublime-syntax')

@@ -139,7 +139,7 @@ class DebuggerConsole:
 			
 		core.edit(panel.view, edit)
 
-		phantom = RawPhantom(panel.view, sublime.Region(phantom_at, phantom_at), html, on_navigate)
+		phantom = ui.RawPhantom(panel.view, sublime.Region(phantom_at, phantom_at), html, on_navigate)
 		panel.phantoms.append(phantom)
 
 		if source:
@@ -201,12 +201,3 @@ class DebuggerConsole:
 		panel = self.acquire_panel()
 		panel.write(text + '\n', 'blue')
 
-
-class RawPhantom:	
-	def __init__(self, view: sublime.View, region: sublime.Region, html: str, on_navigate: Callable[[str], Any]) -> None:
-		self.region = region
-		self.view = view
-		self.pid = self.view.add_phantom(f'{id(self)}', region, html, sublime.LAYOUT_INLINE, on_navigate)
-
-	def dispose(self) -> None:
-		self.view.erase_phantom_by_id(self.pid)

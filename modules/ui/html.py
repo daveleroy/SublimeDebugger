@@ -158,8 +158,10 @@ class div (element):
 
 
 def html_escape(text: str) -> str:
-	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace(">", "&gt;").replace("<", "&lt;").replace("\n", "\u00A0")
+	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('\n', '\u00A0')
 
+def html_escape_multi_line(text: str) -> str:
+	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('\n', '<br>')
 
 class text (span, alignable):
 	def __init__(self, text: str, width: float|None = None, height: float|None = 1, css: css|None = None) -> None:
