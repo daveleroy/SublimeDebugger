@@ -48,10 +48,13 @@ class AdapterConfiguration:
 		line = view.line(word)
 		line_up_to_and_including_word = view.substr(sublime.Region(line.a, word.b))
 		match = re.search(r'(([\\\$a-zA-Z0-9_])|(->)|(\.))*$', line_up_to_and_including_word)
-		if word_string := match.group(0) if match else None:
-			region = sublime.Region(word.b - len(word_string), word.b)
-			return (word_string, region)
-		return None
+		if not match:
+			return None
+
+		matched_string = match.group(0)
+		region = sublime.Region(word.b - len(matched_string), word.b)
+		return (matched_string, region)
+
 
 	def did_start_debugging(self, session: Session):
 		...
@@ -59,8 +62,8 @@ class AdapterConfiguration:
 	def did_stop_debugging(self, session: Session):
 		...
 
-	def on_custom_event(self, session: Session):
-		...
+	async def on_custom_event(self, session: Session, event: str, body: Any):
+		core.error(f'event ignored not implemented {event}')
 
 	async def on_custom_request(self, session: Session, command: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
 		...

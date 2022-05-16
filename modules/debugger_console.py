@@ -1,4 +1,6 @@
 from __future__ import annotations
+from dataclasses import dataclass
+
 from .panel import DebuggerProtocolLogger
 from .typecheck import *
 
@@ -15,6 +17,13 @@ from .console_view import ConsoleView
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
+@dataclass
+class Group:
+	collapsed: bool
+	frozen: int # if frozen is > 0 this group cannot be collapsed yet since variables have not been evaluated...
+	start: int
+	ended: bool
+
 class DebuggerConsole(core.Logger):
 	def __init__(self, debugger: Debugger, window: sublime.Window):
 		self.on_input: core.Event[str] = core.Event()
@@ -25,6 +34,7 @@ class DebuggerConsole(core.Logger):
 		self.debugger = debugger
 		self.panel: ConsoleView|None = None
 		self.indent = ''
+		self.groups: list[Group] = []
 
 		self.annotation_id = 0
 
@@ -53,6 +63,7 @@ class DebuggerConsole(core.Logger):
 	def clear(self):
 		self.protocol.clear()
 		self.indent = ''
+		self.groups.clear()
 		if self.panel:
 			self.panel.clear()
 
@@ -69,8 +80,15 @@ class DebuggerConsole(core.Logger):
 		}
 
 		type = sequences_for_types.get(type)
+
+
 		panel = self.acquire_panel()
 		variablesReference = event.variablesReference
+		group = None
+
+		if self.groups:
+			group = self.groups[-1]
+
 		if variablesReference:
 			# save a place for these phantoms to be written to since we have to evaluate them first
 			# panel.write(self.indent)
@@ -86,8 +104,10 @@ class DebuggerConsole(core.Logger):
 
 					at = placeholder()
 					for i, variable in enumerate(variables):
-						self.append_variable(variable, event.source, event.line, at, i, indent)
+						self.append_variable(self.debugger, variable, event.source, event.line, at, i, indent)
 
+					if group:
+						self.collapse_if_needed(panel, group)
 
 				# if a request is cancelled it is because the debugger session ended
 				# In some cases the variable cannot be fetched since the debugger session was terminated because of the exception
@@ -104,12 +124,34 @@ class DebuggerConsole(core.Logger):
 			if event.group == 'end':
 				self.indent = self.indent[:-1]
 
-			self.append_text(event.category or 'console', self.indent + event.output, event.source, event.line)
+
+			if event.group == 'end':
+				group = self.groups.pop()
+				region = panel.view.get_regions(f'{id(group)}')[0]
+				panel.view.add_regions(f'{id(group)}', [sublime.Region(region.a, at)])
+				group.ended = True
+				self.collapse_if_needed(panel, group)
+
+			if event.output:
+				self.append_text(event.category or 'console', self.indent + event.output, event.source, event.line)
 
 			if event.group == 'start' or event.group == 'startCollapsed':
 				self.indent += '\t'
+				group = Group(event.group == 'startCollapsed', 0, at, False)
+				self.groups.append(group)
+				at = panel.at() - 1
+				panel.view.add_regions(f'{id(group)}', [sublime.Region(at, at)])
 
-	def append_variable(self, variable: dap.Variable, source: Optional[dap.Source], line: int|None, at: int, index: int, indent: str):
+
+	def collapse_if_needed(self, panel: ConsoleView, group: Group):
+		region = panel.view.get_regions(f'{id(group)}')[0]
+
+		if group.collapsed:
+			panel.view.fold(sublime.Region(region.a, region.b - 1))
+
+
+
+	def append_variable(self, debugger: Debugger, variable: dap.Variable, source: Optional[dap.Source], line: int|None, at: int, index: int, indent: str):
 		panel = self.acquire_panel()
 		name = ui.html_escape(f'❯')
 		html = f'''
@@ -132,7 +174,7 @@ class DebuggerConsole(core.Logger):
 		phantom_at = at + len(indent)
 
 		def on_navigate(path: str):
-			component = VariableComponent(variable, children_only=True)
+			component = VariableComponent(debugger, variable, children_only=True)
 			component.set_expanded()
 			popup = ui.Popup(panel.view, phantom_at)[
 				component

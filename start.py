@@ -89,20 +89,8 @@ def updated_settings():
 	for debugger in Debugger.instances.values():
 		debugger.project.reload()
 
+
 class Listener (sublime_plugin.EventListener):
-
-	def on_init(self, views: list[sublime.View]):
-		# close any forgotten output views
-		for view in views:
-			if view.settings().get('debugger.OutputView'):
-				view.close()
-
-	def on_pre_close(self, view: sublime.View):
-		if view.settings().get('debugger.OutputView'):
-			window = view.window()
-			assert window
-			DebuggerPostConsoleWindowHooks(window).run()
-
 	def ignore(self, view: sublime.View):
 		return not bool(Debugger.instances)
 
@@ -147,28 +135,35 @@ class Listener (sublime_plugin.EventListener):
 
 		try:
 
-			def on_close():
-				view.erase_regions('selected_hover')
 			
-			# ensure we take at least 0.5 seconds... and then redraw the popup
-			# this is is a hack because we are competing against lsp and other popups on hover...
-			sleep = core.sleep(0.5)
-
 			response = await session.evaluate_expression(word_string, 'hover')
-			component = VariableComponent(dap.Variable.from_evaluate(session, '', response))
+			component = VariableComponent(debugger, dap.Variable.from_evaluate(session, '', response))
 			component.toggle_expand()
 			
-			view.add_regions('selected_hover', [region], scope='comment', flags=sublime.DRAW_NO_OUTLINE)
+			popup = None
 
-			popup = ui.Popup(view, region.a, on_close=on_close)[
-				component
-			]
-			await sleep
-			popup[
-				component
-			]
+			def on_close_popup():
+				nonlocal popup
+				if popup:
+					popup.dispose()
+					popup = None
 
-	
+				core.info('Popup closed')
+				view.erase_regions('selected_hover')
+
+				# this is is a hack because we are competing against lsp and other popups on hover...
+				if view.is_popup_visible():
+					core.info('Reshowing another popup interuppted ours')
+
+			def show_popup():
+				nonlocal popup
+				popup = ui.Popup(view, region.a, on_close=on_close_popup)[
+					component
+				]
+				view.add_regions('selected_hover', [region], scope='comment')
+
+			show_popup()
+
 		# errors trying to evaluate a hover expression should be ignored
 		except dap.Error as e:
 			core.error('adapter failed hover evaluation', e)

@@ -64,16 +64,14 @@ def run(awaitable: Awaitable[T], on_done: Callable[[T], None] | None = None, on_
 	task: Future[T] = asyncio.ensure_future(awaitable, loop=sublime_event_loop) #type: ignore
 
 	def done(task: asyncio.Future[T]) -> None:
-		exception = task.exception() 
 
-		if on_error and exception:
-			on_error(exception)
+		# this will be handled by the loop exception handler
+		try:
+			if e := task.exception():
+				raise e
 
-			try:
-				raise exception
-			except Exception as e:
-				exception()
-
+		# do nothing this was cancelled 
+		except CancelledError:
 			return
 
 		result: T = task.result()

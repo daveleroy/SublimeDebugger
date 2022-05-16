@@ -75,7 +75,7 @@ class TerminalTask:
 			if view.file_name() and view.is_dirty():
 				view.run_command('save')
 
-		self.panel = OutputPanel(self.window, name, show_panel=False)
+		self.panel = OutputPanel(self.window, f'Debugger {name}', show_panel=False)
 
 		self.command = Exec(self.window)
 		self.command.output_view = self.panel.view
@@ -227,12 +227,19 @@ class Tasks:
 		self.tasks.append(terminal)
 		self.added(terminal)
 
-		try:
+		@core.schedule
+		async def update_when_done():
+			try:
+				await terminal.wait()
+			except:
+				raise
+			finally:
+				self.updated(terminal)
+
+		update_when_done()
+
+		if not terminal.background:
 			await terminal.wait()
-		except:
-			raise
-		finally:
-			self.updated(terminal)
 		
 	def remove_finished_terminals(self):
 		for task in self.tasks:

@@ -139,7 +139,6 @@ class CommandsRegistry:
 		name = name or command.name
 		name = name.rstrip('_')
 
-		core.debug('command:', name or command.name)
 		command.command = name
 		CommandsRegistry.commands.append(command)
 		CommandsRegistry.commands_by_action[name] = command
@@ -239,7 +238,6 @@ class CommandsRegistry:
 
 	@staticmethod
 	def initialize_class(Class):
-		core.debug('--', Class.__name__, '--')
 		for object in vars(Class):
 			obj = getattr(Class, object)
 			if isinstance(obj, Command):

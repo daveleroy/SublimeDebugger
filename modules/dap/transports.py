@@ -41,7 +41,7 @@ class Process:
 	async def check_output(command: list[str], cwd: str|None = None) -> bytes:
 		return await core.run_in_executor(lambda: subprocess.check_output(command, cwd=cwd))
 
-	def __init__(self, command: list[str], cwd: str|None = None):
+	def __init__(self, command: list[str], cwd: str|None = None, env: dict[str, str]|None = None):
 		# taken from Default/exec.py
 		# Hide the console window on Windows
 		startupinfo = None
@@ -56,7 +56,8 @@ class Process:
 			shell=False,
 			bufsize=0,
 			startupinfo=startupinfo,
-			cwd = cwd)
+			cwd = cwd,
+			env=env)
 
 		Process.add_subprocess(self.process)
 
@@ -69,7 +70,28 @@ class Process:
 		self.stdout = stdout
 
 		self.closed = False
+		
 
+	def on_stdout(self, callback: Callable[[str], None]):
+		thread = threading.Thread(target=self._read_all, args=(self.process.stdout, callback))
+		thread.start()
+
+	def on_stderr(self, callback: Callable[[str], None]):
+		thread = threading.Thread(target=self._read_all, args=(self.process.stderr, callback))
+		thread.start()
+
+	def _read_all(self, file: Any, callback: Callable[[str], None]) -> None:
+		while True:
+			try:
+				line = file.read(2**15).decode('UTF-8')
+				if not line:
+					core.info('Nothing to read from process, closing')
+					break
+				core.info(line)
+				core.call_soon_threadsafe(callback, line)
+			except Exception as e:
+				core.exception()
+				break
 
 	def _readline(self, pipe: IO[bytes]) -> bytes:
 		if l := pipe.readline():

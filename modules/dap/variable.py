@@ -32,16 +32,16 @@ class SourceLocation:
 
 
 class Variable:
-	def __init__(self, session: Session, name: str, value: str|None, variablesReference: int|None, containerVariablesReference: int|None = None, evaluateName: str|None = None) -> None:
+	def __init__(self, session: Session, name: str, value: str|None, variablesReference: int|None, containerVariablesReference: int|None = None, evaluateName: str|None = None, memoryReference: str|None = None) -> None:
 		self.session = session
 		self.name = name
 		self.evaluateName = evaluateName
 		self.value = value
 		self.variablesReference = variablesReference
 		self.containerVariablesReference = containerVariablesReference
-
+		self.memoryReference = memoryReference
 		self.fetched: core.Future[list[Variable]]|None = None
-
+		
 
 	@staticmethod
 	def from_variable(session: Session, containerVariablesReference: int, variable: dap.Variable):
@@ -52,6 +52,7 @@ class Variable:
 			variable.variablesReference,
 			containerVariablesReference,
 			variable.evaluateName,
+			variable.memoryReference,
 		)
 
 	@staticmethod

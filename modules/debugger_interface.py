@@ -61,7 +61,7 @@ class DebuggerInterface:
 		self.debugger_panel = DebuggerPanel(self.debugger, self.on_navigate_to_source)
 		self.debugger_panel.on_settings = lambda: self.on_settings()
 		self.debugger_panel.on_start = lambda: self.start()
-		self.debugger_panel.on_stop = lambda: self.stop()
+		self.debugger_panel.on_stop = lambda: self.stop(None)
 		self.debugger_panel.on_pause = lambda: self.pause()
 		self.debugger_panel.on_continue = lambda: self.resume()
 		self.debugger_panel.on_step_over = lambda: self.step_over()
@@ -358,6 +358,7 @@ class DebuggerInterface:
 	# COMMANDS
 	@core.schedule
 	async def stop(self, session: dap.Session|None = None) -> None:
+		# the stop command stops all sessions in a hierachy
 		try: 
 			if not session:
 				root = self.debugger.active

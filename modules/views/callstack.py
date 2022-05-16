@@ -94,7 +94,6 @@ class SessionView (ui.div):
 		self.debugger.active = self.session
 
 	def render(self) -> ui.div.Children:
-
 		# if this session has no threads and a single child session then only render the child session and prefix the name with the parent session
 		if not self.session.threads and len(self.session.children) == 1:
 			return [

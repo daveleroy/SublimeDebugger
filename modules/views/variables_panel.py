@@ -34,7 +34,7 @@ class VariablesView (ui.div):
 	def on_updated(self, session: dap.Session):
 		if self.debugger.session:
 			self.variables = [
-				VariableComponent(variable) for variable in self.debugger.session.variables
+				VariableComponent(self.debugger, variable) for variable in self.debugger.session.variables
 			]
 			self.variables and self.variables[0].set_expanded()
 		else:
@@ -47,7 +47,7 @@ class VariablesView (ui.div):
 		if not session:
 			return
 
-		variables = [VariableComponent(variable) for variable in session.variables]
+		variables = [VariableComponent(self.debugger, variable) for variable in session.variables]
 		if variables:
 			variables[0].set_expanded()
 

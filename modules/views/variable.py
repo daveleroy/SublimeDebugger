@@ -10,6 +10,9 @@ from . import css
 
 import sublime
 
+if TYPE_CHECKING:
+	from ..debugger import Debugger
+
 class VariableComponentState:
 	def __init__(self):
 		self._expanded: dict[int, bool] = {}
@@ -29,9 +32,10 @@ class VariableComponentState:
 
 
 class VariableComponent (ui.div):
-	def __init__(self, variable: dap.Variable, source: Optional[dap.SourceLocation] = None, on_clicked_source: Optional[Callable[[dap.SourceLocation], None]] = None, state = VariableComponentState(), children_only = False) -> None:
+	def __init__(self, debugger: Debugger, variable: dap.Variable, source: Optional[dap.SourceLocation] = None, on_clicked_source: Optional[Callable[[dap.SourceLocation], None]] = None, state = VariableComponentState(), children_only = False) -> None:
 		super().__init__()
 		self.variable = variable
+		self.debugger = debugger
 		self.state = state
 		self.children_only = children_only
 		self.item_right = ui.span()
@@ -244,7 +248,7 @@ class VariableComponent (ui.div):
 		else:
 			count = self.state.number_expanded(self.variable)
 			for variable in self.variable_children[:count]:
-				variable_children.append(VariableComponent(variable, state=self.state))
+				variable_children.append(VariableComponent(self.debugger, variable, state=self.state))
 
 			more_count = len(self.variable_children) - count
 			if more_count > 0:

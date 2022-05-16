@@ -359,6 +359,8 @@ class Session(TransportProtocolListener):
 
 		enabled_breakpoints: list[SourceBreakpoint] = []
 		dap_breakpoints: list[dap.SourceBreakpoint] = []
+		
+		lines: list[int] = []
 
 		for breakpoint in breakpoints:
 			if breakpoint.dap.hitCondition and not self.capabilities.supportsHitConditionalBreakpoints:
@@ -373,11 +375,13 @@ class Session(TransportProtocolListener):
 			if breakpoint.enabled:
 				enabled_breakpoints.append(breakpoint)
 				dap_breakpoints.append(breakpoint.dap)
+				lines.append(breakpoint.dap.line)
 
 		try:
 			response = await self.request('setBreakpoints', {
 				'source': { 'path': file },
-				'breakpoints': dap_breakpoints
+				'breakpoints': dap_breakpoints,
+				'lines': lines, # for backwards compat
 			})
 			results: list[dap.Breakpoint] = response['breakpoints']
 
@@ -865,7 +869,7 @@ class Session(TransportProtocolListener):
 		elif event == 'loadedSource':
 			self.on_loaded_source_event(body)
 		else:
-			core.error(f'event ignored not implemented {event}')
+			core.run(self.adapter_configuration.on_custom_event(self, event, body))
 
 
 class Thread:
