@@ -202,6 +202,7 @@ class DebuggerConsole(core.Logger):
 			'debugger.error': 'red',
 			'stderr': 'red',
 			'debugger.info': 'blue',
+			'important': 'magenta',
 		}
 
 		type = sequences_for_types.get(type)
