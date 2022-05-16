@@ -82,13 +82,22 @@ class ConsoleView:
 
 	def on_enter(self):
 		def edit(edit: sublime.Edit):
-			edit_point = self.input_region().b
-			text = self.view.substr(sublime.Region(edit_point, self.view.size()))
-			self.view.erase(edit, sublime.Region(edit_point, self.view.size()))
+			# if the cursor is not at the end move it to the end
+			if self.view.sel()[0].a != self.view.size():
+				self.view.sel().clear()
+				self.view.sel().add(sublime.Region(self.view.size(), self.view.size()))
 
-			if text:
-				self.on_input(text)
-				self.write(self.ensure_new_line('❯ ' + text) + '\n', 'comment')
+			else:
+				edit_point = self.input_region().b
+				text = self.view.substr(sublime.Region(edit_point, self.view.size()))
+				self.view.erase(edit, sublime.Region(edit_point, self.view.size()))
+
+				if text:
+					self.on_input(text)
+					self.write(self.ensure_new_line('❯ ' + text) + '\n', 'comment')
+
+			# ensure we are at the bottom so that hitting enter always brings the console to the bottom
+			self.view.show(self.view.size(), animate=False)
 
 		core.edit(self.view, edit)
 	
