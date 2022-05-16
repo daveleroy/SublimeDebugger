@@ -123,9 +123,11 @@ class Session(TransportProtocolListener):
 		self.sources: dict[int|str, dap.Source] = {}
 		self.modules: dict[int|str, dap.Module] = {}
 
+		self.process: dap.ProcessEvent|None = None
+
 	@property
 	def name(self) -> str:
-		return self.configuration.name
+		return self.configuration.name or (self.process and self.process.name) or 'Untitled'
 
 	@property
 	def state(self) -> State:
@@ -660,6 +662,10 @@ class Session(TransportProtocolListener):
 
 		self.listener.on_session_updated_modules(self)
 
+	def on_process_event(self, event: dap.ProcessEvent):
+		self.process = event
+		self.listener.on_session_state_changed(self, self.state)
+
 	def on_loaded_source_event(self, event: dap.LoadedSourceEvent):
 		id = f'{event.source.name}~{event.source.path}~{event.source.sourceReference}'
 		if event.reason == 'new':
@@ -868,6 +874,8 @@ class Session(TransportProtocolListener):
 			self.on_module_event(body)
 		elif event == 'loadedSource':
 			self.on_loaded_source_event(body)
+		elif event == 'process':
+			self.on_process_event(body)
 		else:
 			core.run(self.adapter_configuration.on_custom_event(self, event, body))
 
