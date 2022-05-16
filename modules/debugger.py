@@ -11,12 +11,10 @@ from .import persistance
 from .settings import Settings
 from .breakpoints import Breakpoints
 from .project import Project
-from .panel import DebuggerProtocolLogger
-
 from .watch import Watch
 
 
-class Debugger (dap.Debugger, dap.SessionListener, core.Logger):
+class Debugger (dap.Debugger, dap.SessionListener):
 	
 	instances: dict[int, 'Debugger'] = {}
 	creating: dict[int, bool] = {}
@@ -99,16 +97,14 @@ class Debugger (dap.Debugger, dap.SessionListener, core.Logger):
 		self.last_run_task = None
 
 		self.project = Project(window)
-		self.transport_log = DebuggerProtocolLogger(self.window)
-
 		self.breakpoints = Breakpoints()
 		self.watch = Watch()		
 		self.interface = DebuggerInterface(self, window)
+		self.log: core.Logger = self.interface.console
 
 		self.disposeables.extend([
 			self.project,
 			self.interface,
-			self.transport_log,
 			self.breakpoints,
 		])
 
@@ -129,9 +125,10 @@ class Debugger (dap.Debugger, dap.SessionListener, core.Logger):
 			breakpoints=breakpoints, 
 			watch=self.watch, 
 			listener=self, 
-			transport_log=self,
 			debugger=self,
-			parent=parent)
+			parent=parent,
+			log=self.log,
+		)
 
 		@core.schedule
 		async def run():
@@ -225,9 +222,6 @@ class Debugger (dap.Debugger, dap.SessionListener, core.Logger):
 		self.breakpoints.source.remove_all()
 		self.breakpoints.function.remove_all()
 
-	def show_protocol_panel(self):
-		self.transport_log.show()
-
 	def set_diagnostics(self, id: str, errors: Any) -> None:
 		self.interface.problems_panel.update(id, errors)
 		if not self.is_active:
@@ -245,9 +239,6 @@ class Debugger (dap.Debugger, dap.SessionListener, core.Logger):
 			d.dispose()
 
 		del Debugger.instances[self.window.id()]
-
-	def run_async(self, awaitable: Awaitable[Any]):
-		core.run(awaitable, on_error=lambda e: self.error(str(e)))
 
 	def is_paused(self):
 		return self.is_active and self.active.state == dap.Session.State.PAUSED
@@ -300,23 +291,6 @@ class Debugger (dap.Debugger, dap.SessionListener, core.Logger):
 		
 	# async def sessions_run_task(self, session: dap.Session, task: dap.TaskExpanded):
 	# 	await self.run_task(task)
-
-	def error(self, value: str):
-		self.on_error(value)
-
-	def info(self, value: str):
-		self.on_info(value)
-
-	def log(self, type: str, value: str):
-		if type == 'transport':
-			self.transport_log.info(value)
-		else:
-			self.on_info(value)
-
-	def configurations_to_vscode_launch_json(self):
-		json = self.project.configurations_as_vscode_launch_json()
-		file = self.window.new_file()
-		core.edit(file, lambda edit: file.insert(edit, file.size(), sublime.encode_value(json, True)))
 
 	def refresh_phantoms(self) -> None:
 		ui.Layout.render_layouts()

@@ -9,6 +9,7 @@
 	https://microsoft.github.io/debug-adapter-protocol/implementors/adapters/
 '''
 from __future__ import annotations
+from dataclasses import dataclass
 from ..typecheck import *
 
 from ..import core
@@ -34,6 +35,48 @@ class TransportProtocolListener (Protocol):
 		...
 
 	def on_transport_closed(self): ...
+
+@dataclass
+class TransportLog:
+	out: bool
+	data: dict[str, Any]
+
+	def __str__(self) -> str:
+		data = self.data
+		out = self.out
+		type = data.get('type')
+
+		def sigil(success: bool):
+			if success:
+				if out:
+					return '⟸'
+				else:
+					return '⟹'
+			else:
+				if out:
+					return '⟽'
+				else:
+					return '⟾'
+
+		if type == 'response':
+			id = data.get('request_seq')
+			command = data.get('command')
+			body = data.get('body', data.get('message'))
+			return f'{sigil(data.get("success", False))} response/{command}({id}) :: {body}'
+
+		if type == 'request':
+			id = data.get('seq')
+			command = data.get('command')
+			body = data.get('arguments')
+			return f'{sigil(True)} request/{command}({id}) :: {body}'
+
+		if type == 'event':
+			command = data.get('event')
+			body = data.get('body')
+			return f'{sigil(True)} event/{command} :: {body}'
+
+		return f'{sigil(False)} {type}/unknown :: {data}'
+
 
 class TransportProtocol:
 	def __init__(
@@ -146,41 +189,7 @@ class TransportProtocol:
 		self.send(data)
 
 	def log_transport(self, out: bool, data: dict[str, Any]):
-		type = data.get('type')
-
-		def sigil(success: bool):
-			if success:
-				if out:
-					return '⟸'
-				else:
-					return '⟹'
-			else:
-				if out:
-					return '⟽'
-				else:
-					return '⟾'
-
-		if type == 'response':
-			id = data.get('request_seq')
-			command = data.get('command')
-			body = data.get('body', data.get('message'))
-			self.transport_log.log('transport', f'{sigil(data.get("success", False))} response/{command}({id}) :: {body}')
-			return
-
-		if type == 'request':
-			id = data.get('seq')
-			command = data.get('command')
-			body = data.get('arguments')
-			self.transport_log.log('transport', f'{sigil(True)} request/{command}({id}) :: {body}')
-			return
-
-		if type == 'event':
-			command = data.get('event')
-			body = data.get('body')
-			self.transport_log.log('transport', f'{sigil(True)} event/{command} :: {body}')
-			return
-
-		self.transport_log.log('transport', f'{sigil(False)} {type}/unknown :: {data}')
+		self.transport_log.log('transport', TransportLog(out, data))
 
 	@core.schedule
 	async def handle_reverse_request(self, request: dict[str, Any]):

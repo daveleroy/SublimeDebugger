@@ -121,7 +121,7 @@ class Commands:
 	)
 	show_protocol = CommandDebugger (
 		name='Show Protocol',
-		action=Debugger.show_protocol_panel,
+		action=lambda debugger: debugger.interface.console.protocol.show(),
 		flags=Command.menu_widget|Command.menu_commands|Command.menu_main,
 	)
 	add_watch_expression = CommandDebugger (

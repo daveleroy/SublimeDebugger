@@ -41,7 +41,7 @@ class SessionListener (Protocol):
 	def on_session_updated_threads(self, session: Session): ...
 
 
-class Session(TransportProtocolListener, core.Logger):
+class Session(TransportProtocolListener):
 
 	class State (IntEnum):
 		STARTING = 3
@@ -67,7 +67,7 @@ class Session(TransportProtocolListener, core.Logger):
 		breakpoints: Breakpoints, 
 		watch: Watch, 
 		listener: SessionListener, 
-		transport_log: core.Logger,
+		log: core.Logger,
 		debugger: Debugger,
 		parent: Session|None = None
 		) -> None:
@@ -85,7 +85,7 @@ class Session(TransportProtocolListener, core.Logger):
 		if parent:
 			parent.children.append(self)
 
-		self.transport_log = transport_log
+		self.log = log
 		self.state_changed = core.Event[int]()
 
 		self.breakpoints = breakpoints
@@ -155,7 +155,7 @@ class Session(TransportProtocolListener, core.Logger):
 		except core.Error as e:
 			self.launching_async = None
 			core.exception(e)
-			self.error('... an error occured, ' + str(e))
+			self.log.error(str(e))
 			await self.stop_forced(reason=Session.stopped_reason_launch_error)
 		except core.CancelledError:
 			...
@@ -171,21 +171,21 @@ class Session(TransportProtocolListener, core.Logger):
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(self.adapter_configuration.type))
 
 		if not await self.run_pre_debug_task():
-			self.info('Pre debug command failed, not starting session')
+			self.log.info('Pre debug command failed, not starting session')
 			self.launching_async = None
 			await self.stop_forced(reason=Session.stopped_reason_build_failed)
 			return
 
 		self._change_status('Starting')
 		try:
-			transport = await self.adapter_configuration.start(log=self.transport_log, configuration=self.configuration)
+			transport = await self.adapter_configuration.start(log=self.log, configuration=self.configuration)
 		except Exception as e:
 			raise core.Error(f'Unable to start the adapter process: {e}')
 
 		self._transport = TransportProtocol(
 			transport,
 			self,
-			self.transport_log
+			self.log
 		)
 
 		capabilities: dap.Capabilities = await self.request('initialize', {
@@ -262,12 +262,12 @@ class Session(TransportProtocolListener, core.Logger):
 			return True
 
 		except core.CancelledError:
-			self.error(f'{name}: cancelled')
+			self.log.error(f'{name}: cancelled')
 			return False
 
 		except Exception as e:
 			core.exception()
-			self.error(f'{name}: {e}')
+			self.log.error(f'{name}: {e}')
 			return False
 
 	def _refresh_state(self) -> None:
@@ -327,7 +327,7 @@ class Session(TransportProtocolListener, core.Logger):
 		if not self.capabilities.supportsFunctionBreakpoints:
 			# only show error message if the user tried to set a function breakpoint when they are not supported
 			if breakpoints:
-				self.error('This debugger does not support function breakpoints')
+				self.log.error('This debugger does not support function breakpoints')
 			return
 
 		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
@@ -362,13 +362,13 @@ class Session(TransportProtocolListener, core.Logger):
 
 		for breakpoint in breakpoints:
 			if breakpoint.dap.hitCondition and not self.capabilities.supportsHitConditionalBreakpoints:
-				self.error('This debugger does not support hit condition breakpoints')
+				self.log.error('This debugger does not support hit condition breakpoints')
 
 			if breakpoint.dap.logMessage and not self.capabilities.supportsLogPoints:
-				self.error('This debugger does not support log points')
+				self.log.error('This debugger does not support log points')
 
 			if breakpoint.dap.condition and not self.capabilities.supportsConditionalBreakpoints:
-				self.error('This debugger does not support conditional breakpoints')
+				self.log.error('This debugger does not support conditional breakpoints')
 
 			if breakpoint.enabled:
 				enabled_breakpoints.append(breakpoint)
@@ -593,18 +593,6 @@ class Session(TransportProtocolListener, core.Logger):
 		})
 		return response
 
-	def log(self, type: str, value: str) -> None:
-		if type == 'process':
-			self.transport_log.info(f'⟹ process/stderr :: {value.strip()}')
-			return
-		if type == 'error':
-			output = dap.OutputEvent(value + '\n', 'debugger.error')
-			self.listener.on_session_output_event(self, output)
-			return
-
-		output = dap.OutputEvent(value + '\n', 'debugger.info')
-		self.listener.on_session_output_event(self, output)
-
 	def load_frame(self, frame: Optional[dap.StackFrame]):
 		self.listener.on_session_selected_frame(self, frame)
 		if frame:
@@ -692,13 +680,13 @@ class Session(TransportProtocolListener, core.Logger):
 		try:
 			await self.add_breakpoints()
 		except core.Error as e:
-			self.error('there was an error adding breakpoints {}'.format(e))
+			self.log.error('there was an error adding breakpoints {}'.format(e))
 		
 		if self.capabilities.supportsConfigurationDoneRequest:
 			try:
 				await self.request('configurationDone', None)
 			except core.Error as e:
-				self.error('there was an error in configuration done {}'.format(e))
+				self.log.error('there was an error in configuration done {}'.format(e))
 
 	def on_output_event(self, event: dap.OutputEvent):
 		self.listener.on_session_output_event(self, event)
@@ -732,7 +720,7 @@ class Session(TransportProtocolListener, core.Logger):
 		try:
 			return await self.listener.on_session_terminal_request(self, request)
 		except core.Error as e:
-			self.error(str(e))
+			self.log.error(str(e))
 			raise e
 
 	@property

@@ -41,16 +41,18 @@ def debug(*args: Any) -> None:
 		return
 	print('Debugger:', *args)
 
+
 class Logger(Protocol):
 	def error(self, value: str):
 		self.log('error', value)
 	def info(self, value: str):
 		self.log('info', value)
-	def log(self, type: str, value: str):
-		self.log(type, value)
+	def log(self, type: str, value: Any):
+		print(f'Debugger: {type}: {value}')
+
 
 class StdioLogger(Logger):
-	def log(self, type: str, value: str):
+	def log(self, type: str, value: Any):
 		print(f'Debugger: {type}: {value}')
 
 stdio = StdioLogger()

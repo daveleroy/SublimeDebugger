@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .panel import DebuggerProtocolLogger
 from .typecheck import *
 
 import sublime
@@ -11,13 +12,17 @@ from .views import css
 from .views.variable import VariableComponent
 from .console_view import ConsoleView
 
+if TYPE_CHECKING:
+	from .debugger import Debugger
 
-class DebuggerConsole:
-	def __init__(self, window: sublime.Window):
+class DebuggerConsole(core.Logger):
+	def __init__(self, debugger: Debugger, window: sublime.Window):
 		self.on_input: core.Event[str] = core.Event()
 		self.on_navigate: core.Event[dap.SourceLocation] = core.Event()
 
+		self.protocol = DebuggerProtocolLogger(window)
 		self.window = window
+		self.debugger = debugger
 		self.panel: ConsoleView|None = None
 		self.indent = ''
 
@@ -46,6 +51,7 @@ class DebuggerConsole:
 			self.panel.close()
 			
 	def clear(self):
+		self.protocol.clear()
 		self.indent = ''
 		if self.panel:
 			self.panel.clear()
@@ -192,12 +198,12 @@ class DebuggerConsole:
 		self.annotation_id += 1
 		panel.view.add_regions(f'an{self.annotation_id}', [sublime.Region(at, at)], annotation_color="#fff0", annotations=[html], on_navigate=on_navigate)
 
-
-	def log_error(self, text: str) -> None:
-		panel = self.acquire_panel()
-		panel.write(text + '\n', 'red')
-
-	def log_info(self, text: str) -> None:
-		panel = self.acquire_panel()
-		panel.write(text + '\n', 'blue')
-
+	def log(self, type: str, value: Any):
+		if type == 'transport':
+			self.protocol.log('transport', value)
+		elif type == 'error':
+			panel = self.acquire_panel()
+			panel.write(str(value) + '\n', 'red')
+		else:
+			panel = self.acquire_panel()
+			panel.write(str(value) + '\n', 'blue')

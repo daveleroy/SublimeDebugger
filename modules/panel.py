@@ -70,7 +70,7 @@ class OutputPanel:
 class DebuggerProtocolLogger(core.Logger):
 	def __init__(self, window: sublime.Window):
 		self.window = window
-		self.panel = OutputPanel(window, 'Protocol', show_panel=False)
+		self.panel = OutputPanel(window, 'Debugger Protocol', show_panel=False)
 		self.panel.view.assign_syntax('Packages/Debugger/Commands/LogPanel.sublime-syntax')
 		settings = self.panel.view.settings()
 		settings.set('word_wrap', False)
@@ -78,7 +78,7 @@ class DebuggerProtocolLogger(core.Logger):
 		self.on_post_show_panel = core.on_post_show_panel.add(self.show_panel)
 		self.on_pre_hide_panel = core.on_pre_hide_panel.add(self.hide_panel)
 
-		self.pending: list[str] = []
+		self.pending: list[Any] = []
 		self.is_hidden = True
 
 	def show_panel(self, window: sublime.Window):
@@ -94,14 +94,14 @@ class DebuggerProtocolLogger(core.Logger):
 
 	def write_pending(self):
 		for pending in self.pending:
-			self.panel.write(pending + '\n')
+			self.panel.write(f'{pending}\n')
 		self.pending.clear()
 
 	def write_pending_if_needed(self):
 		if not self.is_hidden:
 			self.write_pending()
 
-	def info(self, value: str):
+	def log(self, type: str, value: Any):
 		self.pending.append(value)
 		self.write_pending_if_needed()
 

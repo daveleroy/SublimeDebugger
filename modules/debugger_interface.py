@@ -8,7 +8,7 @@ from functools import partial
 from .import dap
 
 from .settings import Settings
-from .panel import DebuggerOutputPanel, DebuggerProtocolLogger
+from .panel import DebuggerOutputPanel
 
 from .adapters_registry import AdaptersRegistry
 
@@ -31,7 +31,7 @@ from .debugger import Debugger
 
 import webbrowser
 
-class DebuggerInterface (core.Logger):
+class DebuggerInterface:
 	def __init__(self, debugger: Debugger, window: sublime.Window):
 		self.disposeables: list[Any] = []
 		self.window = window
@@ -68,10 +68,9 @@ class DebuggerInterface (core.Logger):
 		self.debugger_panel.on_step_out = lambda: self.step_out()
 		self.debugger_panel.on_step_in = lambda: self.step_in()
 
-		# middle panels
 		self.middle_panel = TabbedPanel([], 0, width_scale=0.65, width_additional=-30)
 
-		self.console = DebuggerConsole(window)
+		self.console = DebuggerConsole(self.debugger, window)
 		self.console.on_input.add(self.on_run_command)
 		self.console.on_navigate.add(self.on_navigate_to_source)
 
@@ -143,7 +142,6 @@ class DebuggerInterface (core.Logger):
 		for dispose in self.disposeables:
 			dispose.dispose()
 
-	# @core.schedule
 	def start(self, no_debug: bool = False):
 		async def run():
 			await self.launch(no_debug=no_debug)
@@ -161,13 +159,13 @@ class DebuggerInterface (core.Logger):
 			if not adapter_configuration.installed_version:
 				install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
 				if sublime.ok_cancel_dialog(install, 'Install'):
-					await AdaptersRegistry.install(adapter_configuration.type, self)
+					await AdaptersRegistry.install(adapter_configuration.type, self.console)
 
 	async def launch(self, no_debug: bool = False):
 		try:
 			active_configurations = self.project.active_configurations()
 			if not active_configurations:
-				self.error("Add or select a configuration to begin debugging")
+				self.console.error("Add or select a configuration to begin debugging")
 				await self.change_configuration()
 
 			active_configurations = self.project.active_configurations()
@@ -184,7 +182,7 @@ class DebuggerInterface (core.Logger):
 			# clear console if there are not any currently active sessions
 			if not self.debugger.sessions:
 				self.console.clear()
-				self.debugger.transport_log.clear()
+				core.info('cleared console')
 
 			self.console.show()
 			
@@ -224,7 +222,6 @@ class DebuggerInterface (core.Logger):
 		settings = self.panel.view.settings()
 		settings['font_size'] = Settings.ui_scale
 		settings['rem_width_scale'] = Settings.ui_rem_width_scale
-
 
 	def on_session_active(self, session: dap.Session):
 		if not self.debugger.is_active:
@@ -328,19 +325,13 @@ class DebuggerInterface (core.Logger):
 		self.source_provider.show_source_location(source)
 
 	def on_info(self, value: str):
-		self.console.log_info(value)
+		self.console.info(value)
 
 	def on_error(self, value: str):
-		self.console.log_error(value)
+		self.console.error(value)
 
 	def on_task_added(self, task: TerminalTask):
 		self.middle_panel.select(self.problems_panel)
-
-	def log(self, type: str, value: str):
-		if type == 'error':
-			self.console.log_error(value)
-		else:
-			self.console.log_info(value)
 
 	def set_configuration(self, configuration: Union[dap.Configuration, dap.ConfigurationCompound]):
 		self.project.configuration_or_compound = configuration
@@ -360,7 +351,7 @@ class DebuggerInterface (core.Logger):
 		if values:
 			values.append(ui.InputListItem(lambda: ..., ""))
 
-		values.append(ui.InputListItem(await AdaptersRegistry.add_configuration(log=self), "Add Configuration"))
+		values.append(ui.InputListItem(await AdaptersRegistry.add_configuration(log=self.console), "Add Configuration"))
 		values.append(ui.InputListItem(lambda: self.project.open_project_configurations_file(), "Edit Configuration File"))
 		return values
 
@@ -382,37 +373,37 @@ class DebuggerInterface (core.Logger):
 			
 			await session_stop
 
-		except core.Error as e: self.error(f'Unable to stop: {e}')
+		except core.Error as e: self.console.error(f'Unable to stop: {e}')
 
 	@core.schedule
 	async def resume(self) -> None:
 		try: await self.debugger.active.resume()
-		except core.Error as e: self.error(f'Unable to continue: {e}')
+		except core.Error as e: self.console.error(f'Unable to continue: {e}')
 
 	@core.schedule
 	async def pause(self) -> None:
 		try: await self.debugger.active.pause()
-		except core.Error as e: self.error(f'Unable to pause: {e}')
+		except core.Error as e: self.console.error(f'Unable to pause: {e}')
 
 	@core.schedule
 	async def step_over(self) -> None:
 		try: await self.debugger.active.step_over()
-		except core.Error as e: self.error(f'Unable to step over: {e}')
+		except core.Error as e: self.console.error(f'Unable to step over: {e}')
 
 	@core.schedule
 	async def step_in(self) -> None:
 		try: await self.debugger.active.step_in()
-		except core.Error as e: self.error(f'Unable to step in: {e}')
+		except core.Error as e: self.console.error(f'Unable to step in: {e}')
 
 	@core.schedule
 	async def step_out(self) -> None:
 		try: await self.debugger.active.step_out()
-		except core.Error as e: self.error(f'Unable to step out: {e}')
+		except core.Error as e: self.console.error(f'Unable to step out: {e}')
 
 	@core.schedule
 	async def on_run_command(self, command: str) -> None:
 		try: await self.debugger.active.evaluate(command)
-		except core.Error as e: self.error(f'{e}')
+		except core.Error as e: self.console.error(f'{e}')
 
 	def toggle_breakpoint(self):
 		file, line, _ = self.project.current_file_line_column()
@@ -453,12 +444,12 @@ class DebuggerInterface (core.Logger):
 
 	@core.schedule
 	async def add_configuration(self) -> None:
-		await (await AdaptersRegistry.add_configuration(log=self)).run()
+		await (await AdaptersRegistry.add_configuration(log=self.console)).run()
 
 	@core.schedule
 	async def install_adapters(self) -> None:
 		self.console.show()
-		menu = await AdaptersRegistry.install_menu(log=self)
+		menu = await AdaptersRegistry.install_menu(log=self.console)
 		await menu.run()
 
 	def on_input_command(self) -> None:
