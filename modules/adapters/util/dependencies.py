@@ -3,7 +3,7 @@ from ...settings import Settings
 from ...import core
 from ...import dap
 
-import subprocess
+import socket
 import shutil
 
 def version_tuple(v):
@@ -25,3 +25,9 @@ async def get_and_warn_require_node(adapter_type: str, log: core.Logger):
 		log.error(f'This adapter requires node it looks like you may not have node installed or it is not on your path: {e}. \nhttps://nodejs.org/')
 
 	return node_path
+
+def get_open_port() -> int:
+	with socket.socket() as sock:
+		sock.bind(('localhost', 0))
+		port = sock.getsockname()[1]
+		return port
