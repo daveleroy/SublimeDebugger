@@ -532,6 +532,11 @@ class Session(TransportProtocolListener):
 			'threadId': self.command_thread.id
 		})
 
+	async def exception_info(self, thread_id: int) -> dap.ExceptionInfoResponseBody:
+		return await self.request('exceptionInfo', {
+			'threadId': thread_id
+		})
+
 	async def evaluate(self, expression: str, context: str = 'repl'):
 		result = await self.evaluate_expression(expression, context)
 		if not result:
@@ -803,6 +808,7 @@ class Session(TransportProtocolListener):
 		thread.clear()
 		thread.stopped = True
 		thread.stopped_reason = stopped_text
+		thread.stopped_event = stopped
 
 		if not self.selected_explicitly:
 			self.select(thread, None, explicitly=False)
@@ -834,11 +840,13 @@ class Session(TransportProtocolListener):
 			for thread in self.threads:
 				thread.stopped = False
 				thread.stopped_reason = ''
+				thread.stopped_event = None
 
 		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
 		thread = self.get_thread(continued.threadId)
 		thread.stopped = False
 		thread.stopped_reason = ''
+		thread.stopped_event = None
 
 		if continued.allThreadsContinued or thread is self.selected_thread:
 			self.select(None, None, explicitly=False)
@@ -887,6 +895,7 @@ class Thread:
 		self.name = name
 		self.stopped = stopped
 		self.stopped_reason = ''
+		self.stopped_event: dap.StoppedEvent|None = None
 		self._children: Optional[core.Future[list[dap.StackFrame]]] = None
 
 	def has_children(self) -> bool:

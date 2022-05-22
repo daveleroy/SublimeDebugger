@@ -345,37 +345,37 @@ escape_codes: list[dict[str, Any]] = [
 	{
 		'color': 'red',
 		'escape': ['\u001b[31m', '\u001b[91m'],
-		'scope': 'region.redish.debugger region.background.debugger',
+		'scope': 'region.redish.debugger debugger.background',
 		'match': '\u200b',
 	},
 	{
 		'color': 'green',
 		'escape': ['\u001b[32m', '\u001b[92m'],
-		'scope': 'region.greenish.debugger region.background.debugger',
+		'scope': 'region.greenish.debugger debugger.background',
 		'match': '\u200b\u200b',
 	},
 	{
 		'color': 'yellow',
 		'escape': ['\u001b[33m', '\u001b[93m'],
-		'scope': 'region.yellowish.debugger region.background.debugger',
+		'scope': 'region.yellowish.debugger debugger.background',
 		'match': '\u200b\u200b\u200b',
 	},
 	{
 		'color': 'blue',
 		'escape': ['\u001b[34m', '\u001b[94m'],
-		'scope': 'region.bluish.debugger region.background.debugger',
+		'scope': 'region.bluish.debugger debugger.background',
 		'match': '\u200b\u200b\u200b\u200b',
 	},
 	{
 		'color': 'magenta',
 		'escape': ['\u001b[35m', '\u001b[95m'],
-		'scope': 'region.purplish.debugger region.background.debugger',
+		'scope': 'region.purplish.debugger debugger.background',
 		'match': '\u200b\u200b\u200b\u200b\u200b',
 	},
 	{
 		'color': 'cyan',
 		'escape': ['\u001b[36m', '\u001b[96m'],
-		'scope': 'region.cyanish.debugger region.background.debugger',
+		'scope': 'region.cyanish.debugger debugger.background',
 		'match': '\u200b\u200b\u200b\u200b\u200b\u200b',
 	},
 	{

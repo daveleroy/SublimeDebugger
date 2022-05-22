@@ -14,44 +14,44 @@ contexts:
           scope: comment.debugger
           pop: true
     - match: '​​​​​​'
-      scope: region.cyanish.debugger region.background.debugger
+      scope: region.cyanish.debugger debugger.background
       push:
-        - meta_scope: region.cyanish.debugger region.background.debugger
+        - meta_scope: region.cyanish.debugger debugger.background
         - match: '‌'
-          scope: region.cyanish.debugger region.background.debugger
+          scope: region.cyanish.debugger debugger.background
           pop: true
     - match: '​​​​​'
-      scope: region.purplish.debugger region.background.debugger
+      scope: region.purplish.debugger debugger.background
       push:
-        - meta_scope: region.purplish.debugger region.background.debugger
+        - meta_scope: region.purplish.debugger debugger.background
         - match: '‌'
-          scope: region.purplish.debugger region.background.debugger
+          scope: region.purplish.debugger debugger.background
           pop: true
     - match: '​​​​'
-      scope: region.bluish.debugger region.background.debugger
+      scope: region.bluish.debugger debugger.background
       push:
-        - meta_scope: region.bluish.debugger region.background.debugger
+        - meta_scope: region.bluish.debugger debugger.background
         - match: '‌'
-          scope: region.bluish.debugger region.background.debugger
+          scope: region.bluish.debugger debugger.background
           pop: true
     - match: '​​​'
-      scope: region.yellowish.debugger region.background.debugger
+      scope: region.yellowish.debugger debugger.background
       push:
-        - meta_scope: region.yellowish.debugger region.background.debugger
+        - meta_scope: region.yellowish.debugger debugger.background
         - match: '‌'
-          scope: region.yellowish.debugger region.background.debugger
+          scope: region.yellowish.debugger debugger.background
           pop: true
     - match: '​​'
-      scope: region.greenish.debugger region.background.debugger
+      scope: region.greenish.debugger debugger.background
       push:
-        - meta_scope: region.greenish.debugger region.background.debugger
+        - meta_scope: region.greenish.debugger debugger.background
         - match: '‌'
-          scope: region.greenish.debugger region.background.debugger
+          scope: region.greenish.debugger debugger.background
           pop: true
     - match: '​'
-      scope: region.redish.debugger region.background.debugger
+      scope: region.redish.debugger debugger.background
       push:
-        - meta_scope: region.redish.debugger region.background.debugger
+        - meta_scope: region.redish.debugger debugger.background
         - match: '‌'
-          scope: region.redish.debugger region.background.debugger
+          scope: region.redish.debugger debugger.background
           pop: true

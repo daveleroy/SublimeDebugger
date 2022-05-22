@@ -233,7 +233,7 @@ class DebuggerInterface:
 		frame = active_session.selected_frame
 
 		if thread and frame and frame.source:
-			self.source_provider.select_source_location(dap.SourceLocation(frame.source, frame.line, frame.column), thread.stopped_reason or "Stopped")
+			self.source_provider.select_source_location(dap.SourceLocation(frame.source, frame.line, frame.column), thread)
 		else:
 			self.source_provider.clear()
 

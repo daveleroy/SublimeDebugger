@@ -20,6 +20,8 @@ from .dap import (
 	SourceBreakpoint,
 	ExceptionBreakpointsFilter,
 
+	ExceptionInfoResponseBody,
+	
 	RunInTerminalRequest,
 	RunInTerminalResponse,
 	RunInTerminalRequestArguments,

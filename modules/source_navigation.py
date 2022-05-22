@@ -49,7 +49,7 @@ class SourceNavigationProvider:
 	def dispose(self):
 		self.clear()
 
-	def select_source_location(self, source: dap.SourceLocation, stopped_reason: str):
+	def select_source_location(self, source: dap.SourceLocation, thread: dap.Thread):
 		if self.updating:
 			self.updating.cancel()
 
@@ -57,15 +57,12 @@ class SourceNavigationProvider:
 			if error is not core.CancelledError:
 				core.error(error)
 
-		async def select_async(source: dap.SourceLocation, stopped_reason: str):
+		async def select_async(source: dap.SourceLocation, thread: dap.Thread):
 			self.clear_selected()
 			view = await self.navigate_to_source(source)
+			self.selected_frame_line = SelectedLine(view, source.line or 1, thread)
 
-			# r = view.line(view.text_point(source.line - 1, 0))
-			# view.add_regions("asdfasdf", [r], scope="region.bluish", annotations=[stopped_reason], annotation_color='color(var(--bluish) alpha(0.5))')
-			self.selected_frame_line = SelectedLine(view, source.line or 1, stopped_reason)
-
-		self.updating = core.run(select_async(source, stopped_reason), on_error=on_error)
+		self.updating = core.run(select_async(source, thread), on_error=on_error)
 
 	def show_source_location(self, source: dap.SourceLocation):
 		if self.updating:

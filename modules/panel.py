@@ -71,7 +71,7 @@ class DebuggerProtocolLogger(core.Logger):
 	def __init__(self, window: sublime.Window):
 		self.window = window
 		self.panel = OutputPanel(window, 'Debugger Protocol', show_panel=False)
-		self.panel.view.assign_syntax('Packages/Debugger/Commands/LogPanel.sublime-syntax')
+		self.panel.view.assign_syntax('Packages/Debugger/Commands/DebuggerProtocol.sublime-syntax')
 		settings = self.panel.view.settings()
 		settings.set('word_wrap', False)
 

@@ -1,7 +1,8 @@
 %YAML 1.2
 ---
 hidden: true
-scope: output.debugger.log
+scope: debugger.protocol
+name: Debugger Protocol
 
 contexts:
   main:
@@ -14,9 +15,6 @@ contexts:
       captures:
         1: storage.type
       push: request
-
-
-
 
   request:
     - match: '(::)'

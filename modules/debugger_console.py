@@ -39,6 +39,7 @@ class DebuggerConsole(core.Logger):
 		self.annotation_id = 0
 
 	def dispose(self):
+		self.protocol.dispose()
 		if self.panel:
 			self.panel.dispose()
 

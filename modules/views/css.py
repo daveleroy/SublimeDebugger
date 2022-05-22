@@ -91,9 +91,3 @@ selected = ui.css(
 	background_color='color(var(--accent) alpha(0.2))', 
 	raw='border-radius:0.33rem;'
 )
-selected_text = ui.css(
-	color='color(var(--accent) alpha(0.75))',
-	padding_left=1,
-	padding_right=1,
-	raw='position: relative; top:-0.2rem;'
-)
