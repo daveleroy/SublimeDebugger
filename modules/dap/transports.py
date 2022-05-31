@@ -53,7 +53,7 @@ class Process:
 			stdout=subprocess.PIPE,
 			stderr=subprocess.PIPE,
 			stdin=subprocess.PIPE,
-			shell=False,
+			shell=True if os.name == "nt" else False,
 			bufsize=0,
 			startupinfo=startupinfo,
 			cwd = cwd,
