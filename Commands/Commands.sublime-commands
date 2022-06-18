@@ -1,5 +1,12 @@
 [
     {
+        "caption": "Debugger: Generate Commands",
+        "command": "debugger",
+        "args": {
+            "action": "generate_commands"
+        }
+    },
+    {
         "caption": "Debugger: Open",
         "command": "debugger",
         "args": {
@@ -18,13 +25,6 @@
         "command": "debugger",
         "args": {
             "action": "settings"
-        }
-    },
-    {
-        "caption": "Debugger: Generate Commands",
-        "command": "debugger",
-        "args": {
-            "action": "generate_commands"
         }
     },
     {

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from ..typecheck import*
 
 from ..import ui
@@ -6,9 +7,12 @@ from ..import core
 from .. import dap
 from . import css
 from .tabbed_panel import Panel
-from ..debugger import Debugger
+
 
 import os
+
+if TYPE_CHECKING:
+	from ..debugger import Debugger
 
 class CallStackState:
 	def __init__(self):
@@ -33,6 +37,13 @@ class CallStackPanel (Panel):
 		super().__init__('Callstack')
 		self.debugger = debugger
 		self.state = CallStackState()
+		from ..debugger_output_panel import DebuggerPanelTabs
+		self.header = DebuggerPanelTabs(self.debugger, 'output.Debugger')
+
+	def panel_header(self, expanded: bool) -> list[ui.span] | None:
+		return [
+			self.header
+		]
 
 	def added(self, layout: ui.Layout):
 		self.on_updated = self.debugger.on_session_threads_updated.add(self.on_threads_updated)
@@ -42,6 +53,7 @@ class CallStackPanel (Panel):
 
 	def removed(self):
 		self.on_updated.dispose()
+		self.on_selected.dispose()
 		self.on_added_session.dispose()
 		self.on_removed_session.dispose()
 
@@ -227,9 +239,7 @@ class ThreadView (ui.div):
 		if is_expanded:
 			return [
 				thread_item,
-				ui.div()[
-					[StackFrameComponent(frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame), self.show_thread_name) for frame in self.frames] #type: ignore
-				]
+				[StackFrameComponent(frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame), self.show_thread_name) for frame in self.frames]
 			]
 		else:
 			return thread_item

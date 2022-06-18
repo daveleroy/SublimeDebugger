@@ -37,6 +37,8 @@ class DebuggerPanel(ui.div):
 		self.debugger.on_session_state_updated.add(lambda session, state: self.dirty())
 		self.debugger.on_session_active.add(self.on_selected_session)
 		self.debugger.on_session_added.add(self.on_selected_session)
+
+		self.debugger.project.on_updated.add(self.dirty)
 		self.last_active_adapter = None
 
 	def on_selected_session(self, session: dap.Session):
@@ -45,33 +47,43 @@ class DebuggerPanel(ui.div):
 
 	def render(self) -> ui.div.Children:
 		items = [
-			DebuggerCommandButton(self.on_settings, ui.Images.shared.settings, 'Settings'),
-			DebuggerCommandButton(self.on_start, ui.Images.shared.play, 'Start'),
+			DebuggerCommandButton(self.debugger.on_settings, ui.Images.shared.settings, 'Settings'),
+			ui.spacer(1),
+			DebuggerCommandButton(self.debugger.start, ui.Images.shared.play, 'Start'),
+			ui.spacer(1),
 		]
 
 		if self.debugger.is_stoppable():
-			items.append(DebuggerCommandButton(self.on_stop, ui.Images.shared.stop, 'Stop'))
+			items.append(DebuggerCommandButton(self.debugger.stop, ui.Images.shared.stop, 'Stop'))
 		else:
-			items.append(DebuggerCommandButton(self.on_stop, ui.Images.shared.stop_disable, 'Stop (Disabled)'))
+			items.append(DebuggerCommandButton(self.debugger.stop, ui.Images.shared.stop_disable, 'Stop (Disabled)'))
+
+		items.append(ui.spacer(1))
 
 		if self.debugger.is_running():
-			items.append(DebuggerCommandButton(self.on_pause, ui.Images.shared.pause, 'Pause'))
+			items.append(DebuggerCommandButton(self.debugger.pause, ui.Images.shared.pause, 'Pause'))
 		elif self.debugger.is_paused():
-			items.append(DebuggerCommandButton(self.on_continue, ui.Images.shared.resume, 'Continue'))
+			items.append(DebuggerCommandButton(self.debugger.resume, ui.Images.shared.resume, 'Continue'))
 		else:
-			items.append(DebuggerCommandButton(self.on_pause, ui.Images.shared.pause_disable, 'Pause (Disabled)'))
+			items.append(DebuggerCommandButton(self.debugger.pause, ui.Images.shared.pause_disable, 'Pause (Disabled)'))
+
+		items.append(ui.spacer(1))
 
 		if self.debugger.is_paused():
 			items.extend([
-				DebuggerCommandButton(self.on_step_over, ui.Images.shared.down, 'Step Over'),
-				DebuggerCommandButton(self.on_step_out, ui.Images.shared.left, 'Step Out'),
-				DebuggerCommandButton(self.on_step_in, ui.Images.shared.right, 'Step In'),
+				DebuggerCommandButton(self.debugger.step_over, ui.Images.shared.down, 'Step Over'),
+				ui.spacer(1),
+				DebuggerCommandButton(self.debugger.step_out, ui.Images.shared.left, 'Step Out'),
+				ui.spacer(1),
+				DebuggerCommandButton(self.debugger.step_in, ui.Images.shared.right, 'Step In'),
 			])
 		else:
 			items.extend([
-				DebuggerCommandButton(self.on_step_over, ui.Images.shared.down_disable, 'Step Over (Disabled)'),
-				DebuggerCommandButton(self.on_step_out, ui.Images.shared.left_disable, 'Step Out (Disabled)'),
-				DebuggerCommandButton(self.on_step_in, ui.Images.shared.right_disable, 'Step In (Disabled)'),
+				DebuggerCommandButton(self.debugger.step_over, ui.Images.shared.down_disable, 'Step Over (Disabled)'),
+				ui.spacer(1),
+				DebuggerCommandButton(self.debugger.step_out, ui.Images.shared.left_disable, 'Step Out (Disabled)'),
+				ui.spacer(1),
+				DebuggerCommandButton(self.debugger.step_in, ui.Images.shared.right_disable, 'Step In (Disabled)'),
 			])
 
 		# looks like
@@ -102,13 +114,63 @@ class DebuggerPanel(ui.div):
 		panel_items.append(self.breakpoints)
 
 		return [
-			ui.div()[
-				ui.div(height=css.header_height)[items],
-				ui.div(width=30 - css.rounded_panel.padding_width, height=1000, css=css.rounded_panel)[
-					panel_items
-				],
-			]
+			ui.div(height=css.header_height, width=30 - css.controls_panel.padding_width, css=css.controls_panel)[
+				items
+			],
+			ui.div(width=30 - css.rounded_panel.padding_width, height=1000, css=css.panel)[
+				panel_items
+			],
 		]
+
+
+class DebuggerActionsTab(ui.span):
+	def __init__(self, debugger: Debugger) -> None:
+		super().__init__(css=css.controls_panel)
+		self.debugger = debugger
+		self.debugger.on_session_state_updated.add(lambda session, state: self.dirty())
+
+	def render(self) -> ui.div.Children:
+		items = [
+			DebuggerCommandButton(self.debugger.on_settings, ui.Images.shared.settings, 'Settings'),
+			ui.spacer(1),
+			DebuggerCommandButton(self.debugger.start, ui.Images.shared.play, 'Start'),
+			ui.spacer(1),
+		]
+
+		if self.debugger.is_stoppable():
+			items.append(DebuggerCommandButton(self.debugger.stop, ui.Images.shared.stop, 'Stop'))
+		else:
+			items.append(DebuggerCommandButton(self.debugger.stop, ui.Images.shared.stop_disable, 'Stop (Disabled)'))
+
+		items.append(ui.spacer(1))
+
+		if self.debugger.is_running():
+			items.append(DebuggerCommandButton(self.debugger.pause, ui.Images.shared.pause, 'Pause'))
+		elif self.debugger.is_paused():
+			items.append(DebuggerCommandButton(self.debugger.resume, ui.Images.shared.resume, 'Continue'))
+		else:
+			items.append(DebuggerCommandButton(self.debugger.pause, ui.Images.shared.pause_disable, 'Pause (Disabled)'))
+
+		items.append(ui.spacer(1))
+
+		if self.debugger.is_paused():
+			items.extend([
+				DebuggerCommandButton(self.debugger.step_over, ui.Images.shared.down, 'Step Over'),
+				ui.spacer(1),
+				DebuggerCommandButton(self.debugger.step_out, ui.Images.shared.left, 'Step Out'),
+				ui.spacer(1),
+				DebuggerCommandButton(self.debugger.step_in, ui.Images.shared.right, 'Step In'),
+			])
+		else:
+			items.extend([
+				DebuggerCommandButton(self.debugger.step_over, ui.Images.shared.down_disable, 'Step Over (Disabled)'),
+				ui.spacer(1),
+				DebuggerCommandButton(self.debugger.step_out, ui.Images.shared.left_disable, 'Step Out (Disabled)'),
+				ui.spacer(1),
+				DebuggerCommandButton(self.debugger.step_in, ui.Images.shared.right_disable, 'Step In (Disabled)'),
+			])
+
+		return items
 
 
 class DebuggerCommandButton (ui.span):
@@ -120,10 +182,6 @@ class DebuggerCommandButton (ui.span):
 		self.title = title
 
 	def render(self) -> ui.span.Children:
-		return [
-			ui.span(css=css.padding)[
-				ui.click(self.callback, title=self.title)[
-					ui.icon(self.image),
-				]
-			]
+		return ui.click(self.callback, title=self.title)[
+			ui.icon(self.image),
 		]

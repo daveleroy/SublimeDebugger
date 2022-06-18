@@ -1,7 +1,7 @@
 from ..import ui
 
 line_height = 1.6
-header_height = 3
+header_height = 4
 row_height = 3
 panel_padding= 2
 
@@ -67,17 +67,41 @@ rounded_panel = ui.css(
 	raw='''border-radius: 0.33rem;'''
 )
 
-tab_panel = ui.css(
+panel = ui.css(
 	padding_left=1.5,
-	padding_right=1.5
+	padding_right=1.5,
+	background_color='var(--panel-color)',
+)
+
+
+tab_panel = ui.css(
+	background_color='var(--panel-border)',
+	padding_left=2,
+	padding_right=2,
+	raw='''
+	padding-bottom: 0.33rem;
+	border-top-left-radius: 0.33rem;
+	border-top-right-radius: 0.33rem;
+	'''
 )
 
 tab_panel_selected = ui.css(
 	background_color='var(--panel-color)',
+	padding_left=2,
+	padding_right=2,
+	raw='''
+	padding-bottom: 1rem;
+	border-top-left-radius: 0.33rem;
+	border-top-right-radius: 0.33rem;
+	'''
+)
+
+controls_panel = ui.css(
+	background_color='var(--panel-color)',
 	padding_left=1.5,
 	padding_right=1.5,
 	raw='''
-	padding-bottom:0.33rem;
+	padding-bottom: 1rem;
 	border-top-left-radius: 0.33rem;
 	border-top-right-radius: 0.33rem;
 	'''

@@ -152,7 +152,7 @@ class div (element):
 		w = layout.to_rem(self.width(layout) - self.padding_width)
 		if children_inline:
 			# this makes it so that divs with an img in them and divs without an img in them all align the same
-			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;line-height: {h}rem; padding: -{h/2}rem 0 {h/2}rem 0"><img style="height: {h}rem">{html}</d>'
+			return f'<d id="{self.css_id}"><div style="height:{h}rem;width:{w}rem;line-height: {h}rem; padding: {-h+1}rem 0 {h-1}rem 0"><img style="height: {h}rem">{html}</div></d>'
 		else:
 			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;">{html}</d>'
 
@@ -217,7 +217,7 @@ class icon (span):
 		width = layout.to_rem(self._height - self.padding)
 		required_padding = layout.to_rem(self.padding)
 		top = layout.to_rem(0.75)
-		return f'<s id="{self.css_id}" style="position: relative; top: {top}rem; line-height:0; padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
+		return f'<s style="position:relative;top:{top}rem;line-height:0rem;padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
 
 tokenize_re = re.compile(
 	r'(0x[0-9A-Fa-f]+)' #matches hex

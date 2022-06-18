@@ -1,17 +1,19 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict, Any, List, TypedDict, Callable
+from typing import TYPE_CHECKING, Any, TypedDict, Callable
 
-import re
 import sublime
 import Default #type: ignore
 import time
+import sys
 
 from .import core
 from .import dap
 
-from .panel import OutputPanel
-from .console_view import ConsoleView
+from .debugger_output_panel import DebuggerOutputPanel
+
+if TYPE_CHECKING:
+	from .debugger import Debugger
 
 @dataclass
 class Problem:
@@ -35,11 +37,10 @@ class Diagnostics(TypedDict):
 	base: str|None
 	errors: list[Diagnostic]
 
-class TerminalTask:
+class TerminalTask(DebuggerOutputPanel):
 
-	def __init__(self, window: sublime.Window, task: dap.TaskExpanded, on_closed: Callable[[], None]):
+	def __init__(self, debugger:Debugger, task: dap.TaskExpanded, on_closed: Callable[[], None]):
 		arguments = task.copy()
-		name: str
 		cmd: str|list[str]|None = arguments.get('cmd')
 
 		if 'name' in arguments:
@@ -51,9 +52,9 @@ class TerminalTask:
 		else:
 			name = 'Untitled'
 
+		super().__init__(debugger, f'Debugger {name}', show_tabs=True)
+
 		self.background = arguments.get('background', False)
-		self.name = name
-		self.view = ConsoleView(window, 'Task', on_closed)
 		self.finished = False
 
 		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
@@ -68,41 +69,45 @@ class TerminalTask:
 		self.diagnostics_per_file: list[Diagnostics] = []
 
 		self.future: core.Future[None] = core.Future()
-		self.window = window
 
 		# only save the views that have an assigned file
 		for view in self.window.views():
 			if view.file_name() and view.is_dirty():
 				view.run_command('save')
 
-		self.panel = OutputPanel(self.window, f'Debugger {name}', show_panel=False)
-
 		self.command = Exec(self.window)
-		self.command.output_view = self.panel.view
+		self.command.output_view = self.view
 		self.command.run(self, arguments)
-
+		self.open()
+		self.view.run_command('append', {
+			'characters': '\n' * 25,
+			'force': True,
+			'scroll_to_end': True,
+		})
+		self.view.set_viewport_position((0, sys.maxsize), False)
+		self.view.assign_syntax('Packages/Debugger/Commands/DebuggerConsole.sublime-syntax')
+		
 		self.on_view_load_listener = core.on_view_load.add(self.on_view_load)
 
 	def show_backing_panel(self):
-		self.panel.open()
+		self.open()
 
 	def on_view_load(self, view: sublime.View):
 		# refresh the phantoms from exec
 		self.command.update_annotations()
 
 	def dispose(self):
+		super().dispose()
+
 		try:
 			self.command.proc.kill()
+		except ProcessLookupError: 
+			...
 		except Exception as e:
 			core.exception(e)
 
 		self.command.hide_annotations()
 		self.on_view_load_listener.dispose()
-		self.panel.dispose()
-		self.view.dispose()
-
-	def write_stdout(self, text: str):
-		self.view.write(text)
 
 	async def wait(self) -> None:
 		try:
@@ -113,9 +118,6 @@ class TerminalTask:
 				'kill': True
 			})
 			raise e
-
-	def on_output(self, characters: str):
-		self.write_stdout(characters)
 
 	def on_updated_errors(self, errors_by_file):
 		self.diagnostics_per_file.clear()
@@ -143,7 +145,6 @@ class TerminalTask:
 
 		self.on_problems_updated.post()
 
-
 	def on_finished(self, exit_code: int|None, exit_status: str):
 		self.finished = True
 		self.exit_code = exit_code
@@ -163,11 +164,7 @@ class TerminalTask:
 class Exec(Default.exec.ExecCommand):
 	def run(self, instance: TerminalTask, args: Any):
 		self.instance = instance
-		panel = self.window.active_panel()
 		super().run(**args)
-
-		# return to previous panel we don't want to show the build results panel
-		self.window.run_command("show_panel", {"panel": panel})
 
 	def update_annotations(self):
 		super().update_annotations()
@@ -192,11 +189,6 @@ class Exec(Default.exec.ExecCommand):
 			self.instance.on_finished(code, status)
 			# self.window.run_command("next_result")
 
-	def write(self, characters: str):
-		super().write(characters)
-		self.instance.on_output(characters)
-
-
 class Tasks:
 	tasks: list[TerminalTask]
 
@@ -217,11 +209,11 @@ class Tasks:
 		return False
 
 	@core.schedule
-	async def run(self, window: sublime.Window, task: dap.TaskExpanded):
+	async def run(self, debugger: Debugger, task: dap.TaskExpanded):
 		def on_closed():
 			self.cancel(terminal)
 
-		terminal = TerminalTask(window, task, on_closed)
+		terminal = TerminalTask(debugger, task, on_closed)
 		terminal.on_problems_updated.add(lambda: self.updated(terminal))
 
 		self.tasks.append(terminal)
@@ -240,18 +232,16 @@ class Tasks:
 
 		if not terminal.background:
 			await terminal.wait()
-		
-	def remove_finished_terminals(self):
-		for task in self.tasks:
-			if task.finished:
-				task.view.close()
 
 	def remove_finished(self):
+		remove_tasks = []
 		for task in self.tasks:
 			if task.finished:
-				task.dispose()
+				remove_tasks.append(task)
 
-		self.tasks = list(filter(lambda t: not t.finished, self.tasks))
+		for task in remove_tasks:
+			self.cancel(task)
+
 		return False
 
 	def cancel(self, task: TerminalTask):
@@ -263,15 +253,6 @@ class Tasks:
 		# todo actually cancel...
 		self.removed(task)
 		task.dispose()
-
-	def clear(self):
-		while self.tasks:
-			if not self.tasks[-1].finished:
-				continue
-
-			task = self.tasks.pop()
-			self.removed(task)
-			task.dispose()
 
 	def dispose(self):
 		while self.tasks:

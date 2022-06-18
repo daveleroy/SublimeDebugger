@@ -5,20 +5,11 @@ from ..import ui
 from .import css
 from functools import partial
 
-class TabbedPanelItem:
-	def __init__(self, id: Any, item: ui.div, name: str, index: int = 0, show_options: Optional[Callable[[], None]] = None):
-		self.id = id
-		self.item = item
-		self.name = name
-		self.index = index
-		self.modified = False
-		self.column = -1
-		self.row = -1
-		self.show_options = show_options
 
 class Panel(ui.div):
 	name: str
 	parent: TabbedPanel|None
+	on_show: Callable[[], None]|None = None
 
 	def __init__(self, name: str):
 		super().__init__()
@@ -26,10 +17,15 @@ class Panel(ui.div):
 		self.parent = None
 
 	def panel_header(self, expanded: bool) -> list[ui.span] | None:
+		if expanded:
+			csss = css.tab_panel_selected
+		else:
+			csss = css.tab_panel
+
 		return [
-			ui.spacer(1),
-			ui.text(self.name, css=css.label_secondary),
-			ui.spacer(2),
+			ui.span(css=csss) [
+				ui.text(self.name, css=css.label_secondary),
+			]
 		]
 
 	def visible(self) -> bool:
@@ -93,7 +89,9 @@ class TabbedPanel(ui.div):
 		# if self.selected_index == index and self.items[index].show_options:
 		# 	self.items[index].show_options()
 		# 	return
-
+		on_show = self.items[index].on_show
+		if on_show: on_show()
+		
 		self.selected_index = index
 		self.dirty()
 
@@ -118,19 +116,16 @@ class TabbedPanel(ui.div):
 
 			
 			tabs.append(ui.click(partial(self.show, index))[
-				ui.span(css=css.tab_panel_selected if index == self.selected_index else css.tab_panel)[
-					tab
-				]
+				tab
 			])
 
 		return [
-			ui.div(width=width, height=css.header_height)[
+			ui.div(width=width, height=4)[
 				ui.align()[
 					tabs
 				]
 			],
 			ui.div(width=width - css.rounded_panel.padding_width, height=1000, css=css.rounded_panel)[
-				None,
 				self.items[self.selected_index]
 			],
 		]

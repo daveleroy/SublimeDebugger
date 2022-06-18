@@ -4,8 +4,10 @@ from ..typecheck import *
 from ..import ui
 from .. import dap
 from .tabbed_panel import Panel
-from ..debugger import Debugger
 from . import css
+
+if TYPE_CHECKING:
+	from ..debugger import Debugger
 
 class SourcesPanel(Panel):
 	def __init__(self, debugger: Debugger, on_click: Callable[[dap.SourceLocation], None]):

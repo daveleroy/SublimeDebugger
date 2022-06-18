@@ -8,7 +8,8 @@ if TYPE_CHECKING:
 
 base_css = '''
 .dark {
-	--panel-color: color(var(--background) blend(black 90%));
+	--panel-border: color(var(--background) blend(black 97%));
+	--panel-color: color(var(--background) blend(black 91%));
 	--segment-color: color(var(--background) blend(black 75%));
 
 	--text-color: var(--foreground);
@@ -18,8 +19,9 @@ base_css = '''
 	--secondary: color(var(--text-color) alpha(0.7));
 }
 .light {
-	--panel-color: color(var(--background) blend(black 92%));
-	--segment-color: color(var(--background) blend(black 87%));
+	--panel-color: color(var(--background) blend(black 97%));
+	--panel-border: color(var(--background) blend(black 92%));
+	--segment-color: color(var(--background) blend(black 92%));
 
 	--text-color: var(--foreground);
 	--label-color: var(--text-color);
@@ -33,7 +35,7 @@ a {
 d {
 	display: block;
 }
-i {
+l {
 	display: inline-block;
 }
 '''
@@ -42,17 +44,37 @@ i {
 if DEBUG_DRAW:
 	base_css += '''
 d {
-	background-color: color(red alpha(0.25));
+	background-color: color(red alpha(0.1));
+
 	--panel-color: color(red alpha(0.25));
 	--segment-color: color(red alpha(0.25));
+	--panel-border: color(red alpha(0.25));
 
 	--text-color: var(--foreground);
 	--label-color: var(--text-color);
+
+	border-style: solid;
+	border-color: black;
+	border-width: 0.15px;
 }
 s {
-	background-color: color(blue alpha(0.25));
+	background-color: color(blue alpha(0.15));
+
 	--panel-color: color(blue alpha(0.25));
 	--segment-color: color(blue alpha(0.25));
+
+	--text-color: var(--foreground);
+	--label-color: var(--text-color);
+
+	border-style: solid;
+	border-color: black;
+	border-width: 0.15px;
+}
+
+l {
+	background-color: color(green alpha(0.25));
+	--panel-color: color(green alpha(0.25));
+	--segment-color: color(green alpha(0.25));
 
 	--text-color: var(--foreground);
 	--label-color: var(--text-color);

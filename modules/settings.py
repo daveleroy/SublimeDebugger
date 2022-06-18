@@ -32,10 +32,6 @@ class Settings(metaclass=SettingsMeta):
 	log_exceptions: bool = True
 	log_errors: bool = True
 
-	console_layout_begin: Any = []
-	console_layout_end: Any = []
-	console_layout_focus: Any = []
-
 	node: str|None = None
 
 	go_dlv: str|None = None

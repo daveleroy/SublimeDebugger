@@ -4,7 +4,7 @@ from .typecheck import *
 from .import core
 from .debugger import Debugger
 from .adapters_registry import AdaptersRegistry
-from .console_view import generate_console_syntax
+from .ansi import generate_ansi_syntax
 import sublime_plugin
 import sublime
 import json
@@ -56,7 +56,7 @@ class CommandDebugger(Command):
 
 	def run(self, window: sublime.Window):
 		debugger = Debugger.get(window)
-		if not debugger or not debugger.interface.is_open():
+		if not debugger or not debugger.is_open():
 			debugger = Debugger.get(window, True)
 			
 			# don't run this command if the debugger is not visible
@@ -212,7 +212,7 @@ class CommandsRegistry:
 		commands_context = generate_commands(Command.menu_widget)
 		save_commands('/Commands/Widget Debug.sublime-menu', commands_context)
 
-		syntax = generate_console_syntax()
+		syntax = generate_ansi_syntax()
 		with open(current_package + '/Commands/DebuggerConsole.sublime-syntax', 'w') as f:
 			f.write(syntax)
 

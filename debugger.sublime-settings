@@ -28,36 +28,6 @@
 	// currently not implemented
 	"bring_window_to_front_on_pause" : false,
 
-	// Commands to run before opening any console views
-	"console_layout_begin": [
-		{
-			"command": "set_layout", 
-			"args": {
-				"cells": [[0, 0, 1, 1], [1, 0, 2, 1]],
-				"cols": [0, 0.666, 1],
-				"rows": [0, 1],
-			}		
-		},
-	],
-	// Commands to run after all console views are closed
-	"console_layout_end": [
-		{
-			"command": "set_layout", 
-			"args": {
-				"cells": [[0, 0, 1, 1]],
-				"cols": [0, 1],
-				"rows": [0, 1],
-			}
-		},
-	],
-	// Commands to place the focus in the desired group before a console view is opened
-	"console_layout_focus": [
-		{
-			"command": "focus_group", 
-			"args": { "group": 1 },
-		},
-	],
-
 	"development": false,
 	"log_info": false,
 	"log_exceptions": true,

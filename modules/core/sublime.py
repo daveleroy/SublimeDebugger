@@ -51,7 +51,7 @@ on_new_window: Event[sublime.Window] = Event()
 on_pre_close_window: Event[sublime.Window] = Event()
 on_exit: Event[None] = Event()
 
-on_pre_hide_panel: Event[sublime.Window] = Event()
+on_pre_hide_panel: Event[sublime.Window, str] = Event()
 on_post_show_panel: Event[sublime.Window] = Event()
 
 class DebuggerAsyncTextCommand(sublime_plugin.TextCommand):
@@ -99,7 +99,7 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 
 	def on_window_command(self, window: sublime.Window, command_name: str, args: Any):
 		if command_name == 'hide_panel':
-			if on_pre_hide_panel(window):
+			if on_pre_hide_panel(window, window.active_panel() or ''):
 				return ("null", {})
 
 	def on_post_window_command(self, window: sublime.Window, command_name: str, args: Any):

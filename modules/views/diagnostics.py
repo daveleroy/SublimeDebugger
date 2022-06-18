@@ -1,6 +1,5 @@
 from __future__ import annotations
-from typing import TypedDict
-from ..typecheck import *
+from typing import Callable
 
 from ..import ui
 from ..import dap

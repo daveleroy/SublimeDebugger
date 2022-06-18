@@ -8,7 +8,9 @@ from ..watch import Watch
 from .variable import VariableComponent
 from . import css
 from .tabbed_panel import Panel
-from ..debugger import Debugger
+
+if TYPE_CHECKING:
+	from ..debugger import Debugger
 
 class VariablesPanel (Panel):
 	def __init__(self, debugger: Debugger):

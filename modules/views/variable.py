@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Literal
 from ..typecheck import *
 
 from ..import core
@@ -53,14 +52,14 @@ class VariableComponent (ui.div):
 	@core.schedule
 	async def edit_variable(self) -> None:
 		if not self.variable.containerVariablesReference:
-			raise core.Error("Not able to set value of this item")
+			raise core.Error('Not able to set value of this item')
 
 		containerVariablesReference = self.variable.containerVariablesReference
 		session = self.variable.session
 		info = None
 		name = self.variable.name
 		expression = self.variable.name
-		value = self.variable.value or ""
+		value = self.variable.value or ''
 		evaluateName = self.variable.evaluateName
 		
 		if session.capabilities.supportsDataBreakpoints:
@@ -107,21 +106,21 @@ class VariableComponent (ui.div):
 			ui.InputListItem(
 				ui.InputText(
 					on_edit_variable,
-					"editing a variable",
+					'editing a variable',
 				),
-				"Edit Variable",
+				'Edit Variable',
 			),
 			ui.InputListItem(
 				copy_expr,
-				"Copy Expression",
+				'Copy Expression',
 			),
 			ui.InputListItem(
 				copy_value,
-				"Copy Value\t Click again to select",
+				'Copy Value\t Click again to select',
 			),
 			ui.InputListItem(
 				add_watch,
-				"Add Variable To Watch",
+				'Add Variable To Watch',
 			),
 		]
 
@@ -131,7 +130,7 @@ class VariableComponent (ui.div):
 			return
 
 		if info and info.dataId:
-			types = info.accessTypes or [""]
+			types = info.accessTypes or ['']
 			labels = {
 				'write': 'Break On Value Write',
 				'readWrite': 'Break On Value Read or Write',
@@ -183,7 +182,7 @@ class VariableComponent (ui.div):
 
 	def render(self) -> ui.div.Children:
 		name =  self.variable.name
-		value = self.variable.value or ""
+		value = self.variable.value or ''
 		is_expanded = self.state.is_expanded(self.variable)
 		source = self.source
 
@@ -256,7 +255,7 @@ class VariableComponent (ui.div):
 					ui.div(height=css.row_height)[
 						ui.click(self.show_more)[
 							ui.spacer(3),
-							ui.text("{} more items...".format(more_count), css=css.label_secondary)
+							ui.text('{} more items...'.format(more_count), css=css.label_secondary)
 						]
 					]
 				)

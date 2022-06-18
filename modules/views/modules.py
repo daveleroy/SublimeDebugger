@@ -6,10 +6,13 @@ from ..import ui
 from ..import dap
 
 from .tabbed_panel import Panel
-from ..debugger import Debugger
+
 
 from .import css
 import sublime
+
+if TYPE_CHECKING:
+	from ..debugger import Debugger
 
 class ModulesPanel(Panel):
 	def __init__(self, debugger: Debugger):

@@ -6,10 +6,11 @@ from .import dap
 
 from .views.selected_line import SelectedLine
 from .debugger import Project
-from .debugger import Debugger
+
+if TYPE_CHECKING:
+	from .debugger import Debugger
 
 import sublime
-import sublime_plugin
 
 syntax_name_for_mime_type: dict[str|None, str] = {
 	'text/plain': 'text.plain',
