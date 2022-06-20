@@ -1,5 +1,8 @@
-a = 1
-b = [1, 2, 3]
-c = "a b c"
+integer = 1
+float = 1.23
+string = "string"
+array = [1, 2, 3]
 
-puts "Test"
+puts "a"
+puts "b"
+puts "c"

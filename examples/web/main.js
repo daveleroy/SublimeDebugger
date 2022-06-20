@@ -1,37 +1,63 @@
-// let test2 = require('./test_test_test_test_test_test.js')
-
-console.log('env')
-console.log('env')
-
 let integer = 25;
 let string = "string"
 let array = [1, 2, 3, "One", "Two", "Three"]
-
 let object = {
 	a: 1,
 	b: "Two",
 	c: [1, 2, 3]
 }
 
+let buffer = new ArrayBuffer(2048)
+
+let a = object.a
+let b = object.b
+let c = object.c
+
+console.log(a, b, c)
+
 try {
-	throw "A test exception";
+	throw new Error("Caught Exception");
 }
 catch (e) {
+	// ignore
 }
-function SomeFunction(argument) {
-	console.log(integer)
-	console.log(string)
-	console.log(array)
-	console.log(object)
-}
-function SomeOuterFunctions(argument) {
-	console.log(integer)
-	console.log(string)
-	console.log(array)
-	SomeFunction()
-}
-SomeOuterFunctions()
 
+console.log(integer)
+console.info(integer)
+console.warn(integer)
+console.error(integer)
+
+console.log(string)
+console.info(string)
+console.warn(string)
+console.error(string)
+
+console.log(object)
+console.info(object)
+console.warn(object)
+console.error(object)
+
+console.group('group begin')
+console.log('a')
+console.log('b')
+console.log('c')
+
+console.group('group begin')
+console.log('a')
+console.log('b')
+console.log('c')
+console.groupEnd()
+
+console.groupCollapsed('group collapsed begin')
+console.log('a')
+console.log('b')
+console.log('c')
+
+console.groupEnd()
+console.groupEnd()
+
+
+// throw "Uncaught Exception"
 
 // let blobURL = URL.createObjectURL( new Blob([ '(',
 
