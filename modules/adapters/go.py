@@ -9,20 +9,23 @@ from .. import core
 
 import shutil
 
+
 class Go(dap.AdapterConfiguration):
 
 	type = 'go'
 	docs = 'https://github.com/golang/vscode-go/blob/master/docs/debugging.md#launch-configurations'
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
-		node = await util.get_and_warn_require_node(self.type, log)
-		install_path = util.vscode.install_path(self.type)
-		command = [
-			node,
-			f'{install_path}/extension/dist/debugAdapter.js'
-		]
-		return dap.StdioTransport(log, command)
+		port = util.get_open_port()
+		dlv = Settings.go_dlv or shutil.which('dlv')
+		if not dlv:
+			raise core.Error('`dlv` not found see https://github.com/go-delve/delve for setting up delve')
 
+		command = [
+			dlv, 'dap', '--listen', f'localhost:{port}'
+		]
+		return await dap.SocketTransport.connect_with_process(log, command, port, process_is_program_output=True)
+		
 	async def install(self, log: core.Logger):
 		url = await util.git.latest_release_vsix('golang', 'vscode-go')
 		await util.vscode.install(self.type, url, log)
@@ -33,16 +36,6 @@ class Go(dap.AdapterConfiguration):
 	@property
 	def installed_version(self) -> str|None:
 		return util.vscode.installed_version(self.type)
-
-	# Patch in dlvToolPath to point to dlv if present in settings or path
-	# TODO: Implement more of the functionality in
-	# https://github.com/microsoft/vscode-go/blob/master/src/goDebugConfiguration.ts
-	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
-		if not 'dlvToolPath' in configuration:
-			configuration['dlvToolPath'] = Settings.go_dlv or shutil.which('dlv')
-
-		return configuration
-
 
 	@property
 	def configuration_snippets(self):
