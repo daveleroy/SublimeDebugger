@@ -19,14 +19,12 @@ class Python(dap.AdapterConfiguration):
 			if connect:
 				host = connect.get('host', 'localhost')
 				port = connect.get('port')
-
-				return dap.SocketTransport(log, host, port)
+				return await dap.SocketTransport.connect_with_retry(log, host, port)
 
 			port = configuration.get('port')
 			if port:
 				host = configuration.get('host', 'localhost')
-
-				return dap.SocketTransport(log, host, port)
+				return await dap.SocketTransport.connect_with_retry(log, host, port)
 
 			if not configuration.get('listen') and not configuration.get('processId'):
 				sublime.error_message('Warning: Check your debugger configuration.\n\n"attach" requires "connect", "listen" or "processId".\n\nIf they contain a $variable that variable may not have existed.')
