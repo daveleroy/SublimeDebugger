@@ -13,37 +13,6 @@ from ..import settings
 
 from .import util
 
-import re
-import threading
-import socket
-
-class LLDBTransport(dap.SocketTransport):
-	def __init__(self, adapter_process: dap.Process, port: int, log: core.Logger):
-		self.process = adapter_process
-		super().__init__(log, 'localhost', port)
-
-		def log_stderr(data: str):
-			log.log('transport', f'⟸ process/stderr :: {data}')
-
-		thread = threading.Thread(target=self._read, args=(self.process.stderr, log_stderr))
-		thread.start()
-
-	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
-		while True:
-			try:
-				line = file.read(2**15).decode('UTF-8')
-				if not line:
-					core.info('Nothing to read from process, closing')
-					break
-				core.info(line)
-				core.call_soon_threadsafe(callback, line)
-			except Exception as e:
-				core.exception()
-				break
-
-	def dispose(self) -> None:
-		self.process.dispose()
-
 
 class LLDBCommands(commands.Commands):
 	lldb_toggle_disassembly = commands.CommandDebugger(
@@ -102,14 +71,7 @@ class LLDB(dap.AdapterConfiguration):
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = util.vscode.install_path(self.type)
-
-
-		# grab a free port
-		sock = socket.socket()
-		sock.bind(('localhost', 0))
-		port = sock.getsockname()[1]
-		sock.close()
-
+		port = util.get_open_port()
 		command = [
 			f'{install_path}/extension/adapter/codelldb',
 			f'--port',
@@ -120,20 +82,7 @@ class LLDB(dap.AdapterConfiguration):
 		if liblldb:
 			command.extend(['--liblldb', liblldb])
 
-		process = dap.Process(command, None)
-
-		# try a few times to connect to codelldb
-		exception: Exception|None = None
-		for _ in range(0, 5):
-			try:
-				return LLDBTransport(process, port, log)
-			except Exception as e:
-				await core.sleep(0.25)
-				exception = e
-
-		# dont leak codelldb when if there was an issue connecting
-		process.dispose()
-		raise exception or core.Error('unreachable')
+		return await dap.SocketTransport.connect_with_process(log, command, port)
 
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'custom':
