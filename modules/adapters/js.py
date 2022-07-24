@@ -2,7 +2,6 @@ from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
-from ..import ui
 from ..import dap
 
 from .import util
@@ -11,8 +10,8 @@ import re
 
 
 class Transport(dap.SocketTransport):
-	def __init__(self, log: core.Logger, process: Any, port: int, cwd: str|None = None):
-		super().__init__(log, 'localhost', port, cwd)
+	def __init__(self, log: core.Logger, process: Any, port: int):
+		super().__init__(log, 'localhost', port)
 		self.process = process
 
 	def dispose(self) -> None:

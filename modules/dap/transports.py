@@ -164,11 +164,44 @@ class StdioTransport(Transport):
 
 
 class SocketTransport(Transport):
-	def __init__(self, log: core.Logger, host: str, port: int, cwd: str|None = None):
+	def __init__(self, log: core.Logger, host: str, port: int):
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.connect((host, port))
 		self.stdin = self.socket.makefile('wb')
 		self.stdout = self.socket.makefile('rb')
+		self.process: Process|None = None
+
+	@staticmethod
+	async def connect_with_retry(log: core.Logger, host: str, port: int):
+		exception: Exception|None = None
+		for _ in range(0, 8):
+			try:
+				return SocketTransport(log, host, port)
+			except Exception as e:
+				await core.sleep(0.25)
+				exception = e
+
+		raise exception or core.Error('unreachable')
+
+	@staticmethod
+	async def connect_with_process(log: core.Logger, command: list[str], port: int):
+		process = Process(command)
+		process.on_stdout(lambda data: log.log('transport', f'⟸ process/stdout :: {data}'))
+		process.on_stderr(lambda data: log.log('transport', f'⟸ process/stderr :: {data}'))
+
+		exception: Exception|None = None
+		for _ in range(0, 8):
+			try:
+				transport = SocketTransport(log, 'localhost', port)
+				transport.process = process
+				return transport
+
+			except Exception as e:
+				await core.sleep(0.25)
+				exception = e
+
+		process.dispose()
+		raise exception or core.Error('unreachable')
 
 	def write(self, message: bytes) -> None:
 		self.stdin.write(message)
@@ -189,6 +222,9 @@ class SocketTransport(Transport):
 			self.socket.close()
 		except:
 			core.exception()
+
+		if self.process:
+			self.process.dispose()
 
 
 # class StdioSocketTransport(Transport):
