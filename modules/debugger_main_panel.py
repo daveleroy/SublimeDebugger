@@ -130,20 +130,21 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		if viewport_width == 0:
 			return
 
-		overlap = layout_width - viewport_width
+		overlap_percentage = (layout_width - viewport_width)/layout_width
 
-		# good enough if we are in this range
-		if overlap <= 0 and overlap >= -5:
+		# good enough if we are in this range 0.5% under
+		if overlap_percentage <= 0 and overlap_percentage >= -0.005:
 			return
 
-		adjustment = 0.001 * int(abs(overlap) / 2 + 1)
+		adjustment = min(max(abs(int(overlap_percentage * 1000)/1000), 0.001), 0.1)
+
 		value = Settings.ui_rem_width_scale
-		if overlap > 0:
-			core.info(f'overscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')
+		if overlap_percentage > 0:
+			core.info(f'overscan {overlap_percentage * 100}%: adjusting rem_width: {Settings.ui_rem_width_scale}')
 			value = Settings.ui_rem_width_scale - adjustment
 		else:
 			value = Settings.ui_rem_width_scale + adjustment
-			core.info(f'underscan {overlap}: adjusting rem_width: {Settings.ui_rem_width_scale}')
+			core.info(f'underscan {overlap_percentage * 100}%: adjusting rem_width: {Settings.ui_rem_width_scale}')
 
 		Settings.ui_rem_width_scale = min(max(value, 0.5), 1.5)
 		
