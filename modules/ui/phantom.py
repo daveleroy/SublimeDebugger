@@ -77,7 +77,9 @@ class Popup(Layout):
 		self.created_popup = False
 
 	def on_hide(self) -> None:
-		self.is_closed = True
+		self.is_closed = True		
+		self.dispose()
+
 		if self.on_close:
 			self.on_close()
 
