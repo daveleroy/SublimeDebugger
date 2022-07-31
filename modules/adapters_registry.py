@@ -76,6 +76,9 @@ class AdaptersRegistry:
 		installed: list[Awaitable[ui.InputListItem]] = []
 		not_installed: list[Awaitable[ui.InputListItem]] = []
 
+		if check_status:
+			log.info('[Checking For Updates]')
+
 		for adapter in AdaptersRegistry.all:
 			if not Settings.development and adapter.development:
 				continue
@@ -153,6 +156,9 @@ class AdaptersRegistry:
 				not_installed.append(item(adapter))
 			
 		items = list(await core.gather(*(installed + not_installed)))
+		if check_status:
+			log.info('[Finished]')
+
 		return items
 
 	@staticmethod

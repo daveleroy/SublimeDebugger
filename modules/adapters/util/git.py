@@ -69,15 +69,20 @@ async def installed_status(owner: str, repo: str, version: str|None, log: core.L
 	if not version:
 		return None
 
+	log.info(f'github {owner}/{repo}')
+
+	try:
+		release, _ = await latest_release_with_vsix_asset(owner, repo)
+	except Exception as e:
+		log.log('error', f'github {owner}/{repo}: {e}')
+		raise e
 	
-	log.info(f'github {owner} {repo} checking for updates')
+	tag = removeprefix(release['tag_name'], 'v')
+	version = removeprefix(version, 'v')
 
-	release, _ = await latest_release_with_vsix_asset(owner, repo)
-	tag: str = removeprefix(release['tag_name'], 'v')
-
-	if semver.compare(tag, removeprefix(version, 'v')) != 0:
-		log.info(f'github {owner} {repo} done "Update Available {tag}"')
+	if semver.compare(tag, version) != 0:
+		log.log('warn', f'github {owner}/{repo}: Update Available {version} -> {tag}')
 		return f'Update Available {tag}'
 
-	log.info(f'github {owner} {repo} done')
+	# log.info(f'github {owner} {repo} done')
 	return None
