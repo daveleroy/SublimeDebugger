@@ -47,11 +47,11 @@ class Python(dap.AdapterConfiguration):
 		return dap.StdioTransport(log, command)
 
 	async def install(self, log: core.Logger):
-		url = await util.git.latest_release_vsix('microsoft', 'vscode-python')
+		url = await util.openvsx.latest_release_vsix('ms-python', 'python')
 		await util.vscode.install(self.type, url, log)
 
 	async def installed_status(self, log: core.Logger):
-		return await util.git.installed_status('microsoft', 'vscode-python', self.installed_version, log)
+		return await util.openvsx.installed_status('ms-python', 'python', self.installed_version, log)
 
 	@property
 	def installed_version(self) -> str|None:
