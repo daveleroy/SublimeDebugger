@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from ..settings import Settings
 from ..typecheck import *
 
 from .import util
@@ -7,20 +9,20 @@ from .. import core
 
 import shutil
 
+
 class Ruby(dap.AdapterConfiguration):
 
 	type = 'ruby'
 	docs = 'https://github.com/castwide/vscode-ruby-debug#debugging-external-programs'
 
+
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
-
-		install_path = util.vscode.install_path(self.type)
-
-		if not shutil.which("readapt"):
+		readapt = Settings.ruby_readapt or shutil.which('readapt')
+		if not readapt:
 			raise core.Error('You must install the `readapt` gem. Install it by running `gem install readapt` see https://github.com/castwide/vscode-ruby-debug for details.')
 
 		command = [
-			'readapt',
+			readapt,
 			'stdio'
 		]
 		return dap.StdioTransport(log, command)

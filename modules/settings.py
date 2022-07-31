@@ -42,6 +42,8 @@ class Settings(metaclass=SettingsMeta):
 	lldb_library: str|None = None
 	lldb_python: str|None = None
 
+	ruby_readapt: str|None = None
+
 
 class SettingsRegistery:
 	settings: sublime.Settings
