@@ -35,9 +35,12 @@ class Python(dap.AdapterConfiguration):
 
 		if not python:
 			if shutil.which('python3'):
-				python = 'python3'
+				python = shutil.which('python3')
 			else:
-				python = 'python'
+				python = shutil.which('python')
+
+		if not python:
+			raise core.Error('Unable to find `python3` or `python`')
 
 		command = [
 			python,
