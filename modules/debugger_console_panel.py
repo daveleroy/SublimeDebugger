@@ -61,9 +61,10 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 			return
 
 
-		color_for_type: dict[str|None, str] = {
-			'debugger.error': 'red',
+		color_for_type: dict[str|None, str|None] = {
 			'stderr': 'red',
+			'stdout': 'foreground',
+			'debugger.error': 'red',
 			'debugger.info': 'blue',
 		}
 
@@ -199,6 +200,10 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		elif type == 'error':
 			self.write(str(value), 'red', ensure_new_line=True)
 			self.open()
+		elif type == 'stderr':
+			self.write(str(value), 'red')
+		elif type == 'stdout':
+			self.write(str(value), None)
 		elif type == 'warn':
 			self.write(str(value), 'yellow', ensure_new_line=True)
 		else:
