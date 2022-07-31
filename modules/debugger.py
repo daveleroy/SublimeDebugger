@@ -136,7 +136,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		])
 
 		self.console = DebuggerConsoleOutputPanel(self)
-		self.console.on_closed = lambda: self.panels.open()
 		self.console.on_input.add(self.on_run_command)
 		self.console.on_navigate.add(self._on_navigate_to_source)
 
