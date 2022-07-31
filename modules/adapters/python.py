@@ -49,6 +49,14 @@ class Python(dap.AdapterConfiguration):
 
 		return dap.StdioTransport(log, command)
 
+	async def on_custom_event(self, session: dap.Session, event: str, body: Any):
+		if event == 'debugpyAttach':
+			configuration = dap.Configuration.from_json(body, -1)
+			configuration_expanded = dap.ConfigurationExpanded(configuration, session.configuration.variables)
+			await session.debugger.launch(session.breakpoints, self, configuration_expanded, parent=session)
+		else:
+			core.error(f'event ignored not implemented {event}')
+
 	async def install(self, log: core.Logger):
 		url = await util.openvsx.latest_release_vsix('ms-python', 'python')
 		await util.vscode.install(self.type, url, log)
