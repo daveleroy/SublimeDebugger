@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from ..typecheck import *
 
 from enum import IntEnum
@@ -104,6 +105,8 @@ class Session(TransportProtocolListener):
 		self.capabilities = dap.Capabilities()
 		self.stop_requested = False
 		self.launch_request = True
+		self.stepping = False
+		self.stepping_stopped = False
 
 		self._state = Session.State.STARTING
 		self._status = 'Starting'
@@ -492,6 +495,7 @@ class Session(TransportProtocolListener):
 		# clean up hierarchy if needed
 		for child in self.children:
 			child.parent = None
+
 	async def resume(self):
 		body = await self.request('continue', {
 			'threadId': self.command_thread.id
@@ -512,21 +516,21 @@ class Session(TransportProtocolListener):
 		})
 
 	async def step_over(self):
-		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False))
+		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
 
 		await self.request('next', {
 			'threadId': self.command_thread.id
 		})
 
 	async def step_in(self):
-		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False))
+		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
 
 		await self.request('stepIn', {
 			'threadId': self.command_thread.id
 		})
 
 	async def step_out(self):
-		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False))
+		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
 
 		await self.request('stepOut', {
 			'threadId': self.command_thread.id
@@ -782,33 +786,20 @@ class Session(TransportProtocolListener):
 		self.refresh_threads()
 
 	def on_stopped_event(self, stopped: dap.StoppedEvent):
-		description = stopped.description
-		text = stopped.text
-		reason = stopped.reason
-
-		if description and text:
-			stopped_text = "Stopped: {}: {}".format(description, text)
-		elif text or description or reason:
-			stopped_text = "Stopped: {}".format(text or description or reason)
-		else:
-			stopped_text = "Stopped"
+		self.stepping_stopped = True
 
 		if stopped.allThreadsStopped or False:
 			self.all_threads_stopped = True
 
 			for thread in self.threads:
-				thread.clear()
-				thread.stopped = True
+				thread.set_stopped(None)
 
 		thread_id = stopped.threadId
 		assert thread_id # not sure why this is optional...
 
 		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
 		thread = self.get_thread(thread_id)
-		thread.clear()
-		thread.stopped = True
-		thread.stopped_reason = stopped_text
-		thread.stopped_event = stopped
+		thread.set_stopped(stopped)
 
 		if not self.selected_explicitly:
 			self.select(thread, None, explicitly=False)
@@ -834,19 +825,23 @@ class Session(TransportProtocolListener):
 			self.listener.on_session_updated_threads(self)
 			self._refresh_state()
 
-	def on_continued_event(self, continued: dap.ContinuedEvent):
+	def on_continued_event(self, continued: dap.ContinuedEvent, stepping = False):
+
+		# if we hit a stopped event while stepping then the next continue event that is not a stepping event sets stepping to false
+		if stepping:
+			self.stepping = True
+			self.stepping_stopped = False
+		elif self.stepping_stopped:
+			self.stepping = False
+
 		if continued.allThreadsContinued:
 			self.all_threads_stopped = False
 			for thread in self.threads:
-				thread.stopped = False
-				thread.stopped_reason = ''
-				thread.stopped_event = None
+				thread.set_continued(None)
 
 		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
 		thread = self.get_thread(continued.threadId)
-		thread.stopped = False
-		thread.stopped_reason = ''
-		thread.stopped_event = None
+		thread.set_continued(continued)
 
 		if continued.allThreadsContinued or thread is self.selected_thread:
 			self.select(None, None, explicitly=False)
@@ -910,5 +905,27 @@ class Thread:
 		self._children = core.run(self.session.stack_trace(self.id))
 		return self._children
 
-	def clear(self):
-		self._children = None
+	def set_stopped(self, event: dap.StoppedEvent|None):
+		self._children = None # children are no longer valid
+
+		self.stopped = True
+
+		if event:
+			description = event.description
+			text = event.text
+			reason = event.reason
+
+			if description and text:
+				stopped_text = "Stopped: {}: {}".format(description, text)
+			elif text or description or reason:
+				stopped_text = "Stopped: {}".format(text or description or reason)
+			else:
+				stopped_text = "Stopped"
+
+			self.stopped_reason = stopped_text
+			self.stopped_event = event
+
+	def set_continued(self, event: dap.ContinuedEvent|None):
+		self.stopped = False
+		self.stopped_reason = ''
+		self.stopped_event = None

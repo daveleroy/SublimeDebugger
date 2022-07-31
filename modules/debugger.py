@@ -613,15 +613,18 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			self.window.bring_to_front()
 			# util.bring_sublime_text_to_front()
 
-			if not session.selected_thread or not session.selected_thread.stopped_event or session.selected_thread.stopped_event.reason != 'step':
+			if session.stepping:
+				...
+			else:
 				self.panels.middle_panel.select(self.panels.callstack_panel)
 				self.panels.open()
 
 		if state == dap.Session.State.RUNNING:
-			if terminals := self.integrated_terminals.get(session):
-				terminals[0].open()
-			else:
-				self.console.open()
+			if not session.stepping:
+				if terminals := self.integrated_terminals.get(session):
+					terminals[0].open()
+				else:
+					self.console.open()
 
 	def _on_session_output(self, session: dap.Session, event: dap.OutputEvent) -> None:
 		self.console.program_output(session, event)
