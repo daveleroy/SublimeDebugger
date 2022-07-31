@@ -2,6 +2,14 @@ For getting set up see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.7.0
+
+- Redesigned debugger ui so that the console output can appear in an output panel
+- The hover expression behavior is smarter and can evaluate simple expressions like `a.b` `a->c` etc
+- lua: Adds lua debugger via lua-local (@naoufalzerai)
+- python: support for multiprocess debugging
+- ruby: allow specifying readapt path via `ruby_readapt` preference 
+- go: updated to use dlv dap
 
 Version 0.6.8
 
