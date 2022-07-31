@@ -8,6 +8,7 @@ from .php import PHP
 from .python import Python
 from .ruby import Ruby
 from .elixir import Elixir
+from .lua import Lua
 
 
 from .js import Chrome

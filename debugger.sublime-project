@@ -18,6 +18,7 @@
 		"examples/ruby/ruby.sublime-project",
 		"examples/web/web.sublime-project",
 		"examples/elixir/elixir.sublime-project",
+		"examples/lua/lua.sublime-project",
 	],
 	"debugger_compounds": [
 		"examples/cpp/cpp.sublime-project",
@@ -28,6 +29,7 @@
 		"examples/ruby/ruby.sublime-project",
 		"examples/web/web.sublime-project",
 		"examples/elixir/elixir.sublime-project",
+		"examples/lua/lua.sublime-project",
 	],
 	"debugger_configurations": [
 		"examples/cpp/cpp.sublime-project",
@@ -38,5 +40,6 @@
 		"examples/ruby/ruby.sublime-project",
 		"examples/web/web.sublime-project",
 		"examples/elixir/elixir.sublime-project",
+		"examples/lua/lua.sublime-project",
 	],
 }
