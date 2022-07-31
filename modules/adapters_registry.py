@@ -175,6 +175,7 @@ class AdaptersRegistry:
 		content = json.dumps(snippet, indent="\t")
 		content = content.replace('\\\\', '\\') # remove json encoded \ ...
 		content = content.replace('${workspaceFolder}', '${folder}')
+		content = content.replace('${workspaceRoot}', '${folder}')
 
 		try:
 
