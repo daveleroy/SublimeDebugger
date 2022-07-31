@@ -45,7 +45,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		# settings.set('margin', 0)
 		# settings.set('line_padding_top', 0)
 
-		settings.set('context_menu', 'Widget Debug.sublime-menu')
+		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 		settings.set('auto_complete_selector', 'debugger.console')
 		settings.set('debugger.console', True)
 

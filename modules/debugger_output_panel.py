@@ -96,6 +96,7 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		settings.set('debugger.output_panel_tabs', show_tabs)
 		settings.set('draw_unicode_white_space', 'none')
 		settings.set('scroll_past_end', False)
+		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 
 		self.open()
 

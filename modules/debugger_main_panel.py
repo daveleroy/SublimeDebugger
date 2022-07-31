@@ -50,7 +50,7 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		settings.set('wrap_width', 100000)
 
 		settings.set('line_spacing', 0)
-		settings.set('context_menu', 'Widget Debug.sublime-menu')
+		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 		settings.set('draw_unicode_white_space', 'none')
 		settings.set('draw_unicode_bidi', False)
 		settings.set('is_widget', True)
