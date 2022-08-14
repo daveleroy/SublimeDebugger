@@ -20,8 +20,12 @@ class AdaptersRegistry:
 		def subclasses(cls=dap.AdapterConfiguration):
 			all_subclasses = []
 			for subclass in cls.__subclasses__():
-				all_subclasses.append(subclass)
-				all_subclasses.extend(subclasses(subclass))
+				subclasses_of_subclass = subclasses(subclass)
+				if subclasses_of_subclass:
+					all_subclasses.extend(subclasses_of_subclass)
+				else:
+					all_subclasses.append(subclass)
+
 			return all_subclasses
 
 		# create and register all the adapters

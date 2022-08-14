@@ -22,7 +22,6 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 	type = 'js'
 	type_internal = 'js'
 
-	development = True
 	docs = 'https://github.com/microsoft/vscode-js-debug/blob/main/OPTIONS.md'
 
 	
