@@ -161,7 +161,8 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 
 	def scroll_to_end(self):
 		self.lock_selection_temporarily()
-		sublime.set_timeout(lambda:self.view.set_viewport_position((0, sys.maxsize), False), 0)
+		height = self.view.layout_extent()[1]
+		self.view.set_viewport_position((0, height), False)
 
 	def lock_selection(self):
 		self._locked_selection += 1
