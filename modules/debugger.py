@@ -599,7 +599,10 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.console.open()
 
 	def _on_session_removed(self, sessions: dap.Session):
-		self.console.open()
+
+		# if the debugger panel is open switch to the console. We could be on a pre debug step panel which we want to remain on.
+		if self.panels.is_open():
+			self.console.open()
 
 		if not self.is_active:
 			self.console.write('Debugging ended', 'comment')
