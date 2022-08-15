@@ -179,6 +179,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_output_panels_updated.post()
 
 	def remove_output_panel(self, panel: DebuggerOutputPanel):
+		if panel.is_open():
+			self.console.open()
+
 		self.output_panels.remove(panel)
 		self.on_output_panels_updated.post()
 
