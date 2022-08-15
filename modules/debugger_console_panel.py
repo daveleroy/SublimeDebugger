@@ -49,10 +49,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		settings.set('auto_complete_selector', 'debugger.console')
 		settings.set('debugger.console', True)
 
-		def edit(edit):
-			self.view.replace(edit, sublime.Region(0, self.view.size()), '\n' * 25)
-
-		core.edit(self.view, edit)
+		self.clear()
 		self.open()
 
 	def program_output(self, session: dap.Session, event: dap.OutputEvent):
@@ -190,7 +187,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self.dispose_phantoms()
 		def edit(edit):
 			# self.view.set_read_only(False)
-			self.view.replace(edit, sublime.Region(0, self.view.size()), '\n' * 25)
+			self.view.replace(edit, sublime.Region(0, self.view.size()), '')
 			# self.view.set_read_only(True)
 		core.edit(self.view, edit)
 		

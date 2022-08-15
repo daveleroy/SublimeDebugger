@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 class DebuggerMainOutputPanel(DebuggerOutputPanel):
 	def __init__(self, debugger: Debugger) -> None:
-		super().__init__(debugger, 'Debugger', show_panel=True)
+		super().__init__(debugger, 'Debugger', show_tabs=False)
 
 		self.on_input: core.Event[str] = core.Event()
 		self.on_navigate: core.Event[dap.SourceLocation] = core.Event()
@@ -42,7 +42,6 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		settings = self.view.settings()
 		settings.set('margin', 0)
 		settings.set('line_padding_top', 3)
-		settings.set('gutter', False)
 
 		# for some reason if word_wrap is False there is a horizontal scrollbar when the UI fits the window perfectly
 		# If set to True and the wrap_width set to bigger than the window then there is no scrollbar unlesss the UI is sized too large

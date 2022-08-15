@@ -141,9 +141,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		self.panels = DebuggerMainOutputPanel(self)
 		self.panels.on_closed = lambda: self.console.open()
-
-		self.add_output_panel(self.console)
-		self.add_output_panel(self.panels)
 		
 		self.disposeables.extend([
 			self.console,
@@ -660,7 +657,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		if request.kind == 'integrated':
 			terminal = TerminusIntegratedTerminal(self, request.title or 'Untitled', request.cwd, request.args, request.env)
-			self.add_output_panel(terminal)
 			self.integrated_terminals.setdefault(session, []).append(terminal)
 
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
@@ -693,7 +689,10 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.tasks.remove_finished()
 
 	def is_open(self):
-		return self.panels.is_open() or self.console.is_open()
+		for panel in self.output_panels:
+			if panel.is_open():
+				return True
+		return False
 	
 	def open(self) -> None:
 		if not self.is_active:
@@ -712,7 +711,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.source_provider.show_source_location(source)
 
 	def _on_task_added(self, task: TerminalTask):
-		self.add_output_panel(task)
+		...
+		# self.add_output_panel(task)
 
 	def _on_task_removed(self, task: TerminalTask):
-		self.remove_output_panel(task)
+		...
+		# self.remove_output_panel(task)

@@ -60,26 +60,17 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 
 	panels: ClassVar[Dict[int, DebuggerOutputPanel]] = {}
 
-
-	def __init__(self, debugger: Debugger, name: str, show_panel: bool = True, show_tabs = False):
+	def __init__(self, debugger: Debugger, name: str, show_panel = True, show_tabs = True):
 		super().__init__()
-		self.name = name
-		self.window = debugger.window
+		self.name = self._get_free_output_panel_name(debugger.window, name)
 		self.output_panel_name = f'output.{self.name}'
+
+		self.window = debugger.window
+		self.show_tabs = show_tabs
+		self.debugger = debugger
+		
 		# if a panel with the same name already exists add a unique id
 		self._locked_selection = 0
-		output_panel_name = f'output.{name}'
-
-		id = 1
-		while True:
-			if not output_panel_name in self.window.panels():
-				self.name = name
-				self.output_panel_name = output_panel_name
-				break
-
-			name = f'{self.name}({id})'; id += 1
-			output_panel_name = f'output.{name}'
-				
 
 		previous_panel = self.window.active_panel()
 		self.view = self.window.create_output_panel(self.name)
@@ -97,7 +88,7 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		settings.set('draw_unicode_white_space', 'none')
 		settings.set('scroll_past_end', False)
 		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
-
+		settings.set('gutter', False)
 		self.open()
 
 		if not show_panel and previous_panel:
@@ -115,6 +106,8 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 				DebuggerConsoleTabs(debugger, settings.get('debugger.output_panel_name'))
 			]
 
+
+		debugger.add_output_panel(self)
 		# self.scroll_to_end()
 		# settings = self.view.settings()
 		# # this tricks the panel into having a larger height
@@ -133,6 +126,17 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		if self.controls_and_tabs_phantom:
 			self.controls_and_tabs_phantom.dispose()
 		del DebuggerOutputPanel.panels[self.view.id()]
+
+		self.debugger.remove_output_panel(self)
+
+	def _get_free_output_panel_name(self, window: sublime.Window, name: str) -> str:
+		id = 1
+		while True:
+			if not f'output.{name}' in window.panels():
+				return name
+
+			name = f'{name}({id})'
+			id += 1
 
 	def open(self):
 		self.window.run_command('show_panel', {
@@ -169,7 +173,6 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		self.lock_selection()
 		sublime.set_timeout(self.unlock_selection, 100)
 
-
 	def ensure_new_line(self, text: str, at: int|None = None):
 		if at is None:
 			at = self.view.size()
@@ -182,12 +185,19 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 
 		return text		
 
-
 	def on_text_changed(self, changes):
 		if self.inside_on_text_changed:
 			return
-
 		self.inside_on_text_changed  = True
+
+		# ensure panel is at least 25 lines since we need the height of the content to be more than its viewport height
+		if self.show_tabs:
+			line_count = self.view.rowcol(self.view.size())[0] + 1
+
+			if line_count < 25:
+				def a(edit: sublime.Edit):
+					self.view.insert(edit, 0, 25 * '\n')
+				core.edit(self.view, a)
 
 		# re-insert the newline we removed
 		if self.removed_newline:
@@ -198,24 +208,22 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 
 			core.edit(self.view, insert)
 
-		
-
-		at = self.view.size()-1
+		at = self.view.size() - 1
 		last = self.view.substr(at)
 
-		if self.view.size() > 25 and last == '\n':
+		# remove newline
+		if last == '\n':
 			def insert(edit: sublime.Edit):
 				self.view.erase(edit, sublime.Region(at, at+1))
-
 			core.edit(self.view, insert)
-			self.removed_newline = self.view.size()
+
+			self.removed_newline = at
 			self.removed_newline_change_id = self.view.change_id()
-
-		self.inside_on_text_changed  = False
-
 
 		if self.controls_and_tabs_phantom:
 			self.controls_and_tabs_phantom.dirty()
+
+		self.inside_on_text_changed  = False
 
 
 class DebuggerConsoleListener (sublime_plugin.EventListener):
