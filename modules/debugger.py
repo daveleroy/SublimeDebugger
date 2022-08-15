@@ -605,7 +605,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			self.console.open()
 
 		if not self.is_active:
-			self.console.write('Debugging ended', 'comment')
+			self.console.info('Debugging ended')
 
 	def _on_session_state_updated(self, session: dap.Session, state: dap.Session.State):
 		if self.is_active and self.active != session:

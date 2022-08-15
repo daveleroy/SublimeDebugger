@@ -194,6 +194,8 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 	def log(self, type: str, value: Any):
 		if type == 'transport':
 			self.protocol.log(type, value)
+		elif type == 'error-no-open':
+			self.write(str(value), 'red', ensure_new_line=True)
 		elif type == 'error':
 			self.write(str(value), 'red', ensure_new_line=True)
 			self.open()

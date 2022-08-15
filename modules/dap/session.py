@@ -176,7 +176,6 @@ class Session(TransportProtocolListener):
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(self.adapter_configuration.type))
 
 		if not await self.run_pre_debug_task():
-			self.log.info('Pre debug command failed, not starting session')
 			self.launching_async = None
 			await self.stop_forced(reason=Session.stopped_reason_build_failed)
 			return
@@ -185,7 +184,7 @@ class Session(TransportProtocolListener):
 		try:
 			transport = await self.adapter_configuration.start(log=self.log, configuration=self.configuration)
 		except Exception as e:
-			raise core.Error(f'Unable to start the adapter process: {e}')
+			raise core.Error(f'Unable to start adapter: {e}')
 
 		self._transport = TransportProtocol(
 			transport,
@@ -248,16 +247,16 @@ class Session(TransportProtocolListener):
 	async def run_pre_debug_task(self) -> bool:
 		pre_debug_command = self.configuration.pre_debug_task
 		if pre_debug_command:
-			self._change_status('Running pre debug command')
-			r = await self.run_task('Pre debug command', pre_debug_command)
+			self._change_status('Running pre debug task')
+			r = await self.run_task('pre_debug_task', pre_debug_command)
 			return r
 		return True
 
 	async def run_post_debug_task(self) -> bool:
 		post_debug_command = self.configuration.post_debug_task
 		if post_debug_command:
-			self._change_status('Running post debug command')
-			r = await self.run_task('Post debug command', post_debug_command)
+			self._change_status('Running post debug task')
+			r = await self.run_task('post_debug_task', post_debug_command)
 			return r
 		return True
 
@@ -267,12 +266,11 @@ class Session(TransportProtocolListener):
 			return True
 
 		except core.CancelledError:
-			self.log.error(f'{name}: cancelled')
+			self.log.log('error-no-open', f'{name}: cancelled')
 			return False
 
-		except Exception as e:
-			core.exception()
-			self.log.error(f'{name}: {e}')
+		except core.Error as e:
+			self.log.log('error-no-open', f'{name}: {e}')
 			return False
 
 	def _refresh_state(self) -> None:
