@@ -115,6 +115,9 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 			d.dispose()
 		self.disposeables.clear()
 
+	def updated_status(self):
+		self.middle_panel.dirty()
+		
 	def scroll_to_end(self):
 		self.view.set_viewport_position((0, 0), False)
 

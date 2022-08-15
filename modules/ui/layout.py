@@ -38,7 +38,10 @@ class Layout:
 		Layout.layouts_to_add.clear()
 
 		for r in Layout.layouts_to_remove:
-			Layout.layouts.remove(r)
+			try:
+				Layout.layouts.remove(r)
+			except ValueError:
+				...
 
 		Layout.layouts_to_remove.clear()
 

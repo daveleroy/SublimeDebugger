@@ -1,10 +1,8 @@
 from __future__ import annotations
-from os import kill
 from typing import TYPE_CHECKING, Callable, Any, ClassVar, Dict
 
 import sublime
 import sublime_plugin
-import sys
 
 from .import core
 from .import ui
@@ -35,8 +33,14 @@ class DebuggerPanelTabs(ui.span):
 			else:
 				csss = css.tab_panel
 
+			name = panel.name.replace('Debugger', '') or 'Callstack'
+
 			items.append(ui.click(lambda panel=panel: panel.open())[ui.span(css=csss)[
-				ui.text(panel.name.replace('Debugger', '') or 'Callstack', css=css.label_secondary),
+				ui.text(name, css=css.label_secondary),
+				ui.spacer(1),
+				ui.click(lambda panel=panel: panel.open_status()) [
+					panel.status and ui.icon(panel.status)
+				]
 			]])
 
 		return items
@@ -56,8 +60,10 @@ class DebuggerConsoleTabs(ui.div):
 
 class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 	on_opened: Callable[[], Any] | None = None
-	on_closed: Callable[[], Any] | None = None
+	on_opened_status: Callable[[], Any] | None = None
 
+	on_closed: Callable[[], Any] | None = None
+	
 	panels: ClassVar[Dict[int, DebuggerOutputPanel]] = {}
 
 	def __init__(self, debugger: Debugger, name: str, show_panel = True, show_tabs = True):
@@ -71,6 +77,7 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		
 		# if a panel with the same name already exists add a unique id
 		self._locked_selection = 0
+		self.status: ui.Image|None = None
 
 		previous_panel = self.window.active_panel()
 		self.view = self.window.create_output_panel(self.name)
@@ -83,6 +90,7 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 
 		settings = self.view.settings()
 		settings.set('debugger', True)
+		settings.set('debugger.output_panel', True)
 		settings.set('debugger.output_panel_name', self.output_panel_name)
 		settings.set('debugger.output_panel_tabs', show_tabs)
 		settings.set('draw_unicode_white_space', 'none')
@@ -101,11 +109,15 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		self.inside_on_text_changed = False
 		self.attach(self.view.buffer())
 
-		if show_tabs:
-			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(self.view.size(), self.view.size()), sublime.LAYOUT_BLOCK) [
-				DebuggerConsoleTabs(debugger, settings.get('debugger.output_panel_name'))
-			]
 
+		if show_tabs:
+			self.controls_and_tabs = DebuggerConsoleTabs(debugger, settings.get('debugger.output_panel_name'))
+			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(self.view.size(), self.view.size()), sublime.LAYOUT_BLOCK) [
+				self.controls_and_tabs
+			]
+		else:
+			self.controls_and_tabs = None
+			self.controls_and_tabs_phantom = None
 
 		debugger.add_output_panel(self)
 		# self.scroll_to_end()
@@ -115,6 +127,17 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		# settings.set('line_padding_top', 250)
 		# self.open()
 		# settings.set('line_padding_top', previous_line_padding_top)
+
+	def set_status(self, status: ui.Image):
+		self.status = status
+		
+		# if the status of a panel changes we need to re-render all the output panels
+		for panel in self.debugger.output_panels:
+			panel.updated_status()
+
+	def updated_status(self):
+		if controls_and_tabs := self.controls_and_tabs:
+			controls_and_tabs.dirty()		
 
 	def dispose(self):
 		if self.is_attached():
@@ -142,6 +165,12 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		self.window.run_command('show_panel', {
 			'panel': self.output_panel_name
 		})
+
+	def open_status(self):
+		if on_opened_status := self.on_opened_status:
+			on_opened_status()
+		else:
+			self.open()
 
 	def is_open(self) -> bool:
 		return self.window.active_panel() == self.output_panel_name
