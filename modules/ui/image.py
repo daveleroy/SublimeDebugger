@@ -69,7 +69,7 @@ class Images:
 		self.settings = Image.named_light_dark('settings.png')
 		self.pause = Image.named_light_dark('pause.png')
 
-		self.clear = Image.named_light_dark('clear.png')
+		self.clear = Image.named_light_dark('clear_disabled.png')
 
 		self.stop_disable = Image.named_light_dark('stop_disabled.png')
 		self.pause_disable = Image.named_light_dark('pause_disabled.png')
@@ -85,6 +85,8 @@ class Images:
 
 		self.thread = Image.named_light_dark('thread_stopped.png')
 		self.loading = Image.named_light_dark('loading_disabled.png')
+		self.check_mark = Image.named_light_dark('check_mark_disabled.png')
+		
 		self.thread_running = Image.named_light_dark('thread_running.png')
 
 		self.open = Image.named_light_dark('open_disabled.png')
