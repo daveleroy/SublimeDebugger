@@ -140,6 +140,8 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 			controls_and_tabs.dirty()		
 
 	def dispose(self):
+		self.debugger.remove_output_panel(self)
+
 		if self.is_attached():
 			self.detach()
 
@@ -149,8 +151,6 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		if self.controls_and_tabs_phantom:
 			self.controls_and_tabs_phantom.dispose()
 		del DebuggerOutputPanel.panels[self.view.id()]
-
-		self.debugger.remove_output_panel(self)
 
 	def _get_free_output_panel_name(self, window: sublime.Window, name: str) -> str:
 		id = 1

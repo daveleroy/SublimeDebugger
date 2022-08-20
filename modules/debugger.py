@@ -131,8 +131,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.tasks = Tasks()
 		self.disposeables.extend([
 			self.tasks,
-			self.tasks.added.add(self._on_task_added),
-			self.tasks.removed.add(self._on_task_removed)
 		])
 
 		self.console = DebuggerConsoleOutputPanel(self)
@@ -676,7 +674,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			if not unused_only or session.state == dap.Session.State.STOPPED:
 				removed_sessions.append(session)
 				for terminal in terminals:
-					self.remove_output_panel(terminal)
 					terminal.dispose()
 
 		for session, terminals in self.external_terminals.items():
@@ -716,10 +713,3 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	def _on_navigate_to_source(self, source: dap.SourceLocation):
 		self.source_provider.show_source_location(source)
 
-	def _on_task_added(self, task: TerminalTask):
-		...
-		# self.add_output_panel(task)
-
-	def _on_task_removed(self, task: TerminalTask):
-		...
-		# self.remove_output_panel(task)
