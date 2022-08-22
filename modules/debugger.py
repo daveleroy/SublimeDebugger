@@ -483,8 +483,16 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	@core.schedule
 	async def on_run_command(self, command: str) -> None:
-		try: await self.active.evaluate(command)
-		except core.Error as e: self.console.error(f'{e}')
+		try: 
+			result = await self.active.evaluate_expression(command, context='repl')
+			if result.variablesReference:
+				self.console.write(f'', 'blue', ensure_new_line=True)
+				self.console.write_variable(dap.Variable.from_evaluate(self.active, '', result), self.console.at())
+			else:
+				self.console.write(result.result, 'blue', ensure_new_line=True)
+
+		except core.Error as e:
+			self.console.error(f'{e}')
 
 	@core.schedule
 	async def evaluate_selected_expression(self):

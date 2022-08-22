@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import sublime
 
@@ -13,12 +13,10 @@ from .settings import Settings
 from .ansi import ansi_colorize
 
 from .debugger_protocol_panel import DebuggerProtocolPanel
-from .debugger_output_panel import DebuggerOutputPanel, DebuggerConsoleTabs
+from .debugger_output_panel import DebuggerOutputPanel
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
-
-
 
 class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 	def __init__(self, debugger: Debugger) -> None:
@@ -33,6 +31,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self.view.assign_syntax('Packages/Debugger/Commands/DebuggerConsole.sublime-syntax')
 		self.color: str|None = None
 		self.phantoms = []
+		self.input_size = 0
 
 		settings = self.view.settings()
 		settings.set('line_numbers', False)
@@ -51,6 +50,15 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 
 		self.clear()
 		self.open()
+
+	def edit(self, fn: Callable[[sublime.Edit], Any]):
+		is_read_only = self.view.is_read_only()
+		if is_read_only:
+			self.view.set_read_only(False)
+			core.edit(self.view, fn)
+			self.view.set_read_only(True)
+		else:
+			core.edit(self.view, fn)
 
 	def program_output(self, session: dap.Session, event: dap.OutputEvent):
 		type = event.category or 'console'
@@ -93,29 +101,17 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 
 
 	def at(self):
+		if input := self.input():
+			return input.a
 		return self.view.size()
-
-	# def ensure_new_line(self, text: str, at: int|None = None):
-	# 	if at is None:
-	# 		at = self.at()
-
-	# 	if at != 0 and self.view.substr(at -1) != '\n':
-	# 		text = '\n' + text
-
-	# 	return text
 
 	def write(self, text: str, color: str|None, ensure_new_line=False):
 		# if we are changing color we want it on its own line
 		if ensure_new_line or self.color != color:
 			text = self.ensure_new_line(text)
 
-		def edit(edit):
-			# self.view.set_read_only(False)
-			self.view.insert(edit, self.view.size(), ansi_colorize(text, color, self.color))
-			# self.view.set_read_only(True)
-			self.color = color
-
-		core.edit(self.view, edit)
+		self.edit(lambda edit: self.view.insert(edit, self.at(), ansi_colorize(text, color, self.color)))
+		self.color = color
 
 	def write_variable(self, variable: dap.Variable, at: int):
 		html = f'''
@@ -144,12 +140,9 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 				component
 			]
 
-		def edit(edit: sublime.Edit):
-			# self.view.set_read_only(False)
-			self.view.insert(edit, at, (variable.value or variable.name or '{variable}'))
-			# self.view.set_read_only(True)
-			
-		core.edit(self.view, edit)
+		# remove trailing \n if it exists since we already inserted a newline to place this variable in
+		content = (variable.value or variable.name or '{variable}').rstrip('\n')
+		self.edit(lambda edit: self.view.insert(edit, at, content))
 
 		phantom = ui.RawPhantom(self.view, sublime.Region(at, at), html, on_navigate=on_navigate)
 		self.phantoms.append(phantom)
@@ -185,28 +178,162 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 	def clear(self):
 		self.protocol.clear()
 		self.dispose_phantoms()
+		self.edit(lambda edit: self.view.replace(edit, sublime.Region(0, self.view.size()), ''))
+		self.view.set_read_only(True)
+
+	def on_selection_modified(self):
+		input = self.input()
+		if not input:
+			self.view.set_read_only(True)
+			return
+
+		at = input.a - 1
+		for region in self.view.sel():
+			if region.a <= at:
+				self.view.set_read_only(True)
+				return
+
+		self.view.set_read_only(False)
+
+	def on_query_context(self, key: str, operator: str, operand: str, match_all: bool) -> bool:
+		self.set_input_mode()
+		return False
+
+	def on_text_command(self, command_name: str, args: Any):
+		if command_name == 'insert' and args['characters'] == '\n' and self.enter():
+			return ('noop')
+
+	def on_query_completions(self, prefix: str, locations: list[int]) -> Any:
+		if not self.debugger.is_active: return
+		if not self.debugger.active.capabilities.supportsCompletionsRequest: return
+
+		input = self.input()
+		if not input: return
+
+		text = self.view.substr(sublime.Region(input.b, self.view.size()))
+		col = (locations[0] - input.b)
+		completions = sublime.CompletionList()
+
+		@core.schedule
+		async def fetch():
+			items: list[sublime.CompletionItem] = []
+			try:
+				for completion in await self.debugger.active.completions(text, col):
+					if completion.type == 'method' : kind = sublime.KIND_FUNCTION
+					elif completion.type == 'function': kind = sublime.KIND_FUNCTION
+					elif completion.type == 'constructor': kind = sublime.KIND_FUNCTION
+					elif completion.type == 'field': kind = sublime.KIND_VARIABLE
+					elif completion.type == 'variable': kind = sublime.KIND_VARIABLE
+					elif completion.type == 'class': kind = sublime.KIND_TYPE
+					elif completion.type == 'interface': kind = sublime.KIND_TYPE
+					elif completion.type == 'module': kind = sublime.KIND_NAMESPACE
+					elif completion.type == 'property': kind = sublime.KIND_VARIABLE
+					elif completion.type == 'enum': kind = sublime.KIND_TYPE
+					elif completion.type == 'keyword': kind = sublime.KIND_KEYWORD
+					elif completion.type == 'snippet': kind = sublime.KIND_SNIPPET
+					else: kind = sublime.KIND_VARIABLE
+
+
+					item = sublime.CompletionItem.command_completion(
+						trigger=completion.text or completion.label,
+						annotation=completion.detail or '',
+						kind=kind,
+						command='insert',
+						args= {
+							'characters': completion.text or completion.label
+						}
+					)
+				
+					items.append(item)
+			except core.Error as e:
+				core.debug('Unable to fetch completions:', e)
+
+			completions.set_completions(items, sublime.INHIBIT_EXPLICIT_COMPLETIONS|sublime.INHIBIT_REORDER|sublime.INHIBIT_WORD_COMPLETIONS)
+
+		fetch()
+		return completions
+
+	def on_deactivated(self):
+		self.clear_input_mode()
+
+	def input(self):
+		regions = self.view.get_regions('input')
+		if not regions:
+			return None
+		region = regions[0]
+
+		if region.size() != self.input_size:
+			self.view.erase_regions('input')
+			self.edit(lambda edit: self.view.erase(edit, region))
+			return None
+
+		return region
+
+	def clear_input_mode(self):
+		if input := self.input():
+			self.view.erase_regions('input')
+			self.edit(lambda edit: self.view.erase(edit, sublime.Region(input.a, self.view.size())))
+
+	def set_input_mode(self):
+		if input := self.input():
+			sel = self.view.sel()
+			end_of_input = input.b
+
+			for region in sel:
+				if region.a < end_of_input:
+					self.edit(lambda edit: (
+						sel.clear(), 
+						sel.add(self.view.size()),
+					))
+					self.view.set_read_only(False)
+					return
+
+			return
+
+		a = self.view.size()
+
 		def edit(edit):
-			# self.view.set_read_only(False)
-			self.view.replace(edit, sublime.Region(0, self.view.size()), '')
-			# self.view.set_read_only(True)
-		core.edit(self.view, edit)
-		
+			size = self.view.insert(edit, a, self.ensure_new_line('\u200c:', a))
+			self.input_size = size
+			self.view.add_regions('input', [sublime.Region(a, a+size)])
+			self.view.sel().clear()
+			self.view.sel().add(a + size)
+
+		self.edit(edit)
+		self.view.set_read_only(False)
+	
+	def enter(self):
+		self.set_input_mode()
+		input = self.input()
+		if not input: return False
+
+		text_region = sublime.Region(input.b, self.view.size())
+		text = self.view.substr(text_region)
+		if not text: return True
+
+		self.edit(lambda edit: self.view.erase(edit, text_region))
+		self.on_input(text)
+		self.write(':' + text, 'comment', True)
+
+		return True
+
+
 	def log(self, type: str, value: Any):
 		if type == 'transport':
 			self.protocol.log(type, value)
 		elif type == 'error-no-open':
-			self.write(str(value), 'red', ensure_new_line=True)
+			self.write(str(value).rstrip('\n'), 'red', ensure_new_line=True)
 		elif type == 'error':
-			self.write(str(value), 'red', ensure_new_line=True)
+			self.write(str(value).rstrip('\n'), 'red', ensure_new_line=True)
 			self.open()
 		elif type == 'stderr':
 			self.write(str(value), 'red')
 		elif type == 'stdout':
 			self.write(str(value), None)
 		elif type == 'warn':
-			self.write(str(value), 'yellow', ensure_new_line=True)
+			self.write(str(value).rstrip('\n'), 'yellow', ensure_new_line=True)
 		else:
-			self.write(str(value), 'comment', ensure_new_line=True)
+			self.write(str(value).rstrip('\n'), 'comment', ensure_new_line=True)
 
 	def dispose_phantoms(self):
 		for phantom in self.phantoms:

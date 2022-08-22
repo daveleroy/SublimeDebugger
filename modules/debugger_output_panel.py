@@ -215,45 +215,47 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 
 		return text		
 
-	def on_text_changed(self, changes):
-		if self.inside_on_text_changed:
-			return
-		self.inside_on_text_changed  = True
-
+	def on_text_changed_edit(self, edit: sublime.Edit):
 		# ensure panel is at least 25 lines since we need the height of the content to be more than its viewport height
 		if self.show_tabs:
 			line_count = self.view.rowcol(self.view.size())[0] + 1
 
 			if line_count < 25:
-				def a(edit: sublime.Edit):
-					self.view.insert(edit, 0, 25 * '\n')
-				core.edit(self.view, a)
+				self.view.insert(edit, 0, 25 * '\n')
 
 		# re-insert the newline we removed
 		if self.removed_newline:
 			removed_newline = self.view.transform_region_from(sublime.Region(self.removed_newline), self.removed_newline_change_id)
 			self.removed_newline = None
-			def insert(edit: sublime.Edit):
-				self.view.insert(edit, removed_newline.a, '\n')
-
-			core.edit(self.view, insert)
+			self.view.insert(edit, removed_newline.a, '\n')
 
 		at = self.view.size() - 1
 		last = self.view.substr(at)
 
 		# remove newline
 		if last == '\n':
-			def insert(edit: sublime.Edit):
-				self.view.erase(edit, sublime.Region(at, at+1))
-			core.edit(self.view, insert)
-
+			self.view.erase(edit, sublime.Region(at, at+1))
 			self.removed_newline = at
 			self.removed_newline_change_id = self.view.change_id()
 
 		if self.controls_and_tabs_phantom:
 			self.controls_and_tabs_phantom.dirty()
 
+
+	def on_text_changed(self, changes):
+		if self.inside_on_text_changed:
+			return
+
+		self.inside_on_text_changed  = True
+		core.edit(self.view, self.on_text_changed_edit)
 		self.inside_on_text_changed  = False
+
+	def on_selection_modified(self): ...
+	def on_activated(self): ...
+	def on_deactivated(self): ...
+	def on_text_command(self, command_name: str, args: Any): ...
+	def on_query_context(self, key: str, operator: str, operand: str, match_all: bool) -> bool: ...
+	def on_query_completions(self, prefix: str, locations: list[int]) -> Any: ...
 
 
 class DebuggerConsoleListener (sublime_plugin.EventListener):
@@ -269,3 +271,30 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 		# This allows the view to be scrolled to the bottom without issues when the selection is changed.
 		if panel.is_locked_selection():
 			view.sel().clear()
+
+		panel.on_selection_modified()
+
+	def on_activated(self, view: sublime.View):
+		if panel := DebuggerOutputPanel.panels.get(view.id()):
+			panel.on_activated()
+
+	def on_deactivated(self, view: sublime.View):
+		if panel := DebuggerOutputPanel.panels.get(view.id()):
+			panel.on_deactivated()
+
+	def on_text_command(self, view: sublime.View, command_name: str, args: Any):
+		if panel := DebuggerOutputPanel.panels.get(view.id()):
+			return panel.on_text_command(command_name, args)
+
+	def on_query_context(self, view: sublime.View, key: str, operator: str, operand: str, match_all: bool) -> bool:
+		if key != 'debugger':
+			return False
+
+		if panel := DebuggerOutputPanel.panels.get(view.id()):
+			return panel.on_query_context(key, operator, operand, match_all)
+
+		return False
+
+	def on_query_completions(self, view: sublime.View, prefix: str, locations: list[int]) -> Any:
+		if panel := DebuggerOutputPanel.panels.get(view.id()):
+			return panel.on_query_completions(prefix, locations)
