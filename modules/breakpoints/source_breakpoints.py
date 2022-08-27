@@ -154,6 +154,7 @@ class SourceBreakpoints:
 		self.on_send: core.Event[SourceBreakpoint] = core.Event()
 
 		self.disposeables = [
+			core.on_view_load.add(self.on_view_load),
 			core.on_view_activated.add(self.on_view_activated),
 			core.on_view_modified.add(self.view_modified)
 		]
@@ -344,6 +345,9 @@ class SourceBreakpoints:
 			self.sync_dirty_scheduled = True
 
 		self.dirty_views[view.id()] = view
+
+	def on_view_load(self, view: sublime.View):
+		self.sync_from_breakpoints(view)
 
 	def on_view_activated(self, view: sublime.View):
 		self.sync_from_breakpoints(view)
