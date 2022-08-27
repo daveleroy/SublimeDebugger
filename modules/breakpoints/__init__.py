@@ -1,9 +1,11 @@
 from __future__ import annotations
 from ..typecheck import *
+
 from ..import ui
-
 from .. import dap
+from .. import core
 
+from .breakpoint import Breakpoint
 from .data_breakpoints import DataBreakpoints, DataBreakpoint
 from .function_breakpoints import FunctionBreakpoints, FunctionBreakpoint
 from .source_breakpoints import SourceBreakpoints, SourceBreakpoint
@@ -29,10 +31,20 @@ class Breakpoints:
 	def dispose(self) -> None:
 		self.source.dispose()
 
-	def clear_session_data(self) -> None:
-		self.data.clear_session_data()
-		self.function.clear_session_data()
-		self.source.clear_session_data()
+	def set_breakpoint_result(self, breakpoint: Breakpoint, session: dap.Session, result: dap.Breakpoint) -> None:
+		if isinstance(breakpoint, DataBreakpoint):
+			self.data.set_breakpoint_result(breakpoint, session, result)
+		elif isinstance(breakpoint, FunctionBreakpoint):
+			self.function.set_breakpoint_result(breakpoint, session, result)
+		elif isinstance(breakpoint, SourceBreakpoint):
+			self.source.set_breakpoint_result(breakpoint, session, result)
+		else:
+			raise core.Error('Unsupprted Breakpoint type)')
+
+	def clear_breakpoint_result(self, session: dap.Session) -> None:
+		self.data.clear_breakpoint_result(session)
+		self.function.clear_breakpoint_result(session)
+		self.source.clear_breakpoint_result(session)
 
 	def load_from_json(self, json: dap.Json) -> None:
 		self.source.load_json(json.get('source', []))

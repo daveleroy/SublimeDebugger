@@ -8,11 +8,15 @@ from ..import dap
 import sublime
 import os
 
+from .breakpoint import Breakpoint
+
 # note: Breakpoint lines are 1 based (sublime lines are 0 based)
-class SourceBreakpoint:
+class SourceBreakpoint(Breakpoint):
 	next_id = 0
 
 	def __init__(self, breakpoints: SourceBreakpoints, file: str, line: int, column: int|None, enabled: bool):
+		super().__init__()
+
 		SourceBreakpoint.next_id += 1
 		self.id = SourceBreakpoint.next_id
 		self.region_name = 'bp{}'.format(self.id)
@@ -21,7 +25,6 @@ class SourceBreakpoint:
 		self.dap = dap.SourceBreakpoint(line, column, None, None, None)
 		self._file = file
 		self.enabled = enabled
-		self.result: dap.Breakpoint | None = None
 		self.breakpoints = breakpoints
 
 	@property
@@ -35,32 +38,20 @@ class SourceBreakpoint:
 		return os.path.basename(self._file)
 
 	@property
-	def description(self) -> str|None:
-		if self.result:
-			return self.result.message
-		return None
-
-	@property
 	def file(self):
 		return self._file
 
 	@property
 	def line(self):
-		if self.result and self.result.line:
-			return self.result.line
+		if self._verified_result and self._verified_result.line:
+			return self._verified_result.line
 		return self.dap.line
 
 	@property
 	def column(self):
-		if self.result and self.result.column:
-			return self.result.column
+		if self._verified_result and self._verified_result.column:
+			return self._verified_result.column
 		return self.dap.column
-
-	@property
-	def verified(self):
-		if self.result:
-			return self.result.verified
-		return True
 
 	def into_json(self) -> dap.Json:
 		return {
@@ -181,11 +172,14 @@ class SourceBreakpoints:
 		self.breakpoints.sort()
 		self.add_breakpoints_to_current_view()
 
-	def clear_session_data(self):
+	def clear_breakpoint_result(self, session: dap.Session):
 		for breakpoint in self.breakpoints:
-			if breakpoint.result:
-				breakpoint.result = None
+			if breakpoint.clear_breakpoint_result(session):
 				self.updated(breakpoint, send=False)
+
+	def set_breakpoint_result(self, breakpoint: SourceBreakpoint, session: dap.Session, result: dap.Breakpoint):
+		breakpoint.set_breakpoint_result(session, result)
+		self.updated(breakpoint, send=False)
 
 	def updated(self, breakpoint: SourceBreakpoint, send: bool=True):
 		breakpoint.update_views()
@@ -340,10 +334,6 @@ class SourceBreakpoints:
 		view = sublime.active_window().active_view()
 		if view:
 			self.sync_from_breakpoints(view)
-
-	def set_result(self, breakpoint: SourceBreakpoint, result: dap.Breakpoint):
-		breakpoint.result = result
-		self.updated(breakpoint, send=False)
 
 	def view_modified(self, view: sublime.View):
 		if view.file_name() is None:

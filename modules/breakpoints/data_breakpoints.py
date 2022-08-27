@@ -6,18 +6,14 @@ from ..import core
 from ..import ui
 from ..import dap
 
-class DataBreakpoint:
+from .breakpoint import Breakpoint
+
+class DataBreakpoint(Breakpoint):
 	def __init__(self, breakpoint: dap.DataBreakpoint, info: dap.DataBreakpointInfoResponse, enabled: bool):
+		super().__init__()
 		self.dap = breakpoint
 		self.info = info
 		self.enabled = enabled
-		self.result: dap.Breakpoint | None = None
-
-	@property
-	def verified(self) -> bool:
-		if self.result and self.result.verified:
-			return True
-		return False
 
 	@property
 	def image(self) -> ui.Image:
@@ -34,12 +30,6 @@ class DataBreakpoint:
 	@property
 	def name(self) -> str:
 		return self.info.description
-
-	@property
-	def description(self) -> str|None:
-		if self.result:
-			return self.result.message
-		return None
 
 	def into_json(self) -> dict[str, Any]:
 		return {
@@ -70,12 +60,15 @@ class DataBreakpoints:
 		if send:
 			self.on_send(self.breakpoints)
 
-	def clear_session_data(self):
-		self.breakpoints = list(filter(lambda b: b.info.canPersist, self.breakpoints))
+	def set_breakpoint_result(self, breakpoint: DataBreakpoint, session: dap.Session, result: dap.Breakpoint):
+		breakpoint.set_breakpoint_result(session, result)
 		self.updated(send=False)
 
-	def set_result(self, breakpoint: DataBreakpoint, result: dap.Breakpoint):
-		breakpoint.result = result
+	def clear_breakpoint_result(self, session: dap.Session):
+		for breakpoint in self.breakpoints:
+			breakpoint.clear_breakpoint_result(session)
+
+		self.breakpoints = list(filter(lambda b: b.info.canPersist, self.breakpoints))
 		self.updated(send=False)
 
 	def toggle_enabled(self, breakpoint: DataBreakpoint):

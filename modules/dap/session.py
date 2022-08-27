@@ -14,6 +14,7 @@ from .error import Error
 from ..breakpoints import (
 	Breakpoints,
 	SourceBreakpoint,
+	Breakpoint,
 )
 
 from .variable import (
@@ -90,7 +91,7 @@ class Session(TransportProtocolListener):
 		self.state_changed = core.Event[int]()
 
 		self.breakpoints = breakpoints
-		self.breakpoints_for_id: dict[int, SourceBreakpoint] = {}
+		self.breakpoints_for_id: dict[int, Breakpoint] = {}
 		self.breakpoints.data.on_send.add(self.on_send_data_breakpoints)
 		self.breakpoints.function.on_send.add(self.on_send_function_breakpoints)
 		self.breakpoints.filters.on_send.add(self.on_send_filters)
@@ -341,7 +342,9 @@ class Session(TransportProtocolListener):
 		results: list[dap.Breakpoint] = response['breakpoints']
 
 		for result, b in zip(results, breakpoints):
-			self.breakpoints.function.set_result(b, result)
+			self.breakpoints.function.set_breakpoint_result(b, self, result)
+			if result.id is not None:
+				self.breakpoints_for_id[result.id] = b
 
 	async def set_data_breakpoints(self) -> None:
 		if not self._transport:
@@ -354,7 +357,9 @@ class Session(TransportProtocolListener):
 		})
 		results: list[dap.Breakpoint] = response['breakpoints']
 		for result, b in zip(results, breakpoints):
-			self.breakpoints.data.set_result(b, result)
+			self.breakpoints.data.set_breakpoint_result(b, self, result)
+			if result.id is not None:
+				self.breakpoints_for_id[result.id] = b
 
 	async def set_breakpoints_for_file(self, file: str, breakpoints: list[SourceBreakpoint]) -> None:
 		if not self._transport:
@@ -392,13 +397,13 @@ class Session(TransportProtocolListener):
 				raise Error('expected #breakpoints to match results')
 
 			for result, b in zip(results, enabled_breakpoints):
-				self.breakpoints.source.set_result(b, result)
-				if result.id:
+				self.breakpoints.source.set_breakpoint_result(b, self, result)
+				if result.id is not None:
 					self.breakpoints_for_id[result.id] = b
 
 		except Error as e:
 			for b in enabled_breakpoints:
-				self.breakpoints.source.set_result(b, dap.Breakpoint())
+				self.breakpoints.source.set_breakpoint_result(b, self, dap.Breakpoint(verified=False, message=str(e)))
 
 	def on_send_data_breakpoints(self, any: Any):
 		core.run(self.set_data_breakpoints())
@@ -453,10 +458,8 @@ class Session(TransportProtocolListener):
 		if self.launching_async:
 			self.launching_async.cancel()
 
-		self.breakpoints_for_id = {}
-
 		self.watch.clear_session_data(self)
-		self.breakpoints.clear_session_data()
+		self.breakpoints.clear_breakpoint_result(self)
 
 		self.stop_requested = False
 
@@ -651,9 +654,10 @@ class Session(TransportProtocolListener):
 
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
 		assert event.breakpoint.id
-		b = self.breakpoints_for_id.get(event.breakpoint.id)
-		if b:
-			self.breakpoints.source.set_result(b, event.breakpoint)
+		if b := self.breakpoints_for_id.get(event.breakpoint.id):
+			self.breakpoints.set_breakpoint_result(b, self, event.breakpoint)
+		else:
+			core.debug(f'Breakpoint for id not found {event.breakpoint.id}')
 
 	def on_module_event(self, event: dap.ModuleEvent):
 		if event.reason == 'new':
