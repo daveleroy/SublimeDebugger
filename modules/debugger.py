@@ -548,8 +548,8 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		values.extend([
 			ui.InputListItem(lambda: ..., ''),
-			ui.InputListItem(report_issue, 'Report Issue'),
-			ui.InputListItem(about, 'About/Getting Started'),
+			ui.InputListItem(report_issue, 'Report Issue', kind=(sublime.KIND_ID_AMBIGUOUS, '⧉', '')),
+			ui.InputListItem(about, 'About/Getting Started', kind=(sublime.KIND_ID_AMBIGUOUS, '⧉', '')),
 		])
 
 		ui.InputList(values).run()
