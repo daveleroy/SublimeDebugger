@@ -203,9 +203,12 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		self.lock_selection()
 		sublime.set_timeout(self.unlock_selection, 100)
 
+	def at(self):
+		return self.view.size()
+
 	def ensure_new_line(self, text: str, at: int|None = None):
 		if at is None:
-			at = self.view.size()
+			at = self.at()
 
 		if self.removed_newline == at:
 			return text
@@ -229,7 +232,7 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 			self.removed_newline = None
 			self.view.insert(edit, removed_newline.a, '\n')
 
-		at = self.view.size() - 1
+		at = self.at() - 1
 		last = self.view.substr(at)
 
 		# remove newline

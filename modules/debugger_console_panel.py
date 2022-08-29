@@ -297,7 +297,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		a = self.view.size()
 
 		def edit(edit):
-			size = self.view.insert(edit, a, self.ensure_new_line('\u200c:', a))
+			size = self.view.insert(edit, a, '\n\u200c:')
 			self.input_size = size
 			self.view.add_regions('input', [sublime.Region(a, a+size)])
 			self.view.sel().clear()
