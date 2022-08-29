@@ -100,6 +100,10 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 				self.add_annotation(self.at() - 1, event.source, event.line)
 
 
+	def scroll_to_end(self):
+		super().scroll_to_end()
+		self.window.focus_view(self.view)
+
 	def at(self):
 		if input := self.input():
 			return input.a
@@ -273,8 +277,8 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		if input := self.input():
 			self.view.erase_regions('input')
 			self.edit(lambda edit: self.view.erase(edit, sublime.Region(input.a, self.view.size())))
-
 	def set_input_mode(self):
+	
 		if input := self.input():
 			sel = self.view.sel()
 			end_of_input = input.b
@@ -297,9 +301,9 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 			self.input_size = size
 			self.view.add_regions('input', [sublime.Region(a, a+size)])
 			self.view.sel().clear()
-			self.view.sel().add(a + size)
+			self.view.sel().add(self.view.size())
 
-		self.edit(edit)
+		self.edit(edit)		
 		self.view.set_read_only(False)
 	
 	def enter(self):
@@ -311,7 +315,12 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		text = self.view.substr(text_region)
 		if not text: return True
 
-		self.edit(lambda edit: self.view.erase(edit, text_region))
+		self.edit(lambda edit: (
+			self.view.erase(edit, text_region),
+			self.view.sel().clear(),
+			self.view.sel().add(self.view.size())
+		))
+
 		self.on_input(text)
 		self.write(':' + text, 'comment', True)
 

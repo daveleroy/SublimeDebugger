@@ -189,7 +189,7 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		return self._locked_selection != 0
 
 	def scroll_to_end(self):
-		self.lock_selection_temporarily()
+		# self.lock_selection_temporarily()
 		height = self.view.layout_extent()[1]
 		self.view.set_viewport_position((0, height), False)
 

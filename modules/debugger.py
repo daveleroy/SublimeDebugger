@@ -570,16 +570,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	def on_input_command(self) -> None:
 		self.console.open()
-
-		def run(value: str):
-			# re-open
-			self.on_input_command()
-			if value:
-				# self.show_console_panel()
-				core.run(self.on_run_command(value))
-
-		input = ui.InputText(run, 'Input Debugger Command')
-		input.run()
+		self.console.set_input_mode()
 
 	def _on_project_or_settings_updated(self):
 		# these settings control the size of the ui calculated in ui/layout
