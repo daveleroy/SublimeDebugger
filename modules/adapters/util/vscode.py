@@ -140,6 +140,24 @@ async def request(url: str, config: Config = Config()):
 # 	file = request(url, config)
 # 	return json file.read()
 
+def _remove_files_or_directories(paths: list[str]):
+	for p in paths:
+		if os.path.isdir(p):
+			core.debug(f'removing previous directory: {p}')
+			shutil.rmtree(_abspath_fix(p))
+
+		elif os.path.isfile(p):
+			core.debug(f'removing previous file: {p}')
+			os.remove(p)
+
+def uninstall(type: str):
+	try:
+		del _info_for_type[type]
+	except KeyError:
+		...
+	path = install_path(type)
+	_remove_files_or_directories([path])
+
 async def install(type: str, url: str, log: core.Logger, post_download_action: Optional[Callable[[], Awaitable[Any]]] = None):
 	try:
 		del _info_for_type[type]
@@ -147,27 +165,21 @@ async def install(type: str, url: str, log: core.Logger, post_download_action: O
 		...
 	
 	def log_info(value: str):
-		core.call_soon_threadsafe(log.info, value)
+		sublime.status_message(f'Debugger: {value}')
+		# core.call_soon_threadsafe(log.info, value)
 
 	path = install_path(type)
 	temporary_path = path + '_temp'
 
 	# ensure adapters folder exists
 	adapters_path = pathlib.Path(path).parent
+	
+	archive_name = '{}.zip'.format(path)
 
 	if not adapters_path.is_dir():
 		adapters_path.mkdir()
 
-	if os.path.isdir(path):
-		log_info('removing previous installation...')
-		shutil.rmtree(_abspath_fix(path))
-		log_info('...removed')
-
-	if os.path.isdir(temporary_path):
-		log_info('removing previous temporary installation...')
-		shutil.rmtree(_abspath_fix(path))
-		log_info('...removed')
-
+	_remove_files_or_directories([path, temporary_path, archive_name])
 
 	log_info('downloading...')
 	response = await request(url)
@@ -190,18 +202,14 @@ async def install(type: str, url: str, log: core.Logger, post_download_action: O
 		os.rename(temporary_path, path)
 
 
-	log.info(f'Installing adapter: {type}')
-	log.info('from: {}'.format(url))
+	log.info('Downloading {}'.format(url))
 
-	await core.run_in_executor(blocking)
-	if post_download_action:
-		await post_download_action()
-
-
-	# successfully installed so add a marker file
-	path_installed = f'{path}/.sublime_debugger'
-	with open(path_installed, 'w') as file_installed:
-		...
+	try:
+		await core.run_in_executor(blocking)
+		if post_download_action:
+			await post_download_action()
+	finally:
+		_remove_files_or_directories([temporary_path, archive_name])
 
 
 # https://stackoverflow.com/questions/29967487/get-progress-back-from-shutil-file-copy-thread
