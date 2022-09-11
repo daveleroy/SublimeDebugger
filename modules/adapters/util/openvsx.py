@@ -2,31 +2,43 @@ from __future__ import annotations
 from .git import request_json, removeprefix
 from ...libs.semver import semver
 from ...import core
+from ...import dap
+from . import vscode
 
-async def latest_release_vsix(owner: str, repo: str) -> str:
-	response = await request_json(f'https://open-vsx.org/api/{owner}/{repo}/latest')
-	return response['files']['download']
+class OpenVsxInstaller(dap.AdapterInstaller):
+	def __init__(self, type: str, repo: str):
+		self.type = type
+		self.repo = repo
 
-async def installed_status(owner: str, repo: str, version: str|None, log: core.Logger = core.stdio):
-	if not version:
-		return None
+	async def install(self, version: str|None, log: core.Logger):
+		version = version or 'latest'
+		response = await request_json(f'https://open-vsx.org/api/{self.repo}/{version}')
+		url = response['files']['download']
+		await vscode.install(self.type, url, log)
 
-	log.info(f'openvsx {owner}/{repo}')
+	def uninstall(self):
+		vscode.uninstall(self.type)
 
-	try:
-		response = await request_json(f'https://open-vsx.org/api/{owner}/{repo}/latest')
-	except Exception as e:
-		log.log('error', f'openvsx {owner}/{repo}: {e}')
-		raise e
+	def configuration_snippets(self):
+		return vscode.configuration_snippets(self.type)
 
-	tag = removeprefix(response['version'], 'v')
-	version = removeprefix(version, 'v')
-	
-	if semver.compare(tag, version) != 0:
-		# log.info(f'openvsx {owner} {repo} done "Update Available {tag}"')
-		log.log('warn', f'openvsx {owner} {repo}: Update Available {version} -> {tag}')
+	def configuration_schema(self):
+		return vscode.configuration_schema(self.type)
 
-		return f'Update Available {tag}'
+	def installed_version(self) -> str|None:
+		return vscode.installed_version(self.type)
 
-	# log.info(f'openvsx {owner} {repo} done')
-	return None
+	def install_path(self) -> str: 
+		return vscode.install_path(self.type)
+
+	async def installable_versions(self, log: core.Logger) -> list[str]:
+		log.info(f'openvsx: {self.repo}')
+		try:
+			response = await request_json(f'https://open-vsx.org/api/{self.repo}/latest')
+			versions: dict = response['allVersions']
+			del versions['latest']
+			return list(versions.keys())
+
+		except Exception as e:
+			log.error(f'openvsx: {self.repo}: {e}')
+			raise e

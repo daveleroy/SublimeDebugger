@@ -24,13 +24,13 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 	docs = 'https://github.com/microsoft/vscode-js-debug/blob/main/OPTIONS.md'
 
+	installer = util.GitInstaller (
+		type='js',  
+		repo='daveleroy/vscode-js-debug'
+	)
 	
 	pending_target_parents: dict[str, dap.Session] = {}
-
 	sessions: dict[dap.Session, Any] = {}
-
-	@property
-	def info(self): return util.vscode.info('js')
 
 	@property
 	def configuration_snippets(self):
@@ -39,17 +39,6 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 	@property
 	def configuration_schema(self):
 		return util.vscode.configuration_schema('js', self.type_internal)
-
-	async def install(self, log: core.Logger):
-		url = await util.git.latest_release_vsix('daveleroy', 'vscode-js-debug')
-		await util.vscode.install('js', url, log)
-
-	async def installed_status(self, log: core.Logger):
-		return await util.git.installed_status('daveleroy', 'vscode-js-debug', self.installed_version, log)
-
-	@property
-	def installed_version(self) -> str|None:
-		return util.vscode.installed_version('js')
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		__jsDebugChildServer = configuration.get('__jsDebugChildServer')
@@ -63,7 +52,6 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 		install_path = util.vscode.install_path('js')
 		command = [
 			node,
-			# '/Users/david/Desktop/vscode-js-debug-master 3/dist/src/vsDebugServer.js'
 			f'{install_path}/extension/src/vsDebugServer.bundle.js'
 		]
 

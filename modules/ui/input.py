@@ -66,6 +66,8 @@ class InputListItem:
 	details: list[str]|str = ''
 	kind: tuple[int, str, str] = sublime.KIND_AMBIGUOUS
 
+	run_alt: Callable[[], Any] | InputList | InputText| None = None
+
 	def display_or_run(self):
 		if callable(self.run):
 			self.run()
@@ -102,6 +104,8 @@ class InputList(sublime_plugin.ListInputHandler):
 	def placeholder(self):
 		return self._placeholder
 
+	def want_event(self) -> bool:
+		return True
 
 	def list_items(self):
 		items: list[Any] = []
@@ -113,8 +117,15 @@ class InputList(sublime_plugin.ListInputHandler):
 
 		return (items, self.index)
 
-	def confirm(self, value: int):
-		run = self.values[value].run
+	def confirm(self, value: int, event: dict):
+		is_alt = modifier_keys.get('super') or modifier_keys.get('alt')
+
+		if is_alt:
+			run = self.values[value].run_alt
+			
+		else:
+			run = self.values[value].run
+
 		if callable(run):
 			run()
 		else:
@@ -128,7 +139,7 @@ class InputList(sublime_plugin.ListInputHandler):
 		self._next_input = None
 		return n
 
-	def validate(self, value: int):
+	def validate(self, value: int, event: Any):
 		return True
 
 	def cancel(self):
@@ -136,7 +147,7 @@ class InputList(sublime_plugin.ListInputHandler):
 			self._on_cancel_internal()
 
 	def description(self, value: int, text: str):
-		return self.values[value].name or self.values[value].text
+		return self.values[value].name or self.values[value].text.split('\t')[0]
 
 class InputEnable (Protocol):
 	def enable(self):
@@ -225,7 +236,7 @@ def InputListItemOnOff(run: Callable[[], Any] | InputList | InputText, true: str
 	else:
 		return InputListItem(run, false, annotation='Off')
 
-def InputListItemChecked(run: Callable[[], Any] | InputList | InputText, value: bool, true: str, false: str|None = None, details: list[str]|str = ''):
+def InputListItemChecked(run: Callable[[], Any] | InputList | InputText, value: bool, true: str, false: str|None = None, details: list[str]|str = '', run_alt: Callable[[], Any] | InputList | InputText|None = None):
 	if value:
 		kind = (sublime.KIND_ID_AMBIGUOUS, '●', 'On')
 		text = true
@@ -238,4 +249,5 @@ def InputListItemChecked(run: Callable[[], Any] | InputList | InputText, value: 
 		text,
 		kind=kind,
 		details=details,
+		run_alt=run_alt,
 	)

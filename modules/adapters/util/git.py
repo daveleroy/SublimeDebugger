@@ -7,6 +7,9 @@ import urllib.error
 import json
 import certifi
 
+from ...import dap
+from .import vscode
+
 from ...libs.semver import semver
 
 cached_etag: dict[str, str] = {}
@@ -43,46 +46,62 @@ async def request_json(url: str, timeout: int|None = 30) -> Any:
 	result = await core.run_in_executor(blocking)
 	return result
 
-async def latest_release_with_vsix_asset(owner: str, repo: str):
-	url = f'https://api.github.com/repos/{owner}/{repo}/releases'
-	releases = await request_json(url)
-	for release in releases:
-		if release['draft'] or release['prerelease']:
-			continue
-
-		for asset in release.get('assets', []):
-			if asset['name'].endswith('.vsix'):
-				url: str = asset['browser_download_url']
-				return (release, url)
-
-	raise core.Error(f'Unable to find a suitable release in {owner} {repo}')
-
-
-async def latest_release_vsix(owner: str, repo: str) -> str:
-	_, url = await latest_release_with_vsix_asset(owner, repo)
-	return url
-
 def removeprefix(text: str, prefix: str):
 	return text[text.startswith(prefix) and len(prefix):]
 
-async def installed_status(owner: str, repo: str, version: str|None, log: core.Logger = core.stdio):
-	if not version:
-		return None
+class GitInstaller(dap.AdapterInstaller):
+	def __init__(self, type: str, repo: str, is_valid_asset: Callable[[str], bool] = lambda asset: asset.endswith('.vsix')):
+		self.type = type
+		self.repo = repo
+		self.is_valid_asset = is_valid_asset
 
-	log.info(f'github {owner}/{repo}')
+	async def install(self, version: str|None, log: core.Logger):
+		releases = await request_json(f'https://api.github.com/repos/{self.repo}/releases')
+		for release in releases:
+			if release['draft'] or release['prerelease']:
+				continue
 
-	try:
-		release, _ = await latest_release_with_vsix_asset(owner, repo)
-	except Exception as e:
-		log.log('error', f'github {owner}/{repo}: {e}')
-		raise e
-	
-	tag = removeprefix(release['tag_name'], 'v')
-	version = removeprefix(version, 'v')
+			for asset in release.get('assets', []):
+				if self.is_valid_asset(asset['name']):
+					release_version = removeprefix(release['tag_name'], 'v')
+					if not version or release_version == version:
+						return await vscode.install(self.type, asset['browser_download_url'], log) 
 
-	if semver.compare(tag, version) != 0:
-		log.log('warn', f'github {owner}/{repo}: Update Available {version} -> {tag}')
-		return f'Update Available {tag}'
+		raise core.Error(f'Unable to find a suitable release in {self.repo}')
 
-	# log.info(f'github {owner} {repo} done')
-	return None
+	def uninstall(self):
+		vscode.uninstall(self.type)
+
+	def configuration_snippets(self):
+		return vscode.configuration_snippets(self.type)
+
+	def configuration_schema(self):
+		return vscode.configuration_schema(self.type)
+
+	def installed_version(self) -> str|None:
+		return vscode.installed_version(self.type)
+
+	def install_path(self) -> str: 
+		return vscode.install_path(self.type)
+
+	async def installable_versions(self, log: core.Logger) -> list[str]:
+		log.info(f'github {self.repo}')
+		try:
+			releases = await request_json(f'https://api.github.com/repos/{self.repo}/releases')
+			versions: list[str] = []
+
+			for release in releases:
+				if release['draft']:
+					continue
+
+				for asset in release.get('assets', []):
+					if self.is_valid_asset(asset['name']):
+						version = removeprefix(release['tag_name'], 'v')
+						versions.append(version)
+						break
+
+			return versions
+
+		except Exception as e:
+			log.error(f'github: {self.repo}: {e}')
+			raise e

@@ -13,6 +13,11 @@ class Python(dap.AdapterConfiguration):
 	type = 'python'
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
 
+	installer = util.OpenVsxInstaller(
+		type='python',
+		repo='ms-python/python'
+	)
+
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'attach':
 			connect = configuration.get('connect')
@@ -56,25 +61,6 @@ class Python(dap.AdapterConfiguration):
 			await session.debugger.launch(session.breakpoints, self, configuration_expanded, parent=session)
 		else:
 			core.error(f'event ignored not implemented {event}')
-
-	async def install(self, log: core.Logger):
-		url = await util.openvsx.latest_release_vsix('ms-python', 'python')
-		await util.vscode.install(self.type, url, log)
-
-	async def installed_status(self, log: core.Logger):
-		return await util.openvsx.installed_status('ms-python', 'python', self.installed_version, log)
-
-	@property
-	def installed_version(self) -> str|None:
-		return util.vscode.installed_version(self.type)
-
-	@property
-	def configuration_snippets(self):
-		return util.vscode.configuration_snippets(self.type)
-
-	@property
-	def configuration_schema(self):
-		return util.vscode.configuration_schema(self.type)
 
 	# TODO: patch in env since python seems to not inherit it from the adapter proccess.
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):

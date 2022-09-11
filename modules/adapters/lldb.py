@@ -36,6 +36,21 @@ class LLDBSettings(settings.Settings):
 	lldb_library: str|None = None
 	lldb_python: str|None = None
 
+def is_valid_asset(asset: str):
+	arch = core.platform.architecture
+	if core.platform.windows and arch == 'x64':
+		return asset.endswith('-x86_64-windows.vsix')
+	elif core.platform.osx and arch == 'x64':
+		return asset.endswith('-x86_64-darwin.vsix')
+	elif core.platform.osx and arch == 'arm64':
+		return asset.endswith('-aarch64-darwin.vsix')
+	elif core.platform.linux and arch == 'x64':
+		return asset.endswith('-x86_64-linux.vsix')
+	elif core.platform.linux and arch == 'arm64':
+		return asset.endswith('-aarch64-linux.vsix')
+	else:
+		raise core.Error('Your platforms architecture is not supported by vscode lldb. See https://github.com/vadimcn/vscode-lldb/releases/latest')
+
 class LLDB(dap.AdapterConfiguration):
 
 	type = 'lldb'
@@ -66,8 +81,12 @@ class LLDB(dap.AdapterConfiguration):
 	dereference_pointers: bool = True
 	library: str|None = None
 	python: str|None = None
-
 	
+	installer = util.GitInstaller (
+		type='lldb',
+		repo='vadimcn/vscode-lldb', 
+		is_valid_asset=is_valid_asset
+	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = util.vscode.install_path(self.type)
@@ -97,39 +116,6 @@ class LLDB(dap.AdapterConfiguration):
 			configuration['pid'] = await select_process()
 
 		return configuration
-
-	async def install(self, log: core.Logger):
-		arch = core.platform.architecture
-
-		if core.platform.windows and arch == 'x64':
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-windows.vsix'
-		elif core.platform.osx and arch == 'x64':
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-darwin.vsix'
-		elif core.platform.osx and arch == 'arm64':
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-aarch64-darwin.vsix'
-		elif core.platform.linux and arch == 'x64':
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-x86_64-linux.vsix'
-		elif core.platform.linux and arch == 'arm64':
-			url = 'https://github.com/vadimcn/vscode-lldb/releases/latest/download/codelldb-aarch64-linux.vsix'
-		else:
-			raise core.Error('Your platforms architecture is not supported by vscode lldb. See https://github.com/vadimcn/vscode-lldb/releases/latest')
-
-		await util.vscode.install(self.type, url, log)
-
-	async def installed_status(self, log: core.Logger):
-		return await util.git.installed_status('vadimcn', 'vscode-lldb', self.installed_version, log)
-
-	@property
-	def installed_version(self) -> str|None:
-		return util.vscode.installed_version(self.type)
-
-	@property
-	def configuration_snippets(self):
-		return util.vscode.configuration_snippets(self.type)
-
-	@property
-	def configuration_schema(self):
-		return util.vscode.configuration_schema(self.type)
 
 	@staticmethod
 	def adapter_settings():
