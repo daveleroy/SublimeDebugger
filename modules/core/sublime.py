@@ -8,13 +8,13 @@ from .core import call_soon_threadsafe, create_future, Future
 from .event import Event
 from .error import Error
 
-async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None) -> sublime.View:
+async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None, group: int=-1) -> sublime.View:
 	if line:
 		file += f':{line}'
 	if column:
 		file += f':{column}'
 
-	view = window.open_file(file, sublime.ENCODED_POSITION)
+	view = window.open_file(file, sublime.ENCODED_POSITION, group=group)
 	await wait_for_view_to_load(view)
 	return view
 
@@ -30,15 +30,17 @@ async def wait_for_view_to_load(view: sublime.View):
 		await future_view
 		handle.dispose()
 
-def edit(view: sublime.View, run: Callable[[sublime.Edit], None]):
-	if DebuggerAsyncTextCommand._run:
-		print("there was already an active edit..?")
-
+def edit(view: sublime.View, run: Callable[[sublime.Edit], Any]):
+	previous = DebuggerAsyncTextCommand._run
 	DebuggerAsyncTextCommand._run = run
 	view.run_command('debugger_async_text')
+	DebuggerAsyncTextCommand._run = previous
+
 
 on_view_modified: Event[sublime.View] = Event()
 on_view_load: Event[sublime.View] = Event()
+on_pre_view_closed: Event[sublime.View] = Event()
+
 on_view_hovered: Event[Tuple[sublime.View, int, int]] = Event()
 on_view_activated: Event[sublime.View] = Event()
 on_view_gutter_clicked: Event[Tuple[sublime.View, int, int]] = Event() # view, line, button
@@ -47,9 +49,9 @@ on_view_drag_select_or_context_menu: Event[sublime.View] = Event()
 on_load_project: Event[sublime.Window] = Event()
 on_new_window: Event[sublime.Window] = Event()
 on_pre_close_window: Event[sublime.Window] = Event()
-on_exit: Event[sublime.Window] = Event()
+on_exit: Event[None] = Event()
 
-on_pre_hide_panel: Event[sublime.Window] = Event()
+on_pre_hide_panel: Event[sublime.Window, str] = Event()
 on_post_show_panel: Event[sublime.Window] = Event()
 
 class DebuggerAsyncTextCommand(sublime_plugin.TextCommand):
@@ -69,7 +71,7 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 	# detects clicks on the gutter
 	# if a click is detected we then reselect the previous selection
 	# This means that a click in the gutter no longer selects that line (at least when a debugger is open)
-	def on_text_command(self, view: sublime.View, cmd: str, args: dict) -> Any:
+	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any]) -> Any:
 		# why bother doing this work if no one wants it
 		if not on_view_gutter_clicked and not on_view_drag_select_or_context_menu:
 			return
@@ -95,12 +97,12 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 				if on_view_gutter_clicked((view, line, event['button'])):
 					return ("null", {})
 
-	def on_window_command(self, window, command_name, args):
+	def on_window_command(self, window: sublime.Window, command_name: str, args: Any):
 		if command_name == 'hide_panel':
-			if on_pre_hide_panel(window):
+			if on_pre_hide_panel(window, window.active_panel() or ''):
 				return ("null", {})
 
-	def on_post_window_command(self, window, command_name, args):
+	def on_post_window_command(self, window: sublime.Window, command_name: str, args: Any):
 		if command_name == 'show_panel':
 			on_post_show_panel(window)
 
@@ -109,6 +111,9 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 
 	def on_modified(self, view: sublime.View) -> None:
 		on_view_modified(view)
+
+	def on_pre_close(self, view: sublime.View) -> None:
+		on_pre_view_closed(view)
 
 	def on_load(self, view: sublime.View) -> None:
 		on_view_load(view)
@@ -126,4 +131,4 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 		on_pre_close_window(window)
 
 	def on_exit(self):
-		on_exit()
+		on_exit.post()

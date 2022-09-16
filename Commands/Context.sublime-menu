@@ -6,15 +6,6 @@
         "caption": "-"
     },
     {
-        "caption": "-"
-    },
-    {
-        "caption": "-"
-    },
-    {
-        "caption": "-"
-    },
-    {
         "caption": "Toggle Breakpoint",
         "command": "debugger",
         "args": {
@@ -34,8 +25,5 @@
         "args": {
             "action": "run_to_current_line"
         }
-    },
-    {
-        "caption": "-"
     }
 ]

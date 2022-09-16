@@ -32,7 +32,6 @@ from .import core
 import subprocess
 import os
 import sublime
-import sublime_plugin
 
 
 class ExternalTerminal(Protocol):
@@ -57,7 +56,13 @@ class ExternalTerminalTerminus(ExternalTerminal):
 			'cmd': commands,
 			'env': env,
 			'auto_close': False,
-			'tag': self.tag
+			'tag': self.tag,
+			'pre_window_hooks': [
+				['debugger_console_layout_pre_window_hooks', {}],
+			],
+			'post_view_hooks': [
+				['debugger_console_layout_post_view_hooks', {}],
+			],
 		})
 
 	def dispose(self):
@@ -67,12 +72,12 @@ class ExternalTerminalTerminus(ExternalTerminal):
 
 
 class ExternalTerminalMacDefault(ExternalTerminal):
-	OSX_TERMINAL_SCRIPT = os.path.join(os.path.dirname(__file__), 'scripts', 'TerminalHelper.scpt')
+	OSX_TERMINAL_SCRIPT = os.path.join(os.path.dirname(__file__), 'libs', 'terminal_scripts', 'TerminalHelper.scpt')
 	#OSX_ITERM_SCRIPT = os.path.join(os.path.dirname(__file__), 'iTermHelper.scpt')
 
 	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
 		args = [
-			"osascript",
+			'osascript',
 			ExternalTerminalMacDefault.OSX_TERMINAL_SCRIPT,
 			'-t', title,
 		]
@@ -94,12 +99,14 @@ class ExternalTerminalMacDefault(ExternalTerminal):
 
 		subprocess.check_call(args)
 
+	def dispose(self):
+		...
 
 # modified from https://github.com/microsoft/vscode/blob/master/src/vs/workbench/contrib/externalTerminal/node/externalTerminalService.ts
 class ExternalTerminalWindowsDefault(ExternalTerminal):
 	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
 		if core.platform.is_64:
-		 	exec = 'C:\\Windows\\Sysnative\\cmd.exe'
+			exec = 'C:\\Windows\\Sysnative\\cmd.exe'
 		else:
 			exec = 'C:\\Windows\\System32\\cmd.exe'
 
@@ -123,6 +130,8 @@ class ExternalTerminalWindowsDefault(ExternalTerminal):
 
 		subprocess.check_call(['cmd.exe'] + args, cwd=cwd, env=cmd_env)
 
+	def dispose(self):
+		...
 
 # export class LinuxExternalTerminalService implements IExternalTerminalService {
 # 	public _serviceBrand: undefined;

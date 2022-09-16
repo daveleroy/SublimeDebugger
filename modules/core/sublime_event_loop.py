@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import sublime
-import threading
 
 class Handle:
 	def __init__(self, callback, args):
@@ -28,10 +27,10 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 		raise NotImplementedError
 
 	def is_running(self):
-		raise NotImplementedError
+		return True
 
 	def is_closed(self):
-		raise NotImplementedError
+		return False
 
 	def close(self):
 		raise NotImplementedError
@@ -99,7 +98,7 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 		raise NotImplementedError
 
 	def call_exception_handler(self, context):
-		from .log import log_exception
+		from .log import exception
 		from .error import Error
 
 		try:
@@ -109,7 +108,7 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 				raise Error(context['message'])
 
 		except Exception as e:
-			log_exception()
+			exception()
 
 	# Debug flag management.
 	def get_debug(self):

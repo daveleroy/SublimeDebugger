@@ -1,38 +1,50 @@
 from __future__ import annotations
 from ..typecheck import *
 
-from .layout import Layout
 from .image import Image
-from .style import css, div_inline_css, icon_css, none_css
+from .style import css, none_css
 
 import re
 
-class alignable(Protocol):
+if TYPE_CHECKING:
+	from .layout import Layout
+
+class alignable:
 	align_required: int
 	align_desired: int
+	css: css
 
 	def align(self, width: int):
 		...
 
-
 class element:
+	Children = Union[Sequence['element'], 'element', None]
+
 	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
 		super().__init__()
-		self.layout = None #type: Optional[Layout]
-		self.children = [] #type: Sequence[element]
+		self.layout: Layout|None = None
+		self.children: Sequence[element] = []
 		self.requires_render = True
 		self._max_allowed_width: float|None = None
 		self._height = height
 		self._width = width
 		self.is_inline = is_inline
+		self.css = css
+
+	@property
+	def css(self):
+		return self._css
+
+	@css.setter
+	def css(self, css: css|None):
 		if css:
-			self.css = css
-			self.className = css.class_name
+			self._css = css
+			self.css_id = css.css_id
 			self.padding_height = css.padding_height
 			self.padding_width = css.padding_width
 		else:
-			self.css = none_css
-			self.className = none_css.class_name
+			self._css = none_css
+			self.css_id = none_css.css_id
 			self.padding_height = 0
 			self.padding_width = 0
 
@@ -44,6 +56,9 @@ class element:
 		height_max = 0.0
 
 		for item in self.children:
+			if item is None:
+				continue
+
 			height += item.height(layout)
 			if item.is_inline and height > height_max:
 				height_max = max(height_max, height)
@@ -69,20 +84,16 @@ class element:
 
 		return max(width_max, width) + self.padding_width
 
-	def add_class(self, name: str) -> None:
-		self.className += ' '
-		self.className += name
-
 	def dirty(self):
 		if self.layout:
 			self.layout.dirty()
 		self.requires_render = True
 
 	def html_inner(self, layout: Layout) -> str:
-		html = []
-		for child in self.children:
-			html.append(child.html(layout))
-		return ''.join(html)
+		html = ''
+		for item in self.children:
+			html += item.html(layout)
+		return html
 
 	def html(self, layout: Layout) -> str:
 		...
@@ -93,77 +104,64 @@ class element:
 	def removed(self) -> None:
 		...
 
-	def render(self) -> Optional[Union[Sequence['element'], 'element']]:
+	def render(self) -> element.Children:
 		...
 
 
 class span (element):
-	Children = Optional[Union[Sequence['span'], 'span']]
+	Children = Union[Sequence['Children'], 'span', None]
 
 	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(True, width, height, css)
-		self._items = None #type: span.Children
+		self._items: span.Children = None
 
-	def render(self) -> 'span.Children':
+	def render(self) -> Children:
 		return self._items
 
-	def __getitem__(self, values: 'span.Children'):
+	def __getitem__(self, values: Children):
 		self._items = values
 		return self
 
 	def html(self, layout: Layout) -> str:
 		inner = self.html_inner(layout)
-		html = f'<s class="{self.className}">{inner}</s>'
-		return html
+		return f'<s id="{self.css_id}">{inner}</s>'
 
 
 class div (element):
-	Children = Optional[Union[Sequence['div'], Sequence['span'], 'div', 'span']]
+	Children = Union[Sequence['Children'], 'span', 'div', None]
 
 	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(False, width, height, css)
-		self._items = None #type: div.Children
+		self._items: div.Children = None
 
-	def render(self) -> 'div.Children':
+	def render(self) -> div.Children:
 		return self._items
 
-	def __getitem__(self, values: 'div.Children'):
+	def __getitem__(self, values: div.Children):
 		self._items = values
 		return self
 
 	def html(self, layout: Layout) -> str:
-		inner = self.html_inner(layout)
-		h = (self.height(layout) - self.padding_height) * layout.rem_width_scale()
-		w = (self.width(layout) - self.padding_width) * layout.rem_width_scale()
+		html = ''
+		children_inline = False
+		for item in self.children:
+			html += item.html(layout)
+			children_inline = children_inline or item.is_inline
 
-		if self.children and self.children[0].is_inline:
-			html = f'<div class="{div_inline_css.class_name} {self.className}" style="height:{h}rem;width:{w}rem;line-height:{h}rem"><img>{inner}</div>'
+		h = layout.to_rem(self.height(layout) - self.padding_height)
+		w = layout.to_rem(self.width(layout) - self.padding_width)
+		if children_inline:
+			# this makes it so that divs with an img in them and divs without an img in them all align the same
+			return f'<d id="{self.css_id}"><div style="height:{h}rem;width:{w}rem;line-height: {h}rem; padding: {-h+1}rem 0 {h-1}rem 0"><img style="height: {h}rem">{html}</div></d>'
 		else:
-			html = f'<div class="{self.className}" style="height:{h}rem;width:{w}rem;">{inner}</div>'
-		return html
-
-
-# uses an img tag to force the width of the phantom to be the width of the item being rendered
-class phantom_sizer (div):
-	def __init__(self, item: Union[div, span]) -> None:
-		super().__init__()
-		self.item = item
-
-	def render(self) -> div.Children:
-		return self.item
-
-
-html_escape_table = {
-	"&": "&amp;",
-	">": "&gt;",
-	"<": "&lt;",
-	" ": "\u00A0" # HACK spaces inside <a> tags are not clickable. We replaces spaces with no break spaces
-}
+			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;">{html}</d>'
 
 
 def html_escape(text: str) -> str:
-	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace(">", "&gt;").replace("<", "&lt;").replace("\n", "\u00A0")
+	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('\n', '\u00A0')
 
+def html_escape_multi_line(text: str) -> str:
+	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('\n', '<br>')
 
 class text (span, alignable):
 	def __init__(self, text: str, width: float|None = None, height: float|None = 1, css: css|None = None) -> None:
@@ -177,7 +175,7 @@ class text (span, alignable):
 		return self._text
 
 	def align(self, width: int):
-		self.text = self.text[0:width]
+		self.text = self.text[0:int(width)]
 
 	@text.setter
 	def text(self, text: str):
@@ -188,30 +186,38 @@ class text (span, alignable):
 
 	def html(self, layout: Layout) -> str:
 		self.text_html = html_escape(self._text)
-		return f'<s class="{self.className}">{self.text_html}</s>'
+		return f'<s id="{self.css_id}">{self.text_html}</s>'
 
 
 class click (span):
-	def __init__(self, on_click: Callable[[], None]) -> None:
+	def __init__(self, on_click: Callable[[], Any], title: str|None = None) -> None:
 		super().__init__()
 		self.on_click = on_click
+		if title:
+			self.title = html_escape(title)
+		else:
+			self.title = None
 
 	def html(self, layout: Layout) -> str:
 		href = layout.register_on_click_handler(self.on_click)
-		html = f'<a href={href}>{self.html_inner(layout)}</a>'
-		return html
+		if self.title:
+			return f'<a href={href} title="{self.title}">{self.html_inner(layout)}</a>'
+		else:
+			return f'<a href={href}>{self.html_inner(layout)}</a>'
 
 
 class icon (span):
-	def __init__(self, image: Image) -> None:
-		super().__init__(width=3, height=1, css=icon_css)
+	def __init__(self, image: Image, width: float = 3, height: float = 3, padding: float = 0.5) -> None:
+		super().__init__(width=width, height=height)
+		self.padding = padding
 		self.image = image
 
 	def html(self, layout: Layout) -> str:
-		width = 2.5 * layout.rem_width_scale()
-		required_padding = 0.5 * layout.rem_width_scale()
-		return f'<s class="{self.className}" style="padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
-
+		assert self._height
+		width = layout.to_rem(self._height - self.padding)
+		required_padding = layout.to_rem(self.padding)
+		top = layout.to_rem(0.75)
+		return f'<s style="position:relative;top:{top}rem;line-height:0rem;padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
 
 tokenize_re = re.compile(
 	r'(0x[0-9A-Fa-f]+)' #matches hex
@@ -233,7 +239,7 @@ class code(span, alignable):
 		return len(self.text) + self.padding_width
 
 	def align(self, width: int):
-		self.text = self.text[0:width]
+		self.text = self.text[0:int(width)]
 
 	def html(self, layout: Layout) -> str:
 		self.text_html = ''
@@ -248,3 +254,12 @@ class code(span, alignable):
 				self.text_html += html_escape(other)
 
 		return f'<s style="color:var(--foreground);">{self.text_html}</s>'
+
+def flatten_lists(item_or_list: list[Any]|Any) -> Generator[Any, None, None]:
+	if type(item_or_list) == list:
+		for item in item_or_list:
+			yield from flatten_lists(item)
+	else:
+		yield item_or_list
+		
+		

@@ -8,11 +8,15 @@ from ..import dap
 import sublime
 import os
 
+from .breakpoint import Breakpoint
+
 # note: Breakpoint lines are 1 based (sublime lines are 0 based)
-class SourceBreakpoint:
+class SourceBreakpoint(Breakpoint):
 	next_id = 0
 
 	def __init__(self, breakpoints: SourceBreakpoints, file: str, line: int, column: int|None, enabled: bool):
+		super().__init__()
+
 		SourceBreakpoint.next_id += 1
 		self.id = SourceBreakpoint.next_id
 		self.region_name = 'bp{}'.format(self.id)
@@ -21,7 +25,6 @@ class SourceBreakpoint:
 		self.dap = dap.SourceBreakpoint(line, column, None, None, None)
 		self._file = file
 		self.enabled = enabled
-		self.result: dap.BreakpointResult | None = None
 		self.breakpoints = breakpoints
 
 	@property
@@ -40,21 +43,15 @@ class SourceBreakpoint:
 
 	@property
 	def line(self):
-		if self.result and self.result.line:
-			return self.result.line
+		if self._verified_result and self._verified_result.line:
+			return self._verified_result.line
 		return self.dap.line
 
 	@property
 	def column(self):
-		if self.result and self.result.column:
-			return self.result.column
+		if self._verified_result and self._verified_result.column:
+			return self._verified_result.column
 		return self.dap.column
-
-	@property
-	def verified(self):
-		if self.result:
-			return self.result.verified
-		return True
 
 	def into_json(self) -> dap.Json:
 		return {
@@ -138,7 +135,11 @@ class SourceBreakpointView:
 
 		if column and self.breakpoint.dap.column:
 			p = self.view.text_point(line - 1, column - 1)
-			self.column_phantom = ui.Phantom(ui.click(self.on_click_inline)[ui.icon(image)], self.view, sublime.Region(p, p))
+			self.column_phantom = ui.Phantom(self.view, sublime.Region(p, p))[
+				ui.click(self.on_click_inline)[
+					ui.icon(image, height=2, width=2, padding=0)
+				]
+			]
 
 	def dispose(self):
 		self.view.erase_regions(self.breakpoint.region_name)
@@ -153,6 +154,7 @@ class SourceBreakpoints:
 		self.on_send: core.Event[SourceBreakpoint] = core.Event()
 
 		self.disposeables = [
+			core.on_view_load.add(self.on_view_load),
 			core.on_view_activated.add(self.on_view_activated),
 			core.on_view_modified.add(self.view_modified)
 		]
@@ -171,11 +173,14 @@ class SourceBreakpoints:
 		self.breakpoints.sort()
 		self.add_breakpoints_to_current_view()
 
-	def clear_session_data(self):
+	def clear_breakpoint_result(self, session: dap.Session):
 		for breakpoint in self.breakpoints:
-			if breakpoint.result:
-				breakpoint.result = None
+			if breakpoint.clear_breakpoint_result(session):
 				self.updated(breakpoint, send=False)
+
+	def set_breakpoint_result(self, breakpoint: SourceBreakpoint, session: dap.Session, result: dap.Breakpoint):
+		breakpoint.set_breakpoint_result(session, result)
+		self.updated(breakpoint, send=False)
 
 	def updated(self, breakpoint: SourceBreakpoint, send: bool=True):
 		breakpoint.update_views()
@@ -238,6 +243,34 @@ class SourceBreakpoints:
 				"Remove"
 			),
 		], placeholder="Edit Breakpoint in {} @ {}".format(breakpoint.name, breakpoint.tag))
+
+
+	def toggle_file_line(self, file: str, line: int):
+		bps = self.get_breakpoints_on_line(file, line)
+		if bps:
+			for bp in bps:
+				self.remove(bp)
+		else:
+			self.add_breakpoint(file, line)
+
+	def edit_breakpoints(self, source_breakpoints: list[SourceBreakpoint]):
+		if not source_breakpoints:
+			return
+
+		if len(source_breakpoints) == 1:
+			self.edit(source_breakpoints[0]).run()
+			return
+
+		items: list[ui.InputListItem] = []
+		for breakpoint in source_breakpoints:
+			items.append(
+				ui.InputListItem(
+					self.edit(breakpoint),
+					"Breakpoint @ {}".format(breakpoint.tag),
+				)
+			)
+
+		ui.InputList(items).run()
 
 	# todo: fix... this is going to trigger a ton of breakpoint requests if the debugger is active
 	def remove_all(self):
@@ -303,19 +336,18 @@ class SourceBreakpoints:
 		if view:
 			self.sync_from_breakpoints(view)
 
-	def set_result(self, breakpoint: SourceBreakpoint, result: dap.BreakpointResult):
-		breakpoint.result = result
-		self.updated(breakpoint, send=False)
-
 	def view_modified(self, view: sublime.View):
 		if view.file_name() is None:
 			return
 
 		if not self.sync_dirty_scheduled:
-			ui.Timer(self.sync_dirty, 1, False)
+			core.timer(self.sync_dirty, 1, False)
 			self.sync_dirty_scheduled = True
 
 		self.dirty_views[view.id()] = view
+
+	def on_view_load(self, view: sublime.View):
+		self.sync_from_breakpoints(view)
 
 	def on_view_activated(self, view: sublime.View):
 		self.sync_from_breakpoints(view)

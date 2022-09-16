@@ -1,0 +1,21 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+		}
+	],
+	"debugger_configurations":
+	[
+		{
+			"name": "Debug lua-local",
+			"type": "lua-local",
+			"cwd":"${project_path}",
+			"request": "launch",
+			"program": {
+				"lua": "lua",
+				"file": "main.lua"
+			},
+		},
+	],
+}

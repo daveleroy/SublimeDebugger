@@ -5,22 +5,25 @@ from ..import core
 from ..import ui
 from ..import dap
 
-class FunctionBreakpoint:
+from .breakpoint import Breakpoint
+
+
+class FunctionBreakpoint(Breakpoint):
 	def __init__(self, breakpoint: dap.FunctionBreakpoint, enabled: bool = True):
+		super().__init__()
 		self.enabled = enabled
 		self.dap = breakpoint
-		self.result: dap.BreakpointResult | None = None
 
 	def into_json(self) -> dap.Json:
 		return {
-			'dap': self.dap.into_json(),
+			'dap': self.dap,
 			'enabled': self.enabled
 		}
 
 	@staticmethod
 	def from_json(json: dap.Json):
 		return FunctionBreakpoint(
-			dap.FunctionBreakpoint.from_json(json['dap']),
+			json['dap'],
 			json['enabled']
 		)
 
@@ -49,11 +52,6 @@ class FunctionBreakpoint:
 	def hitCondition(self):
 		return self.dap.hitCondition
 
-	@property
-	def verified(self):
-		if self.result:
-			return self.result.verified
-		return True
 
 class FunctionBreakpoints:
 	def __init__(self):
@@ -71,19 +69,20 @@ class FunctionBreakpoints:
 		self.breakpoints = list(map(lambda j: FunctionBreakpoint.from_json(j), json))
 		self.on_updated(self.breakpoints)
 
-	def clear_session_data(self):
+	def set_breakpoint_result(self, breakpoint: FunctionBreakpoint, session: dap.Session, result: dap.Breakpoint):
+		breakpoint.set_breakpoint_result(session, result)
+		self.updated(send=False)
+
+	def clear_breakpoint_result(self, session: dap.Session):
 		for breakpoint in self.breakpoints:
-			breakpoint.result = None
+			breakpoint.clear_breakpoint_result(session)
+
 		self.updated(send=False)
 
 	def updated(self, send: bool = True):
 		self.on_updated(self.breakpoints)
 		if send:
 			self.on_send(self.breakpoints)
-
-	def set_result(self, breakpoint: FunctionBreakpoint, result: dap.BreakpointResult):
-		breakpoint.result = result
-		self.updated(send=False)
 
 	def toggle_enabled(self, breakpoint: FunctionBreakpoint):
 		breakpoint.enabled = not breakpoint.enabled

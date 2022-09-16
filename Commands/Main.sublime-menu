@@ -21,16 +21,6 @@
                         }
                     },
                     {
-                        "caption": "Settings",
-                        "command": "debugger",
-                        "args": {
-                            "action": "settings"
-                        }
-                    },
-                    {
-                        "caption": "-"
-                    },
-                    {
                         "caption": "Install Adapters",
                         "command": "debugger",
                         "args": {
@@ -42,6 +32,13 @@
                         "command": "debugger",
                         "args": {
                             "action": "change_configuration"
+                        }
+                    },
+                    {
+                        "caption": "Add Configuration",
+                        "command": "debugger",
+                        "args": {
+                            "action": "add_configuration"
                         }
                     },
                     {
@@ -69,13 +66,10 @@
                         }
                     },
                     {
-                        "caption": "-"
-                    },
-                    {
-                        "caption": "Resume",
+                        "caption": "Continue",
                         "command": "debugger",
                         "args": {
-                            "action": "resume"
+                            "action": "continue"
                         }
                     },
                     {
@@ -105,9 +99,6 @@
                         "args": {
                             "action": "step_out"
                         }
-                    },
-                    {
-                        "caption": "-"
                     },
                     {
                         "caption": "Input Command",
@@ -145,6 +136,20 @@
                         }
                     },
                     {
+                        "caption": "Clear Console",
+                        "command": "debugger",
+                        "args": {
+                            "action": "clear_console"
+                        }
+                    },
+                    {
+                        "caption": "Show Protocol",
+                        "command": "debugger",
+                        "args": {
+                            "action": "show_protocol"
+                        }
+                    },
+                    {
                         "caption": "Add Watch Expression",
                         "command": "debugger",
                         "args": {
@@ -162,7 +167,25 @@
                         "caption": "-"
                     },
                     {
-                        "caption": "-"
+                        "caption": "LLDB Toggle Disassembly",
+                        "command": "debugger",
+                        "args": {
+                            "action": "lldb_toggle_disassembly"
+                        }
+                    },
+                    {
+                        "caption": "LLDB Display Options",
+                        "command": "debugger",
+                        "args": {
+                            "action": "lldb_display"
+                        }
+                    },
+                    {
+                        "caption": "LLDB Toggle Dereference",
+                        "command": "debugger",
+                        "args": {
+                            "action": "lldb_toggle_dereference"
+                        }
                     }
                 ]
             }

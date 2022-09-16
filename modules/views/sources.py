@@ -4,26 +4,27 @@ from ..typecheck import *
 from ..import ui
 from .. import dap
 from .tabbed_panel import Panel
-
 from . import css
 
-class SourcesView(Panel):
-	def __init__(self, sessions: dap.Sessions, on_click: Callable[[dap.SourceLocation], None]):
+if TYPE_CHECKING:
+	from ..debugger import Debugger
+
+class SourcesPanel(Panel):
+	def __init__(self, debugger: Debugger, on_click: Callable[[dap.SourceLocation], None]):
 		super().__init__('Sources')
-		self.sessions = sessions
+		self.debugger = debugger
 		self.on_click = on_click
 		self._visible = False
 
-		# these cannot be done when the view is added/removed... because of the visible flag
-		self.on_updated_sources = self.sessions.on_updated_sources.add(self.updated)
-		self.on_removed_session = self.sessions.on_removed_session.add(self.updated)
+		debugger.on_session_sources_updated.add(self.updated)
+		debugger.on_session_removed.add(self.updated)
 
 	def visible(self) -> bool:
 		return self._visible
 
 	def updated(self, session: dap.Session):
 		self._visible = False
-		for session in self.sessions:
+		for session in self.debugger.sessions:
 			if session.sources:
 				self._visible = True
 				break
@@ -33,7 +34,7 @@ class SourcesView(Panel):
 
 	def render(self):
 		items: list[SourceView] = []
-		for session in self.sessions:
+		for session in self.debugger.sessions:
 			for source in session.sources.values():
 				items.append(SourceView(source, self.on_click))
 

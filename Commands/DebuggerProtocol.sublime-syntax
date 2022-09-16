@@ -1,0 +1,30 @@
+%YAML 1.2
+---
+hidden: true
+scope: debugger.protocol
+name: Debugger Protocol
+
+contexts:
+  main:
+    - match: '(⟽|⟸) '
+      captures:
+        1: storage.modifier
+      push: request
+
+    - match: '(⟾|⟹) '
+      captures:
+        1: storage.type
+      push: request
+
+  request:
+    - match: '(::)'
+      captures:
+        1: punctuation.separator
+        # 2: comment
+      pop: true
+    - match: '([0-9]*)'
+      captures:
+        1: constant.numeric
+    - match: '([a-zA-Z/]*)'
+      captures:
+        1: entity.name.function

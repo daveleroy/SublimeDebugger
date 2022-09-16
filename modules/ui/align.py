@@ -1,8 +1,10 @@
 from __future__ import annotations
 from ..typecheck import *
+
 from . html import span, click, alignable
 from . layout import Layout
 
+# spacers are integers so they can always undershoot the available space
 
 class spacer (span):
 	def __init__(self, width: int|None = None, min: int|None = None):
@@ -19,7 +21,7 @@ class spacer (span):
 
 		return 0
 
-	def resize(self, leftover: int = None) -> int:
+	def resize(self, leftover: int) -> int:
 		if self.flex_width is not None:
 			return 0
 
@@ -29,6 +31,7 @@ class spacer (span):
 		return leftover
 
 	def html(self, layout: Layout) -> str:
+		assert self.flex_width
 		return '\u00A0' * self.flex_width
 
 

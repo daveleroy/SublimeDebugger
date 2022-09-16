@@ -28,9 +28,13 @@ class ExceptionBreakpointsFilter:
 	def name(self) -> str:
 		return self.dap.label
 
+	@property
+	def description(self) -> str|None:
+		return self.dap.description
+
 	def into_json(self) -> dap.Json:
 		return {
-			'dap': self.dap.into_json(),
+			'dap': self.dap,
 			'enabled': self.enabled,
 			'condition': self.condition
 		}
@@ -38,7 +42,7 @@ class ExceptionBreakpointsFilter:
 	@staticmethod
 	def from_json(json: dap.Json) -> 'ExceptionBreakpointsFilter':
 		return ExceptionBreakpointsFilter(
-			dap.ExceptionBreakpointsFilter.from_json(json['dap']),
+			json['dap'],
 			json['enabled'],
 			json.get('condition')
 		)
@@ -59,7 +63,7 @@ class ExceptionBreakpointsFilters:
 		filters = list(map(lambda j: ExceptionBreakpointsFilter.from_json(j), json))
 		self.filters = {}
 		for filter in filters:
-			self.filters[filter.dap.id] = filter
+			self.filters[filter.dap.filter] = filter
 		self.on_updated(self.filters.values())
 
 	def edit(self, breakpoint: ExceptionBreakpointsFilter):
@@ -99,14 +103,14 @@ class ExceptionBreakpointsFilters:
 		old = self.filters
 		self.filters = {}
 		for f in filters:
-			if f.id in old:
-				filter_old = old[f.id]
+			if f.filter in old:
+				filter_old = old[f.filter]
 				enabled = filter_old.enabled
 				condition = filter_old.condition if f.supportsCondition else None
 			else:
-				enabled = f.default
+				enabled = f.default or False
 				condition = None
 
-			self.filters[f.id] = ExceptionBreakpointsFilter(f, enabled, condition)
+			self.filters[f.filter] = ExceptionBreakpointsFilter(f, enabled, condition)
 
 		self.on_updated(self.filters.values())

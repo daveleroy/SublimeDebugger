@@ -5,7 +5,7 @@ import os
 
 from ..typecheck import *
 from ..import core
-from . import types as dap
+from .import dap
 
 if TYPE_CHECKING:
 	from .session import Session
@@ -22,67 +22,60 @@ class SourceLocation:
 
 	@property
 	def name(self) -> str:
+		name = os.path.basename(self.source.name or '??')
 		if self.column and self.line:
-			return f'{self.source.name}@{self.line}:{self.column}'
+			return f'{name}@{self.line}:{self.column}'
 		if self.line:
-			return f'{self.source.name}@{self.line}'
+			return f'{name}@{self.line}'
 
-		return self.source.name or "??"
+		return name
 
-class VariableReference (Protocol):
-	@property
-	def name(self) -> str:
-		...
-	@property
-	def value(self) -> str:
-		...
-	@property
-	def variablesReference(self) -> int:
-		...
-
-class EvaluateReference(VariableReference):
-	def __init__(self, name: str, response: dap.EvaluateResponse):
-		self._response = response
-		self._name = name
-	@property
-	def variablesReference(self) -> int:
-		return self._response.variablesReference
-	@property
-	def name(self) -> str:
-		return self._name
-	@property
-	def value(self) -> str:
-		return self._response.result
-
-class ScopeReference(VariableReference):
-	def __init__(self, scope: dap.Scope):
-		self.scope = scope
-	@property
-	def variablesReference(self) -> int:
-		return self.scope.variablesReference
-	@property
-	def name(self) -> str:
-		return self.scope.name
-	@property
-	def value(self) -> str:
-		return ""
 
 class Variable:
-	def __init__(self, session: Session, reference: VariableReference) -> None:
+	def __init__(self, session: Session, name: str, value: str|None, variablesReference: int|None, containerVariablesReference: int|None = None, evaluateName: str|None = None, memoryReference: str|None = None) -> None:
 		self.session = session
-		self.reference = reference
-		self.fetched: core.Future[list[dap.Variable]]|None = None
+		self.name = name
+		self.evaluateName = evaluateName
+		self.value = value
+		self.variablesReference = variablesReference
+		self.containerVariablesReference = containerVariablesReference
+		self.memoryReference = memoryReference
+		self.fetched: core.Future[list[Variable]]|None = None
+		
 
-	@property
-	def name(self) -> str:
-		return self.reference.name
+	@staticmethod
+	def from_variable(session: Session, containerVariablesReference: int, variable: dap.Variable):
+		return Variable(
+			session,
+			variable.name,
+			variable.value,			
+			variable.variablesReference,
+			containerVariablesReference,
+			variable.evaluateName,
+			variable.memoryReference,
+		)
 
-	@property
-	def value(self) -> str:
-		return self.reference.value
+	@staticmethod
+	def from_scope(session: Session, scope: dap.Scope):
+		return Variable(
+			session,
+			scope.name,
+			None,			
+			scope.variablesReference,
+		)
+
+	@staticmethod
+	def from_evaluate(session: Session, name: str, evaluate: dap.EvaluateResponse):
+		return Variable(
+			session,
+			name,
+			evaluate.result,			
+			evaluate.variablesReference,
+		)
 
 	async def fetch(self):
-		return await self.session.get_variables(self.reference.variablesReference)
+		assert self.variablesReference
+		return await self.session.get_variables(self.variablesReference)
 
 	async def children(self) -> list[Variable]:
 		if not self.has_children:
@@ -90,10 +83,11 @@ class Variable:
 
 		if not self.fetched:
 			self.fetched = core.run(self.fetch())
+
 		children = await self.fetched
 		return children
 
 	@property
 	def has_children(self) -> bool:
-		return self.reference.variablesReference != 0
+		return bool(self.variablesReference)
 

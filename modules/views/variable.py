@@ -9,6 +9,9 @@ from . import css
 
 import sublime
 
+if TYPE_CHECKING:
+	from ..debugger import Debugger
+
 class VariableComponentState:
 	def __init__(self):
 		self._expanded: dict[int, bool] = {}
@@ -28,10 +31,12 @@ class VariableComponentState:
 
 
 class VariableComponent (ui.div):
-	def __init__(self, variable: dap.Variable, source: Optional[dap.SourceLocation] = None, on_clicked_source: Optional[Callable[[dap.SourceLocation], None]] = None, state: VariableComponentState = VariableComponentState()) -> None:
+	def __init__(self, debugger: Debugger, variable: dap.Variable, source: Optional[dap.SourceLocation] = None, on_clicked_source: Optional[Callable[[dap.SourceLocation], None]] = None, state = VariableComponentState(), children_only = False) -> None:
 		super().__init__()
 		self.variable = variable
+		self.debugger = debugger
 		self.state = state
+		self.children_only = children_only
 		self.item_right = ui.span()
 		
 		self.variable_children: Optional[list[dap.Variable]] = None
@@ -46,25 +51,29 @@ class VariableComponent (ui.div):
 
 	@core.schedule
 	async def edit_variable(self) -> None:
-		if not isinstance(self.variable.reference, dap.types.Variable):
-			raise core.Error("Not able to set value of this item")
+		if not self.variable.containerVariablesReference:
+			raise core.Error('Not able to set value of this item')
 
-		variable = self.variable.reference
+		containerVariablesReference = self.variable.containerVariablesReference
 		session = self.variable.session
 		info = None
-		expression = variable.evaluateName or variable.name
-		value = variable.value or ""
-
+		name = self.variable.name
+		expression = self.variable.name
+		value = self.variable.value or ''
+		evaluateName = self.variable.evaluateName
+		
 		if session.capabilities.supportsDataBreakpoints:
-			info = await session.data_breakpoint_info(variable)
+			info = await session.data_breakpoint_info(containerVariablesReference, name)
 
 		async def on_edit_variable_async(value: str):
 			try:
-				self.variable.reference = await session.set_variable(variable, value)
+				response = await session.set_variable(containerVariablesReference, name, value)
+				self.variable.value = response.value
+				self.variable.variablesReference = response.variablesReference
 				self.variable.fetched = None
 				self.dirty()
 			except core.Error as e:
-				core.log_exception()
+				core.exception()
 				core.display(e)
 
 		def on_edit_variable(value: str):
@@ -73,17 +82,17 @@ class VariableComponent (ui.div):
 		@core.schedule
 		async def copy_value():
 			session = self.variable.session
-			if variable.evaluateName:
+			if evaluateName:
 				try:
 					# Attempt to match vscode behavior 
 					# If the adapter supports clipboard use it otherwise send the none standard 'variables' context
 					context = 'clipboard' if session.capabilities.supportsClipboardContext else 'variables'
-					v = await self.variable.session.evaluate_expression(variable.evaluateName, context)
+					v = await self.variable.session.evaluate_expression(evaluateName, context)
 					sublime.set_clipboard(v.result)
 					return
 
 				except dap.Error as e:
-					core.log_exception()
+					core.exception()
 
 			sublime.set_clipboard(value)
 
@@ -97,21 +106,21 @@ class VariableComponent (ui.div):
 			ui.InputListItem(
 				ui.InputText(
 					on_edit_variable,
-					"editing a variable",
+					'editing a variable',
 				),
-				"Edit Variable",
+				'Edit Variable',
 			),
 			ui.InputListItem(
 				copy_expr,
-				"Copy Expression",
+				'Copy Expression',
 			),
 			ui.InputListItem(
 				copy_value,
-				"Copy Value\t Click again to select",
+				'Copy Value\t Click again to select',
 			),
 			ui.InputListItem(
 				add_watch,
-				"Add Variable To Watch",
+				'Add Variable To Watch',
 			),
 		]
 
@@ -120,24 +129,23 @@ class VariableComponent (ui.div):
 			self.edit_variable_menu.cancel()
 			return
 
-		if info and info.id:
-			types = info.accessTypes or [""]
+		if info and info.dataId:
+			types = info.accessTypes or ['']
 			labels = {
-				dap.DataBreakpoint.write: "Break On Value Write",
-				dap.DataBreakpoint.readWrite: "Break On Value Read or Write",
-				dap.DataBreakpoint.read: "Break On Value Read",
+				'write': 'Break On Value Write',
+				'readWrite': 'Break On Value Read or Write',
+				'read': 'Break On Value Read',
 			}
 
 			def on_add_data_breakpoint(accessType: str):
-				assert info
-				session.breakpoints.data.add(info, accessType or None)
+				session.breakpoints.data.add(info, accessType) #type: ignore
 
 			for acessType in types:
 				items.append(ui.InputListItem(
 					lambda: on_add_data_breakpoint(acessType),
-					labels.get(acessType) or "Break On Value Change"
+					labels.get(acessType) or 'Break On Value Change'
 				))
-		self.edit_variable_menu = ui.InputList(items, '{} {}'.format(variable.name, variable.value)).run()
+		self.edit_variable_menu = ui.InputList(items, '{} {}'.format(name, value)).run()
 		await self.edit_variable_menu
 		self.edit_variable_menu = None
 
@@ -168,11 +176,15 @@ class VariableComponent (ui.div):
 		self.state.set_number_expanded(self.variable, count + 20)
 		self.dirty()
 
+	def clicked_source(self):
+		if self.on_clicked_source and self.source:
+			self.on_clicked_source(self.source)
+
 	def render(self) -> ui.div.Children:
 		name =  self.variable.name
-		value = self.variable.value
+		value = self.variable.value or ''
 		is_expanded = self.state.is_expanded(self.variable)
-		source = self.source.name if self.source else None
+		source = self.source
 
 		if name:
 			value_item = ui.click(self.edit_variable)[
@@ -186,9 +198,9 @@ class VariableComponent (ui.div):
 			]
 
 		if source:
-			self.item_right = ui.click(lambda: self.on_clicked_source(self.source))[
+			self.item_right = ui.click(self.clicked_source)[
 				ui.spacer(min=1),
-				ui.text(source, css=css.label_secondary)
+				ui.text(source.name, css=css.label_secondary)
 			]
 
 		if not self.variable.has_children:
@@ -235,17 +247,23 @@ class VariableComponent (ui.div):
 		else:
 			count = self.state.number_expanded(self.variable)
 			for variable in self.variable_children[:count]:
-				variable_children.append(VariableComponent(variable, state=self.state))
+				variable_children.append(VariableComponent(self.debugger, variable, state=self.state))
 
 			more_count = len(self.variable_children) - count
 			if more_count > 0:
 				variable_children.append(
 					ui.div(height=css.row_height)[
 						ui.click(self.show_more)[
-							ui.text("  {} more items...".format(more_count), css=css.label_secondary)
+							ui.spacer(3),
+							ui.text('{} more items...'.format(more_count), css=css.label_secondary)
 						]
 					]
 				)
+
+		if self.children_only:
+			return ui.div(css=css.table_inset)[
+				variable_children
+			]
 
 		return [
 			variable_label,

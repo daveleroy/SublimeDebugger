@@ -5,6 +5,12 @@
 	// Sets the entire scale of the UI
 	"ui_scale": 10,
 
+	// This value adjusts the estimated character width calculations used to align the ui
+	"ui_rem_width_scale": 1.0,
+	// If true ui_rem_width_scale will be adjusted based on if the debugger layout is over/under shooting the panel.
+	// Defaults to true on Windows/Linux
+	"ui_rem_width_scale_adjust_automatically": false,
+
 	// change at your own risk it may break the interface. Restart required to take effect
 	"font_face": "Monospace",
 
@@ -22,6 +28,7 @@
 	// currently not implemented
 	"bring_window_to_front_on_pause" : false,
 
+	"development": false,
 	"log_info": false,
 	"log_exceptions": true,
 	"log_errors": true,
@@ -30,15 +37,17 @@
 	"node": null,
 
 	// sets a specific path for dlv if not set go will use whatever is in your path
-	"go.dlv": null,
+	"go_dlv": null,
 
 	// "auto", "always", "never"
-	"lldb.show_disassembly": "auto",
+	"lldb_show_disassembly": "auto",
 	// "auto", "hex", "decimal", "binary"
-	"lldb.display_format": "auto",
-	"lldb.dereference_pointers": true,
+	"lldb_display_format": "auto",
+	"lldb_dereference_pointers": true,
 	// probably shouldn't set these
-	"lldb.library": null, // which lldb library to use
-	"lldb.python": null // path to python (3.5 or greater?) that lldb will use
+	"lldb_library": null, // which lldb library to use
+	"lldb_python": null, // path to python (3.5 or greater?) that lldb will use
+
+	"ruby_readapt": null, // sets a specific path for readapt if not set the ruby adapter will use whatever is in your path
 }
 

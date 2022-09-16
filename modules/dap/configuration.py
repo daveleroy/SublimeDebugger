@@ -2,28 +2,21 @@ from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
+from .transport import Transport
 
 import sublime
+import re
 
 if TYPE_CHECKING:
 	from .session import Session
+	from .debugger import Debugger
 
-class Transport(Protocol):
-	def write(self, message: bytes) -> None:
-		...
-	def readline(self) -> bytes:
-		...
-	def read(self, n: int) -> bytes:
-		...
-	def dispose(self) ->None:
-		...
-
-class AdapterConfiguration (Protocol):
-	@property
-	def type(self) -> str: ...
-
-	@property
-	def docs(self) -> str | None: ...
+class AdapterConfiguration:
+	type: str
+	types: list[str] = []
+	
+	docs: str | None
+	development: bool = False
 
 	async def start(self, log: core.Logger, configuration: ConfigurationExpanded) -> Transport: ...
 
@@ -45,9 +38,23 @@ class AdapterConfiguration (Protocol):
 
 	def on_hover_provider(self, view: sublime.View, point: int) -> tuple[str, sublime.Region] | None:
 		word = view.word(point)
-		if word_string := view.substr(word) if word else None:
-			return (word_string, word)
-		return None
+		if not word:
+			return None
+
+		# for expressions such as `a.b->c`
+		# hovering over `a` returns `a`
+		# hovering over `b` returns `a.b`
+		# hovering over `c` returns `a.b->c`
+		line = view.line(word)
+		line_up_to_and_including_word = view.substr(sublime.Region(line.a, word.b))
+		match = re.search(r'(([\\\$a-zA-Z0-9_])|(->)|(\.))*$', line_up_to_and_including_word)
+		if not match:
+			return None
+
+		matched_string = match.group(0)
+		region = sublime.Region(word.b - len(matched_string), word.b)
+		return (matched_string, region)
+
 
 	def did_start_debugging(self, session: Session):
 		...
@@ -55,19 +62,19 @@ class AdapterConfiguration (Protocol):
 	def did_stop_debugging(self, session: Session):
 		...
 
-	def on_custom_event(self, session: Session):
-		...
+	async def on_custom_event(self, session: Session, event: str, body: Any):
+		core.error(f'event ignored not implemented {event}')
 
 	async def on_custom_request(self, session: Session, command: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
 		...
 
-	def commands(self):
+	def commands(self) -> list[Any]:
 		return []
 
-	def settings(self, sessions):
+	def settings(self, debugger: Debugger) -> list[Any]:
 		return []
 
-	def ui(self, sessions):
+	def ui(self, debugger: Debugger) -> Any|None:
 		...
 
 class Configuration(Dict[str, Any]):
@@ -92,33 +99,12 @@ class Configuration(Dict[str, Any]):
 
 class ConfigurationExpanded(Configuration):
 	def __init__(self, configuration: Configuration, variables: Any):
-		all = ConfigurationExpanded._expand_variables_and_platform(configuration, variables)
+		all = _expand_variables_and_platform(configuration, variables)
 		super().__init__(configuration.name, -1, configuration.type, configuration.request, all)
 
 		self.variables = variables
 		self.pre_debug_task: Optional[TaskExpanded] = None
 		self.post_debug_task: Optional[TaskExpanded] = None
-
-	@staticmethod
-	def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, str] | None):
-		json = json.copy()
-
-		platform = None
-		if core.platform.osx:
-			platform = json.get('osx')
-		elif core.platform.linux:
-			platform = json.get('linux')
-		elif core.platform.windows:
-			platform = json.get('windows')
-
-		if platform:
-			for key, value in platform.items():
-				json[key] = value
-
-		if variables is not None:
-			return sublime.expand_variables(json, variables)
-
-		return json
 
 
 class ConfigurationCompound:
@@ -148,5 +134,31 @@ class Task (Dict[str, Any]):
 
 class TaskExpanded(Task):
 	def __init__(self, task: Task, variables: dict[str, str]) -> None:
-		all = ConfigurationExpanded._expand_variables_and_platform(task, variables)
+		all = _expand_variables_and_platform(task, variables)
 		super().__init__(all)
+
+
+def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, str] | None):
+	json = json.copy()
+
+	platform = None
+	if core.platform.osx:
+		platform = json.get('osx')
+	elif core.platform.linux:
+		platform = json.get('linux')
+	elif core.platform.windows:
+		platform = json.get('windows')
+
+	if platform:
+		for key, value in platform.items():
+			json[key] = value
+
+	# This allows us to add a list of variables to each configuration which case be use throughout the configuration.
+	# Its mostly so we can redefine $project_path when specifying a project file in debugger_configurations so $project_path refers to the correct location
+	if json_variables := json.get('$'):
+		json = sublime.expand_variables(json, json_variables)
+
+	if variables := variables:
+		json = sublime.expand_variables(json, variables)
+
+	return json

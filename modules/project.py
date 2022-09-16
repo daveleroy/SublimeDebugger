@@ -6,8 +6,9 @@ from .dap import Configuration, ConfigurationCompound, Task
 from .settings import Settings
 
 import sublime
+import os
 
-class Project(core.disposables):
+class Project:
 	def __init__(self, window: sublime.Window):
 		super().__init__()
 
@@ -37,15 +38,13 @@ class Project(core.disposables):
 		self.bring_window_to_front_on_pause = False
 
 		# add the empty debugger configurations settings if needed
-		data = window.project_data() or {}
+		data: dict[str, Any] = window.project_data() or {}
 		data.setdefault('debugger_configurations', [])
 		window.set_project_data(data)
-
-		self.disposables += Settings.updated.add(self.reload)
 		self.reload()
 
 	def dispose(self):
-		super().dispose()
+		...
 
 	@property
 	def name(self) -> str:
@@ -94,7 +93,7 @@ class Project(core.disposables):
 
 	def active_configurations(self) -> list[Configuration]:
 		if isinstance(self.configuration_or_compound, ConfigurationCompound):
-			configurations = []
+			configurations: list[Configuration] = []
 			for configuration_name in self.configuration_or_compound.configurations:
 				configuration = None
 				for c in self.configurations:
@@ -118,15 +117,15 @@ class Project(core.disposables):
 	async def open_project_configurations_file(self):
 		view = await core.sublime_open_file_async(self.window, self.project_name)
 
-		region = view.find(r'''"\s*debugger_configurations''', 0)
+		region = view.find(r'debugger_configurations', 0)
 		if region:
 			view.show_at_center(region)
 
 	def reload(self):
-		core.log_info("ProjectConfiguration.reload")
+		core.info("ProjectConfiguration.reload")
 		self.load_settings()
 		self.load_configurations()
-		self.on_updated()
+		self.on_updated.post()
 
 	def load_settings(self):
 		core.log_configure(
@@ -138,6 +137,36 @@ class Project(core.disposables):
 		self.external_terminal_kind = Settings.external_terminal
 		self.ui_scale = Settings.ui_scale
 		self.bring_window_to_front_on_pause = Settings.bring_window_to_front_on_pause
+
+
+	def configurations_from_project(self, project_data: Any, key: str) -> list[Any]:
+		configurations: list[Any] = []
+		for configuration_or_file in project_data.get(key, []):
+			# allow putting in string values here that point to other project files...
+			# this is for testing the /examples directory easily...
+			if isinstance(configuration_or_file, str):
+				configurations.extend(self.configurations_from_project_file(configuration_or_file, key))
+			else:
+				configurations.append(configuration_or_file)
+
+		return configurations
+
+	def configurations_from_project_file(self, path: str, key: str) -> list[Any]:
+		if not os.path.isabs(path):
+			path = os.path.join(self.window.extract_variables()['project_path'], path)
+
+		project_path = os.path.dirname(path)
+		with open(path , 'r') as file:
+			contents = file.read()
+
+		project_json = sublime.decode_value(contents) or {}		
+		json: list[Any] = project_json.get(key, [])
+		for configuration in json:
+			configuration['$'] = {
+				'project_path': project_path
+			}
+		return json
+		
 
 	def load_configurations(self):
 		data: dict[str, Any] = self.window.project_data() or {}
@@ -160,24 +189,19 @@ class Project(core.disposables):
 
 
 		tasks: list[Task] = []
-		tasks_json: list[Any]  = data.get("debugger_tasks", [])
+		configurations: list[Configuration] = []
+		compounds: list[ConfigurationCompound] = []
 
-		for task_json in tasks_json:
+		for task_json in self.configurations_from_project(data, 'debugger_tasks'):
 			task = Task.from_json(task_json)
 			tasks.append(task)
 
-		configurations: list[Configuration] = []
-		configurations_json = data.get("debugger_configurations", [])
-
-		for index, configuration_json in enumerate(configurations_json):
-			configuration = Configuration.from_json(configuration_json, index)
+		for configuration_json in self.configurations_from_project(data, 'debugger_configurations'):
+			configuration = Configuration.from_json(configuration_json, len(configurations))
 			configurations.append(configuration)
 
-		compounds: list[ConfigurationCompound] = []
-		compounds_json = data.get("debugger_compounds", [])
-
-		for index, compound_json in enumerate(compounds_json):
-			compound = ConfigurationCompound.from_json(compound_json, index)
+		for compound_json in self.configurations_from_project(data, 'debugger_compounds'):
+			compound = ConfigurationCompound.from_json(compound_json, len(compounds))
 			compounds.append(compound)
 
 		self.configurations = configurations
@@ -200,8 +224,10 @@ class Project(core.disposables):
 	def extract_variables(self):
 		variables: dict[str, str] = self.window.extract_variables()
 
-		if project := variables.get('project_path'):
-			variables['workspaceFolder'] = project
+		# patch in some vscode variables
+		if folder := variables['folder']:
+			variables['workspaceFolder'] = folder
+			variables['workspaceRoot'] = folder
 		return variables
 
 	def current_file_line_column(self) -> Tuple[str, int, int]:

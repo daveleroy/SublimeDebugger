@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import TypedDict
-from ..typecheck import *
+from typing import Callable
 
 from ..import ui
 from ..import dap
+from ..import core
 
 from .import css
 
@@ -12,7 +12,6 @@ from functools import partial
 
 from .tabbed_panel import Panel
 from ..terminal_task import Tasks, TerminalTask, Diagnostics, Diagnostic
-
 
 class DiagnosticsPanel (Panel):
 	def __init__(self, tasks: Tasks, on_clicked_source: Callable[[dap.SourceLocation], None]) -> None:
@@ -26,7 +25,9 @@ class DiagnosticsPanel (Panel):
 		self.tasks.added.add(lambda _: self.dirty())
 		self.tasks.updated.add(lambda _: self.dirty())
 		self.tasks.removed.add(lambda _: self.dirty())
-	
+		
+		self.timer = None
+
 	def visible(self):
 		return self.diagnostic_count != 0 or len(self.tasks.tasks) != 0
 
@@ -48,6 +49,7 @@ class DiagnosticsPanel (Panel):
 		self.dirty_header()
 		super().dirty()
 
+
 	def update(self, id: str, diagnostics_per_file: list[Diagnostics]):
 		self.diagnostics_per_file = diagnostics_per_file
 		self.diagnostic_count = 0
@@ -55,7 +57,13 @@ class DiagnosticsPanel (Panel):
 		for diagnostics in self.diagnostics_per_file:
 			self.diagnostic_count += len(diagnostics['errors'])
 
-		self.dirty()
+		def dirty():
+			self.dirty()
+			self.timer = None
+
+		if self.timer == None:
+			self.timer = core.call_later(0.5, dirty)
+
 
 	def on_clicked(self, file: str, problem: Diagnostic):
 		if problem:
@@ -152,7 +160,7 @@ def TaskView(tasks: Tasks, task: TerminalTask, on_clicked: Callable[[TerminalTas
 					ui.text(text, css=color)
 				],
 				ui.spacer(1),
-				ui.text(task.name(), css=css.label),
+				ui.text(task.name, css=css.label),
 				ui.spacer(min=1),
 				ui.click(cancel)[
 					ui.text(text='×', css=css.button_secondary),
@@ -169,8 +177,9 @@ def DiagnosticsView(diagnostics: Diagnostics, collapsed: bool, on_toggle: Callab
 	items: list[ui.div] = []
 
 	file: str = diagnostics['file']
-	base: str = diagnostics['base']
+	base: str|None = diagnostics.get('base')
 	errors: list[Diagnostic] = diagnostics['errors']
+
 
 	is_expanded = not collapsed
 
@@ -181,10 +190,6 @@ def DiagnosticsView(diagnostics: Diagnostics, collapsed: bool, on_toggle: Callab
 			ui.align()[
 				toggle(is_expanded),
 				file_span(file_rel),
-				ui.spacer(1),
-				ui.span(css=badge_css)[
-					ui.text(str(len(errors)), css=css.label)
-				]
 			]
 		],
 	])
@@ -233,7 +238,7 @@ badge_css = ui.css(
 	padding_top=-0.3,
 	padding_bottom=-0.3,
 	background_color='color(var(--secondary) alpha(0.1)',
-	raw='border-radius: 1.0rem;'
+	raw='border-radius: 0.65rem;'
 )
 
 

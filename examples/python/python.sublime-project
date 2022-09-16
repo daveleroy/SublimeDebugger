@@ -11,5 +11,11 @@
 			"request": "launch",
 			"program": "${project_path}/main.py",
 		},
+		{
+			"name": "Python (multiprocess)",
+			"type": "python",
+			"request": "launch",
+			"program": "${project_path}/multiprocess.py",
+		},
 	],
 }

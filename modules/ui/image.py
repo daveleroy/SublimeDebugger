@@ -2,13 +2,13 @@ from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
-from . layout import Layout
+if TYPE_CHECKING:
+	from . layout import Layout
 
 import sublime
 import base64
-import os
 
-def _path_for_image(name): #type: (str) -> str
+def _path_for_image(name: str) -> str:
 	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region?
 	return f'Packages/{core.current_package_name()}/images/{name}'
 
@@ -17,21 +17,12 @@ def _data_image_png_b64_png_from_resource(path: str) -> str:
 	return f'data:image/png;base64,{base64.b64encode(png_data).decode("ascii")}'
 
 
-def view_background_lightness(view: sublime.View) -> float:
-	style = view.style()
-	if not style or "background" not in style:
-		return 0
-	color = style["background"].lstrip('#')
-	rgb = tuple(int(color[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
-	lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
-	return lum
-
 def reload_images():
 	Image.cached = {}
 	Images.shared = Images()
 
 class Image:
-	cached = {} #type: dict[str, str]
+	cached: dict[str, str] = {}
 
 	@staticmethod
 	def named(name: str) -> 'Image':
@@ -64,7 +55,7 @@ class Image:
 
 
 class Images:
-	shared = None #type: Images
+	shared: Images
 
 	def __init__(self) -> None:
 		self.dot = Image.named('breakpoint.png')
@@ -78,7 +69,7 @@ class Images:
 		self.settings = Image.named_light_dark('settings.png')
 		self.pause = Image.named_light_dark('pause.png')
 
-		self.clear = Image.named_light_dark('clear.png')
+		self.clear = Image.named_light_dark('clear_disabled.png')
 
 		self.stop_disable = Image.named_light_dark('stop_disabled.png')
 		self.pause_disable = Image.named_light_dark('pause_disabled.png')
@@ -94,6 +85,8 @@ class Images:
 
 		self.thread = Image.named_light_dark('thread_stopped.png')
 		self.loading = Image.named_light_dark('loading_disabled.png')
+		self.check_mark = Image.named_light_dark('check_mark_disabled.png')
+		
 		self.thread_running = Image.named_light_dark('thread_running.png')
 
 		self.open = Image.named_light_dark('open_disabled.png')

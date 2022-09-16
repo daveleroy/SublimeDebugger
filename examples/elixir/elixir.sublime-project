@@ -1,0 +1,30 @@
+{
+	"folders": [
+		{
+			"path": ".",
+		},
+	],
+	"debugger_configurations": [
+		{
+			"type": "elixir",
+			"name": "mix (Default task)",
+			"request": "launch",
+			"projectDir": "${project_path}"
+		},
+		{
+			"type": "elixir",
+			"name": "mix test",
+			"request": "launch",
+			"task": "test",
+			"taskArgs": [
+				"--trace"
+			],
+			"startApps": true,
+			"projectDir": "${project_path}",
+			"requireFiles": [
+				"test/**/test_helper.exs",
+				"test/**/*_test.exs"
+			]
+		}
+	],
+}

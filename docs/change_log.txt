@@ -1,5 +1,82 @@
 For getting set up see https://github.com/daveleroy/sublime_debugger
 
+For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
+
+Version 0.7.0
+
+- Redesigned debugger ui so that the console output can appear in an output panel
+- The hover expression behavior is smarter and can evaluate simple expressions like `a.b` `a->c` etc
+- lua: Adds lua debugger via lua-local (@naoufalzerai)
+- python: support for multiprocess debugging
+- ruby: allow specifying readapt path via `ruby_readapt` preference 
+- go: updated to use dlv dap
+
+Version 0.6.8
+
+- python: fixes issue with installing adapter
+- python: allow specifying the python interpreter with `python`
+
+
+Version 0.6.7
+
+- Fixes an issue with the latest version of vscode lldb
+
+
+Version 0.6.6
+
+- Allow inputing debugger commands directly into the debugger console
+- Auto complete for debugger commands (not all adapters support this)
+- A number of performance/usability improvements for the debugger console
+
+
+Version 0.6.4
+
+- Added support for vscode-js-debug for chrome/node/edge adapters
+- Improved snippet support
+
+
+Version 0.6.3
+
+- Adjusted the calculation for determining a good value for ui_rem_width_scale
+- Added setting ui_rem_width_scale_adjust_automatically for disabling automatic calculation of ui_rem_width_scale
+
+
+Version 0.6.2
+
+- Fixes a layout issue on Linux
+
+
+Version 0.6.1
+
+- Fixes an issue with the debugger panel not being correctly sized on Windows/Linux #121
+- Fixes an issue with hover evaluation #152 (@ta946)
+
+
+Version 0.6.0
+
+- This update changes how the output is handled. Instead of showing up as a tab in the debugger UI the layout is changed to a split view and the output is created in a standard view. This isn't perfect but it at least allows copy/paste/scrolling etc. The output view now also supports some ansi escape codes. You can customize the layout/placement of the view in the settings.
+- Adds dissasembly syntax for LLDB
+- Elixer support (@timfjord)
+
+
+Version 0.5.4
+
+- Resolve the`$workspaceFolder` variable to first folder project instead of being an alias of `$project_path`  (@rchl)
+- Fix layout positioning in latest ST dev builds (@rchl)
+- lldb: Fixes an issue with the integrated terminal handling
+
+
+Version 0.5.3
+
+- Tool tips when hovering over debugger controls
+- Moved Debugger menu item into tools -> Debugger
+- Improved json schema support for auto completeing adapter configurations (requires LSP-json)
+- Fixes node json schema contributions
+- Fixes issue with installing the php adapter
+- Fixes issues with localized pacakages and json schema/snippets
+- Fixes issue with external terminal on mac
+
+
 Version 0.5.2
 
 - Disable winpty on Windows (needs to be rebuilt for python 3.8)
@@ -31,8 +108,6 @@ Version 0.5.0
 - Improved handling of stack frames that marked as labels
 - Improved handling of stack frames that are marked as deemphasized or their source is deemphasized
 - Fixes integrated terminal
-
-For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
 
 Version 0.4.1

@@ -1,0 +1,57 @@
+%YAML 1.2
+---
+hidden: true
+scope: debugger.console
+name: Debugger Console
+
+contexts:
+  main:
+    - match: '​​​​​​​'
+      scope: comment.debugger
+      push:
+        - meta_scope: comment.debugger
+        - match: '‌'
+          scope: comment.debugger
+          pop: true
+    - match: '​​​​​​'
+      scope: region.cyanish.debugger debugger.background
+      push:
+        - meta_scope: region.cyanish.debugger debugger.background
+        - match: '‌'
+          scope: region.cyanish.debugger debugger.background
+          pop: true
+    - match: '​​​​​'
+      scope: region.purplish.debugger debugger.background
+      push:
+        - meta_scope: region.purplish.debugger debugger.background
+        - match: '‌'
+          scope: region.purplish.debugger debugger.background
+          pop: true
+    - match: '​​​​'
+      scope: region.bluish.debugger debugger.background
+      push:
+        - meta_scope: region.bluish.debugger debugger.background
+        - match: '‌'
+          scope: region.bluish.debugger debugger.background
+          pop: true
+    - match: '​​​'
+      scope: region.yellowish.debugger debugger.background
+      push:
+        - meta_scope: region.yellowish.debugger debugger.background
+        - match: '‌'
+          scope: region.yellowish.debugger debugger.background
+          pop: true
+    - match: '​​'
+      scope: region.greenish.debugger debugger.background
+      push:
+        - meta_scope: region.greenish.debugger debugger.background
+        - match: '‌'
+          scope: region.greenish.debugger debugger.background
+          pop: true
+    - match: '​'
+      scope: region.redish.debugger debugger.background
+      push:
+        - meta_scope: region.redish.debugger debugger.background
+        - match: '‌'
+          scope: region.redish.debugger debugger.background
+          pop: true

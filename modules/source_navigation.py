@@ -7,11 +7,15 @@ from .import dap
 from .views.selected_line import SelectedLine
 from .debugger import Project
 
-import sublime
-import sublime_plugin
+if TYPE_CHECKING:
+	from .debugger import Debugger
 
-syntax_name_for_mime_type = {
+import sublime
+
+syntax_name_for_mime_type: dict[str|None, str] = {
+	'text/plain': 'text.plain',
 	'text/javascript': 'source.js',
+	'text/x-lldb.disassembly': 'source.disassembly',
 }
 
 def replace_contents(view: sublime.View, characters: str):
@@ -33,10 +37,10 @@ def show_line(view: sublime.View, line: int, column: int, move_cursor: bool):
 	core.edit(view, run)
 
 class SourceNavigationProvider:
-	def __init__(self, project: Project, sessions: dap.Sessions):
+	def __init__(self, project: Project, debugger: Debugger):
 		super().__init__()
 
-		self.sessions = sessions
+		self.debugger = debugger
 		self.project = project
 
 		self.updating: Any|None = None
@@ -46,23 +50,20 @@ class SourceNavigationProvider:
 	def dispose(self):
 		self.clear()
 
-	def select_source_location(self, source: dap.SourceLocation, stopped_reason: str):
+	def select_source_location(self, source: dap.SourceLocation, thread: dap.Thread):
 		if self.updating:
 			self.updating.cancel()
 
 		def on_error(error: BaseException):
 			if error is not core.CancelledError:
-				core.log_error(error)
+				core.error(error)
 
-		async def select_async(source: dap.SourceLocation, stopped_reason: str):
+		async def select_async(source: dap.SourceLocation, thread: dap.Thread):
 			self.clear_selected()
 			view = await self.navigate_to_source(source)
+			self.selected_frame_line = SelectedLine(view, source.line or 1, thread)
 
-			# r = view.line(view.text_point(source.line - 1, 0))
-			# view.add_regions("asdfasdf", [r], scope="region.bluish", annotations=[stopped_reason], annotation_color='color(var(--bluish) alpha(0.5))')
-			self.selected_frame_line = SelectedLine(view, source.line or 1, stopped_reason)
-
-		self.updating = core.run(select_async(source, stopped_reason), on_error=on_error)
+		self.updating = core.run(select_async(source, thread), on_error=on_error)
 
 	def show_source_location(self, source: dap.SourceLocation):
 		if self.updating:
@@ -70,7 +71,7 @@ class SourceNavigationProvider:
 
 		def on_error(error: BaseException):
 			if error is not core.CancelledError:
-				core.log_error(error)
+				core.error(error)
 
 		async def navigate_async(source: dap.SourceLocation):
 			self.clear_generated_view()
@@ -97,25 +98,32 @@ class SourceNavigationProvider:
 
 	async def navigate_to_source(self, source: dap.SourceLocation, move_cursor: bool = False) -> sublime.View:
 
-		# if we aren't going to reuse the previous generated view
-		# or the generated view was closed (no buffer) throw it away
-		if not source.source.sourceReference or self.generated_view and not self.generated_view.buffer_id():
+		# if we aren't going to reuse the previous generated view throw away any generated view
+		if not source.source.sourceReference:
 			self.clear_generated_view()
 
 		line = (source.line or 1) - 1
 		column = (source.column or 1) - 1
 
 		if source.source.sourceReference:
-			session = self.sessions.active
+			session = self.debugger.session
+			if not session:
+				raise core.Error('No Active Debug Session')
+
 			content, mime_type = await session.get_source(source.source)
 
+			# the generated view was closed (no buffer) throw it away
+			if self.generated_view and not self.generated_view.buffer_id():
+				self.clear_generated_view()
+
 			view = self.generated_view or self.project.window.new_file()
+			self.project.window.set_view_index(view, 0, len(self.project.window.views_in_group(0)))
 			self.generated_view = view
 			view.set_name(source.source.name or "")
 			view.set_read_only(False)
 			
 
-			syntax = syntax_name_for_mime_type.get(mime_type or '') or 'text.plain'
+			syntax = syntax_name_for_mime_type.get(mime_type, 'text.plain')
 			view.assign_syntax(sublime.find_syntax_by_scope(syntax)[0])
 
 			replace_contents(view, content)
@@ -123,7 +131,7 @@ class SourceNavigationProvider:
 			view.set_read_only(True)
 			view.set_scratch(True)
 		elif source.source.path:
-			view = await core.sublime_open_file_async(self.project.window, source.source.path, source.line, source.column)
+			view = await core.sublime_open_file_async(self.project.window, source.source.path, group=0)
 		else:
 			raise core.Error('source has no reference or path')
 

@@ -1,5 +1,12 @@
 [
     {
+        "caption": "Debugger: Generate Commands",
+        "command": "debugger",
+        "args": {
+            "action": "generate_commands"
+        }
+    },
+    {
         "caption": "Debugger: Open",
         "command": "debugger",
         "args": {
@@ -21,13 +28,6 @@
         }
     },
     {
-        "caption": "Debugger: Generate Commands",
-        "command": "debugger",
-        "args": {
-            "action": "generate_commands"
-        }
-    },
-    {
         "caption": "Debugger: Install Adapters",
         "command": "debugger",
         "args": {
@@ -39,6 +39,13 @@
         "command": "debugger",
         "args": {
             "action": "change_configuration"
+        }
+    },
+    {
+        "caption": "Debugger: Add Configuration",
+        "command": "debugger",
+        "args": {
+            "action": "add_configuration"
         }
     },
     {
@@ -63,10 +70,10 @@
         }
     },
     {
-        "caption": "Debugger: Resume",
+        "caption": "Debugger: Continue",
         "command": "debugger",
         "args": {
-            "action": "resume"
+            "action": "continue"
         }
     },
     {
@@ -123,6 +130,20 @@
         "command": "debugger",
         "args": {
             "action": "clear_breakpoints"
+        }
+    },
+    {
+        "caption": "Debugger: Clear Console",
+        "command": "debugger",
+        "args": {
+            "action": "clear_console"
+        }
+    },
+    {
+        "caption": "Debugger: Show Protocol",
+        "command": "debugger",
+        "args": {
+            "action": "show_protocol"
         }
     },
     {

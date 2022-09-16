@@ -1,109 +1,92 @@
-# Sublime Debugger
+# VS Code Mock Debug
 
-Graphical Debugger for sublime text for debuggers that support the debug adapter protocol.
+Mock Debug allows to "debug" markdown files (like this).
+The text of the markdown is considered the "program to debug" and certain keywords trigger specific functionality (Yes, this language is not "Turing Complete" :-)
 
-See [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/)
+## Running or Debugging
 
-![Image of GUI](docs/images/basic.png)
+With the "Run/Debug" split button in the editor header you can easily "run" or "debug" a Markdown file without having to configure a debug configuration.
+"Running" a Markdown file has no visible effect. "Debugging" a Markdown file starts the debugger and stops on the first line.
+  
+## Stacks
 
-# Installing
-  Using package control run `Package Control: Install Package` and select `Debugger`.
+If debugging stops on a line, the line becomes a stack in the CALL STACK with the individual words shown as frames.
+The following line results in a long stack trace and shows the paging feature:
+a b c d e f g h i j k l m n o p q r s t u v w x y z a b c d e f g h i j k l m n o p q r s t u v w x y z a b c d e f g h i j k l m n o p q r s t u v w x y z
 
-  or clone into your sublime Packages directory (If you are on Sublime Text 3 use the [st3 branch](https://github.com/daveleroy/sublime_debugger/tree/st3))
+## Variables
 
-# Getting Started
-This project attempts to match Visual Studio Code's Debugger fairly closely so their documentation can be pretty helpful. See [https://code.visualstudio.com/docs/editor/debugging](https://code.visualstudio.com/docs/editor/debugging)
+Words starting with `$` are treated as variables. Letter casing doesn't matter.
 
-## Debuggers
-This project comes with some pre-configured debuggers (They can be installed using ```Debugger: Install adapter```)
+Writing to a variable is done with the `$variable=value` syntax. The format of the value determines the type of the variable. Here are examples for all types:
+- Integer: $i=123
+- String: $s="abc"
+- Boolean: $b1=true $b2=false
+- Float: $f=3.14
+- Object: $o={abc}
 
-##### LLDB
-- See https://github.com/vadimcn/vscode-lldb
+Variables are shown in the VARIABLES view under the "Locals" and "Globals" scopes whenever the debugger stops.
+In addition a variable's value is shown when hovering over a variable and VS Code's Inline Values features shows the value at the end of the line.
 
-##### Chrome
-- See https://github.com/Microsoft/vscode-chrome-debug
+A variable where the name contains the string "lazy" will be shown in the VARIABLES view with a UI that requires an additional click to retrieve the value. Two examples:
+- Lazy Integer: $lazyInteger=999
+- Lazy Object: $lazyObject={foo}
 
-##### Firefox
-- See https://github.com/firefox-devtools/vscode-firefox-debug
+## Breakpoints
 
-##### Node
-- For an overview see https://code.visualstudio.com/docs/nodejs/nodejs-debugging
-- See https://github.com/microsoft/vscode-node-debug2
+Breakpoints can be set in the breakpoint margin of the editor (even before a Mock Debug session was started).
+If a Mock Debug session is active, breakpoints are "validated" according to these rules:
 
-##### Python
-- For an overview see https://code.visualstudio.com/docs/python/debugging
-- See https://github.com/Microsoft/vscode-python
+* if a line is empty or starts with `+` we don't allow to set a breakpoint but move the breakpoint down
+* if a line starts with `-` we don't allow to set a breakpoint but move the breakpoint up
+* a breakpoint on a line containing the word `lazy` is not immediately validated, but only after hitting it once.
 
-##### Go
-- For an overview see https://github.com/golang/vscode-go/blob/master/docs/debugging.md
-- See https://github.com/golang/vscode-go
+## Data Breakpoints
 
-##### PHP
-- See https://github.com/felixfbecker/vscode-php-debug
+Data Breakpoints can be set for different access modes in the VARIABLES view of the editor via the context menu.
+The syntax `$variable` triggers a read access data breakpoint, the syntax `$variable=value` a write access data breakpoint.
+r
+Examples:
+- Read Access: $i
+- Write Access: $i=999
 
-## Setup
-- Open the debug panel
-  - from the command palette `Debugger: Open`
+## Disassembly View
 
-- Install a debug adapter by running: ```Debugger: Install adapter``` from the command palette.
+If a markdown line contains the word 'disassembly', the context menu's "Open Disassembly View" command is enabled and the Disassembly view shows (fake) assembly instructions and "instruction stepping" and "instruction breakpoints" are supported.
 
-- Add a configuration ```Debugger: Add Configuration``` from the command palette (or add one manually, see below).
-  - Configurations are added to `debugger_configurations` to your sublime-projec and use the same configuration format as Visual Studio Code
-  - Consult the debugger specific documentation links above for creating a configuration for your debugger. Most debuggers come with some configuration snippets to choose from but I highly recommend looking at the documentation for the debugger.
+## Exceptions
 
-- Your configuration will look something like the following but with some debugger specific fields.
+If a line contains the word `exception` or the pattern `exception(name)` an exception is thrown.
+To make the debugger stop when an exception is thrown, two "exception options" exist in the BREAKPOINTS view:
+- **Named Exception**: if enabled and configured with a condition (e.g. `xxx`) the debugger will break on the `exception(xxx)` pattern.
+- **Other Exceptions**: if enabled the debugger will break on the word `exception` and the `exception(...)` pattern.
+
+## Output events
+
+* If a line containes patterns like `log(xxx)`, `prio(xxx)`, `out(xxx)`, or `err(xxx)` the argument `xxx` is shown in the debug console as follows:
+  * **log**: text is shown in debug console's default color to indicate that it is received from the debugger itself
+  * **prio**: text is shown as a notification to indicate that it is received from the debugger itself and has high priority
+  * **out**: text is shown in blue to indicate program output received from "stdout"
+  * **err**: text is shown in red to indicate program output received from "stderr"
+* If the argument `xxx` is `start` or `end`, a "log group" is started or ended.
+
+Some examples:
 ```
-"debugger_configurations" : [
-    {
-        "name" : "Name of your configuration",
-        "request" : "launch"|"attach",
-        "type" : "debugger name",
-         ...
-    }
-]
-```
+prio(a high priority message)
+out(some text from stdout)
+err(some text from stderr)
 
-- Start debugging
-  - click the gear icon to select a configuration to use
-  - click the play icon to start the debugger or run `Debugger: Start` (if no configuration is selected it will ask you to select or create one)
+log(start)
+log(some text in group)
+log(start)
+log(some text on level 2 group)
+log(more text on level 2 group)
+log(end)
+log(startCollapsed)
+log(some text on a collapsed group)
+log(end)
+log(more text in group)
+log(end)
+````
 
-## Tasks
-Tasks are based on sublime build_systems with more integration so they can be used more seamlessly while debugging. When errors occur while running a task they are reported in the debugger ui (problem detection is the same as sublime, you must add `file_regex` to your task)
-
-see https://www.sublimetext.com/docs/3/build_systems.html
-
-Tasks are basically the same as sublime builds but there are a few additional paramters.
-`name` which will show up in the debugger ui and the be the name of the panel
-
-```
-"debugger_tasks" : [
-    {
-        "name" : "Name of your configuration",
-        "request" : "launch"|"attach",
-        "type" : "debugger name",
-         ...
-    }
-]
-```
-- Tasks can be run with `Debugger: Run Tasks`
-- You can run tasks before and after debugging by adding `pre_debug_task` or `post_debug_task` to your configuration specifiying the name of the task to run.
-
-
-## Settings
-Settings can either be set at the project level or globally.
-Project settings can be changed by appending `debug.` to the setting name.
-
-Within a `.sublime_settings` file
-- `open_at_startup` `true` Open the debugger automatically when a project that is set up for debugging has been opened
-- `ui_scale` `12` scales the entire debugger UI
-
-Within a `.sublime_project` file settings object
-- `debug.open_at_startup`
-- `debug.ui_scale`
-
-for a full list of settings see [debugger.sublime-settings](debugger.sublime-settings)
-
-## Troubleshooting
-- Look in the debug console for errors (usually red)
-- Look in the sublime console for errors
-- Try the same configuration/adapter in Visual Studio Code (There is a good chance your issue is with the adapter so check out the outstanding issues for it)
+## The End

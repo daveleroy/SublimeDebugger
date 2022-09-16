@@ -1,18 +1,14 @@
-
 import time
-from threading import Thread
 import sys
-import os
 
-print(sys.version)
-
-# print(os.environ)
+from threading import Thread
+from typing import List
 
 def some_random_variables():
-	string = "abc"
 	integer = 1
 	floating = 2.345
-	array = [string, integer, floating]
+	string = "abc"
+	array = [integer, floating, string]
 	table = {
 		'string': string,
 		'intger': integer,
@@ -20,31 +16,33 @@ def some_random_variables():
 		'array': array,
 	}
 
-	print(string)
-	print(integer)
-	print(floating)
-	print(array)
-	print(table)
+	print(string, flush=True)
+	print(integer, flush=True)
+	print(floating, flush=True)
+	print(array, flush=True)
+	print(table, flush=True)
+
+	# print(string, file=sys.stderr, flush=True)
+	# print(integer, file=sys.stderr, flush=True)
+	# print(floating, file=sys.stderr, flush=True)
+	# print(array, file=sys.stderr, flush=True)
+	# print(table, file=sys.stderr, flush=True)
 
 
-def test():
-	some_random_variables()
+some_lambda = lambda: some_random_variables()
+some_lambda()
 
-def sleep(duration):
+def run_thread(duration: float):
 	print("Sleeping thread for {}".format(duration))
 	time.sleep(duration)
 
-threads = []
+threads: List[Thread] = []
 for i in range(1, 5):
-	thread = Thread(name='Thread #{}'.format(i), target=sleep, args=(i/2.0,))
+	thread = Thread(name='Thread #{}'.format(i), target=run_thread, args=(i/2.0,))
 	thread.start()
 	threads.append(thread)
 
-some_lambda = lambda: test()
-some_lambda()
 for thread in threads:
 	thread.join()
 
-
-print('Done')
-
+raise Exception('Finished')

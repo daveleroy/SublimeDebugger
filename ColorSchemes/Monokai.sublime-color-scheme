@@ -1,0 +1,12 @@
+{
+    "rules": [
+        {
+            "scope": "debugger.background",
+            "background": "var(background)",
+        },
+        {
+            "scope": "debugger.selection",
+            "background": "color(var(blue) alpha(0.2))"
+        },
+    ]
+}

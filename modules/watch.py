@@ -33,7 +33,7 @@ class Watch:
 
 	def load_json(self, json: list[dap.Json]):
 		self.expressions = list(map(lambda j: Watch.Expression.from_json(j), json))
-		self.on_updated()
+		self.on_updated.post()
 
 	def into_json(self) -> list[dap.Json]:
 		return list(map(lambda e: e.into_json(), self.expressions))
@@ -42,7 +42,7 @@ class Watch:
 		expression = Watch.Expression(value)
 		self.expressions.append(expression)
 		self.on_added(expression)
-		self.on_updated()
+		self.on_updated.post()
 
 	def add_command(self) -> None:
 		def add(value: str):
@@ -56,35 +56,35 @@ class Watch:
 		for expression in self.expressions:
 			results.append(session.evaluate_expression(expression.value, "watch"))
 
-		evaluations = await asyncio.gather(*results, return_exceptions=True)
+		evaluations = await core.gather_results(*results)
 		for expression, evaluation in zip(self.expressions, evaluations):
 			self.evaluated(session, expression, evaluation)
-		self.on_updated()
+		self.on_updated.post()
 
-	async def evaluate_expression(self, session: dap.Session, frame: dap.StackFrame, expression: Watch.Expression) -> None:
+	async def evaluate_expression(self, session: dap.Session, expression: Watch.Expression) -> None:
 		try:
 			result = await session.evaluate_expression(expression.value, "watch")
 			self.evaluated(session, expression, result)
 		except dap.Error as result:
 			self.evaluated(session, expression, result)
-		self.on_updated()
+		self.on_updated.post()
 
-	def evaluated(self, session: dap.Session, expression: Watch.Expression, evaluation: Union[dap.Error, dap.EvaluateResponse]):
-		if isinstance(evaluation, dap.Error):
-				expression.message = str(evaluation)
+	def evaluated(self, session: dap.Session, expression: Watch.Expression, evaluation: Union[Exception, dap.EvaluateResponse]):
+		if isinstance(evaluation, Exception):
+			expression.message = str(evaluation)
 		else:
-			expression.evaluate_response = dap.Variable(session, dap.EvaluateReference(expression.value, evaluation))
+			expression.evaluate_response = dap.Variable.from_evaluate(session, expression.value, evaluation)
 
 	def clear_session_data(self, session: dap.Session):
 		for expression in self.expressions:
 			expression.message = ''
 			expression.evaluate_response = None
-		self.on_updated()
+		self.on_updated.post()
 
 	def edit(self, expression: Watch.Expression) -> ui.InputList:
 		def remove():
 			self.expressions.remove(expression)
-			self.on_updated()
+			self.on_updated.post()
 
 		return ui.InputList([
 			ui.InputListItem(remove, "Remove"),
