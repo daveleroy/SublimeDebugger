@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from .typecheck import *
 
 from .import core
@@ -97,7 +98,6 @@ class SourceNavigationProvider:
 			self.generated_view = None
 
 	async def navigate_to_source(self, source: dap.SourceLocation, move_cursor: bool = False) -> sublime.View:
-
 		# if we aren't going to reuse the previous generated view throw away any generated view
 		if not source.source.sourceReference:
 			self.clear_generated_view()
@@ -121,7 +121,7 @@ class SourceNavigationProvider:
 			self.generated_view = view
 			view.set_name(source.source.name or "")
 			view.set_read_only(False)
-			
+
 
 			syntax = syntax_name_for_mime_type.get(mime_type, 'text.plain')
 			view.assign_syntax(sublime.find_syntax_by_scope(syntax)[0])
@@ -131,11 +131,39 @@ class SourceNavigationProvider:
 			view.set_read_only(True)
 			view.set_scratch(True)
 		elif source.source.path:
-			view = await core.sublime_open_file_async(self.project.window, source.source.path, group=0)
+			if source.source.path.startswith("jdt:"):
+				lsp_args = {
+					"location": {
+						"uri": source.source.path,
+						"range": {
+							"start": {
+								"line": line,
+								"character": column
+							},
+							"end": {
+								"line": line,
+								"character": column
+							}
+						}
+					},
+					"session_name": "jdtls"
+				}
+				view = self.project.window.active_view()
+				assert view is not None
+				view.run_command("lsp_open_location", lsp_args)
+				# very dirty hack
+				# todo: wait for the view to appear without sleep
+				await core.sleep(1)
+				for v in self.project.window.views():
+					if v.name() == source.source.path:
+						view = v
+						view.set_name(source.source.name or "")
+						view.set_read_only(True)
+						break
+			else:
+				view = await core.sublime_open_file_async(self.project.window, source.source.path, group=0)
 		else:
 			raise core.Error('source has no reference or path')
 
-
 		show_line(view, line, column, move_cursor)
-
 		return view
