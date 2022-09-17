@@ -1,15 +1,3 @@
-# Basic idea here is...
-# When installing the adapter it would add the com.microsoft.java.debug.plugin-0.30.0.jar as a plugin to lsp-jdts
-# When starting the adapter it will ask lsp-jdts to start the adapter by calling the command lsp_jdts_start_debugging exposed by lsp-jdts
-# lsp-jdts will then call debugger_lsp_jdts_start_debugging_response after it has started the adapter
-# Debugger will then connect to the given port and start debugging
-
-# see https://github.com/Microsoft/java-debug for how the lsp side needs to be setup
-# command to start the debug session
-#   {
-#       'command': 'vscode.java.startDebugSession'
-#   }
-
 from ..typecheck import Optional, Dict, Any, Tuple
 from ..import core
 from ..import dap
@@ -27,6 +15,11 @@ class Java(dap.AdapterConfiguration):
 
 	type = 'java'
 	docs = 'https://github.com/redhat-developer/vscode-java/blob/master/README.md'
+
+	installer = util.OpenVsxInstaller(
+		type='java',
+		repo='vscjava/vscode-java-debug'
+	)
 
 	async def start(self, log, configuration):
 		# Make sure LSP and LSP-JDTLS are installed
@@ -59,25 +52,6 @@ class Java(dap.AdapterConfiguration):
 		port = await self.lsp_execute_command('vscode.java.startDebugSession')
 
 		return dap.SocketTransport(log, 'localhost', port)
-
-	async def install(self, log):
-		url = await util.openvsx.latest_release_vsix('vscjava', 'vscode-java-debug')
-		await util.vscode.install(self.type, url, log)
-
-	async def installed_status(self, log):
-		return await util.openvsx.installed_status('vscjava', 'vscode-java-debug', self.installed_version)
-
-	@property
-	def installed_version(self) -> Optional[str]:
-		return util.vscode.installed_version(self.type)
-
-	@property
-	def configuration_snippets(self) -> Optional[list]:
-		return util.vscode.configuration_snippets(self.type)
-
-	@property
-	def configuration_schema(self) -> Optional[dict]:
-		return util.vscode.configuration_schema(self.type)
 
 	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str]]:
 		if not source.source.path or not source.source.path.startswith('jdt:'):
