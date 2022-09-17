@@ -15,7 +15,7 @@ for m in modules_to_remove:
 
 # import all the commands so that sublime sees them
 from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
-from .modules.adapters.java import DebuggerLspJdtlsStartDebuggingResponseCommand
+from .modules.adapters.java import DebuggerJdtlsBridgeResponseCommand
 
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
 from .modules.debugger_output_panel import DebuggerConsoleListener
