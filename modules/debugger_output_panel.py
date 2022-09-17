@@ -7,58 +7,71 @@ import sublime_plugin
 from .import core
 from .import ui
 
-
 from .views.debugger_panel import DebuggerActionsTab
 from .views import css
+from .settings import Settings
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
 class DebuggerPanelTabs(ui.span):
-	def __init__(self, debugger: Debugger, output_name: str):
+	def __init__(self, debugger: Debugger, panel: DebuggerOutputPanel):
 		super().__init__()
 		self.debugger = debugger
 		self.debugger.on_output_panels_updated.add(self.dirty)
-		self.output_name = output_name
+		self.output_name = panel.output_panel_name
+		self.show_tabs_top = panel.show_tabs_top
 
 	def __repr__(self) -> str:
 		return super().__repr__() + self.output_name + str(self.children)
 
 	def render(self):
 		items: list[ui.span] = []
-
+		
 		for panel in self.debugger.output_panels:
 			if panel.output_panel_name == self.output_name:
-				csss = css.tab_panel_selected
+				csss = css.tab_selected
 			else:
-				csss = css.tab_panel
+				csss = css.tab
 
-			name = panel.name.replace('Debugger', '') or 'Callstack'
+			name = panel.name
+
+			status = None
+			if status_image := panel.status:
+				status = ui.click(lambda panel=panel: panel.open_status()) [
+					ui.icon(status_image)
+				]
 
 			items.append(ui.click(lambda panel=panel: panel.open())[ui.span(css=csss)[
+				ui.spacer(1),
 				ui.text(name, css=css.label_secondary),
 				ui.spacer(1),
-				ui.click(lambda panel=panel: panel.open_status()) [
-					panel.status and ui.icon(panel.status)
-				]
+				status
 			]])
+
+			items.append(ui.spacer(1))
 
 		return items
 
 class DebuggerConsoleTabs(ui.div):
-	def __init__(self, debugger: Debugger, output_name: str):
-		super().__init__()
+	def __init__(self, debugger: Debugger, panel: DebuggerOutputPanel):
+		super().__init__(css=css.console_tabs_top if panel.show_tabs_top else css.console_tabs_bottom)
 		self.debugger_actions = DebuggerActionsTab(debugger)
-		self.tabs = DebuggerPanelTabs(debugger, output_name)
+		self.tabs = DebuggerPanelTabs(debugger, panel)
+		self.top = panel.show_tabs_top
 
 	def render(self):
-		return ui.div(height=css.header_height)[
-			self.debugger_actions,
-			ui.spacer(1),
-			self.tabs
+		return [
+			ui.div(height=css.header_height)[
+				self.debugger_actions,
+				ui.span(css=css.phantom_sized_spacer),
+				self.tabs
+			],
+			ui.div(height=0.25, width=self.layout.width() - 5, css=css.seperator) if self.top else None,
+			ui.div(height=1, width=1, css=css.seperator_cutout) if self.top else None,
 		]
 
-class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
+class DebuggerOutputPanel:
 	on_opened: Callable[[], Any] | None = None
 	on_opened_status: Callable[[], Any] | None = None
 
@@ -66,22 +79,26 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 	
 	panels: ClassVar[Dict[int, DebuggerOutputPanel]] = {}
 
-	def __init__(self, debugger: Debugger, name: str, show_panel = True, show_tabs = True):
+	def __init__(self, debugger: Debugger, panel_name: str, name: str|None = None, show_panel = True, show_tabs = True, show_tabs_top = False, create = True):
 		super().__init__()
-		self.name = self._get_free_output_panel_name(debugger.window, name)
-		self.output_panel_name = f'output.{self.name}'
+		self.panel_name = self._get_free_output_panel_name(debugger.window, panel_name) if create else panel_name
+		self.output_panel_name = f'output.{self.panel_name}'
+		self.name = name or panel_name
 
 		self.window = debugger.window
+		self.create = create
 		self.show_tabs = show_tabs
+		self.show_tabs_top = show_tabs_top
 		self.debugger = debugger
 		
 		# if a panel with the same name already exists add a unique id
 		self._locked_selection = 0
 		self.status: ui.Image|None = None
 
+		self.removed_newline: int|None = None
+
 		previous_panel = self.window.active_panel()
-		self.view = self.window.create_output_panel(self.name)
-		self.view.set_name(self.name)
+		self.view = self.window.find_output_panel(self.panel_name) or self.window.create_output_panel(self.panel_name)
 		self.controls_and_tabs_phantom = None
 
 		DebuggerOutputPanel.panels[self.view.id()] = self
@@ -89,44 +106,61 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		self.on_pre_hide_panel = core.on_pre_hide_panel.add(self._on_hide_panel)
 
 		settings = self.view.settings()
-		settings.set('debugger', True)
-		settings.set('debugger.output_panel', True)
-		settings.set('debugger.output_panel_name', self.output_panel_name)
-		settings.set('debugger.output_panel_tabs', show_tabs)
-		settings.set('draw_unicode_white_space', 'none')
+		if create:
+			settings.set('debugger', True)
+			settings.set('debugger.output_panel', True)
+			settings.set('draw_unicode_white_space', 'none')
+			
+			settings.set('context_menu', 'DebuggerWidget.sublime-menu')
+
 		settings.set('scroll_past_end', False)
-		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 		settings.set('gutter', False)
-		self.open()
 
 		if not show_panel and previous_panel:
 			self.window.run_command('show_panel', {
 				'panel': previous_panel
 			})
 
-
-		self.removed_newline = None
-		self.inside_on_text_changed = False
-		self.attach(self.view.buffer())
-
-
-		if show_tabs:
-			self.controls_and_tabs = DebuggerConsoleTabs(debugger, settings.get('debugger.output_panel_name'))
-			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(self.view.size(), self.view.size()), sublime.LAYOUT_BLOCK) [
+		if show_tabs and show_tabs_top:
+			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
+			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE) [
 				self.controls_and_tabs
 			]
+			self.text_change_listner = EnsureNewlineTextChangeListener(self.view)
+
+		elif show_tabs:
+			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
+			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(-1), sublime.LAYOUT_BLOCK) [
+				self.controls_and_tabs
+			]
+
+			self.text_change_listner = RemoveLastNewlineTextChangeListener(self)
 		else:
+			self.text_change_listner = None
 			self.controls_and_tabs = None
 			self.controls_and_tabs_phantom = None
 
 		debugger.add_output_panel(self)
-		# self.scroll_to_end()
+		self.update_settings()
+
+		self.open()
+
 		# settings = self.view.settings()
 		# # this tricks the panel into having a larger height
 		# previous_line_padding_top = settings.get('line_padding_top')
 		# settings.set('line_padding_top', 250)
 		# self.open()
 		# settings.set('line_padding_top', previous_line_padding_top)
+
+	def update_settings(self):
+		# these settings control the size of the ui calculated in ui/layout
+		settings = self.view.settings()
+		if Settings.ui_scale:
+			settings['font_size'] = Settings.ui_scale
+		else:
+			settings.erase('font_size')
+
+		settings['rem_width_scale'] = Settings.ui_rem_width_scale
 
 	def set_status(self, status: ui.Image):
 		self.status = status
@@ -142,10 +176,12 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 	def dispose(self):
 		self.debugger.remove_output_panel(self)
 
-		if self.is_attached():
-			self.detach()
+		if self.text_change_listner:
+			self.text_change_listner.dispose()
 
-		self.window.destroy_output_panel(self.name)
+		if self.create:
+			self.window.destroy_output_panel(self.panel_name)
+
 		self.on_post_show_panel.dispose()
 		self.on_pre_hide_panel.dispose()
 		if self.controls_and_tabs_phantom:
@@ -165,6 +201,7 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 		self.window.run_command('show_panel', {
 			'panel': self.output_panel_name
 		})
+		sublime.set_timeout(self.scroll_to_end, 5)
 
 	def open_status(self):
 		if on_opened_status := self.on_opened_status:
@@ -190,8 +227,11 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 
 	def scroll_to_end(self):
 		# self.lock_selection_temporarily()
-		height = self.view.layout_extent()[1]
-		self.view.set_viewport_position((0, height), False)
+		if self.show_tabs_top:
+			self.view.set_viewport_position((0, 0), False)
+		else:
+			height = self.view.layout_extent()[1]
+			self.view.set_viewport_position((0, height), False)
 
 	def lock_selection(self):
 		self._locked_selection += 1
@@ -218,40 +258,6 @@ class DebuggerOutputPanel(sublime_plugin.TextChangeListener):
 
 		return text		
 
-	def on_text_changed_edit(self, edit: sublime.Edit):
-		# ensure panel is at least 25 lines since we need the height of the content to be more than its viewport height
-		if self.show_tabs:
-			line_count = self.view.rowcol(self.view.size())[0] + 1
-
-			if line_count < 25:
-				self.view.insert(edit, 0, 25 * '\n')
-
-		# re-insert the newline we removed
-		if self.removed_newline:
-			removed_newline = self.view.transform_region_from(sublime.Region(self.removed_newline), self.removed_newline_change_id)
-			self.removed_newline = None
-			self.view.insert(edit, removed_newline.a, '\n')
-
-		at = self.at() - 1
-		last = self.view.substr(at)
-
-		# remove newline
-		if last == '\n':
-			self.view.erase(edit, sublime.Region(at, at+1))
-			self.removed_newline = at
-			self.removed_newline_change_id = self.view.change_id()
-
-		if self.controls_and_tabs_phantom:
-			self.controls_and_tabs_phantom.dirty()
-
-
-	def on_text_changed(self, changes):
-		if self.inside_on_text_changed:
-			return
-
-		self.inside_on_text_changed  = True
-		core.edit(self.view, self.on_text_changed_edit)
-		self.inside_on_text_changed  = False
 
 	def on_selection_modified(self): ...
 	def on_activated(self): ...
@@ -301,3 +307,89 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 	def on_query_completions(self, view: sublime.View, prefix: str, locations: list[int]) -> Any:
 		if panel := DebuggerOutputPanel.panels.get(view.id()):
 			return panel.on_query_completions(prefix, locations)
+
+class EnsureNewlineTextChangeListener(sublime_plugin.TextChangeListener):
+	def __init__(self, view: sublime.View) -> None:
+		super().__init__()
+		self.view = view
+		self.inside_on_text_changed = False
+
+		self.attach(view.buffer())
+		self.on_text_changed(None)
+
+	def dispose(self):
+		if self.is_attached():
+			self.detach()
+
+	def on_text_changed(self, changes: Any):
+		if self.inside_on_text_changed:
+			return
+
+		self.inside_on_text_changed  = True
+		core.edit(self.view, self._on_text_changed)
+		self.inside_on_text_changed  = False
+
+	def _on_text_changed(self, edit: sublime.Edit):
+		is_readonly = self.view.is_read_only()
+		self.view.set_read_only(False)
+
+		if self.view.substr(0) != '\n':			
+			self.view.insert(edit, 0, '\n')
+
+		self.view.set_read_only(is_readonly)
+
+class RemoveLastNewlineTextChangeListener(sublime_plugin.TextChangeListener):
+	def __init__(self, panel: DebuggerOutputPanel) -> None:
+		super().__init__()
+		self.panel = panel
+		self.view = panel.view
+		self.inside_on_text_changed = False
+
+		self.attach(self.view.buffer())
+		self.on_text_changed(None)
+
+	def dispose(self):
+		if self.is_attached():
+			self.detach()
+
+	def on_text_changed(self, changes: None):
+		if self.inside_on_text_changed:
+			return
+
+		def run():
+			self.inside_on_text_changed  = True
+			core.edit(self.view, self._on_text_changed)
+			self.inside_on_text_changed  = False
+
+		sublime.set_timeout(run, 0)	
+
+
+	def _on_text_changed(self, edit: sublime.Edit):
+		is_readonly = self.view.is_read_only()
+		self.view.set_read_only(False)
+
+		# ensure panel is at least 25 lines since we need the height of the content to be more than its viewport height
+		line_count = self.view.rowcol(self.view.size())[0] + 1
+		if line_count < 25:
+			self.view.insert(edit, 0, 25 * '\n')
+
+		# re-insert the newline we removed
+		if self.panel.removed_newline:
+			removed_newline = self.view.transform_region_from(sublime.Region(self.panel.removed_newline), self.removed_newline_change_id)
+			self.panel.removed_newline = None
+			self.view.insert(edit, removed_newline.a, '\n')
+
+		at = self.panel.at() - 1
+		last = self.view.substr(at)
+
+		# remove newline
+		if last == '\n':
+			self.view.erase(edit, sublime.Region(at, at+1))
+			self.panel.removed_newline = at
+			self.removed_newline_change_id = self.view.change_id()
+
+		if self.panel.controls_and_tabs_phantom:
+			self.panel.controls_and_tabs_phantom.dirty()
+
+		self.view.set_read_only(is_readonly)
+

@@ -22,7 +22,7 @@ class element:
 
 	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
 		super().__init__()
-		self.layout: Layout|None = None
+		self.layout: Layout = None #type: ignore
 		self.children: Sequence[element] = []
 		self.requires_render = True
 		self._max_allowed_width: float|None = None
@@ -98,14 +98,9 @@ class element:
 	def html(self, layout: Layout) -> str:
 		...
 
-	def added(self, layout: Layout) -> None:
-		...
-
-	def removed(self) -> None:
-		...
-
-	def render(self) -> element.Children:
-		...
+	def added(self) -> None: ...
+	def removed(self) -> None: ...
+	def render(self) -> element.Children: ...
 
 
 class span (element):
@@ -148,11 +143,12 @@ class div (element):
 			html += item.html(layout)
 			children_inline = children_inline or item.is_inline
 
-		h = layout.to_rem(self.height(layout) - self.padding_height)
-		w = layout.to_rem(self.width(layout) - self.padding_width)
+		h = self.height(layout) - self.padding_height
+		w = self.width(layout) - self.padding_width
+		offset= h - 1.0/layout._em_width_to_rem
 		if children_inline:
 			# this makes it so that divs with an img in them and divs without an img in them all align the same
-			return f'<d id="{self.css_id}"><div style="height:{h}rem;width:{w}rem;line-height: {h}rem; padding: {-h+1}rem 0 {h-1}rem 0"><img style="height: {h}rem">{html}</div></d>'
+			return f'<d id="{self.css_id}"><div style="height:{h}rem;width:{w}rem;line-height: {h}rem; padding: {-offset}rem 0 {offset}rem 0"><img style="height: {h}rem">{html}</div></d>'
 		else:
 			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;">{html}</d>'
 
@@ -214,9 +210,9 @@ class icon (span):
 
 	def html(self, layout: Layout) -> str:
 		assert self._height
-		width = layout.to_rem(self._height - self.padding)
-		required_padding = layout.to_rem(self.padding)
-		top = layout.to_rem(0.75)
+		width = self._height - self.padding
+		required_padding = self.padding
+		top = 0.75
 		return f'<s style="position:relative;top:{top}rem;line-height:0rem;padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
 
 tokenize_re = re.compile(

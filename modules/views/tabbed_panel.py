@@ -18,9 +18,9 @@ class Panel(ui.div):
 
 	def panel_header(self, expanded: bool) -> list[ui.span] | None:
 		if expanded:
-			csss = css.tab_panel_selected
+			csss = css.tab_selected
 		else:
-			csss = css.tab_panel
+			csss = css.tab
 
 		return [
 			ui.span(css=csss) [

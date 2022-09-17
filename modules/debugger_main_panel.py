@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 class DebuggerMainOutputPanel(DebuggerOutputPanel):
 	def __init__(self, debugger: Debugger) -> None:
-		super().__init__(debugger, 'Debugger', show_tabs=False)
+		super().__init__(debugger, 'Debugger', 'Callstack', show_tabs=False)
 
 		self.on_input: core.Event[str] = core.Event()
 		self.on_navigate: core.Event[dap.SourceLocation] = core.Event()
@@ -53,7 +53,6 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		settings.set('draw_unicode_white_space', 'none')
 		settings.set('draw_unicode_bidi', False)
 		settings.set('is_widget', True)
-		settings.set('font_face', Settings.font_face)
 
 		self.view.sel().clear()
 		self.view.set_viewport_position((0, 0), False)
@@ -64,25 +63,14 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		self.debugger = debugger
 
 		self.debugger_panel = DebuggerPanel(self.debugger, debugger._on_navigate_to_source)
-		self.debugger_panel.on_settings = lambda: debugger.on_settings()
-		self.debugger_panel.on_start = lambda: debugger.start() #type: ignore
-		self.debugger_panel.on_stop = lambda: debugger.stop() #type: ignore
-		self.debugger_panel.on_pause = lambda: debugger.pause()
-		self.debugger_panel.on_continue = lambda: debugger.resume()
-		self.debugger_panel.on_step_over = lambda: debugger.step_over()
-		self.debugger_panel.on_step_out = lambda: debugger.step_out()
-		self.debugger_panel.on_step_in = lambda: debugger.step_in()
+		self.callstack_panel = CallStackPanel(self.debugger, self)
 
 		self.middle_panel = TabbedPanel([], 0, width_scale=0.65, width_additional=-30)
-
-		self.callstack_panel = CallStackPanel(self.debugger)
-		# self.console_panel = Panel('Console')
-		# self.console_panel.on_show = lambda: debugger.console.open()
-
 		self.middle_panel.update([
 			# self.console_panel,
 			self.callstack_panel,
 		])
+
 		# self.middle_panel.select(self.callstack_panel)
 
 		# right panels
@@ -129,7 +117,7 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		viewport_width = self.view.viewport_extent()[0]
 
 		# sometimes the viewport is not visible and then returns 0?
-		if viewport_width == 0:
+		if viewport_width == 0 or layout_width == 0:
 			return
 
 		overlap_percentage = (layout_width - viewport_width)/layout_width

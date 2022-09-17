@@ -36,7 +36,9 @@ from .session import (
 	Thread,
 )
 from .configuration import (
+	AdapterInstaller,
 	AdapterConfiguration,
+
 	Configuration,
 	ConfigurationExpanded,
 	ConfigurationCompound,

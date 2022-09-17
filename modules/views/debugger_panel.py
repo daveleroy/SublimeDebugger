@@ -14,20 +14,6 @@ if TYPE_CHECKING:
 
 
 class DebuggerPanel(ui.div):
-	
-	on_settings: Callable[[], Any]
-
-	on_start: Callable[[], Any]
-	on_stop: Callable[[], Any]
-
-	on_pause: Callable[[], Any]
-	on_continue: Callable[[], Any]
-
-	on_step_over: Callable[[], Any]
-	on_step_out: Callable[[], Any]
-	on_step_in: Callable[[], Any]
-
-
 	def __init__(self, debugger: Debugger, on_navigate_to_source: Callable[[dap.SourceLocation], None]) -> None:
 		super().__init__()
 		self.debugger = debugger
@@ -110,7 +96,6 @@ class DebuggerPanel(ui.div):
 			div = self.last_active_adapter.ui(self.debugger)
 			if div: panel_items.append(div)
 
-
 		panel_items.append(self.breakpoints)
 
 		return [
@@ -127,7 +112,12 @@ class DebuggerActionsTab(ui.span):
 	def __init__(self, debugger: Debugger) -> None:
 		super().__init__(css=css.controls_panel)
 		self.debugger = debugger
-		self.debugger.on_session_state_updated.add(lambda session, state: self.dirty())
+
+	def added(self) -> None:
+		self.on_session_state_updated = self.debugger.on_session_state_updated.add(lambda session, state: self.dirty())
+
+	def removed(self) -> None:
+		self.on_session_state_updated.dispose()
 
 	def render(self) -> ui.div.Children:
 		items = [

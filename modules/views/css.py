@@ -10,7 +10,7 @@ button = ui.css(
 	padding_right=1,
 	padding_top=-0.5,
 	padding_bottom=-0.5,
-	background_color='var(--segment-color)',
+	background_color='var(--dark)',
 	color='var(--primary)',
 	raw='border-radius: 0.4rem;'
 )
@@ -20,7 +20,7 @@ button_secondary = ui.css(
 	padding_right=1, 
 	padding_top=-0.5, 
 	padding_bottom=-0.5, 
-	background_color='var(--segment-color)', 
+	background_color='var(--dark)', 
 	color='var(--secondary)', 
 	raw='border-radius: 0.4rem;'
 )
@@ -60,50 +60,115 @@ padding_left = ui.css(
 )
 
 rounded_panel = ui.css(
-	padding_top=1.5,
-	padding_left=1.5,
-	padding_right=1.5,
-	background_color='var(--panel-color)',
-	raw='''border-radius: 0.33rem;'''
+	padding_top=0.5,
+	padding_left=1,
+	padding_right=1,
+	background_color='var(--tinted)',
+	raw='''
+		border-style: solid;
+		border-top-width: 1px;
+		border-color: var(--medium);
+	'''
+)
+
+# these work around minor alignment issues where inline phantoms and bottom phantoms do not align the same
+console_tabs_bottom = ui.css(
+	raw='''
+		padding-left: 2px;
+	'''
+)
+console_tabs_top = ui.css(
+	raw='''
+		padding-left: -3px;
+	'''
+)
+
+phantom_sized_spacer = ui.css(
+	padding_left=1.25,
+	raw='''
+		display: inline-block;
+	'''
+)
+
+seperator = ui.css(
+	raw='''
+		border-style: solid;
+		border-top-width: 1px;
+		border-color: var(--medium);
+		padding-top: 0px;
+	'''
+)
+seperator_cutout = ui.css(
+	background_color='var(--background)',
+	raw='''
+		position: relative;
+		top: -0.5rem;
+		right: -30rem;
+		padding-top: 1rem;
+	'''
 )
 
 panel = ui.css(
-	padding_left=1.5,
-	padding_right=1.5,
-	background_color='var(--panel-color)',
+	padding_left=1,
+	padding_right=1,
+	padding_top=0.5,
+	background_color='var(--tinted)',
+	raw='''
+		border-style: solid;
+		border-top-width: 1px;
+		border-color: var(--medium);
+	'''
 )
 
 
-tab_panel = ui.css(
-	background_color='var(--panel-border)',
+tab = ui.css(
+	background_color='var(--light)',
 	padding_left=2,
 	padding_right=2,
 	raw='''
-	padding-bottom: 0.33rem;
 	border-top-left-radius: 0.33rem;
 	border-top-right-radius: 0.33rem;
 	'''
 )
 
-tab_panel_selected = ui.css(
-	background_color='var(--panel-color)',
+tab_selected = ui.css(
+	background_color='var(--medium)',
 	padding_left=2,
 	padding_right=2,
 	raw='''
-	padding-bottom: 1rem;
 	border-top-left-radius: 0.33rem;
 	border-top-right-radius: 0.33rem;
 	'''
 )
+
+
+tab_panel_spacer = ui.css(
+	background_color='var(--medium)',
+	raw='''
+	border-top-left-radius: 0.33rem;
+	border-top-right-radius: 0.33rem;
+	'''
+)
+
+tab_spacer = ui.css(
+	background_color='var(--redish)',
+	raw='''
+	border-top-left-radius: 0.33rem;
+	border-top-right-radius: 0.33rem;
+	padding-bottom: 25px;
+	margin-bottom: 25px;
+	'''
+)
+
+
 
 controls_panel = ui.css(
-	background_color='var(--panel-color)',
+	background_color='var(--light)',
 	padding_left=1.5,
 	padding_right=1.5,
 	raw='''
-	padding-bottom: 1rem;
-	border-top-left-radius: 0.33rem;
 	border-top-right-radius: 0.33rem;
+	border-top-left-radius: 0.33rem;
 	'''
 )
 

@@ -450,9 +450,11 @@ class Session(TransportProtocolListener):
 		# we couldn't terminate either not a launch request or the terminate request failed
 		# so we foreceully disconnect
 		await self.request('disconnect', {
-			'restart': False
+			'restart': False,
+			'terminateDebuggee': True,
 		})
 
+		await self.stop_forced(reason=Session.stopped_reason_manual)
 
 	def stop_debug_adapter_session(self):
 		if self.launching_async:
@@ -714,7 +716,7 @@ class Session(TransportProtocolListener):
 
 	@core.schedule
 	async def on_terminated_event(self, event: dap.TerminatedEvent):
-		await self.stop_forced(reason=Session.stopped_reason_terminated_event)
+		await self.stop()
 		# TODO: This needs to be handled inside debugger_sessions
 		# restarting needs to be handled by creating a new session
 		# if event.restart:

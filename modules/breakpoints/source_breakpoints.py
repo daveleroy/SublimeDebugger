@@ -118,7 +118,7 @@ class SourceBreakpointView:
 	def __init__(self, breakpoint: SourceBreakpoint, view: sublime.View, on_click_inline: Callable[[], None]):
 		self.breakpoint = breakpoint
 		self.view = view
-		self.column_phantom: ui.Phantom|None = None
+		self.column_phantom: ui.RawPhantom|None = None
 		self.on_click_inline = on_click_inline
 		self.render()
 
@@ -129,17 +129,27 @@ class SourceBreakpointView:
 		line = self.breakpoint.line
 		column = self.breakpoint.column
 
-		p = self.view.text_point(line - 1, 0)
-
-		self.view.add_regions(self.breakpoint.region_name, [sublime.Region(p, p)], scope=self.breakpoint.scope(), icon=image.file, flags=sublime.HIDDEN)
+		line_start_point = self.view.text_point(line - 1, 0)
+		self.view.add_regions(self.breakpoint.region_name, [sublime.Region(line_start_point)], scope=self.breakpoint.scope(), icon=image.file, flags=sublime.HIDDEN)
 
 		if column and self.breakpoint.dap.column:
-			p = self.view.text_point(line - 1, column - 1)
-			self.column_phantom = ui.Phantom(self.view, sublime.Region(p, p))[
-				ui.click(self.on_click_inline)[
-					ui.icon(image, height=2, width=2, padding=0)
-				]
-			]
+			html: str = f'''
+				<body id="debugger">
+					<style>
+						img {{
+							width: 1.25rem;
+							height: 1.25rem;
+						}}
+					</style>
+					<a href="">
+						<img src="{self.breakpoint.image.data()}" />
+					</a>
+					
+				</body>
+			'''
+			column_point = self.view.text_point(line - 1, column - 1)
+			self.column_phantom = ui.RawPhantom(self.view, sublime.Region(column_point), html, on_navigate=lambda _: self.on_click_inline())
+
 
 	def dispose(self):
 		self.view.erase_regions(self.breakpoint.region_name)

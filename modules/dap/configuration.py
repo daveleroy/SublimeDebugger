@@ -12,30 +12,48 @@ if TYPE_CHECKING:
 	from .session import Session
 	from .debugger import Debugger
 
+class AdapterInstaller:
+	async def install(self, version: str|None, log: core.Logger) -> None: ...
+	async def uninstall(self) -> None: ...
+
+	def install_path(self) -> str: ...
+
+	def installed_version(self) -> str|None: 
+		return '1.0.0'
+
+	async def installable_versions(self, log: core.Logger) -> list[str]: 
+		return []
+
+	def configuration_snippets(self) -> list[dict[str, Any]] | None: ...
+	def configuration_schema(self) -> dict[str, Any] | None: ...
+
+
 class AdapterConfiguration:
 	type: str
 	types: list[str] = []
 	
 	docs: str | None
 	development: bool = False
+	internal: bool = False
+
+	installer = AdapterInstaller()
 
 	async def start(self, log: core.Logger, configuration: ConfigurationExpanded) -> Transport: ...
 
 	@property
-	def installed_version(self) -> str | None: ...
+	def installed_version(self) -> str | None: 
+		return self.installer.installed_version()
 
 	@property
-	def configuration_snippets(self) -> list[dict[str, Any]] | None: ...
+	def configuration_snippets(self) -> list[dict[str, Any]] | None:
+		return self.installer.configuration_snippets()
 
 	@property
-	def configuration_schema(self) -> dict[str, Any] | None: ...
+	def configuration_schema(self) -> dict[str, Any] | None:
+		return self.installer.configuration_schema()
 
 	async def configuration_resolve(self, configuration: ConfigurationExpanded) -> ConfigurationExpanded:
 		return configuration
-
-	async def install(self, log: core.Logger) -> None: ...
-
-	async def installed_status(self, log: core.Logger) -> str | None: ...
 
 	def on_hover_provider(self, view: sublime.View, point: int) -> tuple[str, sublime.Region] | None:
 		word = view.word(point)

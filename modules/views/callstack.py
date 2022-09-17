@@ -33,19 +33,19 @@ class CallStackState:
 		self._expanded[id(item)] = not self.is_expanded(item, default)
 
 class CallStackPanel (Panel):
-	def __init__(self, debugger: Debugger):
+	def __init__(self, debugger: Debugger, panel: DebuggerOutputPanel):
 		super().__init__('Callstack')
 		self.debugger = debugger
 		self.state = CallStackState()
 		from ..debugger_output_panel import DebuggerPanelTabs
-		self.header = DebuggerPanelTabs(self.debugger, 'output.Debugger')
+		self.header = DebuggerPanelTabs(self.debugger, panel)
 
 	def panel_header(self, expanded: bool) -> list[ui.span] | None:
 		return [
 			self.header
 		]
 
-	def added(self, layout: ui.Layout):
+	def added(self):
 		self.on_updated = self.debugger.on_session_threads_updated.add(self.on_threads_updated)
 		self.on_selected = self.debugger.on_session_active.add(self.on_threads_updated)
 		self.on_added_session = self.debugger.on_session_added.add(self.on_threads_updated)

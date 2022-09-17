@@ -15,6 +15,10 @@ class Ruby(dap.AdapterConfiguration):
 	type = 'ruby'
 	docs = 'https://github.com/castwide/vscode-ruby-debug#debugging-external-programs'
 
+	installer = util.openvsx.OpenVsxInstaller (
+		type='ruby',
+		repo='wingrunr21/vscode-ruby'
+	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		readapt = Settings.ruby_readapt or shutil.which('readapt')
@@ -26,21 +30,5 @@ class Ruby(dap.AdapterConfiguration):
 			'stdio'
 		]
 		return dap.StdioTransport(log, command)
-
-	async def install(self, log: core.Logger):
-		url = await util.openvsx.latest_release_vsix('wingrunr21', 'vscode-ruby')
-		await util.vscode.install(self.type, url, log)
-
-	@property
-	def installed_version(self):
-		return util.vscode.installed_version(self.type)
-
-	@property
-	def configuration_snippets(self):
-		return util.vscode.configuration_snippets(self.type)
-
-	@property
-	def configuration_schema(self):
-		return util.vscode.configuration_schema(self.type)
 
 

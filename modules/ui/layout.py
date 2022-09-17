@@ -6,17 +6,18 @@ from ..import core
 from .style import css
 from .html import div, span, element
 from .debug import DEBUG_TIMING, DEBUG_TIMING_STATUS
+from collections.abc import Iterable
 
 import sublime
 
 def flatten_without_none(items: element.Children) -> Generator[element, None, None]:
-
-	if items is None: pass
-	elif isinstance(items, element):
-		yield items
-	else:
+	if items is None:
+		pass
+	elif isinstance(items, Iterable):
 		for item in items:
 			yield from flatten_without_none(item)
+	else:
+		yield items
 
 
 class Layout:
@@ -122,7 +123,7 @@ class Layout:
 	def add_component(self, item: element) -> None:
 		assert not item.layout, 'This item already has a layout?'
 		item.layout = self
-		item.added(self)
+		item.added()
 
 	def remove_component(self, item: element) -> None:
 		self.remove_component_children(item)
@@ -171,7 +172,6 @@ class Layout:
 
 		self.on_click_handlers.clear()
 		self.requires_render = False
-
 		timer = core.stopwatch('render')
 		self.render_component(self.item)
 		if DEBUG_TIMING: timer()
@@ -183,7 +183,11 @@ class Layout:
 			timer(f'{len(css_string)}')
 
 		timer = core.stopwatch('html')
-		html = f'<body id="debugger"><style>{css_string}</style>{self.item.html(self)}</body>'
+		html = f'''
+		<body id="debugger">
+			<style>{css_string}</style>
+			{self.item.html(self)}
+		</body>'''
 
 		self.html = html
 
@@ -238,6 +242,7 @@ class Layout:
 
 		self._all = all
 
+		self.font_size = font_size
 		self._width = size[0] / em_width
 		self._height = size[1] / em_width
 		self._lightness = lightness_from_color(background)

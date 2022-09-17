@@ -22,8 +22,7 @@ class Phantom(Layout):
 		Phantom.id += 1
 
 		# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
-		self.region_id = 'phantom_{}'.format(Phantom.id)
-		self.view.add_regions(self.region_id, [self.region], flags=sublime.DRAW_NO_FILL)
+		self.phantom_id = 'phantom_{}'.format(Phantom.id)
 		self.update()
 
 	def render(self) -> bool:
@@ -34,25 +33,27 @@ class Phantom(Layout):
 		if not updated and self.cached_phantom:
 			return False
 
-		# no phantom to update...
-		regions = self.view.get_regions(self.region_id)
-		if not regions:
-			return False
+		# # no phantom to update...
+		# regions = self.view.get_regions(self.phantom_id)
+		# if not regions:
+		# 	return False
+		region = self.region
+		if region.a == -1:
+			region = sublime.Region(self.view.size())
 
 		global render_count
 		render_count += 1
 		
 		timer = core.stopwatch('phantom')
-		self.view.erase_phantoms(self.region_id)
-		self.view.add_phantom(self.region_id, regions[0], self.html, self.layout, self.on_navigate)
+		self.view.erase_phantoms(self.phantom_id)
+		self.view.add_phantom(self.phantom_id, region, self.html, self.layout, self.on_navigate)
 		if DEBUG_TIMING: timer()
 		self.last_render_time = total.elapsed()
 		return True
 
 	def dispose(self) -> None:
 		super().dispose()
-		self.view.erase_regions(self.region_id)
-		self.view.erase_phantoms(self.region_id)
+		self.view.erase_phantoms(self.phantom_id)
 
 
 class RawPhantom:	

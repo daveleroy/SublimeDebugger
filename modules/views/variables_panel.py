@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class VariablesPanel (Panel):
 	def __init__(self, debugger: Debugger):
 		super().__init__('Variables')
-		self.watch_view = WatchView(debugger.watch)
+		self.watch_view = WatchView(debugger)
 		self.variables_view = VariablesView(debugger)
 
 	def render(self) -> ui.div.Children:
@@ -57,13 +57,13 @@ class VariablesView (ui.div):
 
 
 class WatchView(ui.div):
-	def __init__(self, watch: Watch):
+	def __init__(self, debugger: Debugger) -> None:
 		super().__init__()
-		self.watch = watch
+		self.debugger = debugger
 		self.open = True
 
-	def added(self, layout: ui.Layout):
-		self.on_updated_handle = self.watch.on_updated.add(self.dirty)
+	def added(self):
+		self.on_updated_handle = self.debugger.watch.on_updated.add(self.dirty)
 
 	def removed(self):
 		self.on_updated_handle.dispose()
@@ -73,7 +73,7 @@ class WatchView(ui.div):
 		self.dirty()
 
 	def render(self) -> ui.div.Children:
-		if not self.watch.expressions:
+		if not self.debugger.watch.expressions:
 			return None
 
 		header = ui.div(height=css.row_height)[
@@ -88,17 +88,18 @@ class WatchView(ui.div):
 		return [
 			header,
 			ui.div(css=css.table_inset)[
-				[WatchExpressionView(expresion, on_edit_not_available=self.watch.edit_run) for expresion in self.watch.expressions]
+				[WatchExpressionView(self.debugger, expresion, on_edit_not_available=self.debugger.watch.edit_run) for expresion in self.debugger.watch.expressions]
 			]
 		]
 
 class WatchExpressionView(ui.div):
-	def __init__(self, expression: Watch.Expression, on_edit_not_available: Callable[[Watch.Expression], None]):
+	def __init__(self, debugger: Debugger, expression: Watch.Expression, on_edit_not_available: Callable[[Watch.Expression], None]):
 		super().__init__()
+		self.debugger = debugger
 		self.expression = expression
 		self.on_edit_not_available = on_edit_not_available
 
-	def added(self, layout: ui.Layout):
+	def added(self):
 		self.on_updated_handle = self.expression.on_updated.add(self.dirty)
 
 	def removed(self):
@@ -106,7 +107,7 @@ class WatchExpressionView(ui.div):
 
 	def render(self):
 		if self.expression.evaluate_response:
-			component = VariableComponent(self.expression.evaluate_response)
+			component = VariableComponent(self.debugger, self.expression.evaluate_response)
 			return [component]
 
 		return [
