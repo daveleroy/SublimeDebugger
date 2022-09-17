@@ -488,8 +488,10 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			if result.variablesReference:
 				self.console.write(f'', 'blue', ensure_new_line=True)
 				self.console.write_variable(dap.Variable.from_evaluate(self.active, '', result), self.console.at())
-			else:
+			elif result.result:
 				self.console.write(result.result, 'blue', ensure_new_line=True)
+			else:
+				core.debug('discarded evaluated expression empty result')
 
 		except core.Error as e:
 			self.console.error(f'{e}')
