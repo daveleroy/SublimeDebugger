@@ -8,26 +8,24 @@ if TYPE_CHECKING:
 
 base_css = '''
 .dark {
-	--panel-border: color(var(--background) blend(black 97%));
-	--panel-color: color(var(--background) blend(black 91%));
-	--segment-color: color(var(--background) blend(black 75%));
+	--tinted: color(var(--background) blend(black 97%));
 
-	--text-color: var(--foreground);
-	--label-color: var(--text-color);
+	--light: color(var(--background) blend(black 93%));
+	--medium: color(var(--background) blend(black 85%));
+	--dark: color(var(--background) blend(black 75%));
 
-	--primary: var(--text-color);
-	--secondary: color(var(--text-color) alpha(0.7));
+	--primary: var(--foreground);
+	--secondary: color(var(--foreground) alpha(0.7));
 }
 .light {
-	--panel-color: color(var(--background) blend(black 97%));
-	--panel-border: color(var(--background) blend(black 92%));
-	--segment-color: color(var(--background) blend(black 92%));
+	--tinted: color(var(--background) blend(black 99%));
 
-	--text-color: var(--foreground);
-	--label-color: var(--text-color);
+	--light: color(var(--background) blend(black 95%));
+	--medium: color(var(--background) blend(black 98%));
+	--dark: color(var(--background) blend(black 92%));
 
-	--primary: var(--text-color);
-	--secondary: color(var(--text-color) alpha(0.7));
+	--primary: var(--foreground);
+	--secondary: color(var(--foreground) alpha(0.7));
 }
 a {
 	text-decoration: none;
@@ -50,9 +48,6 @@ d {
 	--segment-color: color(red alpha(0.25));
 	--panel-border: color(red alpha(0.25));
 
-	--text-color: var(--foreground);
-	--label-color: var(--text-color);
-
 	border-style: solid;
 	border-color: black;
 	border-width: 0.15px;
@@ -60,11 +55,10 @@ d {
 s {
 	background-color: color(blue alpha(0.15));
 
-	--panel-color: color(blue alpha(0.25));
-	--segment-color: color(blue alpha(0.25));
-
-	--text-color: var(--foreground);
-	--label-color: var(--text-color);
+	--tinted: color(blue alpha(0.25));
+	--light: color(blue alpha(0.25));
+	--medium: color(blue alpha(0.25));
+	--dark: color(blue alpha(0.25));
 
 	border-style: solid;
 	border-color: black;
@@ -73,11 +67,11 @@ s {
 
 l {
 	background-color: color(green alpha(0.25));
-	--panel-color: color(green alpha(0.25));
-	--segment-color: color(green alpha(0.25));
 
-	--text-color: var(--foreground);
-	--label-color: var(--text-color);
+	--tinted: color(green alpha(0.25));
+	--light: color(green alpha(0.25));
+	--medium: color(green alpha(0.25));
+	--dark: color(green alpha(0.25));
 }
 
 '''
@@ -89,26 +83,29 @@ class css:
 	@staticmethod
 	def generate(layout: Layout):
 		css_string = base_css
+		css_string += 'html {{ font-size: {}px; }}'.format(layout.font_size * layout._em_width_to_rem)
+		css_string += 'body {{ font-size: {}px; }}'.format(layout.font_size)
+
 		for c in css.instances:
 			css_string += '#{}{{'.format(c.css_id)
 			if not c.height is None:
-				css_string += 'height:{}rem;'.format(layout.to_rem(c.height))
+				css_string += 'height:{}rem;'.format(c.height)
 			if not c.width is None:
-				css_string += 'width:{}rem;'.format(layout.to_rem(c.width))
+				css_string += 'width:{}rem;'.format(c.width)
 			if not c.padding_top is None:
-				css_string += 'padding-top:{}rem;'.format(layout.to_rem(c.padding_top))
+				css_string += 'padding-top:{}rem;'.format(c.padding_top)
 			if not c.padding_bottom is None:
-				css_string += 'padding-bottom:{}rem;'.format(layout.to_rem(c.padding_bottom))
+				css_string += 'padding-bottom:{}rem;'.format(c.padding_bottom)
 			if not c.padding_left is None:
-				css_string += 'padding-left:{}rem;'.format(layout.to_rem(c.padding_left))
+				css_string += 'padding-left:{}rem;'.format(c.padding_left)
 			if not c.padding_right is None:
-				css_string += 'padding-right:{}rem;'.format(layout.to_rem(c.padding_right))
+				css_string += 'padding-right:{}rem;'.format(c.padding_right)
 			if not c.background_color is None:
 				css_string += 'background-color:{};'.format(c.background_color)
 			if not c.color is None:
 				css_string += 'color:{};'.format(c.color)
 			if not c.radius is None:
-				css_string += 'border-radius:{}rem;'.format(layout.to_rem(c.radius))
+				css_string += 'border-radius:{}rem;'.format(c.radius)
 			if not c.raw is None:
 				css_string += c.raw
 

@@ -40,8 +40,9 @@ class Image:
 		self.file_light = file_light
 		self.file_dark = file_dark
 
-	def data(self, layout: Layout) -> str:
-		if layout.luminocity() < 0.5:
+
+	def data(self, layout: Layout|None = None) -> str:
+		if layout and layout.luminocity() < 0.5:
 			file = self.file_light
 		else:
 			file = self.file_dark

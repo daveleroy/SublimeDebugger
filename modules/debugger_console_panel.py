@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 	def __init__(self, debugger: Debugger) -> None:
-		super().__init__(debugger, 'Debugger Console', show_tabs=True)
+		super().__init__(debugger, 'Debugger Console', name='Console', show_tabs=True)
 
 		self.on_input: core.Event[str] = core.Event()
 		self.on_navigate: core.Event[dap.SourceLocation] = core.Event()
@@ -36,7 +36,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		settings = self.view.settings()
 		settings.set('line_numbers', False)
 		settings.set('gutter', False)
-		settings.set('font_size', Settings.ui_scale)
+
 		settings.set('draw_unicode_white_space', 'none')
 		settings.set('fade_fold_buttons', False)
 		settings.set('scroll_past_end', False)

@@ -118,6 +118,7 @@ class InputList(sublime_plugin.ListInputHandler):
 		return (items, self.index)
 
 	def confirm(self, value: int, event: dict):
+		modifier_keys = event.get('modifier_keys', {})
 		is_alt = modifier_keys.get('super') or modifier_keys.get('alt')
 
 		if is_alt:

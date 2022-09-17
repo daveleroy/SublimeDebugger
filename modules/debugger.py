@@ -522,10 +522,8 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.console.set_input_mode()
 
 	def _on_project_or_settings_updated(self):
-		# these settings control the size of the ui calculated in ui/layout
-		settings = self.panels.view.settings()
-		settings['font_size'] = Settings.ui_scale
-		settings['rem_width_scale'] = Settings.ui_rem_width_scale
+		for panel in self.output_panels:
+			panel.update_settings()
 
 	def _on_session_active(self, session: dap.Session):
 		if not self.is_active:
