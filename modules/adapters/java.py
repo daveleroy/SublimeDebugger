@@ -110,8 +110,6 @@ class Java(dap.AdapterConfiguration):
 		'''
 		Returns the response or raises an exception.
 		'''
-
-		# probably need to add some sort of timeout
 		future = core.Future()
 
 		id = Java.jdtls_bridge_current_id
@@ -125,8 +123,11 @@ class Java(dap.AdapterConfiguration):
 			'debugger_jdtls_bridge_request',
 			{'id': id, 'callback_command': 'debugger_jdtls_bridge_response', 'method': method, 'params': params}
 		)
-
-		command_response = await future
+		sublime.set_timeout(lambda: future.cancel(), 2500)
+		try:
+			command_response = await future
+		except core.CancelledError:
+			raise core.Error('Unable to connect to LSP-jdtls (timed out)')
 
 		del Java.jdtls_bridge[id]
 
