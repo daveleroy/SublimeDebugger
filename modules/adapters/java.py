@@ -10,7 +10,7 @@
 #       "command": "vscode.java.startDebugSession"
 #   }
 
-from ..typecheck import Optional, Dict, Any
+from ..typecheck import Optional, Dict, Any, Tuple
 from ..import core
 from ..import dap
 from .import util
@@ -82,6 +82,12 @@ class Java(dap.AdapterConfiguration):
 	@property
 	def configuration_schema(self) -> Optional[dict]:
 		return util.vscode.configuration_schema(self.type)
+
+	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str]]:
+		if not source.source.path or not source.source.path.startswith("jdt:"):
+			return None
+		content = await self.get_class_content_for_uri(source.source.path)
+		return content, "text/java"
 
 	async def get_class_content_for_uri(self, uri):
 		return await self.lsp_request("java/classFileContents", {"uri": uri})

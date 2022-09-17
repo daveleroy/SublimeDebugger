@@ -17,6 +17,7 @@ import sublime
 syntax_name_for_mime_type: dict[str|None, str] = {
 	'text/plain': 'text.plain',
 	'text/javascript': 'source.js',
+	'text/java': 'source.java',
 	'text/x-lldb.disassembly': 'source.disassembly',
 }
 
@@ -99,22 +100,27 @@ class SourceNavigationProvider:
 			self.generated_view = None
 
 	async def navigate_to_source(self, source: dap.SourceLocation, move_cursor: bool = False) -> sublime.View:
-		# TODO: Prevent circular import using interface
-		from .adapters.java import Java
+		# Check if adapter want to provide content
+		if self.debugger.session:
+			adapter_content = await self.debugger.session.adapter_configuration.on_navigate_to_source(source)
+		else:
+			adapter_content = None
 
 		# if we aren't going to reuse the previous generated view throw away any generated view
-		if not source.source.sourceReference:
+		if adapter_content or source.source.sourceReference:
 			self.clear_generated_view()
 
 		line = (source.line or 1) - 1
 		column = (source.column or 1) - 1
 
-		if source.source.sourceReference:
-			session = self.debugger.session
-			if not session:
-				raise core.Error('No Active Debug Session')
-
-			content, mime_type = await session.get_source(source.source)
+		if adapter_content or source.source.sourceReference:
+			if adapter_content:
+				content, mime_type = adapter_content
+			else:
+				session = self.debugger.session
+				if not session:
+					raise core.Error('No Active Debug Session')
+				content, mime_type = await session.get_source(source.source)
 
 			# the generated view was closed (no buffer) throw it away
 			if self.generated_view and not self.generated_view.buffer_id():
@@ -126,7 +132,6 @@ class SourceNavigationProvider:
 			view.set_name(source.source.name or "")
 			view.set_read_only(False)
 
-
 			syntax = syntax_name_for_mime_type.get(mime_type, 'text.plain')
 			view.assign_syntax(sublime.find_syntax_by_scope(syntax)[0])
 
@@ -135,26 +140,7 @@ class SourceNavigationProvider:
 			view.set_read_only(True)
 			view.set_scratch(True)
 		elif source.source.path:
-			if source.source.path.startswith("jdt:") and self.debugger.session and isinstance(self.debugger.session.adapter_configuration, Java):
-				# the generated view was closed (no buffer) throw it away
-				if self.generated_view and not self.generated_view.buffer_id():
-					self.clear_generated_view()
-
-				view = self.generated_view or self.project.window.new_file()
-				self.project.window.set_view_index(view, 0, len(self.project.window.views_in_group(0)))
-				self.generated_view = view
-				view.set_name(source.source.name or "")
-				view.set_read_only(False)
-
-				view.assign_syntax(sublime.find_syntax_by_scope("source.java")[0])
-				content = await self.debugger.session.adapter_configuration.get_class_content_for_uri(source.source.path)
-
-				replace_contents(view, content)
-
-				view.set_read_only(True)
-				view.set_scratch(True)
-			else:
-				view = await core.sublime_open_file_async(self.project.window, source.source.path, group=0)
+			view = await core.sublime_open_file_async(self.project.window, source.source.path, group=0)
 		else:
 			raise core.Error('source has no reference or path')
 

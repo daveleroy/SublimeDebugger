@@ -2,6 +2,7 @@ from __future__ import annotations
 from ..typecheck import *
 
 from ..import core
+from ..import dap
 from .transport import Transport
 
 import sublime
@@ -76,6 +77,14 @@ class AdapterConfiguration:
 
 	def ui(self, debugger: Debugger) -> Any|None:
 		...
+
+	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str]]:
+		"""
+		Allows the adapter to supply content when navigating to source.
+		Returns: None to keep the default behavior, else a tuple (content, mime_type)
+		"""
+		return None
+
 
 class Configuration(Dict[str, Any]):
 	def __init__(self, name: str, index: int, type: str, request: str, all: dict[str, Any]):
