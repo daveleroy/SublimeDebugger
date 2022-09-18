@@ -801,16 +801,23 @@ class Session(TransportProtocolListener):
 			for thread in self.threads:
 				thread.set_stopped(None)
 
-		thread_id = stopped.threadId
-		assert thread_id # not sure why this is optional...
 
-		# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
-		thread = self.get_thread(thread_id)
-		thread.set_stopped(stopped)
+		if stopped.threadId is not None:
+			stopped_thread_id = stopped.threadId
+		elif self.threads:
+			stopped_thread_id = self.threads[0].id
+		else:
+			stopped_thread_id = None
 
-		if not self.selected_explicitly:
-			self.select(thread, None, explicitly=False)
-			self.expand_thread(thread)
+		if stopped_thread_id is not None:
+			thread = self.get_thread(stopped_thread_id)
+
+			# @NOTE this thread might be new and not in self.threads so we must update its state explicitly
+			thread.set_stopped(stopped)
+
+			if not self.selected_explicitly:
+				self.select(thread, None, explicitly=False)
+				self.expand_thread(thread)
 
 		self.listener.on_session_updated_threads(self)
 		self.refresh_threads()
