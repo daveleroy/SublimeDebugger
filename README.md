@@ -41,6 +41,10 @@ This project comes with some pre-configured debuggers (They can be installed usi
 ##### PHP
 - See https://github.com/felixfbecker/vscode-php-debug
 
+##### Java
+- Requires [LSP](https://packagecontrol.io/packages/LSP) and [LSP-jdtls](https://packagecontrol.io/packages/LSP-jdtls)
+- See https://github.com/redhat-developer/vscode-java
+
 ## Setup
 - Open the debug panel
   - from the command palette `Debugger: Open`

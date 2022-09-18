@@ -775,8 +775,11 @@ class Session(TransportProtocolListener):
 	# @NOTE threads_for_id will retain all threads for the entire session even if they are removed
 	@core.schedule
 	async def refresh_threads(self):
-		response = await self.request('threads', None)
-		threads: list[dap.Thread] = response['threads']
+		# the Java debugger requires an empty object instead of `None`
+		# See https://github.com/daveleroy/sublime_debugger/pull/106#issuecomment-793802989
+		response = await self.request('threads', {})
+		# See https://github.com/daveleroy/sublime_debugger/pull/106#issuecomment-795949070
+		threads: list[dap.Thread] = response.get('threads', [])
 
 		self.threads.clear()
 		for thread in threads:
