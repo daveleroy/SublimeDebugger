@@ -75,13 +75,29 @@ class Java(dap.AdapterConfiguration):
 		if len(mainclasses) == 1:
 			return mainclasses[0]['mainClass'], mainclasses[0]['projectName']
 
+
 		# Show panel
 		future_index = core.Future()
 		items = [sublime.QuickPanelItem(x['mainClass'], x['filePath'], "", (3, "", "")) for x in mainclasses]
+		# Preselect mainclass associated with active view
+		selected_index = -1
+		view = sublime.active_window().active_view()
+		if view:
+			for i, mainclass in enumerate(mainclasses):
+				if mainclass['filePath'] == view.file_name():
+					selected_index = i
+					break
 		if sublime.version() < '4081':
-			sublime.active_window().show_quick_panel(items, lambda idx: future_index.set_result(idx), sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST)
+			sublime.active_window().show_quick_panel(items,
+			                                         lambda idx: future_index.set_result(idx),
+			                                         sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST,
+			                                         selected_index)
 		else:
-			sublime.active_window().show_quick_panel(items, lambda idx: future_index.set_result(idx), sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST, placeholder="Select Mainclass")
+			sublime.active_window().show_quick_panel(items,
+			                                         lambda idx: future_index.set_result(idx),
+			                                         sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST,
+			                                         selected_index,
+			                                         placeholder="Select Mainclass")
 		index = await future_index
 
 		if index == -1:
