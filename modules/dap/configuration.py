@@ -96,10 +96,10 @@ class AdapterConfiguration:
 	def ui(self, debugger: Debugger) -> Any|None:
 		...
 
-	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str]]:
+	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str, List[Tuple[str, Any]]]]:
 		"""
 		Allows the adapter to supply content when navigating to source.
-		Returns: None to keep the default behavior, else a tuple (content, mime_type)
+		Returns: None to keep the default behavior, else a tuple (content, mime_type, custom_view_settings)
 		"""
 		return None
 

@@ -1,4 +1,4 @@
-from ..typecheck import Optional, Dict, Any, Tuple
+from ..typecheck import Optional, Dict, Any, Tuple, List
 from ..import core
 from ..import dap
 from .import util
@@ -51,11 +51,11 @@ class Java(dap.AdapterConfiguration):
 
 		return dap.SocketTransport(log, 'localhost', port)
 
-	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str]]:
+	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str, List[Tuple[str, Any]]]]:
 		if not source.source.path or not source.source.path.startswith('jdt:'):
 			return None
 		content = await self.get_class_content_for_uri(source.source.path)
-		return content, 'text/java'
+		return content, 'text/java', [("lsp_uri", source.source.path)]
 
 	async def get_class_content_for_uri(self, uri):
 		return await self.lsp_request('java/classFileContents', {'uri': uri})

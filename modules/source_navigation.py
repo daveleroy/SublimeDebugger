@@ -115,12 +115,13 @@ class SourceNavigationProvider:
 
 		if adapter_content or source.source.sourceReference:
 			if adapter_content:
-				content, mime_type = adapter_content
+				content, mime_type, custom_settings = adapter_content
 			else:
 				session = self.debugger.session
 				if not session:
 					raise core.Error('No Active Debug Session')
 				content, mime_type = await session.get_source(source.source)
+				custom_settings = []
 
 			# the generated view was closed (no buffer) throw it away
 			if self.generated_view and not self.generated_view.buffer_id():
@@ -131,6 +132,7 @@ class SourceNavigationProvider:
 			self.generated_view = view
 			view.set_name(source.source.name or "")
 			view.set_read_only(False)
+			view.settings().update(custom_settings)
 
 			syntax = syntax_name_for_mime_type.get(mime_type, 'text.plain')
 			view.assign_syntax(sublime.find_syntax_by_scope(syntax)[0])
