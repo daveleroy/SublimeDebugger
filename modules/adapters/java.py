@@ -28,21 +28,19 @@ class Java(dap.AdapterConfiguration):
 		if 'LSP-jdtls' not in installed_packages or 'LSP' not in installed_packages:
 			raise core.Error('LSP and LSP-jdtls required to debug Java!')
 
-		# Get configuration from LSP
-		lsp_config = await self.get_configuration_from_lsp()
-
 		# Configure debugger
-		if 'cwd' not in configuration:
+		def _is_undefined(key):
+			return key not in configuration or isinstance(configuration[key], str) and not configuration[key]
+
+		if _is_undefined('cwd'):
 			configuration['cwd'], _ = os.path.split(sublime.active_window().project_file_name())
-		if 'mainClass' not in configuration or not configuration['mainClass']:
-			configuration['mainClass'] = lsp_config['mainClass']
-		if 'classPaths' not in configuration:
-			configuration['classPaths'] = lsp_config['classPaths']
-		if 'modulePaths' not in configuration:
-			configuration['modulePaths'] = lsp_config['modulePaths']
-		if 'console' not in configuration:
+		if _is_undefined('console'):
 			configuration['console'] = 'internalConsole'
-		if lsp_config['enablePreview']:
+
+		configuration['mainClass'], configuration['projectName'] = await self._get_mainclass_project_name(None if _is_undefined('mainClass') else configuration['mainClass'])
+		if _is_undefined('classPaths') and _is_undefined('modulePaths'):
+			configuration['modulePaths'], configuration['classPaths'] = await self._resolve_modulepath_classpath(configuration['mainClass'], configuration['projectName'])
+		if await self._is_preview_enabled(configuration['mainClass'], configuration['projectName']):
 			if 'vmArgs' in configuration:
 				configuration['vmArgs'] += ' --enable-preview'
 			else:
@@ -62,33 +60,56 @@ class Java(dap.AdapterConfiguration):
 	async def get_class_content_for_uri(self, uri):
 		return await self.lsp_request('java/classFileContents', {'uri': uri})
 
-	async def get_configuration_from_lsp(self) -> dict:
-		lsp_config = {}
-
-		mainclass_resp = await self.lsp_execute_command('vscode.java.resolveMainClass')
-		if not mainclass_resp or 'mainClass' not in mainclass_resp[0]:
+	async def _get_mainclass_project_name(self, preferred_mainclass=None):
+		mainclasses = await self.lsp_execute_command('vscode.java.resolveMainClass')
+		if not mainclasses:
 			raise core.Error('Failed to resolve main class')
-		else:
-			lsp_config['mainClass'] = mainclass_resp[0]['mainClass']
-			lsp_config['projectName'] = mainclass_resp[0].get('projectName', '')
 
+		if preferred_mainclass:
+			matches = [x for x in mainclasses if x['mainClass'] == preferred_mainclass]
+			if matches:
+				return matches[0]['mainClass'], matches[0]['projectName']
+			else:
+				raise core.Error('Mainclass {} not found. Check your debugger configuration or leave "mainClass" empty to detect the mainclass automatically'.format(preferred_mainclass))
+
+		if len(mainclasses) == 1:
+			return mainclasses[0]['mainClass'], mainclasses[0]['projectName']
+
+		# Show panel
+		future_index = core.Future()
+		items = [sublime.QuickPanelItem(x['mainClass'], x['filePath'], "", (3, "", "")) for x in mainclasses]
+		if sublime.version() < '4081':
+			sublime.active_window().show_quick_panel(items, lambda idx: future_index.set_result(idx), sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST)
+		else:
+			sublime.active_window().show_quick_panel(items, lambda idx: future_index.set_result(idx), sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST, placeholder="Select Mainclass")
+		index = await future_index
+
+		if index == -1:
+			raise core.Error("Please specify a main class")
+
+		return mainclasses[index]['mainClass'], mainclasses[index]['projectName']
+
+	async def _resolve_modulepath_classpath(self, main_class, project_name):
 		classpath_response = await self.lsp_execute_command(
-			'vscode.java.resolveClasspath', [lsp_config['mainClass'], lsp_config['projectName']]
+			'vscode.java.resolveClasspath', [main_class, project_name]
 		)
 		if not classpath_response[0] and not classpath_response[1]:
-			raise core.Error('Failed to resolve classpaths/modulepaths')
-		else:
-			lsp_config['modulePaths'] = classpath_response[0]
-			lsp_config['classPaths'] = classpath_response[1]
+			raise core.Error('Failed to resolve classpaths/modulepaths automatically, please specify the value in the debugger configuration')
 
+		module_paths = classpath_response[0]
+		class_paths = classpath_response[1]
+		return module_paths, class_paths
+
+
+	async def _is_preview_enabled(self, main_class, project_name) -> dict:
 		# See https://github.com/microsoft/vscode-java-debug/blob/b2a48319952b1af8a4a328fc95d2891de947df94/src/configurationProvider.ts#L297
-		lsp_config['enablePreview'] = await self.lsp_execute_command(
+		return await self.lsp_execute_command(
 		    'vscode.java.checkProjectSettings',
 		    [
                 json.dumps(
                     {
-                        'className': lsp_config['mainClass'],
-                        'projectName': lsp_config['projectName'],
+                        'className': main_class,
+                        'projectName': project_name,
                         'inheritedOptions': True,
                         'expectedOptions': {
                             'org.eclipse.jdt.core.compiler.problem.enablePreviewFeatures': 'enabled'
@@ -97,8 +118,6 @@ class Java(dap.AdapterConfiguration):
                 )
             ]
 		)
-
-		return lsp_config
 
 	async def lsp_execute_command(self, command, arguments=None):
 		request_params = { 'command': command }
