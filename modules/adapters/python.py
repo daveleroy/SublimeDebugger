@@ -52,7 +52,7 @@ class Python(dap.AdapterConfiguration):
 
 			if venv:
 				python, folder = venv
-				log.info('Using virtual environment `{}`'.format(folder))
+				log.info('Detected virtual environment for `{}`'.format(folder))
 			elif shutil.which('python3'):
 				python = shutil.which('python3')
 			else:
