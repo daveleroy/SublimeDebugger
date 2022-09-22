@@ -43,14 +43,15 @@ class Python(dap.AdapterConfiguration):
 		python = configuration.get('pythonPath') or configuration.get('python')
 
 		if not python:
-			if 'program' in configuration:
-				venvPython = self.resolve_python_path_for_program(log, Path(configuration['program']))
+			if 'cwd' in configuration:
+				venv = self.get_venv(log, Path(configuration['cwd']))
+			elif 'program' in configuration:
+				venv = self.get_venv(log, Path(configuration['program']).parent)
 			else:
-				# For example when attaching to running process
-				venvPython = None
+				venv = None
 
-			if venvPython:
-				python, folder = venvPython
+			if venv:
+				python, folder = venv
 				log.info('Using virtual environment `{}`'.format(folder))
 			elif shutil.which('python3'):
 				python = shutil.which('python3')
@@ -85,8 +86,11 @@ class Python(dap.AdapterConfiguration):
 
 		return configuration
 
-	def resolve_python_path_for_program(self, log: core.Logger, program: Path) -> Optional[Tuple[Path, Path]]:
-		for folder in program.resolve().parents:
+	def get_venv(self, log: core.Logger, start: Path) -> Optional[Tuple[Path, Path]]:
+		"""
+		Searches a venv in `start` all its parent directories.
+		"""
+		for folder in start.resolve().parents:
 			python_path = self.resolve_python_path_from_venv_folder(log, folder)
 			if python_path:
 				return python_path, folder
