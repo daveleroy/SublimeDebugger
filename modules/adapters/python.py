@@ -7,6 +7,10 @@ from .. import core
 
 import sublime
 import shutil
+import os
+import subprocess
+import shlex
+from pathlib import Path
 
 class Python(dap.AdapterConfiguration):
 
@@ -38,14 +42,25 @@ class Python(dap.AdapterConfiguration):
 
 		python = configuration.get('pythonPath') or configuration.get('python')
 
+		if 'program' in configuration:
+			venvPython = self.resolve_python_path_for_programm(log, Path(configuration['program']))
+		else:
+			# For example when attaching to running process
+			venvPython = None
+
 		if not python:
-			if shutil.which('python3'):
+			if venvPython:
+				python, folder = venvPython
+				log.info('Using virtual environment `{}`'.format(folder))
+			elif shutil.which('python3'):
 				python = shutil.which('python3')
 			else:
 				python = shutil.which('python')
 
 		if not python:
 			raise core.Error('Unable to find `python3` or `python`')
+
+		log.info('Using python `{}`'.format(python))
 
 		command = [
 			python,
@@ -69,3 +84,66 @@ class Python(dap.AdapterConfiguration):
 				sublime.error_message('Warning: Check your debugger configuration.\n\nBold fields `program` and `module` in configuration are empty. If they contained a $variable that variable may not have existed.')
 
 		return configuration
+
+	def resolve_python_path_for_programm(self, log: core.Logger, program: Path) -> Optional[Tuple[Path, Path]]:
+		for folder in program.resolve().parents:
+			python_path = self.resolve_python_path_from_venv_folder(log, folder)
+			if python_path:
+				return python_path, folder
+		return None
+
+	def resolve_python_path_from_venv_folder(self, log: core.Logger, folder: Path) -> Optional[Path]:
+		"""
+		Resolves the python binary from venv.
+		"""
+
+		def binary_from_python_path(path: Path) -> Optional[Path]:
+			if sublime.platform() == 'windows':
+				binary_path = path / 'Scripts' / 'python.exe'
+			else:
+				binary_path = path / 'bin' / 'python'
+
+			return binary_path if os.path.isfile(binary_path) else None
+
+
+		# Config file, venv resolution command, post-processing
+		venv_config_files = [
+			('Pipfile', ['pipenv', '--py'], None),
+			('poetry.lock', ['poetry', 'env', 'info', '-p'], binary_from_python_path),
+			('.python-version', ['pyenv', 'which', 'python'], None),
+		]  # type: List[Tuple[str, List[str], Optional[Callable[[Path], Optional[Path]]]]]
+
+		if sublime.platform() == 'windows':
+			# do not create a window for the process
+			startupinfo = subprocess.STARTUPINFO()  # type: ignore
+			startupinfo.wShowWindow = subprocess.SW_HIDE  # type: ignore
+			startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # type: ignore
+		else:
+			startupinfo = None  # type: ignore
+
+		for config_file, command, post_processing in venv_config_files:
+			full_config_file_path = folder / config_file
+			if os.path.isfile(full_config_file_path):
+				try:
+					python_path = Path(subprocess.check_output(
+						command, cwd=folder, startupinfo=startupinfo, universal_newlines=True
+					).strip())
+					return post_processing(python_path) if post_processing else python_path
+				except FileNotFoundError:
+					log.info('WARN: {} detected but {} not found'.format(config_file, command[0]))
+				except subprocess.CalledProcessError:
+					log.info(
+						'WARN: {} detected but {} exited with non-zero exit status'.format(
+							config_file, ' '.join(map(shlex.quote, command))
+						)
+					)
+
+		# virtual environment as subfolder in project
+		for file in folder.iterdir():
+			maybe_venv_path = folder / file
+			if os.path.isfile(maybe_venv_path / 'pyvenv.cfg'):
+				binary = binary_from_python_path(maybe_venv_path)
+				if binary is not None:
+					return binary  # found a venv
+
+		return None
