@@ -42,13 +42,13 @@ class Python(dap.AdapterConfiguration):
 
 		python = configuration.get('pythonPath') or configuration.get('python')
 
-		if 'program' in configuration:
-			venvPython = self.resolve_python_path_for_programm(log, Path(configuration['program']))
-		else:
-			# For example when attaching to running process
-			venvPython = None
-
 		if not python:
+			if 'program' in configuration:
+				venvPython = self.resolve_python_path_for_programm(log, Path(configuration['program']))
+			else:
+				# For example when attaching to running process
+				venvPython = None
+
 			if venvPython:
 				python, folder = venvPython
 				log.info('Using virtual environment `{}`'.format(folder))
