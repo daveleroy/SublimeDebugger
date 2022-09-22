@@ -44,7 +44,7 @@ class Python(dap.AdapterConfiguration):
 
 		if not python:
 			if 'program' in configuration:
-				venvPython = self.resolve_python_path_for_programm(log, Path(configuration['program']))
+				venvPython = self.resolve_python_path_for_program(log, Path(configuration['program']))
 			else:
 				# For example when attaching to running process
 				venvPython = None
@@ -77,7 +77,7 @@ class Python(dap.AdapterConfiguration):
 		else:
 			core.error(f'event ignored not implemented {event}')
 
-	# TODO: patch in env since python seems to not inherit it from the adapter proccess.
+	# TODO: patch in env since python seems to not inherit it from the adapter process.
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'launch':
 			if not configuration.get('program') and not configuration.get('module'):
@@ -85,7 +85,7 @@ class Python(dap.AdapterConfiguration):
 
 		return configuration
 
-	def resolve_python_path_for_programm(self, log: core.Logger, program: Path) -> Optional[Tuple[Path, Path]]:
+	def resolve_python_path_for_program(self, log: core.Logger, program: Path) -> Optional[Tuple[Path, Path]]:
 		for folder in program.resolve().parents:
 			python_path = self.resolve_python_path_from_venv_folder(log, folder)
 			if python_path:
