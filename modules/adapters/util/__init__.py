@@ -1,4 +1,4 @@
-from .dependencies import get_and_warn_require_node, get_open_port
+from .dependencies import get_and_warn_require_node, get_open_port, require_package
 
 from .git import GitInstaller
 from .openvsx import OpenVsxInstaller

@@ -103,6 +103,12 @@ class Settings:
 		description='Sets a specific path for node if not set adapters that require node to run will use whatever is in your path'
 	)
 
+	installed_packages = Setting['list[str]'] (
+		key='installed_packages',
+		default=[],
+		description='Some debug adapters require certain packages to be installed via package control. If you have installed these package outside of package control then you can add them to this list and they will be treated as if they are installed.'
+	)
+
 
 class SettingsRegistery:
 	settings: sublime.Settings

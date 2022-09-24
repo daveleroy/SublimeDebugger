@@ -1,16 +1,16 @@
-from ..typecheck import Optional, Dict, Any, Tuple, List
+from __future__ import annotations
+from typing import Any
 from ..import core
 from ..import dap
 from .import util
 
 import sublime
 import sublime_plugin
-import os
 import json
 
 
 class Java(dap.AdapterConfiguration):
-	jdtls_bridge: Dict[int, core.Future] = {}
+	jdtls_bridge: dict[int, core.Future] = {}
 	jdtls_bridge_current_id = 0
 
 	type = 'java'
@@ -23,10 +23,8 @@ class Java(dap.AdapterConfiguration):
 
 	async def start(self, log, configuration):
 		# Make sure LSP and LSP-JDTLS are installed
-		pc_settings = sublime.load_settings('Package Control.sublime-settings')
-		installed_packages = pc_settings.get('installed_packages', [])
-		if 'LSP-jdtls' not in installed_packages or 'LSP' not in installed_packages:
-			raise core.Error('LSP and LSP-jdtls required to debug Java!')
+		util.require_package('LSP-jdtls')
+		util.require_package('LSP')
 
 		# Configure debugger
 		def _is_undefined(key):
@@ -40,6 +38,7 @@ class Java(dap.AdapterConfiguration):
 		configuration['mainClass'], configuration['projectName'] = await self._get_mainclass_project_name(None if _is_undefined('mainClass') else configuration['mainClass'])
 		if _is_undefined('classPaths') and _is_undefined('modulePaths'):
 			configuration['modulePaths'], configuration['classPaths'] = await self._resolve_modulepath_classpath(configuration['mainClass'], configuration['projectName'])
+
 		if await self._is_preview_enabled(configuration['mainClass'], configuration['projectName']):
 			if 'vmArgs' in configuration:
 				configuration['vmArgs'] += ' --enable-preview'
@@ -51,7 +50,7 @@ class Java(dap.AdapterConfiguration):
 
 		return dap.SocketTransport(log, 'localhost', port)
 
-	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str, List[Tuple[str, Any]]]]:
+	async def on_navigate_to_source(self, source: dap.SourceLocation) -> tuple[str, str, list[tuple[str, Any]]]|None:
 		if not source.source.path or not source.source.path.startswith('jdt:'):
 			return None
 		content = await self.get_class_content_for_uri(source.source.path)
@@ -177,4 +176,5 @@ class DebuggerJdtlsBridgeResponseCommand(sublime_plugin.WindowCommand):
 		if not future:
 			print('Unable to find a future for this id')
 			return
+		
 		future.set_result(args)

@@ -1,10 +1,12 @@
-from ...typecheck import*
+from __future__ import annotations
+
 from ...settings import Settings
 from ...import core
 from ...import dap
 
 import socket
 import shutil
+import sublime
 
 def version_tuple(v):
 	return tuple(v.split('.'))
@@ -31,3 +33,17 @@ def get_open_port() -> int:
 		sock.bind(('localhost', 0))
 		port = sock.getsockname()[1]
 		return port
+
+def require_package(package: str):
+	pc_settings = sublime.load_settings('Package Control.sublime-settings')
+	installed_packages = pc_settings.get('installed_packages', [])
+
+	for installed_package in installed_packages:
+		if installed_package == package:
+			return
+
+	for installed_package in Settings.installed_packages:
+		if installed_package == package:
+			return
+
+	raise core.Error(f'{package} must be installed via package control or listed in `installed_packages` if installed outside of package control')
