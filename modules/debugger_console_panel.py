@@ -33,6 +33,9 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self.phantoms = []
 		self.input_size = 0
 
+		self.indent = ''
+		self.forced_indent = ''
+
 		settings = self.view.settings()
 		settings.set('line_numbers', False)
 		settings.set('gutter', False)
@@ -65,7 +68,6 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		if type == 'telemetry':
 			return
 
-
 		color_for_type: dict[str|None, str|None] = {
 			'stderr': 'red',
 			'stdout': 'foreground',
@@ -73,8 +75,11 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 			'debugger.info': 'blue',
 		}
 
+		if event.group == 'end':
+			self.end_indent()
+
 		if event.variablesReference:
-			self.write(f' \n', color_for_type.get(type), ensure_new_line=True)
+			self.write(f' \n', color_for_type.get(type), ensure_new_line=True, ignore_indent=False)
 			placeholder = self.add_annotation(self.at() - 1, event.source, event.line)
 
 			async def appendVariabble(variablesReference: int) -> None:
@@ -95,10 +100,24 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 			core.run(appendVariabble(event.variablesReference))
 
 		elif event.output:
-			self.write(event.output, color_for_type.get(type))
+			self.write(event.output, color_for_type.get(type), ignore_indent=False)
 			if event.source:
 				self.add_annotation(self.at() - 1, event.source, event.line)
 
+		if event.group == 'start' or event.group == 'startCollapsed':
+			self.start_indent()
+
+	def start_indent(self, forced: bool = False):
+		if forced:
+			self.forced_indent += '\t'
+		else:
+			self.indent += '\t'
+
+	def end_indent(self, forced: bool = False):
+		if forced:
+			self.forced_indent = self.forced_indent[:-1]
+		else:
+			self.indent = self.indent[:-1]
 
 	def scroll_to_end(self):
 		super().scroll_to_end()
@@ -109,7 +128,14 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 			return input.a
 		return self.view.size()
 
-	def write(self, text: str, color: str|None, ensure_new_line=False):
+	def write(self, text: str, color: str|None, ensure_new_line=False, ignore_indent: bool = True):
+
+		if not ignore_indent and self.indent:
+			text = self.indent + text
+
+		if self.forced_indent:
+			text = self.forced_indent + text
+
 		# if we are changing color we want it on its own line
 		if ensure_new_line or self.color != color:
 			text = self.ensure_new_line(text)
@@ -144,9 +170,12 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 				component
 			]
 
-		# remove trailing \n if it exists since we already inserted a newline to place this variable in
-		content = (variable.value or variable.name or '{variable}').rstrip('\n')
-		self.edit(lambda edit: self.view.insert(edit, at, content))
+		def edit(edit: sublime.Edit):
+			# remove trailing \n if it exists since we already inserted a newline to place this variable in
+			content = (variable.value or variable.name or '{variable}').rstrip('\n')
+			self.view.insert(edit, at, content)
+
+		self.edit(edit)
 
 		phantom = ui.RawPhantom(self.view, sublime.Region(at, at), html, on_navigate=on_navigate)
 		self.phantoms.append(phantom)
@@ -180,6 +209,8 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		return lambda: self.view.get_regions(f'an{at}')[0].a
 
 	def clear(self):
+		self.indent = ''
+		self.forced_indent = ''
 		self.protocol.clear()
 		self.dispose_phantoms()
 		self.edit(lambda edit: self.view.replace(edit, sublime.Region(0, self.view.size()), ''))
@@ -335,12 +366,22 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		elif type == 'error':
 			self.write(str(value).rstrip('\n'), 'red', ensure_new_line=True)
 			self.open()
+		elif type == 'group-start':
+			self.write(str(value), None, ensure_new_line=True)
+			self.start_indent(forced=True)
+		elif type == 'group-end':
+			self.end_indent(forced=True)
+			self.write(str(value), None, ensure_new_line=True)
+		elif type == 'stdout':
+			self.write(str(value), None)
 		elif type == 'stderr':
 			self.write(str(value), 'red')
 		elif type == 'stdout':
 			self.write(str(value), None)
 		elif type == 'warn':
 			self.write(str(value).rstrip('\n'), 'yellow', ensure_new_line=True)
+		elif type == 'success':
+			self.write(str(value).rstrip('\n'), 'green', ensure_new_line=True)
 		else:
 			self.write(str(value).rstrip('\n'), 'comment', ensure_new_line=True)
 
