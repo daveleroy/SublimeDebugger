@@ -1,9 +1,10 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from dataclasses import dataclass
 
 import os
 
-from ..typecheck import *
 from ..import core
 from .import dap
 

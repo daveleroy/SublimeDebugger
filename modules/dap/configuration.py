@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import TYPE_CHECKING, Any, Dict
 
 from ..import core
 from ..import dap
@@ -96,7 +96,7 @@ class AdapterConfiguration:
 	def ui(self, debugger: Debugger) -> Any|None:
 		...
 
-	async def on_navigate_to_source(self, source: dap.SourceLocation) -> Optional[Tuple[str, str, List[Tuple[str, Any]]]]:
+	async def on_navigate_to_source(self, source: dap.SourceLocation) -> tuple[str, str, list[tuple[str, Any]]]|None:
 		"""
 		Allows the adapter to supply content when navigating to source.
 		Returns: None to keep the default behavior, else a tuple (content, mime_type, custom_view_settings)
@@ -130,8 +130,8 @@ class ConfigurationExpanded(Configuration):
 		super().__init__(configuration.name, -1, configuration.type, configuration.request, all)
 
 		self.variables = variables
-		self.pre_debug_task: Optional[TaskExpanded] = None
-		self.post_debug_task: Optional[TaskExpanded] = None
+		self.pre_debug_task: TaskExpanded|None = None
+		self.post_debug_task: TaskExpanded|None = None
 
 
 class ConfigurationCompound:
