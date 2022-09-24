@@ -4,6 +4,7 @@ from .gdb import GDB
 from .js import Node
 
 from .python import Python
+from .java import Java
 from .go import Go
 from .php import PHP
 from .java import Java
