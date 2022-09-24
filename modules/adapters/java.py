@@ -33,7 +33,7 @@ class Java(dap.AdapterConfiguration):
 			return key not in configuration or isinstance(configuration[key], str) and not configuration[key]
 
 		if _is_undefined('cwd'):
-			configuration['cwd'], _ = os.path.split(sublime.active_window().project_file_name())
+			configuration['cwd'] = configuration.variables.get('folder')
 		if _is_undefined('console'):
 			configuration['console'] = 'internalConsole'
 
