@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+from .adapters_registry import AdaptersRegistry
+from .settings import SettingsRegistery
 from .typecheck import *
 
 from .debugger import Debugger
@@ -9,8 +12,8 @@ class Commands:
 	# if you add any commands use this command to regenerate any .sublime-menu files
 	# this command also regenerates the LSP-json package.json file for any installed adapters
 	generate_commands = Command(
-		name='Generate Commands',
-		action=lambda _: CommandsRegistry.generate_commands_and_menus(),
+		name='Generate Commands/Settings/Schema',
+		action=lambda _: (CommandsRegistry.generate_commands_and_menus(), AdaptersRegistry.recalculate_schema(), SettingsRegistery.generate_settings()),
 		flags=Command.menu_commands
 	)
 

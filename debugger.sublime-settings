@@ -1,17 +1,18 @@
 {
 	// Open the debugger automatically when a project that is set up for debugging
-	"open_at_startup" : true,
+	"open_at_startup": true,
 
 	// Sets the entire scale of the UI, defaults to font_size
 	"ui_scale": null,
 
 	// This value adjusts the estimated character width calculations used to align the ui
 	"ui_rem_width_scale": 1.0,
+
 	// If true ui_rem_width_scale will be adjusted based on if the debugger layout is over/under shooting the panel.
 	// Defaults to true on Windows/Linux
 	"ui_rem_width_scale_adjust_automatically": false,
 
-	// change at your own risk it may break the interface. Restart required to take effect
+	// Change at your own risk it may break the interface. Restart required to take effect
 	"font_face": "Monospace",
 
 	// Which external terminal should be used when an adapter requests an external terminal
@@ -19,35 +20,26 @@
 	// "terminus" Opens a new terminal view using terminus. The terminus package must be installed https://github.com/randy3k/Terminus
 	"external_terminal": "terminus",
 
-	// hide the status bar of the window when the debugger panel is open
-	"hide_status_bar": false,
-
-	// keep the debugger panel open unless another panel is being displayed
-	"keep_panel_open": false,
-
-	// currently not implemented
-	"bring_window_to_front_on_pause" : false,
-
+	// Some new features are locked behind this flag
 	"development": false,
+
 	"log_info": false,
+
 	"log_exceptions": true,
+
 	"log_errors": true,
 
-	// sets a specific path for node if not set adapters that require node to run will use whatever is in your path
+	// Sets a specific path for node if not set adapters that require node to run will use whatever is in your path
 	"node": null,
 
-	// sets a specific path for dlv if not set go will use whatever is in your path
+
+	// Which lldb library to use
+	"lldb_library": null,
+
+	// Sets a specific path for dlv if not set go will use whatever is in your path
 	"go_dlv": null,
 
-	// "auto", "always", "never"
-	"lldb_show_disassembly": "auto",
-	// "auto", "hex", "decimal", "binary"
-	"lldb_display_format": "auto",
-	"lldb_dereference_pointers": true,
-	// probably shouldn't set these
-	"lldb_library": null, // which lldb library to use
-	"lldb_python": null, // path to python (3.5 or greater?) that lldb will use
+	// Sets a specific path for `readapt` otherwise whatever is in your path will be used
+	"ruby_readapt": null,
 
-	"ruby_readapt": null, // sets a specific path for readapt if not set the ruby adapter will use whatever is in your path
 }
-

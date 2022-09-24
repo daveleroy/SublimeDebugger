@@ -1,48 +1,107 @@
 from __future__ import annotations
-
-from typing import Any, Callable
+from typing import Callable, Generic, TypeVar
+from . import core
 
 import sublime
 
-class SettingsMeta(type):
-	def __getattribute__(self, key: str) -> Any:
-		return SettingsRegistery.settings.get(key)
 
-	def __setattr__(self, key: str, value: Any) -> None:
-		SettingsRegistery.settings.set(key, value)
-		sublime.save_settings('debugger.sublime-settings')
+T = TypeVar('T')
+class Setting(Generic[T], object):
+	def __init__(self, key: str, default: T, description: str = '', visible = True) -> None:
+		self.key = key
+		self.default = default
+		self.description = description
+		self.visible = visible
 
-class Settings(metaclass=SettingsMeta):
-	open_at_startup: bool = True
-	ui_scale: int = 10
+	def __get__(self, obj, objtype=None) -> T:
+		return SettingsRegistery.settings.get(self.key, self.default)
 
-	ui_rem_width_scale: float = 1
-	ui_rem_width_scale_adjust_automatically: bool = False
+	def update(self, value: T):
+		SettingsRegistery.settings.set(self.key, value)
+		SettingsRegistery.save()
 
-	font_face: str = 'Monospace'
+	def __set__(self, obj, value: T):
+		SettingsRegistery.settings.set(self.key, value)
+		SettingsRegistery.save()
 
-	external_terminal: str = "terminus"
-	hide_status_bar: bool = False
-	keep_panel_open: bool = False
+
+class Settings:
+	open_at_startup = Setting[bool] (
+		key='open_at_startup',
+		default=True,
+		description='Open the debugger automatically when a project that is set up for debugging'
+	)
+
+	ui_scale = Setting['int|None'] (
+		key='ui_scale',
+		default=None,
+		description='Sets the entire scale of the UI, defaults to font_size'
+	)
+
+	ui_rem_width_scale = Setting[float] (
+		key='ui_rem_width_scale',
+		default=1.0,
+		description='This value adjusts the estimated character width calculations used to align the ui'
+	)
+	ui_rem_width_scale_adjust_automatically = Setting[bool] (
+		key='ui_rem_width_scale_adjust_automatically',
+		default=False,
+		description='''
+		If true ui_rem_width_scale will be adjusted based on if the debugger layout is over/under shooting the panel.
+		Defaults to true on Windows/Linux
+		'''
+	)
+
+	font_face = Setting[str] (
+		key='font_face',
+		default='Monospace',
+		description='''
+		Change at your own risk it may break the interface. Restart required to take effect
+		'''
+	)
+
+
+	external_terminal = Setting[str] (
+		key='external_terminal',
+		default='terminus',
+		description='''
+		Which external terminal should be used when an adapter requests an external terminal
+		"platform" (default) uses Terminal on MacOS, CMD (Not tested) on Windows, (Unimplemented) on Linux
+		"terminus" Opens a new terminal view using terminus. The terminus package must be installed https://github.com/randy3k/Terminus
+		'''
+	)
+
 	bring_window_to_front_on_pause: bool = False
 
-	development: bool = False
+	development = Setting[bool] (
+		key='development',
+		default=False,
+		description='Some new features are locked behind this flag'
+	)
 
-	log_info: bool = False
-	log_exceptions: bool = True
-	log_errors: bool = True
+	log_info = Setting[bool] (
+		key='log_info',
+		default=False,
+		description=''
+	)
 
-	node: str|None = None
+	log_exceptions = Setting[bool] (
+		key='log_exceptions',
+		default=True,
+		description=''
+	)
 
-	go_dlv: str|None = None
+	log_errors = Setting[bool] (
+		key='log_errors',
+		default=True,
+		description=''
+	)
 
-	lldb_show_disassembly: str = "auto"
-	lldb_display_format: str = "auto"
-	lldb_dereference_pointers: bool = True
-	lldb_library: str|None = None
-	lldb_python: str|None = None
-
-	ruby_readapt: str|None = None
+	node = Setting['str|None'] (
+		key='node',
+		default=None,
+		description='Sets a specific path for node if not set adapters that require node to run will use whatever is in your path'
+	)
 
 
 class SettingsRegistery:
@@ -58,3 +117,32 @@ class SettingsRegistery:
 	def save():
 		sublime.save_settings('debugger.sublime-settings')
 
+	@staticmethod
+	def generate_settings():
+		import gc
+		import json
+
+		output = '{\n'
+
+		for setting in gc.get_objects():
+			if not isinstance(setting, Setting):
+				continue
+
+			if not setting.visible: continue
+
+			lines = setting.description.split('\n')
+			comment = ''
+			for line in lines:
+				line = line.strip()
+				if not line: continue 					
+				comment += f'\t// {line.strip()}\n'
+
+			output += comment
+			output += f'\t{json.dumps(setting.key)}: {json.dumps(setting.default)},'
+			output += '\n\n'
+
+
+		output += '}'
+
+		with open(f'{core.current_package()}/debugger.sublime-settings', 'w') as f:
+			f.write(output)

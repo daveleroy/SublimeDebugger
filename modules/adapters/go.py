@@ -1,7 +1,7 @@
 from __future__ import annotations
 from ..typecheck import *
 
-from ..settings import Settings
+from ..settings import Setting
 
 from .import util
 from .. import dap
@@ -20,9 +20,15 @@ class Go(dap.AdapterConfiguration):
 		repo='golang/vscode-go'
 	)
 
+	go_dlv = Setting['str|None'] (
+		key='go_dlv',
+		default=None,
+		description='Sets a specific path for dlv if not set go will use whatever is in your path'
+	)
+
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		port = util.get_open_port()
-		dlv = Settings.go_dlv or shutil.which('dlv')
+		dlv = self.go_dlv or shutil.which('dlv')
 		if not dlv:
 			raise core.Error('`dlv` not found see https://github.com/go-delve/delve for setting up delve')
 

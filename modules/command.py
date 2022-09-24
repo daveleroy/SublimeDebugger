@@ -1,9 +1,9 @@
 from __future__ import annotations
+
 from .typecheck import *
 
 from .import core
 from .debugger import Debugger
-from .adapters_registry import AdaptersRegistry
 from .ansi import generate_ansi_syntax
 import sublime_plugin
 import sublime
@@ -145,8 +145,6 @@ class CommandsRegistry:
 
 	@staticmethod
 	def generate_commands_and_menus():
-		AdaptersRegistry.recalculate_schema()
-		
 		current_package = core.current_package()
 
 		def generate_commands(menu: int, prefix: str = "", include_seperators: bool = True):
