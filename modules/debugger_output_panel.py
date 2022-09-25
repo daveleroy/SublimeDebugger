@@ -79,7 +79,7 @@ class DebuggerOutputPanel:
 	
 	panels: ClassVar[Dict[int, DebuggerOutputPanel]] = {}
 
-	def __init__(self, debugger: Debugger, panel_name: str, name: str|None = None, show_panel = True, show_tabs = True, show_tabs_top = False, create = True):
+	def __init__(self, debugger: Debugger, panel_name: str, name: str|None = None, show_panel = True, show_tabs = True, show_tabs_top = False, remove_last_newline = False, create = True):
 		super().__init__()
 		self.panel_name = self._get_free_output_panel_name(debugger.window, panel_name) if create else panel_name
 		self.output_panel_name = f'output.{self.panel_name}'
@@ -89,8 +89,9 @@ class DebuggerOutputPanel:
 		self.create = create
 		self.show_tabs = show_tabs
 		self.show_tabs_top = show_tabs_top
+		self.remove_last_newline = remove_last_newline
 		self.debugger = debugger
-		
+
 		# if a panel with the same name already exists add a unique id
 		self._locked_selection = 0
 		self.status: ui.Image|None = None
@@ -126,7 +127,7 @@ class DebuggerOutputPanel:
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE) [
 				self.controls_and_tabs
 			]
-			self.text_change_listner = EnsureNewlineTextChangeListener(self.view)
+			self.text_change_listner = OutputPanelTopTextChangeListener(self.view)
 
 		elif show_tabs:
 			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
@@ -134,7 +135,7 @@ class DebuggerOutputPanel:
 				self.controls_and_tabs
 			]
 
-			self.text_change_listner = RemoveLastNewlineTextChangeListener(self)
+			self.text_change_listner = OutputPanelBottomTextChangeListener(self)
 		else:
 			self.text_change_listner = None
 			self.controls_and_tabs = None
@@ -308,7 +309,7 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 		if panel := DebuggerOutputPanel.panels.get(view.id()):
 			return panel.on_query_completions(prefix, locations)
 
-class EnsureNewlineTextChangeListener(sublime_plugin.TextChangeListener):
+class OutputPanelTopTextChangeListener(sublime_plugin.TextChangeListener):
 	def __init__(self, view: sublime.View) -> None:
 		super().__init__()
 		self.view = view
@@ -338,7 +339,7 @@ class EnsureNewlineTextChangeListener(sublime_plugin.TextChangeListener):
 
 		self.view.set_read_only(is_readonly)
 
-class RemoveLastNewlineTextChangeListener(sublime_plugin.TextChangeListener):
+class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 	def __init__(self, panel: DebuggerOutputPanel) -> None:
 		super().__init__()
 		self.panel = panel
@@ -356,12 +357,9 @@ class RemoveLastNewlineTextChangeListener(sublime_plugin.TextChangeListener):
 		if self.inside_on_text_changed:
 			return
 
-		def run():
-			self.inside_on_text_changed  = True
-			core.edit(self.view, self._on_text_changed)
-			self.inside_on_text_changed  = False
-
-		sublime.set_timeout(run, 0)	
+		self.inside_on_text_changed  = True
+		core.edit(self.view, self._on_text_changed)
+		self.inside_on_text_changed  = False
 
 
 	def _on_text_changed(self, edit: sublime.Edit):
@@ -383,7 +381,7 @@ class RemoveLastNewlineTextChangeListener(sublime_plugin.TextChangeListener):
 		last = self.view.substr(at)
 
 		# remove newline
-		if last == '\n':
+		if self.panel.remove_last_newline and last == '\n':
 			self.view.erase(edit, sublime.Region(at, at+1))
 			self.panel.removed_newline = at
 			self.removed_newline_change_id = self.view.change_id()
@@ -392,4 +390,3 @@ class RemoveLastNewlineTextChangeListener(sublime_plugin.TextChangeListener):
 			self.panel.controls_and_tabs_phantom.dirty()
 
 		self.view.set_read_only(is_readonly)
-
