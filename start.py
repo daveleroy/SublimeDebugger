@@ -39,7 +39,7 @@ was_opened_at_startup: Set[int] = set()
 
 
 def plugin_loaded() -> None:
-	core.info('startup')
+	core.info('[startup]')
 	SettingsRegistery.initialize(on_updated=updated_settings)
 	CommandsRegistry.initialize()
 	AdaptersRegistry.initialize()
@@ -49,14 +49,16 @@ def plugin_loaded() -> None:
 	for window in sublime.windows():
 		open_debugger_in_window_or_view(window)
 
+	core.info('[finished]')
 
 def plugin_unloaded() -> None:
-	core.info('shutdown')
+	core.info('[shutdown]')
 	for key, instance in dict(Debugger.instances).items():
+		core.info('Removing debugger')
 		instance.dispose()
 	Debugger.instances = {}
 	ui.shutdown()
-
+	core.info('[finished]')
 
 def open_debugger_in_window_or_view(window_or_view: Union[sublime.View, sublime.Window]):
 	if isinstance(window_or_view, sublime.View):
@@ -67,10 +69,16 @@ def open_debugger_in_window_or_view(window_or_view: Union[sublime.View, sublime.
 	if not window:
 		return
 
+
+	if not Settings.open_at_startup and not window.settings().get('debugger.open_at_startup'):
+		return
+
 	id = window.id()
-	if Settings.open_at_startup and (not id in was_opened_at_startup) and Debugger.should_auto_open_in_window(window):
-		was_opened_at_startup.add(id)
-		Debugger.get(window, create=True)
+	if id in was_opened_at_startup:
+		return
+
+	was_opened_at_startup.add(id)
+	Debugger.get(window, create=True)
 
 # if there is a debugger running in the window then that is the most relevant one
 # otherwise all debuggers are relevant

@@ -36,14 +36,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	creating: dict[int, bool] = {}
 
 	@staticmethod
-	def should_auto_open_in_window(window: sublime.Window) -> bool:
-		if Settings.open_at_startup:
-			if data := window.project_data():
-				return 'debugger_configurations' in data
-
-		return False
-
-	@staticmethod
 	def create(window: sublime.Window) -> Debugger:
 		debugger = Debugger.get(window, True)
 		assert debugger
