@@ -164,9 +164,6 @@
                         }
                     },
                     {
-                        "caption": "-"
-                    },
-                    {
                         "caption": "LLDB Toggle Disassembly",
                         "command": "debugger",
                         "args": {

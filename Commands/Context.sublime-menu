@@ -3,9 +3,6 @@
         "caption": "-"
     },
     {
-        "caption": "-"
-    },
-    {
         "caption": "Toggle Breakpoint",
         "command": "debugger",
         "args": {

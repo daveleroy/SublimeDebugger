@@ -1,6 +1,6 @@
 [
     {
-        "caption": "Debugger: Generate Commands",
+        "caption": "Debugger: Generate Commands/Settings/Schema",
         "command": "debugger",
         "args": {
             "action": "generate_commands"
