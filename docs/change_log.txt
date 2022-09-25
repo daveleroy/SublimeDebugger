@@ -2,6 +2,19 @@ For getting set up see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.7.1
+
+- Refined debugger interface that was redesigned in the last release
+- Allow inputting commands by typing into the debugger console
+- The debugger interface now matches the current font-size this can be overridden with the setting `ui-scale`
+- Fixes issue where breakpoints were not shown until a view was activated
+- Allow installing older versions of some adapters by holding down command or option when selecting the adapter in the install adapters menu
+- js: Fixes an issue where breakpoints were not being marked as verified
+- go: Fixes an issue where the debugger would not automatically select a thread when stopped in some cases
+- java: Adds Java debugger via LSP-jdtls (@LDAP)
+- python: Automatically detect virtual environments (@LDAP)
+
+
 Version 0.7.0
 
 - Redesigned debugger ui so that the console output can appear in an output panel
