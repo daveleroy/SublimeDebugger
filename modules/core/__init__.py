@@ -39,7 +39,7 @@ class stopwatch:
 		return (te - self.ts) * 1000
 
 class timer:
-	def __init__(self, callback: Callable[[], None], interval: float, repeat: bool) -> None:
+	def __init__(self, callback: Callable[[], None], interval: float, repeat: bool = False) -> None:
 		self.interval = interval
 		self.callback = callback
 		self.cancelable = core.call_later(interval, self.on_complete)

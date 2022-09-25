@@ -95,6 +95,16 @@ class Popup(Layout):
 
 		timer = core.stopwatch('popup')
 
+		self.create_or_update_popup()
+
+		if DEBUG_TIMING: timer()
+		self.last_render_time = total.elapsed()
+		return True
+
+	def create_or_update_popup(self):
+		if self.is_closed:
+			return False
+
 		if self.created_popup:
 			self.view.update_popup(self.html)
 		else:
@@ -108,10 +118,6 @@ class Popup(Layout):
 				flags=sublime.COOPERATE_WITH_AUTO_COMPLETE | sublime.HIDE_ON_MOUSE_MOVE_AWAY,
 				on_hide=self.on_hide
 			)
-			
-		if DEBUG_TIMING: timer()
-		self.last_render_time = total.elapsed()
-		return True
 
 	def dispose(self) -> None:
 		super().dispose()

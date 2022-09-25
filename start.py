@@ -153,9 +153,13 @@ class Listener (sublime_plugin.EventListener):
 				core.info('Popup closed')
 				view.erase_regions('selected_hover')
 
-				# this is is a hack because we are competing against lsp and other popups on hover...
-				if view.is_popup_visible():
-					core.info('Reshowing another popup interuppted ours')
+			def force_update():
+				if popup:
+					popup.create_or_update_popup()
+
+			# hack to ensure if someone else updates our popup in the first second it gets re-updated
+			for i in range(1, 10):
+				core.timer(force_update, 0.1 * i)
 
 			def show_popup():
 				nonlocal popup
