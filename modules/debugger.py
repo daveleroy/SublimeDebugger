@@ -148,8 +148,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
 		self.integrated_terminals: dict[dap.Session, list[TerminusIntegratedTerminal]] = {}
 
-		self._on_project_or_settings_updated()
-
 		# def on_view_activated(view: sublime.View):
 		# 	if self.is_active or self.tasks.is_active():
 		# 		return
