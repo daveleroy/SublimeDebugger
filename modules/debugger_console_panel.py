@@ -213,6 +213,8 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self.forced_indent = ''
 		self.protocol.clear()
 		self.dispose_phantoms()
+
+		self.color = None
 		self.edit(lambda edit: self.view.replace(edit, sublime.Region(0, self.view.size()), ''))
 		self.view.set_read_only(True)
 
