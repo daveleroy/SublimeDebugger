@@ -152,7 +152,7 @@ class ConfigurationCompound:
 class Task (Dict[str, Any]):
 	def __init__(self, arguments: dict[str, Any]) -> None:
 		super().__init__(arguments)
-		self.name = self.get('name', 'Untitled')
+		self.name = arguments.get('name', 'Untitled')
 
 	@staticmethod
 	def from_json(json: dict[str, Any]):
@@ -161,8 +161,37 @@ class Task (Dict[str, Any]):
 
 class TaskExpanded(Task):
 	def __init__(self, task: Task, variables: dict[str, str]) -> None:
-		all = _expand_variables_and_platform(task, variables)
-		super().__init__(all)
+		arguments = _expand_variables_and_platform(task, variables)
+		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy		
+		super().__init__(arguments)
+
+		cmd: str|list[str]|None = arguments.get('cmd')
+
+		if 'name' in arguments:
+			name = arguments['name']
+		elif isinstance(cmd, str):
+			name = cmd
+		elif isinstance(cmd, list) and cmd:
+			name = cmd[0]
+		else:
+			name = 'Untitled'
+
+		background = arguments.get('background', False)
+
+		self.name: str = name
+		self.background = background
+
+		if 'name' in self:
+			del self['name']
+		if 'background' in self:
+			del self['background']
+
+		if '$' in self:
+			del self['$']
+	
+
+	
+
 
 
 def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, str] | None):

@@ -1,14 +1,17 @@
 from __future__ import annotations
-import re 
+import re
+
+from .import core 
 from .typecheck import *
 
-def ansi_colorize(text, color, previous_color):
+def ansi_colorize(text, color: str|None = None, previous_color: str|None = None):
 	text = text.replace('\r\n', '\n')
 
 	def replacement(x: Any):
 		try:
 			return escape_codes_by_code[x.group()]['match']
-		except KeyError:
+		except KeyError as e:
+			core.debug('Unhandled ansi escape', e)
 			return ''
 
 	text = ansi_escape.sub(replacement, text)
@@ -18,7 +21,7 @@ def ansi_colorize(text, color, previous_color):
 	else:
 		return text
 
-def escape_code(color: str):
+def escape_code(color: str|None):
 	match = escape_codes_by_color.get(color)
 	if not match:
 		return '\u200c'
