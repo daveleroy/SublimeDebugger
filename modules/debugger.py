@@ -172,6 +172,29 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_info.add(self.console.info)
 		self.on_error.add(self.console.error)
 
+
+		self._refresh_none_debugger_output_panels()
+
+	def _refresh_none_debugger_output_panels(self):
+		panels = Settings.integrated_output_panels
+
+		def find_output_panel(name: str):
+			for panel in self.output_panels:
+				print(panel.output_panel_name)
+				if panel.output_panel_name == name:
+					return panel
+
+		for panel_name in self.window.panels():
+			name = panel_name.replace('output.', '')
+			if not name in panels:
+				continue
+
+			if not find_output_panel(panel_name):
+				panel = panels[name]
+				output_panel = DebuggerOutputPanel(self, name, name=panel.get('name'), show_panel=False, show_tabs=True, show_tabs_top=panel.get('position') != 'bottom', create=False)
+				self.disposeables.append(output_panel)
+
+
 	def add_output_panel(self, panel: DebuggerOutputPanel):
 		self.output_panels.append(panel)
 		self.on_output_panels_updated.post()
@@ -407,11 +430,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.breakpoints.data.remove_all()
 		self.breakpoints.source.remove_all()
 		self.breakpoints.function.remove_all()
-
-	def set_diagnostics(self, id: str, errors: Any) -> None:
-		self.interface.problems_panel.update(id, errors)
-		if not self.is_active:
-			self.interface.middle_panel.select(self.interface.problems_panel)
 
 	def dispose(self) -> None:
 		self.save_data()

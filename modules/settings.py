@@ -103,6 +103,27 @@ class Settings:
 		description='Sets a specific path for node if not set adapters that require node to run will use whatever is in your path'
 	)
 
+	integrated_output_panels = Setting['dict[str, dict[str, str]]'] (
+		key='integrated_output_panels',
+		default={},
+		description=
+		'''
+		Output panels outside of the debugger can be integrated into the tabbed debugger interface (note: In some cases output panels may cause issues and not work correctly depending on who owns them)
+		An example for interating the Diagnostics panel of LSP and a Terminus output panel.
+
+		"integrated_output_panels": {
+			"diagnostics": {
+				"name": "Diagnostics",
+			},
+			"Terminus": {
+				"name": "Terminal",
+				"position": "bottom"
+			}
+		}
+		'''
+	)
+
+
 	installed_packages = Setting['list[str]'] (
 		key='installed_packages',
 		default=[],
@@ -127,6 +148,7 @@ class SettingsRegistery:
 	def generate_settings():
 		import gc
 		import json
+		import textwrap
 
 		output = '{\n'
 
@@ -136,12 +158,13 @@ class SettingsRegistery:
 
 			if not setting.visible: continue
 
-			lines = setting.description.split('\n')
+			lines = textwrap.dedent(setting.description).strip().split('\n')
 			comment = ''
 			for line in lines:
-				line = line.strip()
-				if not line: continue 					
-				comment += f'\t// {line.strip()}\n'
+				# skip leading empty lines
+				if not comment and not line: continue
+
+				comment += f'\t// {line}\n'
 
 			output += comment
 			output += f'\t{json.dumps(setting.key)}: {json.dumps(setting.default)},'
