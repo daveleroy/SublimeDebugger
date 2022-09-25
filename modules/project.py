@@ -225,7 +225,7 @@ class Project:
 		variables: dict[str, str] = self.window.extract_variables()
 
 		# patch in some vscode variables
-		if folder := variables['folder']:
+		if folder := variables.get('folder'):
 			variables['workspaceFolder'] = folder
 			variables['workspaceRoot'] = folder
 		return variables
