@@ -45,7 +45,7 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 				'post_debug_task': {
 					'type': 'string',
 					'description': 'name of task to run after debugging ends',
-				}
+				},
 			}
 		}
 
@@ -69,6 +69,19 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 			value['properties']['pre_debug_task'] = { 'type':'string' }
 			value['properties']['post_debug_task'] = { 'type':'string' }
 			
+			value['properties']['osx'] = { 
+				'$ref': F'#/definitions/{adapter.type}_{key}',
+				'description': 'MacOS specific configuration attributes',
+			}
+			value['properties']['windows'] = { 
+				'$ref': F'#/definitions/{adapter.type}_{key}',
+				'description': 'Windows specific configuration attributes',
+			}
+			value['properties']['linux'] = { 
+				'$ref': F'#/definitions/{adapter.type}_{key}',
+				'description': 'Linux specific configuration attributes',
+			}
+
 			definitions[f'{adapter.type}_{key}'] = value
 			
 			allOf.append({
@@ -76,7 +89,7 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 					'properties': {'type': { 'const': adapter.type }, 'request': { 'const': key }},
 				},
 				'then': {
-					'$ref': F'#/definitions/{adapter.type}_{key}'
+					'$ref': F'#/definitions/{adapter.type}_{key}',
 				},
 			})
 		
