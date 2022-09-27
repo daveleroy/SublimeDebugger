@@ -36,6 +36,7 @@ class TerminusIntegratedTerminal(DebuggerOutputPanel):
 				['debugger_terminus_post_view_hooks', {}],
 			],
 		})
+		self.update_settings()
 
 	def is_finished(self):
 		return self.view.settings().get('terminus_view.finished')

@@ -227,7 +227,7 @@ class DebuggerOutputPanel:
 		return self._locked_selection != 0
 
 	def scroll_to_end(self):
-		# self.lock_selection_temporarily()
+		self.lock_selection_temporarily()
 		if self.show_tabs_top:
 			self.view.set_viewport_position((0, 0), False)
 		else:
