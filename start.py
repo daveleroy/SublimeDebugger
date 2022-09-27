@@ -73,6 +73,10 @@ def open_debugger_in_window_or_view(window_or_view: Union[sublime.View, sublime.
 	if not Settings.open_at_startup and not window.settings().get('debugger.open_at_startup'):
 		return
 
+	project_data = window.project_data()
+	if not project_data or 'debugger_configurations' not in project_data:
+		return
+
 	id = window.id()
 	if id in was_opened_at_startup:
 		return
