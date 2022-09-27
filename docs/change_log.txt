@@ -2,6 +2,10 @@ For getting set up see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.7.2
+- Minor bug fixes
+
+
 Version 0.7.1
 
 - Refined debugger interface that was redesigned in the last release
