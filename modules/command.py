@@ -25,7 +25,7 @@ class Command:
 	section_start = 1 << 8
 
 
-	def __init__(self, name: str, action: Callable[[sublime.Window], Any], flags:int = 0):
+	def __init__(self, name: str, action: Callable[[sublime.Window], Any]|None = None, flags:int = 0):
 		self.name = name
 		self.action = action
 		
@@ -36,8 +36,9 @@ class Command:
 
 		self.command: str|None = None 
 
-	def run(self, window: sublime.Window):
-		self.action(window)
+	def run(self, window: sublime.Window, args: dict[str, Any]):
+		if action := self.action:
+			action(window)
 
 	def is_visible(self, window: sublime.Window) -> bool:
 		return True
@@ -46,15 +47,16 @@ class Command:
 		return True
 
 class CommandDebugger(Command):
-	def __init__(self, name: str, action:Callable[[Debugger], Any], enabled: Callable[[Debugger], bool] | None = None, flags: int = 0):
-		super().__init__(name, action, flags)
+	def __init__(self, name: str, action:Callable[[Debugger], Any]|None = None, action_with_arguments:Callable[[Debugger, dict[str, Any]], Any]|None=None, enabled: Callable[[Debugger], bool] | None = None, flags: int = 0):
+		super().__init__(name, None, flags)
 		self.enabled = enabled
 		self.action = action
+		self.action_with_arguments = action_with_arguments
 
 	def parameters(self, window: sublime.Window) -> tuple[sublime.Window, Debugger|None]:
 		return window, Debugger.get(window)
 
-	def run(self, window: sublime.Window):
+	def run(self, window: sublime.Window, args: dict[str, Any]):
 		debugger = Debugger.get(window)
 		if not debugger or not debugger.is_open():
 			debugger = Debugger.get(window, True)
@@ -66,7 +68,10 @@ class CommandDebugger(Command):
 		if not debugger:
 			return
 
-		self.action(debugger)
+		if action := self.action:
+			action(debugger)
+		if action := self.action_with_arguments:
+			action(debugger, args)
 
 	def is_visible(self, window: sublime.Window):
 		debugger = Debugger.get(window)
@@ -91,15 +96,15 @@ def open_settings(window: sublime.Window):
 	})	
 
 class DebuggerCommand (sublime_plugin.WindowCommand):
-	def run(self, action: str):
+	def run(self, action: str, **kwargs: dict[str, Any]):
 		command = CommandsRegistry.commands_by_action[action]
-		command.run(self.window)
+		command.run(self.window, kwargs)
 
-	def is_enabled(self, action: str):
+	def is_enabled(self, action: str, **kwargs: dict[str, Any]):
 		command = CommandsRegistry.commands_by_action[action]
 		return command.is_enabled(self.window)
 
-	def is_visible(self, action: str):
+	def is_visible(self, action: str, **kwargs: dict[str, Any]):
 		command = CommandsRegistry.commands_by_action[action]
 		return command.is_visible(self.window)
 

@@ -208,40 +208,50 @@ class Debugger (dap.Debugger, dap.SessionListener):
 				install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
 				if sublime.ok_cancel_dialog(install, 'Install'):
 					await self.install_adapter(adapter_configuration, None)
+
 	@core.schedule
-	async def start(self, no_debug: bool = False):
+	async def start(self, no_debug: bool = False, args: dict[str, Any]|None = None):
 		try:
-			active_configurations = self.project.active_configurations()
-			if not active_configurations:
-				self.console.error('Add or select a configuration to begin debugging')
-				await self.change_configuration()
+			if args and 'configuration' in args:
+				configurations = [
+					dap.Configuration.from_json(args['configuration'], -1)
+				]
 
-			active_configurations = self.project.active_configurations()
-			if not active_configurations:
-				return
+			else:
+				configurations = self.project.active_configurations()
+				if not configurations:
+					self.console.error('Add or select a configuration to begin debugging')
+					await self.change_configuration()
 
-			# grab variables before we open the console because the console will become the focus
-			# and then things like $file would point to the console
-			variables = self.project.extract_variables()
+				configurations = self.project.active_configurations()
+				if not configurations:
+					return
 
-			self.dispose_terminals(unused_only=True)
-
-			# clear console if there are not any currently active sessions
-			if not self.sessions:
-				self.console.clear()
-				core.info('cleared console')
-
-			self.console.open()
-			
-			await self.ensure_installed(active_configurations)
-
+			await self.start_with_configurations(configurations, no_debug)
 
 		except Exception as e:
 			core.exception()
 			core.display(e)
-			return
 
-		for configuration in active_configurations:
+	@core.schedule
+	async def start_with_configurations(self, configurations: list[dap.Configuration], no_debug: bool = False):
+		
+		# grab variables before we open the console because the console will become the focus
+		# and then things like $file would point to the console
+		variables = self.project.extract_variables()
+
+		self.dispose_terminals(unused_only=True)
+
+		# clear console if there are not any currently active sessions
+		if not self.sessions:
+			self.console.clear()
+			core.info('cleared console')
+
+		self.console.open()
+
+		await self.ensure_installed(configurations)
+
+		for configuration in configurations:
 			@core.schedule
 			async def launch(configuration: dap.Configuration):
 				try:
