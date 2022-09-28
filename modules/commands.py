@@ -55,8 +55,13 @@ class Commands:
 
 	start = CommandDebugger (
 		name='Start',
-		action_with_arguments=lambda debugger, args: debugger.start(False, args),
+		action_with_arguments=lambda debugger, args: debugger.start(False),
 		flags=Command.menu_commands|Command.menu_main|Command.open_without_running|Command.section_start
+	)
+	start_configuration = CommandDebugger (
+		name='Start Configuration',
+		action_with_arguments=lambda debugger, args: debugger.start(False, args),
+		flags=0
 	)
 	start_no_debug = CommandDebugger (
 		name='Start (no debug)',
