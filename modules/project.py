@@ -166,7 +166,7 @@ class Project:
 				'project_path': project_path
 			}
 		return json
-		
+
 
 	def load_configurations(self):
 		data: dict[str, Any] = self.window.project_data() or {}
@@ -192,15 +192,15 @@ class Project:
 		configurations: list[Configuration] = []
 		compounds: list[ConfigurationCompound] = []
 
-		for task_json in self.configurations_from_project(data, 'debugger_tasks'):
+		for task_json in self.configurations_from_project(data, 'debugger_tasks') + Settings.global_debugger_tasks:
 			task = Task.from_json(task_json)
 			tasks.append(task)
 
-		for configuration_json in self.configurations_from_project(data, 'debugger_configurations'):
+		for configuration_json in self.configurations_from_project(data, 'debugger_configurations') + Settings.global_debugger_configurations:
 			configuration = Configuration.from_json(configuration_json, len(configurations))
 			configurations.append(configuration)
 
-		for compound_json in self.configurations_from_project(data, 'debugger_compounds'):
+		for compound_json in self.configurations_from_project(data, 'debugger_compounds') + Settings.global_debugger_compounds:
 			compound = ConfigurationCompound.from_json(compound_json, len(compounds))
 			compounds.append(compound)
 

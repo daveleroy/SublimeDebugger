@@ -49,6 +49,15 @@
 	// Some debug adapters require certain packages to be installed via package control. If you have installed these package outside of package control then you can add them to this list and they will be treated as if they are installed.
 	"installed_packages": [],
 
+	// Global debugger configurations that are accessible from every project
+	"global_configurations": [],
+
+	// Global debugger tasks that are accessible from every project
+	"global_tasks": [],
+
+	// Global debugger compounds that are accessible from every project
+	"global_compounds": [],
+
 	// Which lldb library to use
 	"lldb_library": null,
 

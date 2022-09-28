@@ -213,9 +213,23 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	async def start(self, no_debug: bool = False, args: dict[str, Any]|None = None):
 		try:
 			if args and 'configuration' in args:
-				configurations = [
-					dap.Configuration.from_json(args['configuration'], -1)
-				]
+				configuration = args['configuration']
+				if isinstance(configuration, str):
+					previous_configuration_or_compound = self.project.configuration_or_compound
+					self.project.load_configuration(configuration, None)
+					if not self.project.configuration_or_compound:
+						raise core.Error(f'Unable to find the configuration with the name `{configuration}`')
+					
+					if self.project.configuration_or_compound != previous_configuration_or_compound:
+						core.info('Saving data: configuration selection changed')
+						self.save_data()
+
+					configurations = self.project.active_configurations()
+
+				else:
+					configurations = [
+						dap.Configuration.from_json(args['configuration'], -1)
+					]
 
 			else:
 				configurations = self.project.active_configurations()

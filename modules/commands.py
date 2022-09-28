@@ -55,11 +55,11 @@ class Commands:
 
 	start = CommandDebugger (
 		name='Start',
-		action_with_arguments=lambda debugger, args: debugger.start(False),
+		action_with_arguments=lambda debugger, args: debugger.start(False, args),
 		flags=Command.menu_commands|Command.menu_main|Command.open_without_running|Command.section_start
 	)
-	start_configuration = CommandDebugger (
-		name='Start Configuration',
+	open_and_start: CommandDebugger = CommandDebugger (
+		name='Open and Start',
 		action_with_arguments=lambda debugger, args: debugger.start(False, args),
 		flags=0
 	)

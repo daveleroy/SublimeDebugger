@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Generic, TypeVar
+from typing import Callable, Generic, Any, TypeVar
 from . import core
 
 import sublime
@@ -128,6 +128,30 @@ class Settings:
 		key='installed_packages',
 		default=[],
 		description='Some debug adapters require certain packages to be installed via package control. If you have installed these package outside of package control then you can add them to this list and they will be treated as if they are installed.'
+	)
+
+	global_debugger_configurations = Setting['list[Any]'] (
+		key='global_debugger_configurations',
+		default=[],
+		description='''
+		Global debugger configurations that are accessible from every project
+		'''
+	)
+
+	global_debugger_tasks = Setting['list[Any]'] (
+		key='global_debugger_tasks',
+		default=[],
+		description='''
+		Global debugger tasks that are accessible from every project
+		'''
+	)
+
+	global_debugger_compounds = Setting['list[Any]'] (
+		key='global_debugger_compounds',
+		default=[],
+		description='''
+		Global debugger compounds that are accessible from every project
+		'''
 	)
 
 

@@ -25,11 +25,11 @@ class Command:
 	section_start = 1 << 8
 
 
-	def __init__(self, name: str, action: Callable[[sublime.Window], Any]|None = None, flags:int = 0):
+	def __init__(self, name: str, action: Callable[[sublime.Window], Any]|None = None, flags:int = -1):
 		self.name = name
 		self.action = action
 		
-		if not flags or flags == Command.section_start:
+		if flags < 0 or flags == Command.section_start:
 			self.flags = Command.menu_commands|Command.menu_main
 		else:
 			self.flags = flags
@@ -47,7 +47,7 @@ class Command:
 		return True
 
 class CommandDebugger(Command):
-	def __init__(self, name: str, action:Callable[[Debugger], Any]|None = None, action_with_arguments:Callable[[Debugger, dict[str, Any]], Any]|None=None, enabled: Callable[[Debugger], bool] | None = None, flags: int = 0):
+	def __init__(self, name: str, action:Callable[[Debugger], Any]|None = None, action_with_arguments:Callable[[Debugger, dict[str, Any]], Any]|None=None, enabled: Callable[[Debugger], bool] | None = None, flags: int = -1):
 		super().__init__(name, None, flags)
 		self.enabled = enabled
 		self.action = action
