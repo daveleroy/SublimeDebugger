@@ -67,6 +67,7 @@ class InputListItem:
 	kind: tuple[int, str, str] = sublime.KIND_AMBIGUOUS
 
 	run_alt: Callable[[], Any] | InputList | InputText| None = None
+	preview: Callable[[], str|None]|None = None
 
 	def display_or_run(self):
 		if callable(self.run):
@@ -134,6 +135,10 @@ class InputList(sublime_plugin.ListInputHandler):
 
 		if self._on_run_internal:
 			self._on_run_internal()
+
+	def preview(self, value: int):
+		if preview := self.values[value].preview:
+			return preview()
 
 	def next_input(self, args: Any):
 		n = self._next_input

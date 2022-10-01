@@ -851,7 +851,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 					for snippet in adapter.configuration_snippets or []:
 						type = snippet.get('body', {}).get('request', '??')
-						snippet_input_items.append(ui.InputListItem(partial(insert, snippet), snippet.get('label', 'label'), details=type))
+						snippet_item = ui.InputListItem(partial(insert, snippet), snippet.get('label', 'label'), details=type)
+						snippet_item.preview = lambda snippet=snippet: sublime.Html(f'<code>{ui.html_escape_multi_line(AdaptersRegistry.format_snippet(snippet))}</code>')
+						snippet_input_items.append(snippet_item)
 
 					subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
 

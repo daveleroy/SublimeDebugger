@@ -46,6 +46,19 @@ class AdaptersRegistry:
 
 
 	@staticmethod
+	def format_snippet(snippet: dict[str, Any]):
+		body = snippet.get('body', {})
+		for (key, value) in snippet.items():
+			if isinstance(value, str) and value.startswith('^"') and value.endswith('"'):
+				body[key] = value[2:-1]
+
+		content = json.dumps(body, indent="\t")
+		content = content.replace('\\\\', '\\') # remove json encoded \ ...
+		content = content.replace('${workspaceFolder}', '${folder}')
+		content = content.replace('${workspaceRoot}', '${folder}')
+		return content
+
+	@staticmethod
 	async def _insert_snippet(window: sublime.Window, snippet: dict[str, Any]):
 		for (key, value) in snippet.items():
 			if isinstance(value, str) and value.startswith('^"') and value.endswith('"'):
