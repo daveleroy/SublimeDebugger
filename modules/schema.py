@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from .settings import SettingsRegistery
 from .typecheck import*
 from .import dap
 from .import core
@@ -19,6 +21,20 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 	definitions = {}
 	debugger_snippets = []
 
+	definitions['type'] = {
+		'properties': {
+				'type': {
+				'type':'string',
+				'description': 'Type of configuration.',
+				'enum': installed_adapters,
+			},
+		},
+		'required': ['type'],
+	}
+	allOf.append({
+		'$ref': F'sublime://settings/debugger#/definitions/type'
+	})
+
 	for adapter in adapters:
 		schema = adapter.configuration_schema or {}
 		snippets = adapter.configuration_snippets or []
@@ -36,60 +52,67 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 				},
 				'name': {
 					'type': 'string',
-					'description': 'Name of configuration; appears in the launch configuration drop down menu.',
+					'description': 'Name of configuration which appears in the launch configuration drop down menu.',
 				},
-				'pre_debug_task': {
-					'type': 'string',
-					'description': 'Name of task to run before debugging starts',
-				},
-				'post_debug_task': {
-					'type': 'string',
-					'description': 'name of task to run after debugging ends',
-				},
-			}
+			},
+			'required': ['type', 'name', 'request'],
 		}
+
+
 
 		allOf.append({
 			'if': {
-				'properties': {'type': { 'const': adapter.type }},
+				'properties': {
+					'type': { 'const': adapter.type }, 
+					# 'request': { "not": { 'type': 'string', "enum": requests }}
+				},
+				'required': ['type'],
 			},
 			'then': {
-				'$ref': F'#/definitions/{adapter.type}'
+				'$ref': F'sublime://settings/debugger#/definitions/{adapter.type}'
 			},
 		})
 
 		for key, value in schema.items():
 			# make sure all the default properties are defined here because we are setting additionalProperties to false
-			value['additionalProperties'] = False
 			value.setdefault('properties', {})
 			value.setdefault('type', 'object')
-			value['properties']['name'] = { 'type':'string' }
-			value['properties']['type'] = { 'type':'string' }
-			value['properties']['request'] = { 'type':'string' }
-			value['properties']['pre_debug_task'] = { 'type':'string' }
-			value['properties']['post_debug_task'] = { 'type':'string' }
 			
+			value['properties']['pre_debug_task'] = {
+				'type': 'string',
+				'description': 'Name of task to run before debugging starts',
+			}
+			value['properties']['post_debug_task'] = {
+				'type': 'string',
+				'description': 'name of task to run after debugging ends',
+			}
 			value['properties']['osx'] = { 
-				'$ref': F'#/definitions/{adapter.type}_{key}',
+				'$ref': F'sublime://settings/debugger#/definitions/{adapter.type}.{key}',
 				'description': 'MacOS specific configuration attributes',
 			}
 			value['properties']['windows'] = { 
-				'$ref': F'#/definitions/{adapter.type}_{key}',
+				'$ref': F'sublime://settings/debugger#/definitions/{adapter.type}.{key}',
 				'description': 'Windows specific configuration attributes',
 			}
-			value['properties']['linux'] = { 
-				'$ref': F'#/definitions/{adapter.type}_{key}',
+			value['properties']['linux'] = {
+				'$ref': F'sublime://settings/debugger#/definitions/{adapter.type}.{key}',
 				'description': 'Linux specific configuration attributes',
 			}
 
-			definitions[f'{adapter.type}_{key}'] = value
+			definitions[f'{adapter.type}.{key}'] = value
 			
 			allOf.append({
 				'if': {
 					'properties': {'type': { 'const': adapter.type }, 'request': { 'const': key }},
+					'required': ['name', 'type', 'request']
 				},
 				'then': {
-					'$ref': F'#/definitions/{adapter.type}_{key}',
+					'unevaluatedProperties': False,
+					'allOf': [	
+						{ '$ref': F'sublime://settings/debugger#/definitions/type' },
+						{ '$ref': F'sublime://settings/debugger#/definitions/{adapter.type}.{key}'},
+						{ "$ref": F'sublime://settings/debugger#/definitions/{adapter.type}' }
+					]
 				},
 			})
 		
@@ -101,29 +124,34 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 				'description': snippet.get('description')
 			})
 
-	debugger_configurations = {
-		'type': 'object',
-		'properties': {
-			'type': {
-				'type':'string',
-				'description': 'Type of configuration.',
-				'enum': installed_adapters,
-			},
-		},
-		 'defaultSnippets': debugger_snippets,
-		'required': ['type', 'name', 'request'],
+	definitions['debugger_configuration'] = {
+		'defaultSnippets': debugger_snippets,
 		'allOf': allOf,
 	}
 
+	definitions['debugger_compound'] = {
+		'properties': {
+			'name': {
+				'type': 'string',
+				'description': 'Name of compound which appears in the launch configuration drop down menu.',
+			},
+			'configurations': {
+				'type': 'array',
+				'description': 'Names of configurations that compose this compound configuration',
+				'items': { 'type': 'string' }
+			}
+		},
+		'required': ['name', 'configurations']
+	}
 
-
-	debugger_tasks = {
+	definitions['debugger_task'] = {
 		'allOf': [
 			{ '$ref': 'sublime://schemas/sublime-build' },
 			{
 				'properties': {
 					'name': {
-						'type': 'string'
+						'type': 'string',
+						'description': 'Name of task',
 					}
 				},
 				'required': ['name']
@@ -131,47 +159,49 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 		]
 	}
 
-	debugger_compounds = {
-		'type': 'object',
-		'properties': {
-			'name': {
-				'type': 'string'
-			},
-			'configurations': {
-				'type': 'array',
-				'items': { 'type': 'string' }
-			}
-		},
-		'required': ['name', 'configurations']
-	}
 
-	schema_debug_configurations = {
-		'contributions': {
-			'settings':[{
-				'file_patterns': ['/*.sublime-project'],
-				'schema': {
-					'definitions': definitions,
-					'properties': {
-						'debugger_configurations': {
-							'description': 'Debugger Configurations',
-							'type': 'array',
-							'items': debugger_configurations,
-						},
-						'debugger_tasks': {
-							'description': 'Debugger Tasks',
-							'type': 'array',
-							'items': debugger_tasks
-						},
-						'debugger_compounds': {
-							'description': 'Debugger Compounds',
-							'type': 'array',
-							'items': debugger_compounds
-						}
-					},
-				},
-			}]
+
+
+	definitions_schma = {
+		'schema': {
+			'$id': 'sublime://settings/debugger',			
+			'definitions': definitions,
 		}
 	}
+	schema_debug_configurations = {
+		'contributions': {
+			'settings': [
+				definitions_schma,
+				{
+					'file_patterns': ['/*.sublime-project'],
+					'schema': {
+						'properties': {
+							'debugger_configurations': {
+								'description': 'Debugger Configurations',
+								'type': 'array',
+								'items': { '$ref': F'sublime://settings/debugger#/definitions/debugger_configuration' },
+							},
+							'debugger_tasks': {
+								'description': 'Debugger Tasks',
+								'type': 'array',
+								'items': { '$ref': F'sublime://settings/debugger#/definitions/debugger_task' },
+							},
+							'debugger_compounds': {
+								'description': 'Debugger Compounds',
+								'type': 'array',
+								'items': { '$ref': F'sublime://settings/debugger#/definitions/debugger_compound' },
+							}
+						},
+					},
+				},
+				{
+					'file_patterns': ['debugger.sublime-settings'],
+					'schema': SettingsRegistery.schema(),
+				}
+			]
+		}
+	}
+
 
 	path = os.path.join(core.current_package(), 'sublime-package.json')
 	with open(path, 'w') as file:

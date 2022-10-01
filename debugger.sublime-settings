@@ -50,13 +50,13 @@
 	"installed_packages": [],
 
 	// Global debugger configurations that are accessible from every project
-	"global_configurations": [],
+	"global_debugger_configurations": [],
 
 	// Global debugger tasks that are accessible from every project
-	"global_tasks": [],
+	"global_debugger_tasks": [],
 
 	// Global debugger compounds that are accessible from every project
-	"global_compounds": [],
+	"global_debugger_compounds": [],
 
 	// Which lldb library to use
 	"lldb_library": null,

@@ -65,17 +65,17 @@ class LLDB(dap.AdapterConfiguration):
 	# )
 
 
-	lldb_show_disassembly = settings.Setting(
+	lldb_show_disassembly = settings.Setting[str](
 		key='lldb_show_disassembly',
 		default='auto',
 		visible=False,
 	)
-	lldb_display_format = settings.Setting(
+	lldb_display_format = settings.Setting[str](
 		key='lldb_display_format',
 		default='auto',
 		visible=False,
 	)
-	lldb_dereference_pointers = settings.Setting(
+	lldb_dereference_pointers = settings.Setting[bool](
 		key='lldb_dereference_pointers',
 		default=True,
 		visible=False,

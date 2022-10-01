@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Generic, Any, TypeVar
+from typing import Callable, ForwardRef, Generic, Any, TypeVar
 from . import core
 
 import sublime
@@ -7,11 +7,12 @@ import sublime
 
 T = TypeVar('T')
 class Setting(Generic[T], object):
-	def __init__(self, key: str, default: T, description: str = '', visible = True) -> None:
+	def __init__(self, key: str, default: T, description: str = '', visible = True, schema: Any|None = None) -> None:
 		self.key = key
 		self.default = default
 		self.description = description
 		self.visible = visible
+		self.scehma = schema
 
 	def __get__(self, obj, objtype=None) -> T:
 		return SettingsRegistery.settings.get(self.key, self.default)
@@ -135,7 +136,11 @@ class Settings:
 		default=[],
 		description='''
 		Global debugger configurations that are accessible from every project
-		'''
+		''',
+		schema={
+			'type': 'array',
+			'items': { '$ref': 'sublime://settings/debugger#/definitions/debugger_configuration' },
+		}
 	)
 
 	global_debugger_tasks = Setting['list[Any]'] (
@@ -143,7 +148,11 @@ class Settings:
 		default=[],
 		description='''
 		Global debugger tasks that are accessible from every project
-		'''
+		''',
+		schema={
+			'type': 'array',
+			'items': { '$ref': 'sublime://settings/debugger#/definitions/debugger_task' },
+		}
 	)
 
 	global_debugger_compounds = Setting['list[Any]'] (
@@ -151,9 +160,15 @@ class Settings:
 		default=[],
 		description='''
 		Global debugger compounds that are accessible from every project
-		'''
+		''',
+		schema={
+			'type': 'array',
+			'items': { '$ref': 'sublime://settings/debugger#/definitions/debugger_compound' },
+		}
 	)
 
+# Settings __set__ method will not get called on a class so just override the class with an instance of itself...
+Settings = Settings() # type: ignore
 
 class SettingsRegistery:
 	settings: sublime.Settings
@@ -167,6 +182,47 @@ class SettingsRegistery:
 	@staticmethod
 	def save():
 		sublime.save_settings('debugger.sublime-settings')
+
+	@staticmethod
+	def schema():
+		import gc
+		import typing
+
+		properties = {}
+		for setting in gc.get_objects():
+			if not isinstance(setting, Setting):
+				continue
+
+			t = typing.get_args(setting.__orig_class__)[0]
+
+			schema = {}
+			if setting.scehma:
+				schema = setting.scehma
+			elif t == bool:
+				schema = { 'type': 'boolean' }
+			elif t == int:
+				schema = { 'type': 'number' }
+			elif t == ForwardRef('int|None'):
+				schema = { 'type': ['number', 'null'] }
+			elif t == float:
+				schema = { 'type': 'number' }
+			elif t == ForwardRef('float|None'):
+				schema = { 'type': ['number', 'null'] }
+			elif t == str:
+				schema = { 'type': 'string' }
+			elif t == ForwardRef('str|None'):
+				schema = { 'type': ['string', 'null'] }
+			else:
+				schema = { 'type': ['object', 'array'] }
+
+			schema['description'] = setting.description
+			properties[setting.key] = schema
+
+		print(properties)
+		return {
+			'additionalProperties': False,
+			'properties': properties
+		}
 
 	@staticmethod
 	def generate_settings():
