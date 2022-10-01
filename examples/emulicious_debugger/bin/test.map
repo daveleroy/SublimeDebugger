@@ -1,0 +1,124 @@
+ROM0 bank #0:
+  SECTION: $0000-$0036 ($0037 bytes) ["Main"]
+           $0000 = Main
+           $0017 = Main.copy
+           $002e = Main.forever
+  SECTION: $0037-$003f ($0009 bytes) ["EVScript CopyConst"]
+           $0037 = StdCopyConst
+  SECTION: $0040-$0040 ($0001 byte) ["VBlank"]
+    EMPTY: $0001 byte
+  SECTION: $0042-$008f ($004e bytes) ["EVScript Bytecode table"]
+           $0042 = EVScriptBytecodeTable
+  SECTION: $0090-$00b4 ($0025 bytes) ["EVScript GotoFar"]
+           $0090 = StdGotoFar
+           $009b = StdGotoConditionalFar
+           $00a5 = StdGotoConditionalFar.fail
+           $00a8 = StdGotoConditionalNotFar
+           $00b2 = StdGotoConditionalNotFar.fail
+  SECTION: $00b5-$00d2 ($001e bytes) ["EVScript Goto"]
+           $00b5 = StdGoto
+           $00b9 = StdGotoConditional
+           $00c3 = StdGotoConditional.fail
+           $00c6 = StdGotoConditionalNot
+           $00d0 = StdGotoConditionalNot.fail
+  SECTION: $00d3-$00ee ($001c bytes) ["EVScript Driver"]
+           $00d3 = ExecuteScript
+           $00d6 = ExecuteScript.next
+           $00ed = ExecuteScript.callBC
+  SECTION: $00ef-$00ff ($0011 bytes) ["EVScript Copy"]
+           $00ef = StdCopy
+  SECTION: $0100-$014f ($0050 bytes) ["Header"]
+           $0100 = Entry
+  SECTION: $0150-$074f ($0600 bytes) ["Font"]
+           $0150 = Font
+           $0750 = Font.end
+  SECTION: $0750-$0845 ($00f6 bytes) ["EVScript 8-bit Operations"]
+           $0750 = ConstantOperandPrologue
+           $075a = OperandPrologue
+           $076c = StdAdd
+           $0772 = StdSub
+           $0778 = StdMul
+           $077e = !0
+           $0784 = StdDiv
+           $0789 = !1
+           $078f = StdBinaryAnd
+           $0795 = StdBinaryOr
+           $079b = StdEqu
+           $07a6 = StdNot
+           $07b1 = StdLessThan
+           $07bc = StdGreaterThanEqu
+           $07c7 = StdLogicalAnd
+           $07d5 = StdLogicalOr
+           $07df = StdLogicalOr.true
+           $07e1 = StoreEpilogue
+           $07eb = StdAddConst
+           $07f1 = StdSubConst
+           $07f7 = StdMulConst
+           $07fd = !2
+           $0803 = StdDivConst
+           $0808 = !3
+           $080e = StdBinaryAndConst
+           $0814 = StdBinaryOrConst
+           $081a = StdEquConst
+           $0825 = StdNotConst
+           $0830 = StdLessThanConst
+           $083b = StdGreaterThanEquConst
+  SECTION: $0846-$085c ($0017 bytes) ["EVScript Store"]
+           $0846 = StdStore
+  SECTION: $085d-$0870 ($0014 bytes) ["EVScript Load"]
+           $085d = StdLoad
+  SECTION: $0871-$0883 ($0013 bytes) ["Print Function"]
+           $0871 = PrintFunction
+           $0878 = PrintFunction.next
+           $0880 = PrintFunction.exit
+  SECTION: $0884-$0894 ($0011 bytes) ["EVScript CallAsmFar"]
+           $0884 = StdCallAsmFar
+           $0894 = StdCallAsmFar.hl
+  SECTION: $0895-$08a3 ($000f bytes) ["EVScript LoadConst"]
+           $0895 = StdLoadConst
+  SECTION: $08a4-$08b0 ($000d bytes) ["EVScript StoreConst"]
+           $08a4 = StdStoreConst
+  SECTION: $08b1-$08ba ($000a bytes) ["EVScript CallAsm"]
+           $08b1 = StdCallAsm
+           $08ba = StdCallAsm.hl
+  SECTION: $08bb-$08c0 ($0006 bytes) ["EVScript Return"]
+           $08bb = StdReturn
+           $08be = StdYield
+    EMPTY: $373f bytes
+  SLACK: $3740 bytes
+
+ROMX bank #1:
+  SECTION: $4000-$4044 ($0045 bytes) ["TestScript evscript section"]
+           $4000 = TestScript
+           $4000 = TestScript.__debug_0
+           $4003 = TestScript.__debug_3
+           $4003 = TestScript.__debug_1
+           $400b = TestScript.__debug_4
+           $4011 = TestScript.__endif_2
+           $4011 = TestScript.__debug_6
+           $4014 = TestScript.__endelse_5
+           $4014 = TestScript.__beginloop_8
+           $4014 = TestScript.__debug_10
+           $4014 = TestScript.__debug_7
+           $4018 = TestScript.__debug_11
+           $401c = TestScript.__debug_12
+           $401f = TestScript.__beginrepeat_13
+           $401f = TestScript.__debug_16
+           $4020 = TestScript.__repeatcondition_14
+           $4028 = TestScript.__endrepeat_15
+           $402b = TestScript.string_table0
+           $402b = TestScript.__endloop_9
+           $4039 = TestScript.string_table1
+    EMPTY: $3fbb bytes
+  SLACK: $3fbb bytes
+
+WRAM0 bank #0:
+  SECTION: $c000-$c00f ($0010 bytes) ["Script Pool"]
+           $c000 = wScriptPool
+    EMPTY: $0ff0 bytes
+  SLACK: $0ff0 bytes
+
+USED:
+    ROM0: $08c0 bytes in 1 bank
+    ROMX: $0045 bytes in 1 bank
+    WRAM0: $0010 bytes in 1 bank

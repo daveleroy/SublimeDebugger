@@ -1,0 +1,27 @@
+typedef ptr = u16;
+
+env script {
+	use std;
+	def print(const ptr);
+	pool = 16;
+}
+
+script TestScript {
+	u8 value = 0;
+
+	// This will print "Hello, world!", since value is zero.
+	if value == 0 {
+		print("Hello, world!");
+	} else {
+		print("Where am I?");
+	}
+
+	// This will continually increment the background palette and then yield,
+	// until rBGP is all white.
+	loop {
+		value -= -1;
+		rBGP = value;
+
+		repeat 8 { yield; }
+	}
+}

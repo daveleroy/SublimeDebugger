@@ -1,0 +1,10 @@
+ExecuteScript ExecuteScript.next StdCopy
+TestScript.__debug_0:script.evs:10:
+TestScript.__debug_1:script.evs:13:value, 0, 1, U, 
+TestScript.__debug_4:script.evs:14:value, 0, 1, U, 
+TestScript.__debug_6:script.evs:16:value, 0, 1, U, 
+TestScript.__debug_7:script.evs:21:value, 0, 1, U, 
+TestScript.__debug_10:script.evs:22:value, 0, 1, U, 
+TestScript.__debug_11:script.evs:23:value, 0, 1, U, 
+TestScript.__debug_12:script.evs:25:value, 0, 1, U, 
+TestScript.__debug_16:script.evs:25:value, 0, 1, U, 

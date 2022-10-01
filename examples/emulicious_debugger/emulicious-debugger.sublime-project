@@ -1,0 +1,25 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+		}
+	],
+	"debugger_configurations":
+	[
+		{
+			"type": "emulicious-debugger",
+			"request": "launch",
+			"name": "Launch in Emulicious",
+			"port": 58870,
+			"stopOnEntry": true,
+			"program": "${project_path}/bin/test.gb"
+		},
+		{
+			"type": "emulicious-debugger",
+			"request": "attach",
+			"name": "Attach to Emulicious",
+			"port": 58870
+		}
+	],
+}
