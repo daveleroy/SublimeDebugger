@@ -15,6 +15,24 @@ button = ui.css(
 	raw='border-radius: 0.4rem;'
 )
 
+button_drop = ui.css(
+	padding_left=1,
+	padding_right=1,
+	padding_top=-0.7,
+	padding_bottom=-0.7,
+	background_color='var(--tinted)',
+	color='var(--primary)',
+	raw='''
+	position: relative;
+	border-radius: 0.4rem;
+	padding-right: 0.9rem;
+	padding-left: 0.9rem;
+	border-color: var(--dark); 
+	border-width: 0.1rem; 
+	border-style: solid;
+	'''
+)
+
 button_secondary = ui.css(
 	padding_left=1, 
 	padding_right=1, 
@@ -164,8 +182,8 @@ tab_spacer = ui.css(
 
 controls_panel = ui.css(
 	background_color='var(--light)',
-	padding_left=1.5,
-	padding_right=1.5,
+	padding_left=1,
+	padding_right=1,
 	raw='''
 	border-top-right-radius: 0.33rem;
 	border-top-left-radius: 0.33rem;

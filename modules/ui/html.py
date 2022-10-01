@@ -203,17 +203,22 @@ class click (span):
 
 
 class icon (span):
-	def __init__(self, image: Image, width: float = 3, height: float = 3, padding: float = 0.5) -> None:
+	def __init__(self, image: Image, width: float = 3, height: float = 3, padding: float = 0.5, align_left: bool = True) -> None:
 		super().__init__(width=width, height=height)
 		self.padding = padding
 		self.image = image
+		self.align_left = align_left
 
 	def html(self, layout: Layout) -> str:
 		assert self._height
 		width = self._height - self.padding
 		required_padding = self.padding
 		top = 0.75
-		return f'<s style="position:relative;top:{top}rem;line-height:0rem;padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
+		if self.align_left:
+			return f'<s style="position:relative;top:{top}rem;line-height:0rem;padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
+		else:
+			return f'<s style="position:relative;top:{top}rem;line-height:0rem;padding-left:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
+
 
 tokenize_re = re.compile(
 	r'(0x[0-9A-Fa-f]+)' #matches hex
