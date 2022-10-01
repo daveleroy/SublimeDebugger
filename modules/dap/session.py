@@ -611,15 +611,6 @@ class Session(TransportProtocolListener):
 		})
 		return response
 
-	def load_frame(self, frame: Optional[dap.StackFrame]):
-		self.listener.on_session_selected_frame(self, frame)
-		if frame:
-			core.run(self.refresh_scopes(frame))
-			core.run(self.watch.evaluate(self, frame))
-		else:
-			self.variables.clear()
-			self.listener.on_session_updated_variables(self)
-
 	async def refresh_scopes(self, frame: dap.StackFrame):
 		body = await self.request('scopes', {
 			'frameId': frame.id
@@ -870,9 +861,20 @@ class Session(TransportProtocolListener):
 		self.selected_explicitly = explicitly
 		self.selected_thread = thread
 		self.selected_frame = frame
-		self.load_frame(frame)
+		
+		self.listener.on_session_selected_frame(self, frame)
+		if frame:
+			core.run(self.refresh_scopes(frame))
+			core.run(self.watch.evaluate(self, frame))
+		else:
+			self.variables.clear()
+			self.listener.on_session_updated_variables(self)
 
 	def on_event(self, event: str, body: Any):
+		if not self._transport:
+			core.debug('on_event: discarded transport ended')
+			return
+
 		if event == 'initialized':
 			self.on_initialized_event()
 		elif event == 'output':
