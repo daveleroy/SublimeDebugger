@@ -45,6 +45,9 @@ This project comes with some pre-configured debuggers (They can be installed usi
 - Requires [LSP](https://packagecontrol.io/packages/LSP) and [LSP-jdtls](https://packagecontrol.io/packages/LSP-jdtls)
 - See https://github.com/redhat-developer/vscode-java
 
+##### Emulicious Debugger
+- See https://github.com/Calindro/emulicious-debugger
+
 ## Setup
 - Open the debug panel
   - from the command palette `Debugger: Open`

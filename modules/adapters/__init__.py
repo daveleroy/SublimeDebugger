@@ -17,3 +17,5 @@ from .js import Edge
 from .firefox import Firefox
 
 from .mock import Mock
+
+from .emulicious_debugger import EmuliciousDebugger
