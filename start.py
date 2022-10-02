@@ -124,6 +124,10 @@ class Listener (sublime_plugin.EventListener):
 		if debugger := Debugger.get(window):
 			debugger.project.reload()
 
+	def on_pre_close_project(self, window: sublime.Window):
+		if debugger := Debugger.get(window):
+			sublime.set_timeout(debugger.project.reload, 0)
+
 	@core.schedule
 	async def on_hover(self, view: sublime.View, point: int, hover_zone: int):
 		if self.ignore(view): return

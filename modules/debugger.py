@@ -162,6 +162,8 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_info.add(self.console.info)
 		self.on_error.add(self.console.error)
 
+		if not self.project.location:
+			self.console.log('warn', 'Debugger not associated with a sublime-project so breakpoints and other data will not be saved')
 
 		self._refresh_none_debugger_output_panels()
 
@@ -474,18 +476,28 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.run_to_line_breakpoint = self.breakpoints.source.add_breakpoint(file, line, column)
 
 	def load_data(self):
-		json = persistance.load(self.project.project_name)
+		location = self.project.location
+		if not location:
+			core.info('Not loading data, project is not associated a location')
+			return
+
+		json = persistance.load(location)
 		self.project.load_from_json(json.get('project', {}))
 		self.breakpoints.load_from_json(json.get('breakpoints', {}))
 		self.watch.load_json(json.get('watch', []))
 
 	def save_data(self):
+		location = self.project.location
+		if not location:
+			core.info('Not saving project data, project not associated with a location')
+			return
+
 		json = {
 			'project': self.project.into_json(),
 			'breakpoints': self.breakpoints.into_json(),
 			'watch': self.watch.into_json(),
 		}
-		persistance.save(self.project.project_name, json)
+		persistance.save(location, json)
 
 	def on_run_task(self) -> None:
 		values: list[ui.InputListItem] = []
@@ -691,11 +703,10 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	def _on_navigate_to_source(self, source: dap.SourceLocation):
 		self.source_provider.show_source_location(source)
 
-
-
 	# Configuration Stuff
 	def set_configuration(self, configuration: Union[dap.Configuration, dap.ConfigurationCompound]):
 		self.project.configuration_or_compound = configuration
+		self.project.on_updated.post()
 		self.save_data()
 
 	async def change_configuration_input_items(self) -> list[ui.InputListItem]:
