@@ -154,15 +154,17 @@ class div (element):
 
 
 def html_escape(text: str) -> str:
-	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('\n', '\u00A0')
+	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '\u00A0')
 
 def html_escape_multi_line(text: str) -> str:
-	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('\n', '<br>').replace('\t', '\u00A0\u00A0\u00A0')
+	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '<br>').replace('\t', '\u00A0\u00A0\u00A0')
 
 class text (span, alignable):
 	def __init__(self, text: str, width: float|None = None, height: float|None = 1, css: css|None = None) -> None:
 		super().__init__(width, height, css)
 		self.text = text
+		self._text_html = None
+
 		self.align_required: int = 0
 		self.align_desired: int = len(self.text)
 
@@ -176,13 +178,15 @@ class text (span, alignable):
 	@text.setter
 	def text(self, text: str):
 		self._text = text.replace("\u0000", "\\u0000")
+		self._text_html = None
 
 	def width(self, layout: Layout) -> float:
 		return len(self.text) + self.padding_width
 
 	def html(self, layout: Layout) -> str:
-		self.text_html = html_escape(self._text)
-		return f'<s id="{self.css_id}">{self.text_html}</s>'
+		if self._text_html is None:
+			self._text_html = html_escape(self._text)
+		return f'<s id="{self.css_id}">{self._text_html}</s>'
 
 
 class click (span):
