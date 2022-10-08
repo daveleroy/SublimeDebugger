@@ -229,12 +229,15 @@ class Listener (sublime_plugin.EventListener):
 			if window := view.window():
 				window.focus_view(view)
 			
-			if button == 1:
+			source_breakpoints = breakpoints.source.get_breakpoints_on_line(file, line)
+			
+			if not source_breakpoints and button == 1:
 				debugger.breakpoints.source.toggle_file_line(file, line)
 
-			elif button == 2:
-				source_breakpoints = breakpoints.source.get_breakpoints_on_line(file, line)
-				if source_breakpoints:
-					debugger.breakpoints.source.edit_breakpoints(source_breakpoints)
+			elif source_breakpoints and button == 1:
+				debugger.breakpoints.source.edit_breakpoints(source_breakpoints)
+
+			elif source_breakpoints and button == 2:
+				debugger.breakpoints.source.toggle_file_line(file, line)
 
 		return True
