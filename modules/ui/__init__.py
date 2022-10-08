@@ -35,3 +35,7 @@ def shutdown():
 
 	# perform one final render to clear up phantoms
 	Layout.render_layouts()
+
+def update_and_render():
+	Layout.update_layouts()
+	Layout.render_layouts()

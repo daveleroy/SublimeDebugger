@@ -58,8 +58,6 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		self.view.set_viewport_position((0, 0), False)
 		self.view.set_read_only(True)
 
-		self.disposeables.append(core.timer(self._adjust_rem_width_scale, 1, True))
-
 		self.debugger = debugger
 
 		self.debugger_panel = DebuggerPanel(self.debugger, debugger._on_navigate_to_source)
@@ -97,8 +95,14 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		]
 		self.disposeables.extend([self.left, self.middle, self.right])
 
+		self._adjust_rem_width_scale()
+
 	def dispose(self):
 		super().dispose()
+		if self.timer:
+			self.timer.dispose()
+			self.timer = None
+
 		for d in self.disposeables:
 			d.dispose()
 		self.disposeables.clear()
@@ -111,6 +115,11 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 
 	def _adjust_rem_width_scale(self):
 		if not Settings.ui_rem_width_scale_adjust_automatically:
+			self.timer = core.timer(self._adjust_rem_width_scale, 2)
+			return
+
+		if not self.is_open():
+			self.timer = core.timer(self._adjust_rem_width_scale, 2)
 			return
 
 		layout_width = self.view.layout_extent()[0]
@@ -118,15 +127,17 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 
 		# sometimes the viewport is not visible and then returns 0?
 		if viewport_width == 0 or layout_width == 0:
+			self.timer = core.timer(self._adjust_rem_width_scale, 2)
 			return
 
 		overlap_percentage = (layout_width - viewport_width)/layout_width
 
 		# good enough if we are in this range 0.5% under
 		if overlap_percentage <= 0 and overlap_percentage >= -0.005:
+			self.timer = core.timer(self._adjust_rem_width_scale, 2)
 			return
 
-		adjustment = min(max(abs(int(overlap_percentage * 1000)/1000), 0.001), 0.1)
+		adjustment = 0.01
 
 		value = Settings.ui_rem_width_scale
 		if overlap_percentage > 0:
@@ -136,7 +147,11 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 			value = Settings.ui_rem_width_scale + adjustment
 			core.info(f'underscan {overlap_percentage * 100}%: adjusting rem_width: {Settings.ui_rem_width_scale}')
 
+		sublime.status_message(f'Debugger: adjusting ui {100 + int(overlap_percentage * 10000)/100}%')
+
 		Settings.ui_rem_width_scale = min(max(value, 0.5), 1.5)
-		
+		self.timer = core.timer(self._adjust_rem_width_scale, 0.1)
+		ui.update_and_render()
+
 
 
