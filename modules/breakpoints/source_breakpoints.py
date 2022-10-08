@@ -43,14 +43,14 @@ class SourceBreakpoint(Breakpoint):
 
 	@property
 	def line(self):
-		if self._verified_result and self._verified_result.line:
-			return self._verified_result.line
+		if self._result and self._result.line:
+			return self._result.line
 		return self.dap.line
 
 	@property
 	def column(self):
-		if self._verified_result and self._verified_result.column:
-			return self._verified_result.column
+		if self._result and self._result.column:
+			return self._result.column
 		return self.dap.column
 
 	def into_json(self) -> dap.Json:
