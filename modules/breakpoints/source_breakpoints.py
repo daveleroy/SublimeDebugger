@@ -204,21 +204,25 @@ class SourceBreakpoints:
 		for bp in self.breakpoints:
 			bp.clear_views()
 
-	def edit(self, breakpoint: SourceBreakpoint):
+	def edit(self, breakpoint: SourceBreakpoint, index = 4):
 		def set_log(value: str):
 			breakpoint.dap.logMessage = value or None
 			self.updated(breakpoint)
+			self.edit(breakpoint, index=0).run()
 
 		def set_condition(value: str):
 			breakpoint.dap.condition = value or None
 			self.updated(breakpoint)
+			self.edit(breakpoint, index=1).run()
 
 		def set_hit_condition(value: str):
 			breakpoint.dap.hitCondition = value or None
 			self.updated(breakpoint)
+			self.edit(breakpoint, index=2).run()
 
 		def toggle_enabled():
 			self.toggle_enabled(breakpoint)
+			self.edit(breakpoint, index=3).run()
 
 		def remove():
 			self.remove(breakpoint)
@@ -252,7 +256,9 @@ class SourceBreakpoints:
 				remove,
 				"Remove"
 			),
-		], placeholder="Edit Breakpoint in {} @ {}".format(breakpoint.name, breakpoint.tag))
+		], 
+		placeholder="Edit Breakpoint in {} @ {}".format(breakpoint.name, breakpoint.tag),
+		index=index)
 
 
 	def toggle_file_line(self, file: str, line: int):

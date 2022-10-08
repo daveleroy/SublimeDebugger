@@ -75,17 +75,20 @@ class DataBreakpoints:
 		breakpoint.enabled = not breakpoint.enabled
 		self.updated()
 
-	def edit(self, breakpoint: DataBreakpoint):
+	def edit(self, breakpoint: DataBreakpoint, index=3):
 		def set_condition(value: str):
 			breakpoint.dap.condition = value or None
 			self.updated()
+			self.edit(breakpoint, index=0).run()
 
 		def set_hit_condition(value: str):
 			breakpoint.dap.hitCondition = value or None
 			self.updated()
+			self.edit(breakpoint, index=1).run()
 
 		def toggle_enabled():
 			self.toggle_enabled(breakpoint)
+			self.edit(breakpoint, index=2).run()
 
 		def remove():
 			self.breakpoints.remove(breakpoint)
@@ -114,7 +117,7 @@ class DataBreakpoints:
 				remove,
 				"Remove"
 			),
-		], placeholder='Edit Breakpoint @ {}'.format(breakpoint.name))
+		], placeholder='Edit Breakpoint @ {}'.format(breakpoint.name), index=index)
 
 	def add(self, info: dap.DataBreakpointInfoResponse, type: Literal['read','write','readWrite']|None):
 		assert info.dataId, "this info request has no id"
