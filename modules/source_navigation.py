@@ -47,6 +47,8 @@ class SourceNavigationProvider:
 		self.project = project
 
 		self.updating: Any|None = None
+		self.selected_frame_line_time_out: Any|None = None
+
 		self.generated_view: sublime.View|None = None
 		self.selected_frame_line: SelectedLine|None = None
 
@@ -62,8 +64,15 @@ class SourceNavigationProvider:
 				core.error(error)
 
 		async def select_async(source: dap.SourceLocation, thread: dap.Thread):
+
+			# this timer is so that if the same location is deselected and reselected right away it will appear to deselect first
+			if delay := self.selected_frame_line_time_out:
+				self.selected_frame_line_time_out = None
+				await delay
+
 			self.clear_selected()
 			view = await self.navigate_to_source(source)
+
 			self.selected_frame_line = SelectedLine(view, source.line or 1, thread)
 
 		self.updating = core.run(select_async(source, thread), on_error=on_error)
@@ -91,6 +100,7 @@ class SourceNavigationProvider:
 
 	def clear_selected(self):
 		if self.selected_frame_line:
+			self.selected_frame_line_time_out = core.sleep(0.1)
 			self.selected_frame_line.dispose()
 			self.selected_frame_line = None
 
