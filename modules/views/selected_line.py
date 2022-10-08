@@ -7,20 +7,8 @@ from .. import core
 
 import sublime
 
-
-class Annotation:
-	def __init__(self, view: sublime.View, region: sublime.Region, html: str):
-		self.view = view
-		self.id = str(id(self))
-		view.add_regions(self.id, [region], annotation_color="#fff0", annotations=[html])
-
-	def dispose(self):
-		self.view.erase_regions(self.id)
-
-
 class SelectedLine:
 	def __init__(self, view: sublime.View, line: int, thread: dap.Thread):
-		view.settings().set('highlight_line', True)
 		# note sublime lines are 0 based not 1 based
 		pt_current_line = view.text_point(line - 1, 0)
 

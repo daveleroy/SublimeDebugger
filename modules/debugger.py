@@ -743,7 +743,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			ui.InputListItem(about, 'About/Getting Started', kind=(sublime.KIND_ID_AMBIGUOUS, '⧉', '')),
 		])
 
-		ui.InputList(values).run()
+		ui.InputList(values, 'Add or Select Configuration').run()
 
 	@core.schedule
 	async def change_configuration(self) -> None:

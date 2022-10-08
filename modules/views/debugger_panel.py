@@ -106,13 +106,18 @@ class DebuggerActionsTab(ui.span):
 			items.append(DebuggerCommandButton(self.debugger.stop, ui.Images.shared.stop_disable, 'Stop (Disabled)'))
 
 
-	
+		name = self.debugger.project.name
+		if len(name) > 11:
+			name = name[:10] +  '…'
+		else:
+			name = name.ljust(11, ' ')
+
 		if not self.debugger.is_active:
 			items.append(
 				ui.click(self.debugger.on_settings)[
 					ui.spacer(1),
 					ui.span(css=css.button_drop)[
-						ui.text(f"{self.debugger.project.name}"[:11].ljust(11, ' '), css=css.label_secondary),
+						ui.text(name, css=css.label_secondary),
 						# ui.spacer(1),
 						ui.icon(ui.Images.shared.open, align_left=False)
 					]

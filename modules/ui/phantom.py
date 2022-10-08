@@ -65,6 +65,15 @@ class RawPhantom:
 	def dispose(self) -> None:
 		self.view.erase_phantom_by_id(self.pid)
 
+class RawAnnotation:
+	def __init__(self, view: sublime.View, region: sublime.Region, html: str):
+		self.view = view
+		self.id = str(id(self))
+		view.add_regions(self.id, [region], annotation_color="#fff0", annotations=[html])
+
+	def dispose(self):
+		self.view.erase_regions(self.id)
+
 
 class Popup(Layout):
 	def __init__(self, view: sublime.View, location: int = -1, on_close: Optional[Callable[[], None]] = None) -> None:

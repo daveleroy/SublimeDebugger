@@ -223,20 +223,17 @@ class Layout:
 		return self._lightness
 
 	def update(self) -> None:
-		if style := self.view.style():
-			background = style.get('background')
-		else:
-			background = None
+		style = self.view.style()
+		background = style.get('background') if style else None
 
 		size = self.view.viewport_extent()
 		settings = self.view.settings()
 		font_size = settings.get('font_size') or 1
 		rem_width_scale = settings.get('rem_width_scale') or 1
-		em_width = (self.view.em_width() or 1)
-		# print(self.view.viewport_extent())
+		em_width = self.view.em_width() or 1
+
 		# check if anything has changed so we can avoid invalidating the layout
 		all = (background, font_size, rem_width_scale, em_width, size[0], size[1])
-		# print(all, self._all, size)
 		if self._all == all:
 			return
 
