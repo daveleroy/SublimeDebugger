@@ -187,6 +187,7 @@ class SettingsRegistery:
 	def schema():
 		import gc
 		import typing
+		import textwrap
 
 		properties = {}
 		for setting in gc.get_objects():
@@ -195,7 +196,7 @@ class SettingsRegistery:
 
 			t = typing.get_args(setting.__orig_class__)[0]
 
-			schema = {}
+			schema: dict[str, Any] = {}
 			if setting.scehma:
 				schema = setting.scehma
 			elif t == bool:
@@ -215,10 +216,9 @@ class SettingsRegistery:
 			else:
 				schema = { 'type': ['object', 'array'] }
 
-			schema['description'] = setting.description
+			schema['description'] = textwrap.dedent(setting.description).strip().split('\n')[0]
 			properties[setting.key] = schema
 
-		print(properties)
 		return {
 			'additionalProperties': False,
 			'properties': properties
