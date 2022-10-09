@@ -2,6 +2,17 @@ For getting set up see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.8.0
+- Show currently selected configuration in the controls bar instead of step controls when there is no active debug sessions
+- Support for global debug configurations by adding configurations to `global_debugger_configurations` in the debugger settings
+- The debugger can now be opened without a project file when there are global configurations
+- Clicking on a breakpoint now shows the breakpoint menu
+- Right clicking on a breakpoint removes it
+- Show preview of configuration snippets when navigating the add configuration menu
+- A number of improvements to the schema for LSP-json
+- emulicious: Adds Emulicious Debugger (@Calindro)
+
+
 Version 0.7.2
 - Minor bug fixes
 
