@@ -2,6 +2,12 @@ For getting set up see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.8.1
+- The selected stack frame location indicator now shows a tick mark under the selected column
+- Add context values for keybindings (debugger, debugger.visible, debugger.active)
+- Adjusted layout calculations
+
+
 Version 0.8.0
 - Show currently selected configuration in the controls bar instead of step controls when there is no active debug sessions
 - Support for global debug configurations by adding configurations to `global_debugger_configurations` in the debugger settings
