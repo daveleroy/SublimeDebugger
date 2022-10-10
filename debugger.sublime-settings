@@ -5,12 +5,10 @@
 	// Sets the entire scale of the UI, defaults to font_size
 	"ui_scale": null,
 
-	// This value adjusts the estimated character width calculations used to align the ui
-	"ui_rem_width_scale": 1.0,
-
-	// If true ui_rem_width_scale will be adjusted based on if the debugger layout is over/under shooting the panel.
-	// Defaults to true on Windows/Linux
-	"ui_rem_width_scale_adjust_automatically": false,
+	// This value adjusts the estimated character width calculations used to align the ui generally this should be ~1
+	// A value of null means it will automatically be calculated.
+	// On MacOS this defaults to 1.0
+	"ui_rem_width_scale": null,
 
 	// Change at your own risk it may break the interface. Restart required to take effect
 	"font_face": "Monospace",

@@ -114,7 +114,7 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		self.view.set_viewport_position((0, 0), False)
 
 	def _adjust_rem_width_scale(self):
-		if not Settings.ui_rem_width_scale_adjust_automatically:
+		if Settings.ui_rem_width_scale:
 			self.timer = core.timer(self._adjust_rem_width_scale, 2)
 			return
 
@@ -130,26 +130,27 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 			self.timer = core.timer(self._adjust_rem_width_scale, 2)
 			return
 
-		overlap_percentage = (layout_width - viewport_width)/layout_width
+		overlap = (layout_width - viewport_width)
+		overlap_percentage = overlap/layout_width
 
 		# good enough if we are in this range 0.5% under
-		if overlap_percentage <= 0 and overlap_percentage >= -0.005:
+		if overlap <= 0 and overlap >= -5:
 			self.timer = core.timer(self._adjust_rem_width_scale, 2)
 			return
 
-		adjustment = 0.01
+		adjustment = 0.005
 
-		value = Settings.ui_rem_width_scale
+		value = Settings.ui_rem_width_scale_calculated or 1
 		if overlap_percentage > 0:
-			core.info(f'overscan {overlap_percentage * 100}%: adjusting rem_width: {Settings.ui_rem_width_scale}')
-			value = Settings.ui_rem_width_scale - adjustment
+			core.info(f'overscan {overlap_percentage * 100}%: adjusting rem_width: {value}')
+			value = value - adjustment
 		else:
-			value = Settings.ui_rem_width_scale + adjustment
-			core.info(f'underscan {overlap_percentage * 100}%: adjusting rem_width: {Settings.ui_rem_width_scale}')
+			value = value + adjustment
+			core.info(f'underscan {overlap_percentage * 100}%: adjusting rem_width: {value}')
 
 		sublime.status_message(f'Debugger: adjusting ui {100 + int(overlap_percentage * 10000)/100}%')
 
-		Settings.ui_rem_width_scale = min(max(value, 0.5), 1.5)
+		Settings.ui_rem_width_scale_calculated = min(max(value, 0.5), 1.5)
 		self.timer = core.timer(self._adjust_rem_width_scale, 0.1)
 		ui.update_and_render()
 
