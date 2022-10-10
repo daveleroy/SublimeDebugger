@@ -8,7 +8,7 @@ from .. import core
 import sublime
 
 class SelectedLine:
-	def __init__(self, view: sublime.View, line: int, thread: dap.Thread):
+	def __init__(self, view: sublime.View, line: int, column: int|None, thread: dap.Thread):
 		# note sublime lines are 0 based not 1 based
 		pt_current_line = view.text_point(line - 1, 0)
 
@@ -16,6 +16,11 @@ class SelectedLine:
 		start_of_selected_line = view.line(pt_current_line).a
 
 		view.add_regions('debugger.selection', [sublime.Region(start_of_selected_line, end_of_selected_line+1)], scope='region.bluish debugger.selection', flags=sublime.DRAW_NO_OUTLINE)
+
+		if column and column > 1:
+			at = view.text_point(line - 1, column - 1)
+			view.add_regions('debugger.selection.column', [sublime.Region(at)], scope='region.bluish debugger.selection', flags=sublime.DRAW_EMPTY_AS_OVERWRITE)
+
 		stopped_reason = thread.stopped_reason or 'Stopped'
 
 		characters_before_wrap = (view.viewport_extent()[0] - view.text_to_layout(end_of_selected_line)[0])
@@ -91,6 +96,7 @@ class SelectedLine:
 
 
 	def dispose(self):
+		self.view.erase_regions('debugger.selection.column')
 		self.view.erase_regions('debugger.selection')
 		self.text.dispose()
 		if self.fetch: self.fetch.cancel()

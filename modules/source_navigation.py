@@ -73,7 +73,7 @@ class SourceNavigationProvider:
 			self.clear_selected()
 			view = await self.navigate_to_source(source)
 
-			self.selected_frame_line = SelectedLine(view, source.line or 1, thread)
+			self.selected_frame_line = SelectedLine(view, source.line or 1, source.column, thread)
 
 		self.updating = core.run(select_async(source, thread), on_error=on_error)
 
