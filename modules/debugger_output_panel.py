@@ -264,7 +264,7 @@ class DebuggerOutputPanel:
 	def on_activated(self): ...
 	def on_deactivated(self): ...
 	def on_text_command(self, command_name: str, args: Any): ...
-	def on_query_context(self, key: str, operator: str, operand: str, match_all: bool) -> bool: ...
+	def on_query_context(self, key: str, operator: int, operand: Any, match_all: bool) -> bool|None: ...
 	def on_query_completions(self, prefix: str, locations: list[int]) -> Any: ...
 
 
@@ -296,14 +296,18 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 		if panel := DebuggerOutputPanel.panels.get(view.id()):
 			return panel.on_text_command(command_name, args)
 
-	def on_query_context(self, view: sublime.View, key: str, operator: str, operand: str, match_all: bool) -> bool:
+	def on_post_text_command(self, view: sublime.View, command_name: str, args: Any):
+		if panel := DebuggerOutputPanel.panels.get(view.id()):
+			return panel.on_post_text_command(command_name, args)
+
+	def on_query_context(self, view: sublime.View, key: str, operator: int, operand: Any, match_all: bool) -> bool|None:
 		if key != 'debugger':
-			return False
+			return None
 
 		if panel := DebuggerOutputPanel.panels.get(view.id()):
 			return panel.on_query_context(key, operator, operand, match_all)
 
-		return False
+		return None
 
 	def on_query_completions(self, view: sublime.View, prefix: str, locations: list[int]) -> Any:
 		if panel := DebuggerOutputPanel.panels.get(view.id()):

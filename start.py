@@ -241,3 +241,26 @@ class Listener (sublime_plugin.EventListener):
 				debugger.breakpoints.source.toggle_file_line(file, line)
 
 		return True
+
+	def on_query_context(self, view: sublime.View, key: str, operator: int, operand: Any, match_all: bool) -> bool|None:
+		if not key.startswith('debugger'):
+			return None
+
+		debugger = debugger_for_view(view)
+
+		def apply_operator(value: Any):
+			if operator == sublime.OP_EQUAL: 
+				return value == operand
+			elif operator == sublime.OP_NOT_EQUAL: 
+				return value != operand
+
+		if key == 'debugger':
+			return apply_operator(bool(debugger))
+
+		if key == 'debugger.visible':
+			return apply_operator(debugger.is_open()) if debugger else apply_operator(False)
+
+		if key == 'debugger.active':
+			return apply_operator(debugger.is_open()) if debugger else apply_operator(False)
+
+		return None

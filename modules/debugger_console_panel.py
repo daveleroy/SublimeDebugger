@@ -232,9 +232,9 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 
 		self.view.set_read_only(False)
 
-	def on_query_context(self, key: str, operator: str, operand: str, match_all: bool) -> bool:
+	def on_query_context(self, key: str, operator: int, operand: Any, match_all: bool) -> bool|None:
 		self.set_input_mode()
-		return False
+		return None
 
 	def on_text_command(self, command_name: str, args: Any):
 		if command_name == 'insert' and args['characters'] == '\n' and self.enter():
