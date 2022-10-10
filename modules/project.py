@@ -52,7 +52,7 @@ class Project:
 		if self.configuration_or_compound:
 			return self.configuration_or_compound.name
 
-		return 'No Configuration'
+		return 'Add Configuration'
 
 	def into_json(self) -> dict[str, Any]:
 		return {
