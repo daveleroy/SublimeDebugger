@@ -108,6 +108,9 @@ class EmuliciousDebugger(dap.AdapterConfiguration):
 	@property
 	def configuration_snippets(self):
 		snippets = util.vscode.configuration_snippets(self.type)
+		if not snippets:
+			return 
+
 		for snippet in snippets:
 			body = snippet.get("body", {})
 			if body.get("program") and "command:" in snippet.get("body").get("program"):
