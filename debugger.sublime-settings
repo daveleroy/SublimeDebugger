@@ -5,11 +5,6 @@
 	// Sets the entire scale of the UI, defaults to font_size
 	"ui_scale": null,
 
-	// This value adjusts the estimated character width calculations used to align the ui generally this should be ~1
-	// A value of null means it will automatically be calculated.
-	// On MacOS this defaults to 1.0
-	"ui_rem_width_scale": null,
-
 	// Change at your own risk it may break the interface. Restart required to take effect
 	"font_face": "Monospace",
 

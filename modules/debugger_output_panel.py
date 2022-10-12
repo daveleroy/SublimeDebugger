@@ -161,8 +161,6 @@ class DebuggerOutputPanel:
 		else:
 			settings.erase('font_size')
 
-		settings['rem_width_scale'] = Settings.ui_rem_width_scale or Settings.ui_rem_width_scale_calculated or 1.0
-
 	def set_status(self, status: ui.Image):
 		self.status = status
 		

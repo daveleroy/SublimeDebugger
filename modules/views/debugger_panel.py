@@ -25,8 +25,8 @@ class DebuggerPanel(ui.div):
 		self.debugger.on_session_added.add(self.on_selected_session)
 
 		self.debugger.project.on_updated.add(self.dirty)
-		self.last_active_adapter: None = None
-		self.actions_tab = DebuggerActionsTab(debugger, css=None)
+		self.last_active_adapter: dap.AdapterConfiguration|None = None
+		self.actions_tab = DebuggerActionsTab(debugger)
 
 	def on_selected_session(self, session: dap.Session):
 		self.last_active_adapter = session.adapter_configuration
@@ -62,7 +62,7 @@ class DebuggerPanel(ui.div):
 		panel_items.append(self.breakpoints)
 
 		return [
-			ui.div(height=css.header_height, width=30 - css.controls_panel.padding_width, css=css.controls_panel)[
+			ui.div(height=css.header_height, width=30)[
 				self.actions_tab
 			],
 			ui.div(width=30 - css.rounded_panel.padding_width, height=1000, css=css.panel)[

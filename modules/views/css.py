@@ -8,8 +8,8 @@ panel_padding= 2
 button = ui.css(
 	padding_left=1,
 	padding_right=1,
-	padding_top=-0.5,
-	padding_bottom=-0.5,
+	padding_top=1,
+	padding_bottom=1,
 	background_color='var(--dark)',
 	color='var(--primary)',
 	raw='border-radius: 0.4rem;'
@@ -18,8 +18,8 @@ button = ui.css(
 button_drop = ui.css(
 	padding_left=1,
 	padding_right=1,
-	padding_top=-0.7,
-	padding_bottom=-0.7,
+	padding_top=1.2,
+	padding_bottom=1.2,
 	background_color='var(--tinted)',
 	color='var(--primary)',
 	raw='''
@@ -36,8 +36,8 @@ button_drop = ui.css(
 button_secondary = ui.css(
 	padding_left=1, 
 	padding_right=1, 
-	padding_top=-0.5, 
-	padding_bottom=-0.5, 
+	padding_top=1,
+	padding_bottom=1, 
 	background_color='var(--dark)', 
 	color='var(--secondary)', 
 	raw='border-radius: 0.4rem;'
@@ -143,6 +143,8 @@ tab = ui.css(
 	background_color='var(--light)',
 	padding_left=2,
 	padding_right=2,
+	padding_top= 2,
+	padding_bottom=2,
 	raw='''
 	border-top-left-radius: 0.33rem;
 	border-top-right-radius: 0.33rem;
@@ -153,6 +155,8 @@ tab_selected = ui.css(
 	background_color='var(--medium)',
 	padding_left=2,
 	padding_right=2,
+	padding_top= 2,
+	padding_bottom=2,
 	raw='''
 	border-top-left-radius: 0.33rem;
 	border-top-right-radius: 0.33rem;
@@ -184,6 +188,8 @@ controls_panel = ui.css(
 	background_color='var(--light)',
 	padding_left=1,
 	padding_right=1,
+	padding_top= 2,
+	padding_bottom=2,
 	raw='''
 	border-top-right-radius: 0.33rem;
 	border-top-left-radius: 0.33rem;
@@ -195,6 +201,6 @@ table_inset = ui.css(
 )
 
 selected = ui.css(
-	background_color='color(var(--accent) alpha(0.2))', 
+	background_color='color(var(--accent) alpha(0.2))',
 	raw='border-radius:0.33rem;'
 )

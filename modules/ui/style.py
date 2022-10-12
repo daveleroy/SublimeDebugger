@@ -5,6 +5,9 @@ if TYPE_CHECKING:
 	from .layout import Layout
 
 from .debug import DEBUG_DRAW
+
+import sublime
+
 base_css = '''
 .dark {
 	--tinted: color(var(--background) blend(black 97%));
@@ -82,8 +85,17 @@ class css:
 	@staticmethod
 	def generate(layout: Layout):
 		css_string = base_css
-		css_string += 'html {{ font-size: {}px; }}'.format(layout.font_size * layout._em_width_to_rem)
-		css_string += 'body {{ font-size: {}px; }}'.format(layout.font_size)
+
+		# rem units are based on character width now. 1 rem = 1 character width
+		css_string += 'html {{ font-size: {}px; line-height: 0; }}'.format(layout.em_width)
+		
+
+		# Change the font-size back since we changed the font-size in the html tag for the rem units
+		# I have no idea why windows/linux needs pt instead of px to get the font-size correct...
+		if sublime.platform() == 'osx':
+			css_string += 'body {{ font-size: {}px; }}'.format(layout.font_size)
+		else:
+			css_string += 'body {{ font-size: {}pt; }}'.format(layout.font_size)
 
 		for c in css.instances:
 			css_string += '#{}{{'.format(c.css_id)

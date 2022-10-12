@@ -145,13 +145,13 @@ class div (element):
 
 		h = self.height(layout) - self.padding_height
 		w = self.width(layout) - self.padding_width
-		offset= h - 1.0/layout._em_width_to_rem
+		offset= h / 2 - 0.5
 		if children_inline:
 			# this makes it so that divs with an img in them and divs without an img in them all align the same
-			return f'<d id="{self.css_id}"><div style="height:{h}rem;width:{w}rem;line-height: {h}rem; padding: {-offset}rem 0 {offset}rem 0"><img style="height: {h}rem">{html}</div></d>'
+			# and everything inside the div aligns vertically
+			return f'<d id="{self.css_id}" style="height:{h}rem; width:{w}rem; padding:{-offset}rem 0 {offset}rem 0"><img style="height:{h}rem">{html}</d>'
 		else:
 			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;">{html}</d>'
-
 
 def html_escape(text: str) -> str:
 	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '\u00A0')
@@ -219,9 +219,9 @@ class icon (span):
 		required_padding = self.padding
 		top = 0.75
 		if self.align_left:
-			return f'<s style="position:relative;top:{top}rem;line-height:0rem;padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
+			return f'<s style="position:relative;top:{top}rem;padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
 		else:
-			return f'<s style="position:relative;top:{top}rem;line-height:0rem;padding-left:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
+			return f'<s style="position:relative;top:{top}rem;padding-left:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></s>'
 
 
 tokenize_re = re.compile(

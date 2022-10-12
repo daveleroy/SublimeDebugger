@@ -39,18 +39,6 @@ class Settings:
 		description='Sets the entire scale of the UI, defaults to font_size'
 	)
 
-	ui_rem_width_scale = Setting['float|None'] (
-		key='ui_rem_width_scale',
-		default=None,
-		description='This value adjusts the estimated character width calculations used to align the ui, set to null and it will be automatically calculated.'
-	)
-	ui_rem_width_scale_calculated = Setting['float|None'] (
-		key='ui_rem_width_scale_calculated',
-		default=None,
-		description='This value adjusts the estimated character width calculations used to align the ui, set to null and it will be automatically calculated.',
-		visible=False,
-	)
-
 	font_face = Setting[str] (
 		key='font_face',
 		default='Monospace',
@@ -58,7 +46,6 @@ class Settings:
 		Change at your own risk it may break the interface. Restart required to take effect
 		'''
 	)
-
 
 	external_terminal = Setting[str] (
 		key='external_terminal',
