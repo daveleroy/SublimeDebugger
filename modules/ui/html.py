@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import TYPE_CHECKING, Any, Callable, Generator, Sequence, Union
 
 from .image import Image
 from .style import css, none_css

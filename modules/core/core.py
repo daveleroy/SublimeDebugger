@@ -1,11 +1,11 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, Iterable, TypeVar
+from .typing import TypeVarTuple, Unpack
 
 import sublime
 import concurrent
 import asyncio
 
-from .log import exception
 from .sublime_event_loop import SublimeEventLoop
 
 T = TypeVar('T')

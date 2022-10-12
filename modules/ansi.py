@@ -1,8 +1,8 @@
 from __future__ import annotations
 import re
+from typing import Any
 
 from .import core 
-from .typecheck import *
 
 def ansi_colorize(text, color: str|None = None, previous_color: str|None = None):
 	text = text.replace('\r\n', '\n')

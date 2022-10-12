@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import TYPE_CHECKING, Callable
 
 from ..import ui
 from ..import dap

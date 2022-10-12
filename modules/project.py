@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .typecheck import *
+from typing import Any
 
 from .import core
 from .dap import Configuration, ConfigurationCompound, Task
@@ -28,7 +28,7 @@ class Project:
 		self.compounds: list[ConfigurationCompound] = []
 		self.configurations: list[Configuration] = []
 
-		self.configuration_or_compound: Optional[Union[Configuration, ConfigurationCompound]] = None
+		self.configuration_or_compound: Configuration|ConfigurationCompound|None = None
 
 		self.external_terminal_kind = 'platform'
 		self.ui_scale = 12
@@ -60,7 +60,7 @@ class Project:
 			'configuration_id_ish': self.configuration_or_compound and self.configuration_or_compound.id_ish,
 		}
 
-	def load_from_json(self, json: dict[str, Any]) -> Optional[Union[Configuration, ConfigurationCompound]]:
+	def load_from_json(self, json: dict[str, Any]) -> Configuration|ConfigurationCompound|None:
 		configuration_name: str|None = json.get('configuration_name')
 		configuration_id_ish: str|None = json.get('configuration_id_ish')
 
@@ -234,7 +234,7 @@ class Project:
 			variables['workspaceRoot'] = folder
 		return variables
 
-	def current_file_line_column(self) -> Tuple[str, int, int]:
+	def current_file_line_column(self) -> tuple[str, int, int]:
 		view = self.window.active_view()
 		if not view:
 			raise core.Error("No open view")
@@ -246,6 +246,6 @@ class Project:
 		r, c = view.rowcol(view.sel()[0].begin())
 		return file, r + 1, c + 1
 
-	def current_file_line(self) -> Tuple[str, int]:
+	def current_file_line(self) -> tuple[str, int]:
 		line, col, _ = self.current_file_line_column()
 		return line, col

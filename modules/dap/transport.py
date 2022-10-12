@@ -9,8 +9,9 @@
 	https://microsoft.github.io/debug-adapter-protocol/implementors/adapters/
 '''
 from __future__ import annotations
+from typing import Any, Awaitable, Protocol
+
 from dataclasses import dataclass
-from ..typecheck import *
 
 from ..import core
 from .error import Error
@@ -151,7 +152,7 @@ class TransportProtocol:
 		self.recieved_msg(message)
 
 	def send_request_asyc(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
-		future: core.Future[Dict[str, Any]] = core.Future()
+		future: core.Future[dict[str, Any]] = core.Future()
 		self.seq += 1
 		request = {
 			'seq': self.seq,

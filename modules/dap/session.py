@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from ..typecheck import *
-
 from enum import IntEnum
+from typing import Any, Awaitable, Protocol
 
 from ..import core
 from .import dap
@@ -34,7 +33,7 @@ class SessionListener (Protocol):
 	async def on_session_terminal_request(self, session: Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse: ...
 
 	def on_session_state_changed(self, session: Session, state: Session.State): ...
-	def on_session_selected_frame(self, session: Session, frame: Optional[dap.StackFrame]): ...
+	def on_session_selected_frame(self, session: Session, frame: dap.StackFrame|None): ...
 	def on_session_output_event(self, session: Session, event: dap.OutputEvent): ...
 
 	def on_session_updated_modules(self, session: Session): ...
@@ -100,9 +99,9 @@ class Session(TransportProtocolListener):
 		self.watch = watch
 		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, expr))
 
-		self._transport: Optional[TransportProtocol] = None
+		self._transport: TransportProtocol|None = None
 
-		self.launching_async: Optional[core.Future] = None
+		self.launching_async: core.Future|None = None
 		self.capabilities = dap.Capabilities()
 		self.stop_requested = False
 		self.launch_request = True
@@ -755,7 +754,7 @@ class Session(TransportProtocolListener):
 			self.threads_for_id[id] = t
 			return t
 
-	def set_selected(self, thread: Thread, frame: Optional[dap.StackFrame]):
+	def set_selected(self, thread: Thread, frame: dap.StackFrame|None):
 		self.select(thread, frame, explicitly=True)
 		self.listener.on_session_updated_threads(self)
 		self._refresh_state()
@@ -854,7 +853,7 @@ class Session(TransportProtocolListener):
 		self.listener.on_session_updated_threads(self)
 		self._refresh_state()
 
-	def select(self, thread: Optional[Thread], frame: Optional[dap.StackFrame], explicitly: bool):
+	def select(self, thread: Thread|None, frame: dap.StackFrame|None, explicitly: bool):
 		if frame and not thread:
 			raise core.Error('Expected thread')
 
@@ -907,7 +906,7 @@ class Thread:
 		self.stopped = stopped
 		self.stopped_reason = ''
 		self.stopped_event: dap.StoppedEvent|None = None
-		self._children: Optional[core.Future[list[dap.StackFrame]]] = None
+		self._children: core.Future[list[dap.StackFrame]]|None = None
 
 	def has_children(self) -> bool:
 		return self.stopped

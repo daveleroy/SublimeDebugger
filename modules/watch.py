@@ -1,19 +1,17 @@
 from __future__ import annotations
-from .typecheck import *
+from typing import Awaitable
 
 from .import core
 from .import ui
 
 from . import dap
 
-import asyncio
-
 class Watch:
 	class Expression:
 		def __init__(self, value: str):
 			self.value = value
 			self.message = ""
-			self.evaluate_response: Optional[dap.Variable] = None
+			self.evaluate_response: dap.Variable|None = None
 			self.on_updated: core.Event[None] = core.Event()
 
 		def into_json(self) -> dap.Json:
@@ -69,7 +67,7 @@ class Watch:
 			self.evaluated(session, expression, result)
 		self.on_updated.post()
 
-	def evaluated(self, session: dap.Session, expression: Watch.Expression, evaluation: Union[Exception, dap.EvaluateResponse]):
+	def evaluated(self, session: dap.Session, expression: Watch.Expression, evaluation: Exception|dap.EvaluateResponse):
 		if isinstance(evaluation, Exception):
 			expression.message = str(evaluation)
 		else:

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ..typecheck import *
 
 from . html import span, click, alignable
 from . layout import Layout

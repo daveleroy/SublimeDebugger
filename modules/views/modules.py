@@ -1,7 +1,6 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import TYPE_CHECKING, Any
 
-from ..import core
 from ..import ui
 from ..import dap
 

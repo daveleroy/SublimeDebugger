@@ -1,10 +1,9 @@
 from __future__ import annotations
-from ..typecheck import *
 
 from .import util
 from .. import dap
 from .. import core
-import shutil
+
 
 class Lua(dap.AdapterConfiguration):
 

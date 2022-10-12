@@ -1,11 +1,10 @@
 from __future__ import annotations
-from .. typecheck import *
-
-from .debug import DEBUG_DRAW
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
 	from .layout import Layout
 
+from .debug import DEBUG_DRAW
 base_css = '''
 .dark {
 	--tinted: color(var(--background) blend(black 97%));

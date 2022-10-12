@@ -1,15 +1,12 @@
 from __future__ import annotations
-
-import sublime_plugin
-from .typecheck import *
+from typing import TYPE_CHECKING
 
 from .debugger_output_panel import DebuggerOutputPanel
-from .typecheck import *
 
 from .import core
 
-import sys
 import sublime
+import sublime_plugin
 
 if TYPE_CHECKING:
 	from .debugger import Debugger

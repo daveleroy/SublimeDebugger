@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any, Dict, TypeVar
 from ..import core
 
 from .import dap

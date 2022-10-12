@@ -1,6 +1,6 @@
 from __future__ import annotations
+from typing import Callable, ClassVar, Generator
 
-from ..typecheck import *
 
 from ..import core
 from .style import css

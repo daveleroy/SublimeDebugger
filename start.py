@@ -1,4 +1,6 @@
 from __future__ import annotations
+from typing import Any, Iterable, Set
+
 import sys
 import sublime
 import sublime_plugin
@@ -20,7 +22,6 @@ from .modules.adapters.java import DebuggerJdtlsBridgeResponseCommand
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
 from .modules.debugger_output_panel import DebuggerConsoleListener
 from .modules.terminal_integrated import DebuggerTerminusPostViewHooks
-from .modules.typecheck import *
 
 from .modules import core
 from .modules import ui
@@ -60,7 +61,7 @@ def plugin_unloaded() -> None:
 	ui.shutdown()
 	core.info('[finished]')
 
-def open_debugger_in_window_or_view(window_or_view: Union[sublime.View, sublime.Window]):
+def open_debugger_in_window_or_view(window_or_view: sublime.View|sublime.Window):
 	if isinstance(window_or_view, sublime.View):
 		window = window_or_view.window()
 	else:

@@ -1,9 +1,10 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import TYPE_CHECKING
 
-from ..import core
 if TYPE_CHECKING:
 	from . layout import Layout
+
+from ..import core
 
 import sublime
 import base64

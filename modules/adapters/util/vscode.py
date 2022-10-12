@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import BinaryIO
+from typing import Any, Awaitable, BinaryIO, Callable
 
-from ...typecheck import *
 from ...import core
 
 import os
@@ -40,7 +39,7 @@ def replace_localized_placeholders(json: Any, strings: dict[str, str]) -> Any:
 
 	return json
 
-def info(type: str) -> Optional[AdapterInfo]:
+def info(type: str) -> AdapterInfo|None:
 	info = _info_for_type.get(type)
 	if info:
 		return info
@@ -159,7 +158,7 @@ def uninstall(type: str):
 	path = install_path(type)
 	_remove_files_or_directories([path])
 
-async def install(type: str, url: str, log: core.Logger, post_download_action: Optional[Callable[[], Awaitable[Any]]] = None):
+async def install(type: str, url: str, log: core.Logger, post_download_action: Callable[[], Awaitable[Any]]|None = None):
 	try:
 		del _info_for_type[type]
 	except KeyError:

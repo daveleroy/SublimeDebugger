@@ -1,12 +1,11 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any, Callable
 
 import sublime
 import sublime_plugin
 
-from .core import call_soon_threadsafe, create_future, Future
+from .core import create_future, Future
 from .event import Event
-from .error import Error
 
 async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None, group: int=-1) -> sublime.View:
 	if line:
@@ -41,9 +40,9 @@ on_view_modified: Event[sublime.View] = Event()
 on_view_load: Event[sublime.View] = Event()
 on_pre_view_closed: Event[sublime.View] = Event()
 
-on_view_hovered: Event[Tuple[sublime.View, int, int]] = Event()
+on_view_hovered: Event[tuple[sublime.View, int, int]] = Event()
 on_view_activated: Event[sublime.View] = Event()
-on_view_gutter_clicked: Event[Tuple[sublime.View, int, int]] = Event() # view, line, button
+on_view_gutter_clicked: Event[tuple[sublime.View, int, int]] = Event() # view, line, button
 on_view_drag_select_or_context_menu: Event[sublime.View] = Event()
 
 on_load_project: Event[sublime.Window] = Event()

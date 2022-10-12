@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any
 
 from .import util
 from .. import dap
@@ -86,7 +86,7 @@ class Python(dap.AdapterConfiguration):
 
 		return configuration
 
-	def get_venv(self, log: core.Logger, start: Path) -> Optional[Tuple[Path, Path]]:
+	def get_venv(self, log: core.Logger, start: Path) -> tuple[Path, Path]|None:
 		"""
 		Searches a venv in `start` all its parent directories.
 		"""
@@ -96,12 +96,12 @@ class Python(dap.AdapterConfiguration):
 				return python_path, folder
 		return None
 
-	def resolve_python_path_from_venv_folder(self, log: core.Logger, folder: Path) -> Optional[Path]:
+	def resolve_python_path_from_venv_folder(self, log: core.Logger, folder: Path) -> Path|None:
 		"""
 		Resolves the python binary from venv.
 		"""
 
-		def binary_from_python_path(path: Path) -> Optional[Path]:
+		def binary_from_python_path(path: Path) -> Path|None:
 			if sublime.platform() == 'windows':
 				binary_path = path / 'Scripts' / 'python.exe'
 			else:
@@ -115,7 +115,7 @@ class Python(dap.AdapterConfiguration):
 			('Pipfile', ['pipenv', '--py'], None),
 			('poetry.lock', ['poetry', 'env', 'info', '-p'], binary_from_python_path),
 			('.python-version', ['pyenv', 'which', 'python'], None),
-		]  # type: List[Tuple[str, List[str], Optional[Callable[[Path], Optional[Path]]]]]
+		]
 
 		if sublime.platform() == 'windows':
 			# do not create a window for the process

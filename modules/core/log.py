@@ -1,6 +1,7 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any, Protocol
 
+import sublime
 import traceback
 
 _should_log_exceptions = True

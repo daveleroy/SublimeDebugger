@@ -1,8 +1,7 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any, Callable
 
 from ..import ui
-from ..import core
 from ..import dap
 
 from ..breakpoints import (

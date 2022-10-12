@@ -1,11 +1,9 @@
 from __future__ import annotations
-from ..typecheck import *
-
-from ..settings import Setting
 
 from .import util
 from .. import dap
 from .. import core
+from ..settings import Setting
 
 import shutil
 

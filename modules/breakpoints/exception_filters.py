@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any, Iterable
 
 from ..import core
 from ..import ui

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .typecheck import *
+from typing import Any, Awaitable
 
 from .import core, ui
 
@@ -19,8 +19,6 @@ from .adapters_registry import AdaptersRegistry
 from .debugger_console_panel import DebuggerConsoleOutputPanel
 from .debugger_main_panel import DebuggerMainOutputPanel
 from .debugger_output_panel import DebuggerOutputPanel
-
-from .import util
 
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
 from .terminal_task import TerminalTask, Tasks
@@ -704,7 +702,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.source_provider.show_source_location(source)
 
 	# Configuration Stuff
-	def set_configuration(self, configuration: Union[dap.Configuration, dap.ConfigurationCompound]):
+	def set_configuration(self, configuration: dap.Configuration|dap.ConfigurationCompound):
 		self.project.configuration_or_compound = configuration
 		self.project.on_updated.post()
 		self.save_data()

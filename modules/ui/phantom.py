@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Callable
 
 from .. import core
 from .layout import Layout
@@ -76,7 +76,7 @@ class RawAnnotation:
 
 
 class Popup(Layout):
-	def __init__(self, view: sublime.View, location: int = -1, on_close: Optional[Callable[[], None]] = None) -> None:
+	def __init__(self, view: sublime.View, location: int = -1, on_close: Callable[[], None]|None = None) -> None:
 		super().__init__(view)
 
 		self.on_close = on_close

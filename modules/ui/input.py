@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any, Callable, Protocol
 
 from ..import core
 

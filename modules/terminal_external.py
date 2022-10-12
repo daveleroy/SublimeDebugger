@@ -25,7 +25,7 @@
 # SOFTWARE.
 
 from __future__ import annotations
-from .typecheck import *
+from typing import Protocol
 
 from .import core
 

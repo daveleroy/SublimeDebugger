@@ -1,6 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
-from typing import Literal
+from typing import Any, Literal
 
 from ..import core
 from ..import ui

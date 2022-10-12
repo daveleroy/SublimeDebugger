@@ -1,6 +1,5 @@
 from __future__ import annotations
-from .typecheck import *
-
+from typing import Any
 from .import core
 
 import os

@@ -1,6 +1,5 @@
 from __future__ import annotations
-from ..typecheck import *
-from typing import IO
+from typing import IO, Any, Callable
 
 from ..import core
 from .transport import Transport

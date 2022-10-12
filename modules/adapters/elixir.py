@@ -1,10 +1,9 @@
 from __future__ import annotations
-from ..typecheck import *
 
 from .. import dap
 from .. import core
 from . import util
-import shutil
+
 
 class Elixir(dap.AdapterConfiguration):
 	type = 'elixir'

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from .adapters_registry import AdaptersRegistry
 from .settings import SettingsRegistery
-from .typecheck import *
 
 from .debugger import Debugger
 from .command import Command, CommandDebugger, CommandsRegistry, open_settings

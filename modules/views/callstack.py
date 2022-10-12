@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from ..typecheck import*
+
+from typing import TYPE_CHECKING, Any, Callable
 
 from ..import ui
 from ..import core
@@ -13,6 +14,7 @@ import os
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
+	from ..debugger_output_panel import DebuggerOutputPanel
 
 class CallStackState:
 	def __init__(self):

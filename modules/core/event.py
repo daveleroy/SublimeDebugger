@@ -1,5 +1,6 @@
 from __future__ import annotations
-from ..typecheck import *
+from typing import Any, Callable, overload
+from .typing import TypeVar, TypeVarTuple, Unpack, Generic
 
 T = TypeVar('T')
 Args = TypeVarTuple('Args')

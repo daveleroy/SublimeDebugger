@@ -1,13 +1,14 @@
 from __future__ import annotations
-from ...typecheck import *
-from ...import core
+from typing import Any, Callable
 
 import urllib.request
 import urllib.error
 import json
 import certifi
 
+from ...import core
 from ...import dap
+
 from .import vscode
 
 from ...libs.semver import semver
