@@ -88,9 +88,10 @@ class Python(dap.AdapterConfiguration):
 
 	def get_venv(self, log: core.Logger, start: Path) -> tuple[Path, Path]|None:
 		"""
-		Searches a venv in `start` all its parent directories.
+		Searches a venv in `start` and all its parent directories.
 		"""
-		for folder in start.resolve().parents:
+		resolved = start.resolve()
+		for folder in [resolved] + list(resolved.parents):
 			python_path = self.resolve_python_path_from_venv_folder(log, folder)
 			if python_path:
 				return python_path, folder
