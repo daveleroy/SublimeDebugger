@@ -191,10 +191,10 @@ class Listener (sublime_plugin.EventListener):
 		except dap.Error as e:
 			core.error('adapter failed hover evaluation', e)
 
-	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any]) -> Any:
+	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any]|None) -> Any:
 		if self.ignore(view): return
 
-		if (cmd == 'drag_select' or cmd == 'context_menu') and 'event' in args:
+		if (cmd == 'drag_select' or cmd == 'context_menu') and args and 'event' in args:
 			# on_view_drag_select_or_context_menu(view)
 
 			event = args['event']
