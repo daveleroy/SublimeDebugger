@@ -300,27 +300,30 @@ class Session(TransportProtocolListener):
 		if self.capabilities.supportsDataBreakpoints:
 			requests.append(self.set_data_breakpoints())
 
-		if requests:
-			await core.wait(requests)
+		for request in requests:
+			core.run(request)
 
 	async def set_exception_breakpoint_filters(self) -> None:
 		if not self._transport:
 			return
-		filters: list[str] = []
-		filterOptions: list[dap.ExceptionFilterOptions] = []
+		try:
+			filters: list[str] = []
+			filterOptions: list[dap.ExceptionFilterOptions] = []
 
-		for f in self.breakpoints.filters:
-			if f.enabled:
-				filters.append(f.dap.filter)
-				filterOptions.append(dap.ExceptionFilterOptions(
-					f.dap.filter,
-					f.condition,
-				))
+			for f in self.breakpoints.filters:
+				if f.enabled:
+					filters.append(f.dap.filter)
+					filterOptions.append(dap.ExceptionFilterOptions(
+						f.dap.filter,
+						f.condition,
+					))
 
-		await self.request('setExceptionBreakpoints', {
-			'filters': filters,
-			'filterOptions': filterOptions
-		})
+			await self.request('setExceptionBreakpoints', {
+				'filters': filters,
+				'filterOptions': filterOptions
+			})
+		except core.Error as e:
+			self.log.error('Error while exception filters: {}'.format(e))
 
 	async def set_function_breakpoints(self) -> None:
 		if not self._transport:
@@ -333,17 +336,21 @@ class Session(TransportProtocolListener):
 				self.log.error('This debugger does not support function breakpoints')
 			return
 
-		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
+		try:
+			dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
 
-		response = await self.request('setFunctionBreakpoints', {
-			'breakpoints': dap_breakpoints
-		})
-		results: list[dap.Breakpoint] = response['breakpoints']
+			response = await self.request('setFunctionBreakpoints', {
+				'breakpoints': dap_breakpoints
+			})
+			results: list[dap.Breakpoint] = response['breakpoints']
 
-		for result, b in zip(results, breakpoints):
-			self.breakpoints.function.set_breakpoint_result(b, self, result)
-			if result.id is not None:
-				self.breakpoints_for_id[result.id] = b
+			for result, b in zip(results, breakpoints):
+				self.breakpoints.function.set_breakpoint_result(b, self, result)
+				if result.id is not None:
+					self.breakpoints_for_id[result.id] = b
+
+		except core.Error as e:
+			self.log.error('Error while adding function breakpoints: {}'.format(e))
 
 	async def set_data_breakpoints(self) -> None:
 		if not self._transport:
@@ -351,14 +358,18 @@ class Session(TransportProtocolListener):
 		breakpoints = list(filter(lambda b: b.enabled, self.breakpoints.data))
 		dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
 
-		response = await self.request('setDataBreakpoints', {
-			'breakpoints': dap_breakpoints
-		})
-		results: list[dap.Breakpoint] = response['breakpoints']
-		for result, b in zip(results, breakpoints):
-			self.breakpoints.data.set_breakpoint_result(b, self, result)
-			if result.id is not None:
-				self.breakpoints_for_id[result.id] = b
+		try:
+			response = await self.request('setDataBreakpoints', {
+				'breakpoints': dap_breakpoints
+			})
+			results: list[dap.Breakpoint] = response['breakpoints']
+			for result, b in zip(results, breakpoints):
+				self.breakpoints.data.set_breakpoint_result(b, self, result)
+				if result.id is not None:
+					self.breakpoints_for_id[result.id] = b
+
+		except core.Error as e:
+			self.log.error('Error while adding data breakpoints: {}'.format(e))
 
 	async def set_breakpoints_for_file(self, file: str, breakpoints: list[SourceBreakpoint]) -> None:
 		if not self._transport:
@@ -401,6 +412,7 @@ class Session(TransportProtocolListener):
 					self.breakpoints_for_id[result.id] = b
 
 		except Error as e:
+			self.log.error('Error while adding breakpoints: {}'.format(e))
 			for b in enabled_breakpoints:
 				self.breakpoints.source.set_breakpoint_result(b, self, dap.Breakpoint(verified=False, message=str(e)))
 
@@ -444,7 +456,6 @@ class Session(TransportProtocolListener):
 				return
 			except Error as e:
 				core.exception()
-
 
 		# we couldn't terminate either not a launch request or the terminate request failed
 		# so we foreceully disconnect
@@ -688,19 +699,20 @@ class Session(TransportProtocolListener):
 	# it depends on when the debug adapter chooses it is ready for configuration information
 	# when it does happen we can then add all the breakpoints and complete the configuration
 	# NOTE: some adapters appear to send the initialized event multiple times
-	@core.schedule
-	async def on_initialized_event(self):
-		try:
-			await self.add_breakpoints()
-		except core.Error as e:
-			self.log.error('there was an error adding breakpoints {}'.format(e))
-		
+	def on_initialized_event(self):
+		self.add_breakpoints()
+
 		if self.capabilities.supportsConfigurationDoneRequest:
-			try:
+			self.configuration_done()
+
+	def configuration_done(self):
+		async def run():
+			try:	
 				await self.request('configurationDone', {})
 			except core.Error as e:
 				self.log.error('there was an error in configuration done {}'.format(e))
-
+		core.run(run())
+	
 	def on_output_event(self, event: dap.OutputEvent):
 		self.listener.on_session_output_event(self, event)
 
