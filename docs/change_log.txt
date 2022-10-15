@@ -1,6 +1,12 @@
-For getting set up see https://github.com/daveleroy/sublime_debugger
+For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
+
+
+Version 0.8.2
+- When copying text from the debugger console remove hidden syntax highlighting characters
+- Fixes alignment issues on Windows/Linux
+
 
 Version 0.8.1
 - The selected stack frame location indicator now shows a tick mark under the selected column
@@ -18,13 +24,11 @@ Version 0.8.0
 - A number of improvements to the schema for LSP-json
 - emulicious: Adds Emulicious Debugger (@Calindro)
 
-
 Version 0.7.2
 - Minor bug fixes
 
 
 Version 0.7.1
-
 - Refined debugger interface that was redesigned in the last release
 - Allow inputting commands by typing into the debugger console
 - The debugger interface now matches the current font-size this can be overridden with the setting `ui-scale`
@@ -37,7 +41,6 @@ Version 0.7.1
 
 
 Version 0.7.0
-
 - Redesigned debugger ui so that the console output can appear in an output panel
 - The hover expression behavior is smarter and can evaluate simple expressions like `a.b` `a->c` etc
 - lua: Adds lua debugger via lua-local (@naoufalzerai)
@@ -46,62 +49,52 @@ Version 0.7.0
 - go: updated to use dlv dap
 
 Version 0.6.8
-
 - python: fixes issue with installing adapter
 - python: allow specifying the python interpreter with `python`
 
 
 Version 0.6.7
-
 - Fixes an issue with the latest version of vscode lldb
 
 
 Version 0.6.6
-
 - Allow inputing debugger commands directly into the debugger console
 - Auto complete for debugger commands (not all adapters support this)
 - A number of performance/usability improvements for the debugger console
 
 
 Version 0.6.4
-
 - Added support for vscode-js-debug for chrome/node/edge adapters
 - Improved snippet support
 
 
 Version 0.6.3
-
 - Adjusted the calculation for determining a good value for ui_rem_width_scale
 - Added setting ui_rem_width_scale_adjust_automatically for disabling automatic calculation of ui_rem_width_scale
 
 
 Version 0.6.2
-
 - Fixes a layout issue on Linux
 
 
 Version 0.6.1
-
 - Fixes an issue with the debugger panel not being correctly sized on Windows/Linux #121
 - Fixes an issue with hover evaluation #152 (@ta946)
 
 
 Version 0.6.0
-
 - This update changes how the output is handled. Instead of showing up as a tab in the debugger UI the layout is changed to a split view and the output is created in a standard view. This isn't perfect but it at least allows copy/paste/scrolling etc. The output view now also supports some ansi escape codes. You can customize the layout/placement of the view in the settings.
 - Adds dissasembly syntax for LLDB
 - Elixer support (@timfjord)
 
 
 Version 0.5.4
-
 - Resolve the`$workspaceFolder` variable to first folder project instead of being an alias of `$project_path`  (@rchl)
 - Fix layout positioning in latest ST dev builds (@rchl)
 - lldb: Fixes an issue with the integrated terminal handling
 
 
 Version 0.5.3
-
 - Tool tips when hovering over debugger controls
 - Moved Debugger menu item into tools -> Debugger
 - Improved json schema support for auto completeing adapter configurations (requires LSP-json)
@@ -112,17 +105,14 @@ Version 0.5.3
 
 
 Version 0.5.2
-
 - Disable winpty on Windows (needs to be rebuilt for python 3.8)
 
 
 Version 0.5.1
-
 - Fixes 64/32 bit windows importing the wrong winpyty versions
 
 
 Version 0.5.0
-
 - python: Allow module launch configurations (@anergictcell)
 - lldb: fixes issue with toggle disassembly
 - ruby: added adapter (requires readapt)
@@ -145,12 +135,10 @@ Version 0.5.0
 
 
 Version 0.4.1
-
 - Adds explicit font setting for debugger panel
 
 
 Version 0.4.0
-
 - debugger_configuration replaces debug.configurations and is now defined at the root of the .sublime-project instead of inside settings
 - Adds support for tasks see https://github.com/daveleroy/sublime_debugger#tasks
 - Adds support for pre_debug_task and post_debug_task which can be used to build etc
@@ -164,13 +152,11 @@ Version 0.4.0
 
 
 Version 0.3.1
-
 - Fixes issue with sizing and alignment of panels on windows
 - Fixes path of go adapter
 
 
 Version 0.3.0
-
 - Initial support for multiple debug sessions
 - Use debugpy instead of ptvsd for python adapter
 - Right align line numbers in variables/callstack panel
@@ -178,17 +164,14 @@ Version 0.3.0
 
 
 Version 0.2.3
-
 - Updates path for lldb
 
 
 Version 0.2.3
-
 - Updates path for lldb
 
 
 Version 0.2.2
-
 - Show dialog with error message when launching fails (to match vscode)
 - In multi-threaded programs the reason for why a specific thread was stopped is now only displayed on that thread even if all threads were stopped
 - If running a build with `sublime_build` in the configuration don't start debugging if the build fails with an exit code
@@ -198,7 +181,6 @@ Version 0.2.2
 
 
 Version 0.2.1
-
 - Debugging with a single thread now just displays the stack frames without the thread header
 - When launching a configuration and the adapter is not installed offer to install it
 - When auto selecting a stack frame prefer the first none subtle stack frame
@@ -208,7 +190,6 @@ Version 0.2.1
 
 
 Version 0.2.0
-
 - Support for column breakpoints (requires adapter support)
 - Support for data breakpoints (requires adapter support, currently only lldb?)
 - Left-click gutter now toggles breakpoints, right-clicking a breakpoint allows editing/advanced options
@@ -224,12 +205,10 @@ Version 0.2.0
 
 
 Version 0.1.8
-
 - Fixes core not defined error
 
 
 Version 0.1.7
-
 - Allow setting logging options in settings
 - Updated url for vscode-firefox-debugger (@appelgriebsch)
 - Fixes issue preventing Debugger: Install Adapters from being run from the command palette
@@ -237,18 +216,15 @@ Version 0.1.7
 
 
 Version 0.1.6
-
 - Adds run to cursor command
 - Fixes issue preventing installing debug adapters
 
 
 Version 0.1.5
-
 - Fixes issue that prevented debugging on windows
 
 
 Version 0.1.4
-
 - New styling of panels and updated layout to better support temporary panels created for build results/integrated terminal (and in the future allow customizing the layout of the panels)
 - New console rendering code to support text wrapping and build results/integrated terminal
 - Support internal terminal requests to allow program input. Requires configuration changes to use this feature which depends on the adapter in question. (LLVM uses "terminal": "integrated")
@@ -259,11 +235,9 @@ Version 0.1.4
 
 
 Version 0.1.3
-
 - When attempting to open the debugger in a window without a sublime project prompt the user to create one.
 - Fixes some other minor bugs and configuration issues
 
 
 Version 0.1.0
-
 - Adds package control support
