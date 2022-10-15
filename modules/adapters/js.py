@@ -50,41 +50,16 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 		node = await util.get_and_warn_require_node(self.type, log)
 		install_path = util.vscode.install_path('js')
+
+		port = util.get_open_port()
+
 		command = [
 			node,
-			f'{install_path}/extension/src/vsDebugServer.bundle.js'
+			f'{install_path}/extension/src/vsDebugServer.bundle.js',
+			f'{port}',
 		]
 
-		process = dap.Process(command, None)
-
-		try:
-			try:
-				line = (await process.readline(process.stdout)).decode('utf-8')
-				# result = re.match(r'Debug server listening at (.*)', line)
-				result = re.match(r'(.*)', line)
-				if not result:
-					raise core.Error(f'Unable to parse debug server port from line: {line}')
-
-				port = int(result.group(1))
-				return Transport(log, process, port)
-
-			except EOFError:
-				...
-
-			# read out stderr there might be something interesting here
-			try:
-				while True:
-					line = await process.readline(process.stderr)
-					log.error(line.decode('utf-8'))
-
-			except EOFError:
-				...
-
-			raise core.Error("Unable to find debug server port")
-
-		except:
-			process.dispose()
-			raise
+		return await dap.SocketTransport.connect_with_process(log, command, port)
 
 	async def on_custom_request(self, session: dap.Session, request: str, arguments: Any) -> Any:
 		if request == 'attachedChildSession':
