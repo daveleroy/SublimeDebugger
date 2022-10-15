@@ -236,6 +236,10 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self.set_input_mode()
 		return None
 
+	def on_post_text_command(self, command_name: str, args: Any):
+		if command_name == 'copy':
+			sublime.set_clipboard(sublime.get_clipboard().replace('\u200c', '').replace('\u200b', '').replace('\u200d', ''))
+
 	def on_text_command(self, command_name: str, args: Any):
 		if command_name == 'insert' and args['characters'] == '\n' and self.enter():
 			return ('noop')
