@@ -6,25 +6,26 @@ name: Debugger Protocol
 
 contexts:
   main:
-    - match: '(⟽|⟸) '
+    - match: '((<-)|(->)) ([a-zA-Z]*) (..)'
       captures:
-        1: storage.modifier
-      push: request
-
-    - match: '(⟾|⟹) '
-      captures:
-        1: storage.type
-      push: request
-
-  request:
-    - match: '(::)'
-      captures:
-        1: punctuation.separator
-        # 2: comment
+        2: comment
+        3: comment
+        4: comment
+        5: punctuation.separator
+      embed: scope:source.js
+      escape: '\n'
       pop: true
-    - match: '([0-9]*)'
+
+    - match: '((<-)|(->)) ([a-zA-Z]*)(\((.*)\))? (::|!!)'
       captures:
-        1: constant.numeric
-    - match: '([a-zA-Z/]*)'
-      captures:
-        1: entity.name.function
+        2: region.bluish debugger.background
+        3: region.redish debugger.background
+        4: entity.name.function
+        6: constant.numeric
+        7: punctuation.separator
+      embed: scope:source.js
+      escape: '\n'
+      pop: true
+
+
+  

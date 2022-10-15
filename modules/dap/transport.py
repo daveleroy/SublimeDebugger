@@ -11,12 +11,11 @@
 from __future__ import annotations
 from typing import Any, Awaitable, Protocol
 
-from dataclasses import dataclass
-
 from ..import core
 from .error import Error
 
 import threading
+from dataclasses import dataclass
 
 
 class Transport(Protocol):
@@ -37,46 +36,63 @@ class TransportProtocolListener (Protocol):
 
 	def on_transport_closed(self): ...
 
+
 @dataclass
-class TransportLog:
-	out: bool
+class TransportStdoutOutputLog:
+	output: str
+	def __str__(self) -> str:
+		return '-> stdout :: ' + self.output
+
+@dataclass
+class TransportStderrOutputLog:
+	output: str
+	def __str__(self) -> str:
+		return '-> stderr !! ' + self.output
+
+@dataclass
+class TransportDataLog:
 	data: dict[str, Any]
 
 	def __str__(self) -> str:
-		data = self.data
-		out = self.out
+		data: dict[str, Any] = self.data
+		data_formatted = core.json_encode(data)
+
 		type = data.get('type')
 
 		def sigil(success: bool):
 			if success:
-				if out:
-					return '⟸'
-				else:
-					return '⟹'
+				return '::'
 			else:
-				if out:
-					return '⟽'
-				else:
-					return '⟾'
+				return '!!'
 
 		if type == 'response':
 			id = data.get('request_seq')
 			command = data.get('command')
-			body = data.get('body', data.get('message'))
-			return f'{sigil(data.get("success", False))} response/{command}({id}) :: {body}'
+			return f'{command}({id}) {sigil(data.get("success", False))} {data_formatted}'
 
 		if type == 'request':
 			id = data.get('seq')
 			command = data.get('command')
-			body = data.get('arguments')
-			return f'{sigil(True)} request/{command}({id}) :: {body}'
+			return f'{command}({id}) :: {data_formatted}'
 
 		if type == 'event':
 			command = data.get('event')
-			body = data.get('body')
-			return f'{sigil(True)} event/{command} :: {body}'
+			
+			return f'{command} .. {data_formatted}'
 
-		return f'{sigil(False)} {type}/unknown :: {data}'
+		return f'unknown :: {data_formatted}'
+
+class TransportIncomingDataLog(TransportDataLog):
+	data: dict[str, Any]
+
+	def __str__(self) -> str:
+		return '-> ' + super().__str__()
+
+class TransportOutgoingDataLog(TransportDataLog):
+	data: dict[str, Any]
+
+	def __str__(self) -> str:
+		return '<- ' + super().__str__()
 
 
 class TransportProtocol:
@@ -93,7 +109,7 @@ class TransportProtocol:
 		self.pending_requests: dict[int, core.Future[dict[str, Any]]] = {}
 		self.seq = 0
 
-		self.transport_log.log('transport', f'⟸ process/started ::')
+		self.transport_log.log('transport', f'-- begin transport protocol')
 		self.thread = threading.Thread(target=self.read)
 		self.thread.start()
 
@@ -138,7 +154,9 @@ class TransportProtocol:
 				core.call_soon_threadsafe(self.recieved_msg, core.json_decode(content))
 
 		except Exception as e:
-			core.call_soon_threadsafe(self.transport_log.log,'transport',  f'⟸ process/stopped :: {e}')
+			msg = '-- end transport protocol: ' + (str(e) or 'eof')
+
+			core.call_soon_threadsafe(lambda: self.transport_log.log('transport', msg))
 			core.call_soon_threadsafe(self.events.on_transport_closed)
 
 	def send(self, message: dict[str, Any]):
@@ -163,9 +181,8 @@ class TransportProtocol:
 
 		self.pending_requests[self.seq] = future
 
-		self.log_transport(True, request)
+		self.transport_log.log('transport', TransportOutgoingDataLog(request))
 		self.send(request)
-
 		return future
 
 	def send_response(self, request: dict[str, Any], body: dict[str, Any], error: str|None = None) -> None:
@@ -186,11 +203,8 @@ class TransportProtocol:
 			'message': error,
 		}
 
-		self.log_transport(True, data)
+		self.transport_log.log('transport', TransportOutgoingDataLog(data))
 		self.send(data)
-
-	def log_transport(self, out: bool, data: dict[str, Any]):
-		self.transport_log.log('transport', TransportLog(out, data))
 
 	@core.schedule
 	async def handle_reverse_request(self, request: dict[str, Any]):
@@ -203,9 +217,9 @@ class TransportProtocol:
 			self.send_response(request, {}, error=str(e))
 
 	def recieved_msg(self, data: dict[str, Any]) -> None:
-		t = data['type']
-		self.log_transport(False, data)
+		self.transport_log.log('transport', TransportIncomingDataLog(data))
 
+		t = data['type']
 		if t == 'response':
 			try:
 				future = self.pending_requests.pop(data['request_seq'])

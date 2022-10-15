@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import IO, Any, Callable
 
 from ..import core
-from .transport import Transport
+from .transport import Transport, TransportStderrOutputLog, TransportStdoutOutputLog
 
 import socket
 import os
@@ -81,16 +81,12 @@ class Process:
 
 	def _read_all(self, file: Any, callback: Callable[[str], None]) -> None:
 		while True:
-			try:
-				line = file.read(2**15).decode('UTF-8')
-				if not line:
-					core.info('Nothing to read from process, closing')
-					break
-				core.info(line)
-				core.call_soon_threadsafe(callback, line)
-			except Exception as e:
-				core.exception()
+			line = file.read(2**15).decode('UTF-8')
+			if not line:
 				break
+
+			core.info(line)
+			core.call_soon_threadsafe(callback, line)
 
 	def _readline(self, pipe: IO[bytes]) -> bytes:
 		if l := pipe.readline():
@@ -118,31 +114,15 @@ class Process:
 
 class StdioTransport(Transport):
 	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None, stderr: Callable[[str], None] | None = None):
-		log.log('transport', f'⟸ process/starting :: {command}')
-		self.process = Process(command, cwd)
+		log.log('transport', f'-- stdio transport: {command}')
 		
 		def log_stderr(data: str):
-			log.log('transport', f'⟸ process/stderr :: {data}')
+			log.log('transport', TransportStderrOutputLog(data))
 			if stderr:
 				stderr(data)
 
-		thread = threading.Thread(target=self._read, args=(self.process.stderr, log_stderr))
-		thread.start()
-
-	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
-		while True:
-			try:
-				line = file.read(2**15).decode('UTF-8')
-				if not line:
-					core.info('Nothing to read from process, closing')
-					break
-
-				core.call_soon_threadsafe(callback, line)
-			except Exception as e:
-				core.exception()
-				break
-
-		self.process.dispose()
+		self.process = Process(command, cwd)
+		self.process.on_stderr(log_stderr)
 
 	def write(self, message: bytes) -> None:
 		self.process.stdin.write(message)
@@ -164,6 +144,7 @@ class StdioTransport(Transport):
 
 class SocketTransport(Transport):
 	def __init__(self, log: core.Logger, host: str, port: int):
+		log.log('transport', f'-- socket transport: {host}:{port}')
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.connect((host, port))
 		self.stdin = self.socket.makefile('wb')
@@ -184,6 +165,7 @@ class SocketTransport(Transport):
 
 	@staticmethod
 	async def connect_with_process(log: core.Logger, command: list[str], port: int, process_is_program_output: bool = False):
+		log.log('transport', f'-- socket transport process: {command}')
 		process = Process(command)
 
 		# log the data to the console here instead of sending it to the protocol panel
@@ -192,22 +174,17 @@ class SocketTransport(Transport):
 			process.on_stdout(lambda data: log.log('stdout', data))
 			process.on_stderr(lambda data: log.log('stderr', data))
 		else:
-			process.on_stdout(lambda data: log.log('transport', f'⟸ process/stdout :: {data}'))
-			process.on_stderr(lambda data: log.log('transport', f'⟸ process/stderr :: {data}'))
+			process.on_stdout(lambda data: log.log('transport', TransportStdoutOutputLog(data)))
+			process.on_stderr(lambda data: log.log('transport', TransportStderrOutputLog(data)))
 
-		exception: Exception|None = None
-		for _ in range(0, 8):
-			try:
-				transport = SocketTransport(log, 'localhost', port)
-				transport.process = process
-				return transport
+		try:
+			transport = await SocketTransport.connect_with_retry(log, 'localhost', port)
+			transport.process = process
+			return transport
 
-			except Exception as e:
-				await core.sleep(0.25)
-				exception = e
-
-		process.dispose()
-		raise exception or core.Error('unreachable')
+		except Exception as e:
+			process.dispose()
+			raise e
 
 	def write(self, message: bytes) -> None:
 		self.stdin.write(message)
@@ -232,34 +209,3 @@ class SocketTransport(Transport):
 		if self.process:
 			self.process.dispose()
 
-
-# class StdioSocketTransport(Transport):
-# 	def __init__(self, regex: Any, port: int, log: core.Logger):
-# 		self.process = adapter_process
-
-# 		super().__init__(log, 'localhost', port)
-
-# 		def log_stderr(data: str):
-# 			log.log('transport', f'⟸ process/stderr :: {data}')
-
-# 		thread = threading.Thread(target=self._read, args=(self.process.stderr, log_stderr))
-# 		thread.start()
-
-# 	def connect(self):
-# 		adapter.SocketTransport
-
-# 	def _read(self, file: Any, callback: Callable[[str], None]) -> None:
-# 		while True:
-# 			try:
-# 				line = file.read(2**15).decode('UTF-8')
-# 				if not line:
-# 					core.info('Nothing to read from process, closing')
-# 					break
-# 				core.info(line)
-# 				core.call_soon_threadsafe(callback, line)
-# 			except Exception as e:
-# 				core.exception()
-# 				break
-
-# 	def dispose(self) -> None:
-# 		self.process.dispose()

@@ -76,7 +76,7 @@ class Python(dap.AdapterConfiguration):
 			configuration_expanded = dap.ConfigurationExpanded(configuration, session.configuration.variables)
 			await session.debugger.launch(session.breakpoints, self, configuration_expanded, parent=session)
 		else:
-			core.error(f'event ignored not implemented {event}')
+			core.info(f'event not handled `{event}`')
 
 	# TODO: patch in env since python seems to not inherit it from the adapter process.
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):

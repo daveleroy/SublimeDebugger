@@ -82,7 +82,7 @@ class AdapterConfiguration:
 		...
 
 	async def on_custom_event(self, session: Session, event: str, body: Any):
-		core.error(f'event ignored not implemented {event}')
+		core.info(f'event not handled `{event}`')
 
 	async def on_custom_request(self, session: Session, command: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
 		...
@@ -213,6 +213,7 @@ def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, st
 	# Its mostly so we can redefine $project_path when specifying a project file in debugger_configurations so $project_path refers to the correct location
 	if json_variables := json.get('$'):
 		json = sublime.expand_variables(json, json_variables)
+		del json['$']
 
 	if variables := variables:
 		json = sublime.expand_variables(json, variables)
