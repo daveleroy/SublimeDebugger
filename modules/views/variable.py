@@ -235,7 +235,9 @@ class VariableComponent (ui.div):
 		if self.error:
 			variable_children.append(
 				ui.div(height=css.row_height)[
-					ui.text(str(self.error), css=css.label_redish_secondary)
+					ui.align()[
+						ui.text(str(self.error), css=css.label_redish_secondary)
+					]
 				]
 			)
 		elif self.variable_children is None:
