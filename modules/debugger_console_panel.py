@@ -36,6 +36,9 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self.indent = ''
 		self.forced_indent = ''
 
+		self._history_offset = 0
+		self._history = []
+
 		settings = self.view.settings()
 		settings.set('line_numbers', False)
 		settings.set('gutter', False)
@@ -244,10 +247,15 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		if command_name == 'insert' and args['characters'] == '\n' and self.enter():
 			return ('noop')
 
-	def on_query_completions(self, prefix: str, locations: list[int]) -> Any:
-		if not self.debugger.is_active: return
-		if not self.debugger.active.capabilities.supportsCompletionsRequest: return
+		if not self.view.is_auto_complete_visible() and command_name == 'move' and args['by'] =='lines':
+			self.set_input_mode()
+			if args['forward']:
+				self.autofill(-1)
+			else: 
+				self.autofill(1)
+			return ('noop')
 
+	def on_query_completions(self, prefix: str, locations: list[int]) -> Any:
 		input = self.input()
 		if not input: return
 
@@ -255,10 +263,25 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		col = (locations[0] - input.b)
 		completions = sublime.CompletionList()
 
+		items: list[sublime.CompletionItem] = []
+
+		for fill in self._history:
+			items.append(sublime.CompletionItem.command_completion(
+					trigger=fill,
+					annotation='',
+					kind=sublime.KIND_SNIPPET,
+					command='insert',
+					args= {
+						'characters': fill
+					}
+				))
+
 		@core.schedule
 		async def fetch():
-			items: list[sublime.CompletionItem] = []
 			try:
+				if not self.debugger.is_active or not self.debugger.active.capabilities.supportsCompletionsRequest:
+					raise core.CancelledError
+
 				for completion in await self.debugger.active.completions(text, col):
 					if completion.type == 'method' : kind = sublime.KIND_FUNCTION
 					elif completion.type == 'function': kind = sublime.KIND_FUNCTION
@@ -274,7 +297,6 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 					elif completion.type == 'snippet': kind = sublime.KIND_SNIPPET
 					else: kind = sublime.KIND_VARIABLE
 
-
 					item = sublime.CompletionItem.command_completion(
 						trigger=completion.text or completion.label,
 						annotation=completion.detail or '',
@@ -286,8 +308,12 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 					)
 				
 					items.append(item)
+
 			except core.Error as e:
 				core.debug('Unable to fetch completions:', e)
+
+			except core.CancelledError:
+				...
 
 			completions.set_completions(items, sublime.INHIBIT_EXPLICIT_COMPLETIONS|sublime.INHIBIT_REORDER|sublime.INHIBIT_WORD_COMPLETIONS)
 
@@ -314,8 +340,8 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		if input := self.input():
 			self.view.erase_regions('input')
 			self.edit(lambda edit: self.view.erase(edit, sublime.Region(input.a, self.view.size())))
+
 	def set_input_mode(self):
-	
 		if input := self.input():
 			sel = self.view.sel()
 			end_of_input = input.b
@@ -360,9 +386,31 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 
 		self.on_input(text)
 		self.write(':' + text, 'comment', True)
-
+		self._history_offset = 0
+		self._history.append(text)
 		return True
 
+
+	def autofill(self, offset: int):
+		self._history_offset += offset
+		self._history_offset = min(max(0, self._history_offset), len(self._history))
+		self.set_input_mode()
+		input = self.input()
+		if not input: return False
+
+		text_region = sublime.Region(input.b, self.view.size())
+		if self._history_offset:	
+			self.edit(lambda edit: (
+				self.view.replace(edit, text_region, self._history[-self._history_offset]),
+				self.view.sel().clear(),
+				self.view.sel().add(self.view.size())
+			))
+		else:
+			self.edit(lambda edit: (
+				self.view.erase(edit, text_region),
+				self.view.sel().clear(),
+				self.view.sel().add(self.view.size())
+			))
 
 	def log(self, type: str, value: Any):
 		if type == 'transport':

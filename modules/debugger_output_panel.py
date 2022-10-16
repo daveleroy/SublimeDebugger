@@ -300,7 +300,7 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 			return panel.on_post_text_command(command_name, args)
 
 	def on_query_context(self, view: sublime.View, key: str, operator: int, operand: Any, match_all: bool) -> bool|None:
-		if key != 'debugger':
+		if not key.startswith('debugger.'):
 			return None
 
 		if panel := DebuggerOutputPanel.panels.get(view.id()):
