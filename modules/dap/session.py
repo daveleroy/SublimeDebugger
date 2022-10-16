@@ -286,7 +286,7 @@ class Session(TransportProtocolListener):
 		except core.Error as e:
 			self.state = Session.State.RUNNING
 
-	async def add_breakpoints(self) -> None:
+	def add_breakpoints(self) -> None:
 		assert self._transport
 
 		requests: list[Awaitable[Any]] = []
