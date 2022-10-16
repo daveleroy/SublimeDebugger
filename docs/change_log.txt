@@ -4,6 +4,11 @@ For a full list of changes see https://github.com/daveleroy/sublime_debugger/com
 
 
 Version 0.8.2
+- line up/down in the debugger console now cycles through previous commands
+- Fixes issue with debugger console input not activating
+
+
+Version 0.8.2
 - When copying text from the debugger console remove hidden syntax highlighting characters
 - Fixes alignment issues on Windows/Linux
 
