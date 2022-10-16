@@ -1,6 +1,5 @@
 [
    { "keys": ["<character>"], "command": "noop", "context": [
-      {"key": "setting.debugger.output_panel"},
-      {"key": "debugger"},
+      {"key": "debugger.noop"},
    ] }
 ]
