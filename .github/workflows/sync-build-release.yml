@@ -1,0 +1,119 @@
+name: 'Sync/Build/Release'
+on:
+  workflow_call:
+    inputs:
+      upstream:
+        description: 'The upstream repository owner/repo'
+        required: true
+        type: string
+
+      repository:
+        description: 'The name of the forked repository without owner'
+        required: true
+        type: string
+
+      tag_prefix:
+        description: 'The prefix of tags we consider such as v1 etc'
+        default: ''
+        type: string
+
+      build:
+        description: 'bash script for building extension into extension.vsix'
+        required: true
+        type: string
+      
+    secrets:
+      token:
+        description: 'The github token for syncing tags/releasing etc'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      # sync tags with forked repo
+      - 
+        uses: actions/checkout@v3
+        with:
+          repository: daveleroy/${{ inputs.repository }}
+          token: ${{ secrets.token }}
+
+      - 
+        shell: bash
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch --tags https://github.com/${{ inputs.upstream }}.git
+          git push --tags
+
+
+
+      # Compare latest tag to latest tag with a release if they do not match we need to create a new release
+      -
+        id: tags
+        uses: oprypin/find-latest-tag@v1.1.0
+        with:
+          repository: daveleroy/${{ inputs.repository }}
+          prefix: ${{ inputs.tag_prefix }}
+
+      -
+        id: releases
+        continue-on-error: true
+        
+        uses: oprypin/find-latest-tag@v1.1.0
+        with:
+          repository: daveleroy/${{ inputs.repository }}
+          prefix: ${{ inputs.tag_prefix }}
+          releases-only: true
+          
+
+      # Checkout the repo at the correct tag
+      - 
+        if:  ${{ steps.tags.outputs.tag != steps.releases.outputs.tag }}
+        uses: actions/checkout@v2
+        with:
+          repository: daveleroy/${{ inputs.repository }}
+          ref: ${{ steps.tags.outputs.tag }}
+
+
+
+       # Build
+
+      -
+        if:  ${{ steps.tags.outputs.tag != steps.releases.outputs.tag }}
+        shell: bash
+        run: ${{ inputs.build }}
+
+
+      # Create Release
+      -
+        if:  ${{ steps.tags.outputs.tag != steps.releases.outputs.tag }}
+
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}
+        with:
+          repo: ${{ inputs.repository }}
+          commitish: main
+          tag_name: ${{ steps.tags.outputs.tag }}
+          release_name: ${{ steps.tags.outputs.tag }}
+          draft: false
+          prerelease: false
+
+
+      # Upload Asset To Release
+      - 
+        if:  ${{ steps.tags.outputs.tag != steps.releases.outputs.tag }}
+
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./extension.vsix
+          asset_name: ${{ inputs.repository }}.vsix
+          asset_content_type: application/zip
+
