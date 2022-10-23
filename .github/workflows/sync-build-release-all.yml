@@ -35,8 +35,9 @@ jobs:
 
       build: |
         npm install
-        npm run build
-        npm run package -- -o extension.vsix
+        ./node_modules/.bin/gulp installPythonLibs
+        npm run package
+        mv ms-python-insiders.vsix extension.vsix
           
     secrets:
       token: ${{ secrets.PUSH_TOKEN }}
