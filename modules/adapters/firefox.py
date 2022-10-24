@@ -9,9 +9,9 @@ class Firefox(dap.AdapterConfiguration):
 	type = 'firefox'
 	docs = 'https://github.com/firefox-devtools/vscode-firefox-debug#getting-started'
 	
-	installer = util.OpenVsxInstaller(
+	installer = util.GitInstaller(
 		type='firefox', 
-		repo='firefox-devtools/vscode-firefox-debug'
+		repo='daveleroy/vscode-firefox-debug'
 	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):

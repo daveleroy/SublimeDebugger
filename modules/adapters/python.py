@@ -17,9 +17,9 @@ class Python(dap.AdapterConfiguration):
 	type = 'python'
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
 
-	installer = util.OpenVsxInstaller(
+	installer = util.GitInstaller(
 		type='python',
-		repo='ms-python/python'
+		repo='daveleroy/vscode-python'
 	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
