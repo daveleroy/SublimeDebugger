@@ -171,8 +171,9 @@ class Session(TransportProtocolListener):
 		assert self.state == Session.State.STOPPED, 'debugger not in stopped state?'
 		self.state = Session.State.STARTING
 		self.configuration = await self.adapter_configuration.configuration_resolve(self.configuration)
-
-		if not self.adapter_configuration.installed_version:
+		
+		installed_version = self.adapter_configuration.installed_version
+		if not installed_version:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(self.adapter_configuration.type))
 
 		if not await self.run_pre_debug_task():
@@ -182,6 +183,7 @@ class Session(TransportProtocolListener):
 
 		self._change_status('Starting')
 		try:
+			self.log.log('transport', f'-- adapter: type={self.adapter_configuration.type} version={installed_version}')
 			transport = await self.adapter_configuration.start(log=self.log, configuration=self.configuration)
 		except Exception as e:
 			raise core.Error(f'Unable to start adapter: {e}')

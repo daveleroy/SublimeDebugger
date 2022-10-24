@@ -16,7 +16,7 @@ contexts:
       escape: '\n'
       pop: true
 
-    - match: '((<-)|(->)) ([a-zA-Z]*)(\((.*)\))? (::|!!)'
+    - match: '((<-)|(->)) ([a-zA-Z]*)(\((.*)\))? (::)'
       captures:
         2: region.bluish debugger.background
         3: region.redish debugger.background
@@ -27,5 +27,15 @@ contexts:
       escape: '\n'
       pop: true
 
+    - match: '((<-)|(->)) ([a-zA-Z]*)(\((.*)\))? (!!)'
+      captures:
+        2: region.bluish debugger.background
+        3: region.redish debugger.background
+        4: region.redish debugger.background
+        6: constant.numeric
+        7: punctuation.separator
+      embed: scope:source.js
+      escape: '\n'
+      pop: true
 
   
