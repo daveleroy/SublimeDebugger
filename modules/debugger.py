@@ -186,7 +186,12 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 
 	def add_output_panel(self, panel: DebuggerOutputPanel):
-		self.output_panels.append(panel)
+		# force integrated terminals to sit between the console and callstack
+		if isinstance(panel, TerminusIntegratedTerminal):
+			self.output_panels.insert(1, panel)
+		else:
+			self.output_panels.append(panel)
+
 		self.on_output_panels_updated.post()
 
 	def remove_output_panel(self, panel: DebuggerOutputPanel):
