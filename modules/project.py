@@ -34,8 +34,6 @@ class Project:
 		self.ui_scale = 12
 		self.bring_window_to_front_on_pause = False
 
-		# add the empty debugger configurations settings if needed
-
 		self.reload()
 
 	def dispose(self):
@@ -188,9 +186,14 @@ class Project:
 	def load_configurations(self):
 		data: dict[str, Any]|None = self.window.project_data()
 		if data is None:
-			data = {}
-		else:
 			core.info('No project associated with window')
+			data = {}
+
+		# add the empty debugger_configurations if needed
+		elif not 'debugger_configurations' in data:
+			core.info('Adding `debugger_configurations` to sublime-project data')
+			data['debugger_configurations'] = []
+			self.window.set_project_data(data)
 
 		tasks: list[Task] = []
 		configurations: list[Configuration] = []
