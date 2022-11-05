@@ -13,6 +13,9 @@
 	// "terminus" Opens a new terminal view using terminus. The terminus package must be installed https://github.com/randy3k/Terminus
 	"external_terminal": "terminus",
 
+	// Controls the minimum height of the debugger output panels in lines
+	"minimum_console_height": 15,
+
 	// Some new features are locked behind this flag
 	"development": false,
 

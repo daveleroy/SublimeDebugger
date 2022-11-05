@@ -405,8 +405,8 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 
 			font_size = self.view.settings().get('font_size', 1)
 
-			height = self.view.layout_extent()[1]/font_size
-			desired_height = self.view.viewport_extent()[1]/font_size
+			height = self.view.layout_extent()[1]
+			desired_height = self.view.viewport_extent()[1]
 
 			controls_and_tabs_phantom.vertical_offset = max((desired_height-height) + controls_and_tabs_phantom.vertical_offset, 0)
 

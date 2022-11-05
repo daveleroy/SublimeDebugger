@@ -190,7 +190,7 @@ class Layout:
 
 		timer = core.stopwatch('html')
 		html = f'''
-		<body id="debugger" style="padding-top: {self.vertical_offset}em;">
+		<body id="debugger" style="padding-top: {self.vertical_offset}px;">
 			<style>{css_string}</style>
 			{self.item.html(self)}
 		</body>'''
