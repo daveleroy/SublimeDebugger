@@ -46,6 +46,8 @@ def debug(*args: Any) -> None:
 class Logger(Protocol):
 	def error(self, value: str):
 		self.log('error', value)
+	def warn(self, value: str):
+		self.log('warn', value)
 	def info(self, value: str):
 		self.log('info', value)
 	def log(self, type: str, value: Any):
