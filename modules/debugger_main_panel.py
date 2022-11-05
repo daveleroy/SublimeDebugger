@@ -36,8 +36,9 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		# otherwise they will get reordered when one of them gets redrawn
 		# we use zero width characters so we don't have extra around phantoms
 		self.view.run_command('insert', {
-			'characters': '\u200F\u200F'
+			'characters': '\u200c\u200c'
 		})
+		self.view.set_read_only(True)
 
 		settings = self.view.settings()
 		settings.set('margin', 0)
@@ -48,15 +49,8 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel):
 		settings.set('word_wrap', True)
 		settings.set('wrap_width', 100000)
 
-		settings.set('line_spacing', 0)
 		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
-		settings.set('draw_unicode_white_space', 'none')
-		settings.set('draw_unicode_bidi', False)
 		settings.set('is_widget', True)
-
-		self.view.sel().clear()
-		self.view.set_viewport_position((0, 0), False)
-		self.view.set_read_only(True)
 
 		self.debugger = debugger
 

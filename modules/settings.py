@@ -57,6 +57,14 @@ class Settings:
 		'''
 	)
 
+	minimum_console_height = Setting[int] (
+		key='minimum_console_height',
+		default=15,
+		description='''
+		Controls the minimum height of the debugger output panels in lines
+		'''
+	)
+
 	bring_window_to_front_on_pause: bool = False
 
 	development = Setting[bool] (

@@ -88,6 +88,7 @@ class Layout:
 		self._lightness = 0.0
 		self.last_render_time = 0
 		self._all = ()
+		self._vertical_offset = 0.0
 		self.update()
 		Layout.layouts_to_add.append(self)
 
@@ -101,6 +102,16 @@ class Layout:
 		self.add_component(self.item)
 		self.dirty()
 		return self
+
+	@property
+	def vertical_offset(self):
+		return self._vertical_offset
+
+	@vertical_offset.setter
+	def vertical_offset(self, value: float):
+		if self._vertical_offset != value:
+			self._vertical_offset = value
+			self.dirty()
 
 	def dirty(self) -> None:
 		self.requires_render = True
@@ -132,7 +143,6 @@ class Layout:
 			child.layout.remove_component(child)
 
 		item.children = []
-
 
 	def render_component_tree(self, item: element|None) -> None:
 		if item is None:
@@ -180,7 +190,7 @@ class Layout:
 
 		timer = core.stopwatch('html')
 		html = f'''
-		<body id="debugger">
+		<body id="debugger" style="padding-top: {self.vertical_offset}em;">
 			<style>{css_string}</style>
 			{self.item.html(self)}
 		</body>'''
@@ -189,7 +199,6 @@ class Layout:
 
 		if DEBUG_TIMING:
 			timer(f'{len(self.html)}')
-
 
 		self.count = {}
 		return True

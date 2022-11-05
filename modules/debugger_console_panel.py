@@ -39,23 +39,14 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self._history_offset = 0
 		self._history = []
 
+
+
 		settings = self.view.settings()
-		settings.set('line_numbers', False)
-		settings.set('gutter', False)
-
-		settings.set('draw_unicode_white_space', 'none')
-		settings.set('fade_fold_buttons', False)
-		settings.set('scroll_past_end', False)
-		
-		# settings.set('margin', 0)
-		# settings.set('line_padding_top', 0)
-
 		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 		settings.set('auto_complete_selector', 'debugger.console')
 		settings.set('debugger.console', True)
 
 		self.clear()
-		self.open()
 
 	def edit(self, fn: Callable[[sublime.Edit], Any]):
 		is_read_only = self.view.is_read_only()
@@ -348,11 +339,8 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 
 			for region in sel:
 				if region.a < end_of_input:
-					self.edit(lambda edit: (
-						sel.clear(), 
-						sel.add(self.view.size()),
-					))
 					self.view.set_read_only(False)
+					self.scroll_to_end()
 					return
 
 			return
@@ -363,12 +351,11 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 			size = self.view.insert(edit, a, '\n\u200c:')
 			self.input_size = size
 			self.view.add_regions('input', [sublime.Region(a, a+size)])
-			self.view.sel().clear()
-			self.view.sel().add(self.view.size())
 
 		self.edit(edit)		
 		self.view.set_read_only(False)
-	
+		self.scroll_to_end()
+
 	def enter(self):
 		self.set_input_mode()
 		input = self.input()

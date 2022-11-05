@@ -111,7 +111,6 @@ class DebuggerOutputPanel:
 			settings.set('debugger', True)
 			settings.set('debugger.output_panel', True)
 			settings.set('draw_unicode_white_space', 'none')
-			
 			settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 
 		settings.set('scroll_past_end', False)
@@ -122,20 +121,21 @@ class DebuggerOutputPanel:
 				'panel': previous_panel
 			})
 
+
 		if show_tabs and show_tabs_top:
+			self.text_change_listner = OutputPanelTopTextChangeListener(self.view)
 			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE) [
 				self.controls_and_tabs
 			]
-			self.text_change_listner = OutputPanelTopTextChangeListener(self.view)
 
 		elif show_tabs:
+			self.text_change_listner = OutputPanelBottomTextChangeListener(self)
 			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(-1), sublime.LAYOUT_BLOCK) [
 				self.controls_and_tabs
 			]
 
-			self.text_change_listner = OutputPanelBottomTextChangeListener(self)
 		else:
 			self.text_change_listner = None
 			self.controls_and_tabs = None
@@ -144,14 +144,21 @@ class DebuggerOutputPanel:
 		debugger.add_output_panel(self)
 		self.update_settings()
 
+		# this tricks the panel into being at least intitial_console_line_count lines high + ~1.5 which is the heigh of the debugger tabs
+		height = Settings.minimum_console_height + 1.49
+		if show_tabs and show_tabs_top:
+			height += 0.1
+
+		settings.set('line_padding_top', (height) * self.view.line_height())
+		settings.set('line_padding_bottom', 0)
+
 		self.open()
 
-		# settings = self.view.settings()
-		# # this tricks the panel into having a larger height
-		# previous_line_padding_top = settings.get('line_padding_top')
-		# settings.set('line_padding_top', 250)
-		# self.open()
-		# settings.set('line_padding_top', previous_line_padding_top)
+		settings.erase('line_padding_top')
+		settings.erase('line_padding_bottom')
+
+		if self.text_change_listner:
+			self.text_change_listner.on_text_changed([])
 
 	def update_settings(self):
 		# these settings control the size of the ui calculated in ui/layout
@@ -225,7 +232,12 @@ class DebuggerOutputPanel:
 		return self._locked_selection != 0
 
 	def scroll_to_end(self):
-		self.lock_selection_temporarily()
+		sel = self.view.sel()
+		core.edit(self.view, lambda edit: (
+			sel.clear(), 
+			sel.add(self.view.size()),
+		))
+
 		if self.show_tabs_top:
 			self.view.set_viewport_position((0, 0), False)
 		else:
@@ -319,7 +331,6 @@ class OutputPanelTopTextChangeListener(sublime_plugin.TextChangeListener):
 		self.inside_on_text_changed = False
 
 		self.attach(view.buffer())
-		self.on_text_changed(None)
 
 	def dispose(self):
 		if self.is_attached():
@@ -348,15 +359,13 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 		self.panel = panel
 		self.view = panel.view
 		self.inside_on_text_changed = False
-
 		self.attach(self.view.buffer())
-		self.on_text_changed(None)
 
 	def dispose(self):
 		if self.is_attached():
 			self.detach()
 
-	def on_text_changed(self, changes: None):
+	def on_text_changed(self, changes: list[sublime.TextChange]):
 		if self.inside_on_text_changed:
 			return
 
@@ -368,11 +377,6 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 	def _on_text_changed(self, edit: sublime.Edit):
 		is_readonly = self.view.is_read_only()
 		self.view.set_read_only(False)
-
-		# ensure panel is at least 25 lines since we need the height of the content to be more than its viewport height
-		line_count = self.view.rowcol(self.view.size())[0] + 1
-		if line_count < 25:
-			self.view.insert(edit, 0, 25 * '\n')
 
 		# re-insert the newline we removed
 		if self.panel.removed_newline:
@@ -389,7 +393,30 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 			self.panel.removed_newline = at
 			self.removed_newline_change_id = self.view.change_id()
 
-		if self.panel.controls_and_tabs_phantom:
-			self.panel.controls_and_tabs_phantom.dirty()
+		if controls_and_tabs_phantom := self.panel.controls_and_tabs_phantom:
+			size = self.view.size()
+
+			# if the size is 0 the phantom does not exist yet. We want render it before we make any calculations
+			# otherwise we will be off by the height of the phantom
+			if not size:
+				controls_and_tabs_phantom.dirty()
+				controls_and_tabs_phantom.render()
+
+
+			font_size = self.view.settings().get('font_size', 1)
+
+			height = self.view.layout_extent()[1]/font_size
+			desired_height = self.view.viewport_extent()[1]/font_size
+
+			controls_and_tabs_phantom.vertical_offset = max((desired_height-height) + controls_and_tabs_phantom.vertical_offset, 0)
+
+			if controls_and_tabs_phantom.requires_render:
+				controls_and_tabs_phantom.render()
+			else:
+				# if this isn't put back 2 timeouts then its always out of position after a text change
+				sublime.set_timeout(lambda : sublime.set_timeout(controls_and_tabs_phantom.render_if_out_of_position))
+			
+			# Figure out a better way that doesn't always scroll to the bottom when new content comes in
+			sublime.set_timeout(lambda: self.view.set_viewport_position((0, self.view.layout_extent()[1]), False), 0)
 
 		self.view.set_read_only(is_readonly)

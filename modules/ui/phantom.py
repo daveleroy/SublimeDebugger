@@ -18,7 +18,7 @@ class Phantom(Layout):
 		self.region = region
 		self.layout = layout
 		self.view = view
-
+		self.pid: int|None = None
 		Phantom.id += 1
 
 		# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
@@ -30,26 +30,44 @@ class Phantom(Layout):
 		updated = super().render()
 		
 		# don't need to update phantom
-		if not updated and self.cached_phantom:
+		if not updated and self.pid is not None:
 			return False
-
-		# # no phantom to update...
-		# regions = self.view.get_regions(self.phantom_id)
-		# if not regions:
-		# 	return False
-		region = self.region
-		if region.a == -1:
-			region = sublime.Region(self.view.size())
 
 		global render_count
 		render_count += 1
 		
 		timer = core.stopwatch('phantom')
-		self.view.erase_phantoms(self.phantom_id)
-		self.view.add_phantom(self.phantom_id, region, self.html, self.layout, self.on_navigate)
+		self.render_phantom()
+
 		if DEBUG_TIMING: timer()
 		self.last_render_time = total.elapsed()
 		return True
+
+	def render_region(self):
+		region = self.region
+		if region.a == -1:
+			return sublime.Region(self.view.size())
+		return region
+
+	def render_phantom(self):
+		region = self.render_region()
+		self.view.erase_phantoms(self.phantom_id)
+		self.pid = self.view.add_phantom(self.phantom_id, region, self.html, self.layout, self.on_navigate)
+
+	def render_if_out_of_position(self):
+		# if this phantom must be rendered just render it
+		# otherwise we can just render the phantom without generating new html and stuff if its out of position
+		if self.requires_render:
+			self.render()
+			return
+
+		region = self.render_region()
+		at: list[sublime.Region] = self.view.query_phantoms([self.pid]) #type: ignore (the typing is wrong its a list of regions)
+		if at[0] == region:
+			return
+
+		core.info('rendering phantom it is out of position or deleted')
+		self.render_phantom()
 
 	def dispose(self) -> None:
 		super().dispose()
