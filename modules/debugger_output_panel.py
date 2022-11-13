@@ -403,8 +403,6 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 				controls_and_tabs_phantom.render()
 
 
-			font_size = self.view.settings().get('font_size', 1)
-
 			height = self.view.layout_extent()[1]
 			desired_height = self.view.viewport_extent()[1]
 
@@ -413,8 +411,8 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 			if controls_and_tabs_phantom.requires_render:
 				controls_and_tabs_phantom.render()
 			else:
-				# if this isn't put back 2 timeouts then its always out of position after a text change
-				sublime.set_timeout(lambda : sublime.set_timeout(controls_and_tabs_phantom.render_if_out_of_position))
+				# if this isn't put back then its always out of position after a text change
+				controls_and_tabs_phantom.render_if_out_of_position()
 			
 			# Figure out a better way that doesn't always scroll to the bottom when new content comes in
 			sublime.set_timeout(lambda: self.view.set_viewport_position((0, self.view.layout_extent()[1]), False), 0)

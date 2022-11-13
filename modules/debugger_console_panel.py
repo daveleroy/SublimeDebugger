@@ -118,9 +118,10 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self.window.focus_view(self.view)
 
 	def at(self):
+		# there is always a single invisible character at the end of the content otherwise every single write causes the phantom to be out of position and require re-rendering 
 		if input := self.input():
-			return input.a
-		return self.view.size()
+			return max(input.a - 1, 0)
+		return max(self.view.size() - 1, 0)
 
 	def write(self, text: str, color: str|None, ensure_new_line=False, ignore_indent: bool = True):
 
