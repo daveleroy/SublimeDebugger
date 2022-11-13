@@ -73,15 +73,15 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 			self.end_indent()
 
 		if event.variablesReference:
-			self.write(f' \n', color_for_type.get(type), ensure_new_line=True, ignore_indent=False)
+			self.write(f'\u200b\n', color_for_type.get(type), ensure_new_line=True, ignore_indent=False)
 			placeholder = self.add_annotation(self.at() - 1, event.source, event.line)
 
 			async def appendVariabble(variablesReference: int) -> None:
 				try:
 					variables = await session.get_variables(variablesReference, without_names=True)
-					at = placeholder()
 					for variable in variables:
-						self.write_variable(variable, at)
+						at = placeholder()
+						self.write_variable(variable, at, variable==variables[-1])
 
 				# if a request is cancelled it is because the debugger session ended
 				# In some cases the variable cannot be fetched since the debugger session was terminated because of the exception
@@ -137,7 +137,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 		self.edit(lambda edit: self.view.insert(edit, self.at(), ansi_colorize(text, color, self.color)))
 		self.color = color
 
-	def write_variable(self, variable: dap.Variable, at: int):
+	def write_variable(self, variable: dap.Variable, at: int, last: bool = True):
 		html = f'''
 			<style>
 			html {{
@@ -166,7 +166,10 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 
 		def edit(edit: sublime.Edit):
 			# remove trailing \n if it exists since we already inserted a newline to place this variable in
-			content = (variable.value or variable.name or '{variable}').rstrip('\n')
+			content = (variable.value or variable.name or '{variable}').rstrip('\n') 
+			if not last:
+				content += ' '
+
 			self.view.insert(edit, at, content)
 
 		self.edit(edit)
