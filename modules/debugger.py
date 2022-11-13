@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Awaitable
 
+from .dap.transport import TransportStderrOutputLog
 from .import core, ui
 
 import sublime
@@ -21,7 +22,7 @@ from .debugger_main_panel import DebuggerMainOutputPanel
 from .debugger_output_panel import DebuggerOutputPanel
 
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
-from .terminal_task import TerminalTask, Tasks
+from .terminal_task import Tasks
 from .terminal_integrated import TerminusIntegratedTerminal
 
 from .source_navigation import SourceNavigationProvider
@@ -366,6 +367,13 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_active(session)
 
 	def remove_session(self, session: dap.Session):
+		if session.stopped_reason == dap.Session.stopped_reason_stopped_unexpectedly:
+			for _, data in self.console.protocol.pending:
+				if isinstance(data, TransportStderrOutputLog):
+					self.console.error(data.output)
+
+			self.console.error('Debugging session ended unexpectedly')
+
 		self.sessions.remove(session)
 		session.dispose()
 
@@ -655,7 +663,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		if request.kind == 'integrated':
 			terminal = TerminusIntegratedTerminal(self, request.title or 'Untitled', request.cwd, request.args, request.env)
 			self.integrated_terminals.setdefault(session, []).append(terminal)
-
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
 
 		raise core.Error('unknown terminal kind requested "{}"'.format(request.kind))

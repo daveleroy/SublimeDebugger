@@ -59,6 +59,7 @@ class Session(TransportProtocolListener):
 	stopped_reason_cancel=3
 	stopped_reason_terminated_event=4
 	stopped_reason_manual=5
+	stopped_reason_stopped_unexpectedly=6
 
 	def __init__(self, 
 		adapter_configuration: AdapterConfiguration, 
@@ -107,6 +108,7 @@ class Session(TransportProtocolListener):
 		self.launch_request = True
 		self.stepping = False
 		self.stepping_stopped = False
+		self.stopped_reason = 0
 
 		self._state = Session.State.STARTING
 		self._status = 'Starting'
@@ -486,7 +488,7 @@ class Session(TransportProtocolListener):
 		if self.state == Session.State.STOPPING or self.state == Session.State.STOPPED:
 			return
 
-		self.stopped_reason = reason
+		self.stopped_reason = self.stopped_reason or reason
 		self.state = Session.State.STOPPING
 		self.stop_debug_adapter_session()
 
@@ -728,7 +730,12 @@ class Session(TransportProtocolListener):
 
 	@core.schedule
 	async def on_transport_closed(self):
-		await self.stop_forced(reason=Session.stopped_reason_terminated_event)
+		if self.stop_requested:
+			reason = Session.stopped_reason_manual
+		else:
+			reason = Session.stopped_reason_stopped_unexpectedly
+
+		await self.stop_forced(reason=reason)
 		
 	async def on_reverse_request(self, command: str, arguments: Any):
 		if command == 'runInTerminal':
