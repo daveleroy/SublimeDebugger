@@ -35,7 +35,8 @@ class Java(dap.AdapterConfiguration):
 		if _is_undefined('console'):
 			configuration['console'] = 'internalConsole'
 
-		configuration['mainClass'], configuration['projectName'] = await self._get_mainclass_project_name(None if _is_undefined('mainClass') else configuration['mainClass'])
+		if _is_undefined('mainClass') or _is_undefined("projectName"):
+			configuration['mainClass'], configuration['projectName'] = await self._get_mainclass_project_name(None if _is_undefined('mainClass') else configuration['mainClass'])
 		if _is_undefined('classPaths') and _is_undefined('modulePaths'):
 			configuration['modulePaths'], configuration['classPaths'] = await self._resolve_modulepath_classpath(configuration['mainClass'], configuration['projectName'])
 
