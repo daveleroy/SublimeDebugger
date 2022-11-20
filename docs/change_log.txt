@@ -2,24 +2,37 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.8.4 - Nov 19, 2022
+- Changed how debugger console panels deal with extra vertical space
+- Integrated terminals tab now appear next to the console tab instead of after the callstack tab
+- Improvements to the protocol logging
+- If the session ends unexpectedly then log anything from the transports stderr to the console
+- Add `debugger_configurations` to project data when opening in a project (#189)
+- Display multiple variables in the same console event better
 
-Version 0.8.2
+
+Version 0.8.3 - Oct 16, 2022
 - line up/down in the debugger console now cycles through previous commands
 - Fixes issue with debugger console input not activating
 
 
-Version 0.8.2
+Version 0.8.3 - Oct 16, 2022
+- line up/down in the debugger console now cycles through previous commands
+- Fixes issue with debugger console input not activating
+
+
+Version 0.8.2 - Oct 15, 2022
 - When copying text from the debugger console remove hidden syntax highlighting characters
 - Fixes alignment issues on Windows/Linux
 
 
-Version 0.8.1
+Version 0.8.1 - Oct 10, 2022
 - The selected stack frame location indicator now shows a tick mark under the selected column
 - Add context values for keybindings (debugger, debugger.visible, debugger.active)
 - Adjusted layout calculations
 
 
-Version 0.8.0
+Version 0.8.0 - Oct 8, 2022
 - Show currently selected configuration in the controls bar instead of step controls when there is no active debug sessions
 - Support for global debug configurations by adding configurations to `global_debugger_configurations` in the debugger settings
 - The debugger can now be opened without a project file when there are global configurations
@@ -29,11 +42,12 @@ Version 0.8.0
 - A number of improvements to the schema for LSP-json
 - emulicious: Adds Emulicious Debugger (@Calindro)
 
-Version 0.7.2
+
+Version 0.7.2 - Sep 26, 2022
 - Minor bug fixes
 
 
-Version 0.7.1
+Version 0.7.1 - Sep 25, 2022
 - Refined debugger interface that was redesigned in the last release
 - Allow inputting commands by typing into the debugger console
 - The debugger interface now matches the current font-size this can be overridden with the setting `ui-scale`
