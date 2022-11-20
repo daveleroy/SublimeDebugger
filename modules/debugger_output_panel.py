@@ -169,6 +169,9 @@ class DebuggerOutputPanel:
 			settings.erase('font_size')
 
 	def set_status(self, status: ui.Image):
+		if self.status == status:
+			return
+
 		self.status = status
 		
 		# if the status of a panel changes we need to re-render all the output panels
@@ -221,7 +224,11 @@ class DebuggerOutputPanel:
 	def _on_show_panel(self, window: sublime.Window):
 		if window == self.window and window.active_panel() == self.output_panel_name:
 			self.scroll_to_end()
-			if self.on_opened: self.on_opened()
+			if self.on_opened: 
+				self.on_opened()
+
+			if self.text_change_listner:
+				self.text_change_listner.on_text_changed([])
 
 	def _on_hide_panel(self, window: sublime.Window, name: str):
 		if self.on_closed and window == self.window and name == self.output_panel_name:
@@ -411,7 +418,6 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 			if controls_and_tabs_phantom.requires_render:
 				controls_and_tabs_phantom.render()
 			else:
-				# if this isn't put back then its always out of position after a text change
 				controls_and_tabs_phantom.render_if_out_of_position()
 			
 			# Figure out a better way that doesn't always scroll to the bottom when new content comes in
