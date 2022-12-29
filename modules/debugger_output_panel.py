@@ -103,8 +103,6 @@ class DebuggerOutputPanel:
 		self.controls_and_tabs_phantom = None
 
 		DebuggerOutputPanel.panels[self.view.id()] = self
-		self.on_post_show_panel = core.on_post_show_panel.add(self._on_show_panel)
-		self.on_pre_hide_panel = core.on_pre_hide_panel.add(self._on_hide_panel)
 
 		settings = self.view.settings()
 		if create:
@@ -116,49 +114,48 @@ class DebuggerOutputPanel:
 		settings.set('scroll_past_end', False)
 		settings.set('gutter', False)
 
-		if not show_panel and previous_panel:
-			self.window.run_command('show_panel', {
-				'panel': previous_panel
-			})
 
+		# this is just a hack to get the output panel to have a bigger height
+		self.update_settings()
+		scaled_font = settings.get('font_size') * (Settings.minimum_console_height + 1.75) / 5
+		settings.set('font_size', scaled_font) # this will be removed in update_settings()
+		self.open()
+
+		self.update_settings()
 
 		if show_tabs and show_tabs_top:
-			self.text_change_listner = OutputPanelTopTextChangeListener(self.view)
+			self.text_change_listener = OutputPanelTopTextChangeListener(self.view)
 			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE) [
 				self.controls_and_tabs
 			]
 
 		elif show_tabs:
-			self.text_change_listner = OutputPanelBottomTextChangeListener(self)
+			self.text_change_listener = OutputPanelBottomTextChangeListener(self)
 			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(-1), sublime.LAYOUT_BLOCK) [
 				self.controls_and_tabs
 			]
 
 		else:
-			self.text_change_listner = None
+			self.text_change_listener = None
 			self.controls_and_tabs = None
 			self.controls_and_tabs_phantom = None
 
 		debugger.add_output_panel(self)
-		self.update_settings()
 
-		# this tricks the panel into being at least intitial_console_line_count lines high + ~1.5 which is the heigh of the debugger tabs
-		height = Settings.minimum_console_height + 1.49
-		if show_tabs and show_tabs_top:
-			height += 0.1
+		if self.text_change_listener:
+			self.text_change_listener.on_text_changed([])
 
-		settings.set('line_padding_top', (height) * self.view.line_height())
-		settings.set('line_padding_bottom', 0)
+		if not show_panel and previous_panel:
+			self.window.run_command('show_panel', {
+				'panel': previous_panel
+			})
 
-		self.open()
 
-		settings.erase('line_padding_top')
-		settings.erase('line_padding_bottom')
+		self.on_post_show_panel = core.on_post_show_panel.add(self._on_show_panel)
+		self.on_pre_hide_panel = core.on_pre_hide_panel.add(self._on_hide_panel)
 
-		if self.text_change_listner:
-			self.text_change_listner.on_text_changed([])
 
 	def update_settings(self):
 		# these settings control the size of the ui calculated in ui/layout
@@ -185,8 +182,8 @@ class DebuggerOutputPanel:
 	def dispose(self):
 		self.debugger.remove_output_panel(self)
 
-		if self.text_change_listner:
-			self.text_change_listner.dispose()
+		if self.text_change_listener:
+			self.text_change_listener.dispose()
 
 		if self.create:
 			self.window.destroy_output_panel(self.panel_name)
@@ -227,8 +224,8 @@ class DebuggerOutputPanel:
 			if self.on_opened: 
 				self.on_opened()
 
-			if self.text_change_listner:
-				self.text_change_listner.on_text_changed([])
+			if self.text_change_listener:
+				self.text_change_listener.on_text_changed([])
 
 	def _on_hide_panel(self, window: sublime.Window, name: str):
 		if self.on_closed and window == self.window and name == self.output_panel_name:
