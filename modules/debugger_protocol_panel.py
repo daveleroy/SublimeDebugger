@@ -19,7 +19,7 @@ class DebuggerProtocolPanel(core.Logger):
 		if not self.output:
 			self.output = DebuggerOutputPanel(self.debugger, 'Debugger Protocol', 'Protocol')
 			self.output.on_opened = lambda: self.write_pending_if_needed()
-			self.output.view.assign_syntax('Packages/Debugger/Commands/DebuggerProtocol.sublime-syntax')
+			self.output.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerProtocol.sublime-syntax'))
 			settings = self.output.view.settings()
 			settings.set('word_wrap', False)
 			settings.set('scroll_past_end', False)

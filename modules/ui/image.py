@@ -11,7 +11,7 @@ import base64
 
 def _path_for_image(name: str) -> str:
 	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region?
-	return f'Packages/{core.current_package_name()}/images/{name}'
+	return core.package_path_relative(f'images/{name}')
 
 def _data_image_png_b64_png_from_resource(path: str) -> str:
 	png_data = sublime.load_binary_resource(path)

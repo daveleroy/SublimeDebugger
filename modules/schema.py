@@ -203,6 +203,6 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 	}
 
 
-	path = os.path.join(core.current_package(), 'sublime-package.json')
+	path = os.path.join(core.package_path(), 'sublime-package.json')
 	with open(path, 'w') as file:
 		file.write(json.dumps(schema_debug_configurations, indent='  '))

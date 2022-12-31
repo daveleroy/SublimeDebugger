@@ -28,7 +28,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 
 		self.protocol = DebuggerProtocolPanel(debugger)
 
-		self.view.assign_syntax('Packages/Debugger/Commands/DebuggerConsole.sublime-syntax')
+		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
 		self.color: str|None = None
 		self.phantoms = []
 		self.input_size = 0

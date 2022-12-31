@@ -151,7 +151,6 @@ class CommandsRegistry:
 
 	@staticmethod
 	def generate_commands_and_menus():
-		current_package = core.current_package()
 
 		def generate_commands(menu: int, prefix: str = "", include_seperators: bool = True):
 			out_commands: list[Any] = []
@@ -180,8 +179,8 @@ class CommandsRegistry:
 				)
 			return out_commands
 
-		def save_commands(file: str, commands: Any):
-			with open(current_package + file, 'w') as f:
+		def save_commands(path: str, commands: Any) -> None:
+			with open(core.package_path(path), 'w') as f:
 				json.dump(commands, f, indent=4, separators=(',', ': '))
 
 		commands_palette = generate_commands(Command.menu_commands, prefix="Debugger: ", include_seperators=False)
@@ -191,7 +190,7 @@ class CommandsRegistry:
 			"command": "debugger_input"
 		})
 
-		save_commands('/Commands/Commands.sublime-commands', commands_palette)
+		save_commands('contributes/Commands/Default.sublime-commands', commands_palette)
 
 
 		main = [{
@@ -204,22 +203,21 @@ class CommandsRegistry:
 				}
 			]}
 		]
-		save_commands('/Commands/Main.sublime-menu', main)
+		save_commands('contributes/Commands/Main.sublime-menu', main)
 
 
 		print('Generating commands')
 
 		commands_context = generate_commands(Command.menu_context)
-		save_commands('/Commands/Context.sublime-menu', commands_context)
+		save_commands('contributes/Commands/Context.sublime-menu', commands_context)
 
 
 		commands_context = generate_commands(Command.menu_widget)
-		save_commands('/Commands/Widget Debug.sublime-menu', commands_context)
+		save_commands('contributes/Commands/Widget Debug.sublime-menu', commands_context)
 
 		syntax = generate_ansi_syntax()
-		with open(current_package + '/Commands/DebuggerConsole.sublime-syntax', 'w') as f:
+		with open(core.package_path('contributes/Syntax/DebuggerConsole.sublime-syntax'), 'w') as f:
 			f.write(syntax)
-
 
 		# keymap_commands = []
 

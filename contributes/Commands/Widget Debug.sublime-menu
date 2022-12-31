@@ -1,0 +1,26 @@
+[
+    {
+        "caption": "-"
+    },
+    {
+        "caption": "Clear Breakpoints",
+        "command": "debugger",
+        "args": {
+            "action": "clear_breakpoints"
+        }
+    },
+    {
+        "caption": "Clear Console",
+        "command": "debugger",
+        "args": {
+            "action": "clear_console"
+        }
+    },
+    {
+        "caption": "Show Protocol",
+        "command": "debugger",
+        "args": {
+            "action": "show_protocol"
+        }
+    }
+]

@@ -246,5 +246,5 @@ class SettingsRegistery:
 
 		output += '}'
 
-		with open(f'{core.current_package()}/debugger.sublime-settings', 'w') as f:
+		with open(f'{core.package_path()}/debugger.sublime-settings', 'w') as f:
 			f.write(output)

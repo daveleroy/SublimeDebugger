@@ -1,0 +1,24 @@
+[
+	{
+		"keys": [
+			"<character>"
+		],
+		"command": "noop",
+		"context": [
+			{
+				"key": "debugger.noop"
+			},
+		]
+	},
+	{
+		"keys": [
+			"<character>"
+		],
+		"command": "debugger_memory_input",
+		"context": [
+			{
+				"key": "setting.debugger.memory_view"
+			},
+		]
+	}
+]

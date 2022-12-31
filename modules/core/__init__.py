@@ -16,11 +16,14 @@ from .log import *
 _current_package = __package__.split('.', 1)[0]
 _current_package_path = os.path.join(sublime.packages_path(), _current_package)
 
-def current_package() -> str:
+def package_path(*components: str) -> str:
+	if components:
+		return os.path.join(_current_package_path, *components)
 	return _current_package_path
 
-def current_package_name() -> str:
-	return _current_package
+def package_path_relative(*components: str) -> str:
+	return os.path.join('Packages', _current_package, *components)
+
 
 class stopwatch:
 	def __init__(self, prefix: str = '') -> None:

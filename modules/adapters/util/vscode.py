@@ -19,7 +19,7 @@ _info_for_type: dict[str, AdapterInfo] = {}
 
 
 def install_path(type: str) -> str:
-	return f'{core.current_package()}/data/adapters/{type}'
+	return f'{core.package_path()}/data/adapters/{type}'
 
 @dataclass
 class AdapterInfo:
@@ -44,7 +44,7 @@ def info(type: str) -> AdapterInfo|None:
 	if info:
 		return info
 
-	path = f'{core.current_package()}/data/adapters/{type}'
+	path = f'{core.package_path()}/data/adapters/{type}'
 
 	if not os.path.exists(path):
 		return None

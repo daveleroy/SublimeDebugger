@@ -21,6 +21,13 @@
                         }
                     },
                     {
+                        "caption": "Settings",
+                        "command": "debugger",
+                        "args": {
+                            "action": "settings"
+                        }
+                    },
+                    {
                         "caption": "Install Adapters",
                         "command": "debugger",
                         "args": {
@@ -98,6 +105,13 @@
                         "command": "debugger",
                         "args": {
                             "action": "step_out"
+                        }
+                    },
+                    {
+                        "caption": "Show Disassembly",
+                        "command": "debugger",
+                        "args": {
+                            "action": "show_disassembly"
                         }
                     },
                     {

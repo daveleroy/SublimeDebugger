@@ -10,7 +10,7 @@ VERSION_NUMBER = 0
 
 def file_name_for_project_name(project_name: str):
 	hash = hashlib.sha224(project_name.encode('utf-8')).hexdigest()
-	file_name = os.path.join(core.current_package(), "data/{}.json".format(hash))
+	file_name = os.path.join(core.package_path(), "data/{}.json".format(hash))
 	return file_name
 	
 def load(project_name: str) -> Any:

@@ -88,7 +88,7 @@ class TerminalTask(DebuggerOutputPanel):
 
 		def run():
 			self.exec.run(**arguments)
-			self.view.assign_syntax('Packages/Debugger/Commands/DebuggerConsole.sublime-syntax')
+			self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
 			self.open()
 
 		sublime.set_timeout(run, 0)
