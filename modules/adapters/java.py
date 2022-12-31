@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any
+
 from ..import core
 from ..import dap
 from .import util
@@ -136,46 +137,11 @@ class Java(dap.AdapterConfiguration):
 		)
 
 	async def lsp_execute_command(self, command, arguments=None):
-		request_params = { 'command': command }
-		if arguments:
-			request_params['arguments'] = arguments
-		return await self.lsp_request('workspace/executeCommand', request_params)
+		return await self.lsp_request('workspace/executeCommand', { 
+			'command': command, 
+			'arguments': arguments 
+		})
 
 	async def lsp_request(self, method, params) -> Any:
-		'''
-		Returns the response or raises an exception.
-		'''
-		future = core.Future()
+		return await util.lsp.request('jdtls', method, params)
 
-		id = Java.jdtls_bridge_current_id
-		Java.jdtls_bridge_current_id += 1
-		Java.jdtls_bridge[id] = future
-
-		# Send a request to JDTLS.
-		# NOTE: the active window might not match the debugger window but generally will
-		# TODO: a way to get the actual window.
-		sublime.active_window().run_command(
-			'debugger_jdtls_bridge_request',
-			{'id': id, 'callback_command': 'debugger_jdtls_bridge_response', 'method': method, 'params': params}
-		)
-		sublime.set_timeout(lambda: future.cancel(), 2500)
-		try:
-			command_response = await future
-		except core.CancelledError:
-			raise core.Error('Unable to connect to LSP-jdtls (timed out)')
-
-		del Java.jdtls_bridge[id]
-
-		if command_response['error']:
-			raise core.Error(command_response['error'])
-		return command_response['resp']
-
-
-class DebuggerJdtlsBridgeResponseCommand(sublime_plugin.WindowCommand):
-	def run(self, **args):
-		future = Java.jdtls_bridge.get(args['id'])
-		if not future:
-			print('Unable to find a future for this id')
-			return
-		
-		future.set_result(args)

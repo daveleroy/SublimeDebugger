@@ -17,7 +17,7 @@ for m in modules_to_remove:
 
 # import all the commands so that sublime sees them
 from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
-from .modules.adapters.java import DebuggerJdtlsBridgeResponseCommand
+from .modules.adapters.util.lsp import DebuggerLspBridgeResponseCommand
 
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
 from .modules.debugger_output_panel import DebuggerConsoleListener
@@ -30,16 +30,24 @@ from .modules import dap
 from .modules.debugger import Debugger
 from .modules.views.variable import VariableComponent
 
-from .modules.adapters import * 
-#import all the adapters so Adapters.initialize() will see them
-
+from .modules.adapters import * #import all the adapters so Adapters.initialize() will see them
 from .modules.adapters_registry import AdaptersRegistry
 from .modules.settings import SettingsRegistery, Settings
 
 was_opened_at_startup: Set[int] = set()
 
+debugger33_path = os.path.join(sublime.packages_path(), "Debugger33")
 
 def plugin_loaded() -> None:
+	# move any files that are meant for the python 3.3 runtime into Debugger33 package
+	if not os.path.exists(debugger33_path):
+		core.info("Installing Debugger33")
+		os.mkdir(debugger33_path)
+
+		with open(os.path.join(debugger33_path, "lsp33.py"), "w") as f:
+			data = sublime.load_resource("Packages/Debugger/modules/adapters/util/lsp33.py")
+			f.write(data)
+
 	core.info('[startup]')
 	SettingsRegistery.initialize(on_updated=updated_settings)
 	CommandsRegistry.initialize()
@@ -54,6 +62,14 @@ def plugin_loaded() -> None:
 
 def plugin_unloaded() -> None:
 	core.info('[shutdown]')
+	
+	try:
+		core.info("Uninstalling Debugger33")
+		shutil.rmtree(debugger33_path)
+	except Exception as e:
+		core.info('Unable to uninstall Debugger33', e)
+
+
 	for key, instance in dict(Debugger.instances).items():
 		core.info('Removing debugger')
 		instance.dispose()
