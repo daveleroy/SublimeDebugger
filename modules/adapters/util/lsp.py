@@ -30,10 +30,12 @@ async def request(session_name: str, method: str, params: Any) -> Any:
 	finally:
 		del _futures[_id]
 
-	if command_response['reject']:
-		raise core.Error(command_response['reject'])
 
-	return command_response['resolve']
+	if resolve := command_response.get('resolve'):
+		return resolve
+
+	raise core.Error(command_response.get('reject') or 'Expected `resolve` or `reject`')
+
 
 
 class DebuggerLspBridgeResponseCommand(sublime_plugin.WindowCommand):
