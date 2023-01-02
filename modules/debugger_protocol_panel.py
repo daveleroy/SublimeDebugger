@@ -15,6 +15,18 @@ class DebuggerProtocolPanel(core.Logger):
 		self.output: DebuggerOutputPanel|None = None
 		self.pending: list[Any] = []
 
+	def platform_info(self):
+		settings = sublime.load_settings("Preferences.sublime-settings")
+		output =  ''
+		output += f'-- platform: {sublime.platform()}-{sublime.arch()}\n'
+		output += f'-- theme: {settings.get("theme")}\n'
+		output += f'-- color_scheme: {settings.get("color_scheme")}\n'
+		output += f'-- font_face: {settings.get("font_face")}\n'
+		output += f'-- font_size: {settings.get("font_size")}\n'
+
+		output += '\n'
+		return output
+
 	def write_pending(self):
 		if not self.output:
 			self.output = DebuggerOutputPanel(self.debugger, 'Debugger Protocol', 'Protocol')
@@ -23,6 +35,13 @@ class DebuggerProtocolPanel(core.Logger):
 			settings = self.output.view.settings()
 			settings.set('word_wrap', False)
 			settings.set('scroll_past_end', False)
+
+			self.output.view.run_command('append', {
+			'characters': self.platform_info(),
+			'force': True,
+			'scroll_to_end': True,
+			})
+
 
 		text = ''
 		for pending in self.pending:
@@ -42,10 +61,6 @@ class DebuggerProtocolPanel(core.Logger):
 
 	def log(self, type: str, value: Any):
 		self.pending.append(value)
-		self.write_pending_if_needed()
-
-	def error(self, value: str):
-		self.pending.append(f'error: {value}')
 		self.write_pending_if_needed()
 
 	def open(self):
