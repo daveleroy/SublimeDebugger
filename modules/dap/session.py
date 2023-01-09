@@ -162,7 +162,7 @@ class Session(TransportProtocolListener):
 		except core.Error as e:
 			self.launching_async = None
 			core.exception(e)
-			self.log.error(str(e))
+			self.log.error(str(e), self.configuration.source)
 			await self.stop_forced(reason=Session.stopped_reason_launch_error)
 			raise e
 		except core.CancelledError:
