@@ -28,13 +28,21 @@ def error(*args: Any) -> None:
 		return
 	print('Debugger: error:', *args)
 
+def alert(*args: Any) -> None:
+	print('ALERT')
+	sublime.error_message(str(args))
+
+	if not _should_log_error:
+		return
+	print('Debugger: error:', *args)
 
 def exception(*args: Any) -> None:
 	if not _should_log_exceptions:
 		return
-	print('Debugger:', *args, end='')
+
+	if args:
+		print('Debugger: error:', *args)
 	print(traceback.format_exc())
-	print('--')
 
 
 def debug(*args: Any) -> None:
@@ -44,12 +52,12 @@ def debug(*args: Any) -> None:
 
 
 class Logger(Protocol):
-	def error(self, value: str):
-		self.log('error', value)
-	def warn(self, value: str):
-		self.log('warn', value)
-	def info(self, value: str):
-		self.log('info', value)
+	def error(self, text: str):
+		self.log('error', text)
+	def warn(self, text: str):
+		self.log('warn', text)
+	def info(self, text: str):
+		self.log('info', text)
 	def log(self, type: str, value: Any):
 		print(f'Debugger: {type}: {value}')
 

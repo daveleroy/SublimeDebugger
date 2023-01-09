@@ -60,25 +60,25 @@ def gather(*coros_or_futures: Awaitable[T]) -> Awaitable[tuple[T]]:
 def gather_results(*coros_or_futures: Awaitable[T]) -> Awaitable[list[T|Exception]]:
 	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop, return_exceptions=True) #type: ignore
 
-def run(awaitable: Awaitable[T], on_done: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None) -> Future[T]:
+def run(awaitable: Awaitable[T], on_success: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None) -> Future[T]:
 	task: Future[T] = asyncio.ensure_future(awaitable, loop=sublime_event_loop) #type: ignore
 
 	def done(task: asyncio.Future[T]) -> None:
+		if on_error:
+			try: 
+				result = task.result()
+				if on_success: on_success(result)
 
-		# this will be handled by the loop exception handler
-		try:
-			if e := task.exception():
-				raise e
+			except BaseException as e: 
+				on_error(e)
 
-		# do nothing this was cancelled 
-		except CancelledError:
-			return
+		elif on_success:
+			result = task.result()
+			on_success(result)
 
-		result: T = task.result()
-		if on_done:
-			on_done(result)
+	if on_error or on_success:
+		task.add_done_callback(done)
 
-	task.add_done_callback(done)
 	return task
 
 def display(msg: 'Any'):
