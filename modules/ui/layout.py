@@ -89,6 +89,7 @@ class Layout:
 		self.last_render_time = 0
 		self._all = ()
 		self._vertical_offset = 0.0
+		self._last_check_was_differnt = False
 		self.update()
 		Layout.layouts_to_add.append(self)
 
@@ -239,6 +240,12 @@ class Layout:
 		# check if anything has changed so we can avoid invalidating the layout
 		all = (background, font_size, em_width, size[0], size[1])
 		if self._all == all:
+
+			# only invalidate the layout after the user has stopped changing the layout to avoid redrawing while they are changing stuff
+			if self._last_check_was_differnt and self.item:
+				self._last_check_was_differnt = False
+				self.item.dirty()
+
 			return
 
 		self._all = all
@@ -251,8 +258,7 @@ class Layout:
 		# units in minihtml are based on the font_size of the character however we want our units to be 1 character wide
 		self.em_width = em_width
 
-		if self.item:
-			self.item.dirty()
+		self._last_check_was_differnt = True
 
 
 def lightness_from_color(color: str|None) -> float:
