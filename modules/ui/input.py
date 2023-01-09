@@ -67,7 +67,7 @@ class InputListItem:
 	kind: tuple[int, str, str] = sublime.KIND_AMBIGUOUS
 
 	run_alt: Callable[[], Any] | InputList | InputText| None = None
-	preview: Callable[[], str|None]|None = None
+	preview: Callable[[], str|sublime.Html|None]|None = None
 
 	def display_or_run(self):
 		if callable(self.run):

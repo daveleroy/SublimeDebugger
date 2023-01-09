@@ -23,7 +23,7 @@ class Project:
 				project_name = window.project_file_name()
 
 		self.window = window
-		self.on_updated: core.Event[None] = core.Event()
+		self.on_updated = core.Event[None]()
 
 		self.tasks: list[Task] = []
 		self.compounds: list[ConfigurationCompound] = []
@@ -89,7 +89,7 @@ class Project:
 		
 		if previous_configuration_or_compound != self.configuration_or_compound:
 			if not skip_update:
-				self.on_updated.post()
+				self.on_updated()
 
 			return True
 
@@ -141,7 +141,7 @@ class Project:
 		core.info("ProjectConfiguration.reload")
 		self.load_settings()
 		self.load_configurations()
-		self.on_updated.post()
+		self.on_updated()
 
 	def load_settings(self):
 		core.log_configure(

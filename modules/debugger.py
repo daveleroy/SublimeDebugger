@@ -75,32 +75,28 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	def __init__(self, window: sublime.Window, skip_project_check = False) -> None:
 		self.window = window
 
-		self.on_error: core.Event[str] = core.Event()
-		self.on_info: core.Event[str] = core.Event()
+		self.on_session_added = core.Event[dap.Session]()
+		self.on_session_removed = core.Event[dap.Session]()
+		self.on_session_active = core.Event[dap.Session]()
 
-		self.on_session_added: core.Event[dap.Session] = core.Event()
-		self.on_session_removed: core.Event[dap.Session] = core.Event()
-		self.on_session_active: core.Event[dap.Session] = core.Event()
+		self.on_session_modules_updated = core.Event[dap.Session]()
+		self.on_session_sources_updated = core.Event[dap.Session]()
+		self.on_session_variables_updated = core.Event[dap.Session]()
+		self.on_session_threads_updated = core.Event[dap.Session]()
+		self.on_session_state_updated = core.Event[dap.Session, dap.Session.State]()
+		self.on_session_output = core.Event[dap.Session, dap.OutputEvent]()
+		self.on_session_output = core.Event[dap.Session, dap.OutputEvent]()
 
-		self.on_session_modules_updated: core.Event[dap.Session] = core.Event()
-		self.on_session_sources_updated: core.Event[dap.Session] = core.Event()
-		self.on_session_variables_updated: core.Event[dap.Session] = core.Event()
-		self.on_session_threads_updated: core.Event[dap.Session] = core.Event()
-		self.on_session_state_updated: core.Event[dap.Session, dap.Session.State] = core.Event()
-		self.on_session_output: core.Event[dap.Session, dap.OutputEvent] = core.Event()
-		self.on_session_output: core.Event[dap.Session, dap.OutputEvent] = core.Event()
-
-		self.on_session_run_terminal_requested: core.EventReturning[Awaitable[dap.RunInTerminalResponse], dap.Session, dap.RunInTerminalRequestArguments] = core.EventReturning()
-		self.on_session_run_task_requested: core.EventReturning[Awaitable[None], dap.Session|None, dap.TaskExpanded] = core.EventReturning()
+		self.on_session_run_terminal_requested: core.EventReturning[[dap.Session, dap.RunInTerminalRequestArguments], Awaitable[dap.RunInTerminalResponse]] = core.EventReturning()
+		self.on_session_run_task_requested: core.EventReturning[[dap.Session|None, dap.TaskExpanded], Awaitable[None]] = core.EventReturning()
 
 		self.session: dap.Session|None = None
 		self.sessions: list[dap.Session] = []
 		self.disposeables: list[Any] = []
 		self.last_run_task = None
 
-
 		self.output_panels: list[DebuggerOutputPanel] = []
-		self.on_output_panels_updated: core.Event[None] = core.Event()
+		self.on_output_panels_updated = core.Event[None]()
 
 		self.project = Project(window, skip_project_check)
 		self.run_to_current_line_breakpoint: SourceBreakpoint|None = None
@@ -139,18 +135,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
 		self.integrated_terminals: dict[dap.Session, list[TerminusIntegratedTerminal]] = {}
 
-		# def on_view_activated(view: sublime.View):
-		# 	if self.is_active or self.tasks.is_active():
-		# 		return
-			
-		# 	window = view.window()
-		# 	if not view.element() and window and window.active_group() == 0:
-		# 		# self.console.close()
-		# 		self.dispose_terminals(unused_only=True)
-		# self.disposeables.extend([
-		# 	core.on_view_activated.add(on_view_activated)
-		# ])
-
 		self.on_session_state_updated.add(self._on_session_state_updated)
 		self.on_session_active.add(self._on_session_active)
 		self.on_session_added.add(self._on_session_added)
@@ -158,8 +142,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_output.add(self._on_session_output)
 		self.on_session_run_terminal_requested.add(self._on_session_run_terminal_requested)
 		self.on_session_run_task_requested.add(self._on_session_run_task_requested)
-		self.on_info.add(self.console.info)
-		self.on_error.add(self.console.error)
 
 		if not self.project.location:
 			self.console.log('warn', 'Debugger not associated with a sublime-project so breakpoints and other data will not be saved')
@@ -193,14 +175,14 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		else:
 			self.output_panels.append(panel)
 
-		self.on_output_panels_updated.post()
+		self.on_output_panels_updated()
 
 	def remove_output_panel(self, panel: DebuggerOutputPanel):
 		if panel.is_open():
 			self.console.open()
 
 		self.output_panels.remove(panel)
-		self.on_output_panels_updated.post()
+		self.on_output_panels_updated()
 
 	async def ensure_installed(self, configurations: list[dap.Configuration]):
 		types: list[str] = []
@@ -313,49 +295,44 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			log=self.console,
 		)
 
-		@core.schedule
-		async def run():
-			self.add_session(session)
-
-			await session.launch()
-			await session.wait()
-
-			self.remove_session(session)
-		run()
-
+		self.add_session(session)
+		await session.launch()
 		return session
 
-	async def on_session_task_request(self, session: dap.Session, task: dap.TaskExpanded):
+	def session_finished(self, session: dap.Session):
+		self.remove_session(session)
+
+	async def session_task_request(self, session: dap.Session, task: dap.TaskExpanded):
 		response = self.on_session_run_task_requested(session, task)
 		if not response: raise core.Error('No run task response')
 		return await response
 
-	async def on_session_terminal_request(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
+	async def session_terminal_request(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		response = self.on_session_run_terminal_requested(session, request)
 		if not response: raise core.Error('No terminal session response')
 		return await response
 
-	def on_session_state_changed(self, session: dap.Session, state: dap.Session.State):
+	def session_state_changed(self, session: dap.Session, state: dap.Session.State):
 		self.on_session_state_updated(session, state)
 
-	def on_session_selected_frame(self, session: dap.Session, frame: dap.StackFrame|None):
+	def session_selected_frame(self, session: dap.Session, frame: dap.StackFrame|None):
 		self.session = session
 		self.on_session_state_updated(session, session.state)
 		self.on_session_active(session)
 
-	def on_session_output_event(self, session: dap.Session, event: dap.OutputEvent):
+	def session_output_event(self, session: dap.Session, event: dap.OutputEvent):
 		self.on_session_output(session, event)
 
-	def on_session_updated_modules(self, session: dap.Session):
+	def session_updated_modules(self, session: dap.Session):
 		self.on_session_modules_updated(session)
 
-	def on_session_updated_sources(self, session: dap.Session):
+	def session_updated_sources(self, session: dap.Session):
 		self.on_session_sources_updated(session)
 
-	def on_session_updated_variables(self, session: dap.Session):
+	def session_updated_variables(self, session: dap.Session):
 		self.on_session_variables_updated(session)
 
-	def on_session_updated_threads(self, session: dap.Session):
+	def session_updated_threads(self, session: dap.Session):
 		self.on_session_threads_updated(session)
 
 	def add_session(self, session: dap.Session):
@@ -597,7 +574,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	def _on_session_added(self, sessions: dap.Session):
 		self.console.open()
 
-	def _on_session_removed(self, sessions: dap.Session):
+	def _on_session_removed(self, session: dap.Session):
 
 		# if the debugger panel is open switch to the console. We could be on a pre debug step panel which we want to remain on.
 		if self.panels.is_open():
@@ -716,7 +693,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	# Configuration Stuff
 	def set_configuration(self, configuration: dap.Configuration|dap.ConfigurationCompound):
 		self.project.configuration_or_compound = configuration
-		self.project.on_updated.post()
+		self.project.on_updated()
 		self.save_data()
 
 	async def change_configuration_input_items(self) -> list[ui.InputListItem]:

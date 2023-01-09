@@ -29,18 +29,20 @@ from .configuration import (
 from .transport import TransportProtocol, TransportProtocolListener
 
 class SessionListener (Protocol):
-	async def on_session_task_request(self, session: Session, task: TaskExpanded): ...
-	async def on_session_terminal_request(self, session: Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse: ...
+	async def session_task_request(self, session: Session, task: TaskExpanded): ...
+	async def session_terminal_request(self, session: Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse: ...
 
-	def on_session_state_changed(self, session: Session, state: Session.State): ...
-	def on_session_selected_frame(self, session: Session, frame: dap.StackFrame|None): ...
-	def on_session_output_event(self, session: Session, event: dap.OutputEvent): ...
+	def session_state_changed(self, session: Session, state: Session.State): ...
+	def session_output_event(self, session: Session, event: dap.OutputEvent): ...
 
-	def on_session_updated_modules(self, session: Session): ...
-	def on_session_updated_sources(self, session: Session): ...
-	def on_session_updated_variables(self, session: Session): ...
-	def on_session_updated_threads(self, session: Session): ...
+	def session_selected_frame(self, session: Session, frame: dap.StackFrame|None): ...
 
+	def session_updated_modules(self, session: Session): ...
+	def session_updated_sources(self, session: Session): ...
+	def session_updated_variables(self, session: Session): ...
+	def session_updated_threads(self, session: Session): ...
+
+	def session_finished(self, session: Session): ...
 
 class Session(TransportProtocolListener):
 
@@ -115,8 +117,6 @@ class Session(TransportProtocolListener):
 
 		self.disposeables: list[Any] = []
 
-		self.complete: core.Future[None] = core.Future()
-
 		self.threads_for_id: dict[int, Thread] = {}
 		self.all_threads_stopped = False
 		self.selected_explicitly = False
@@ -144,7 +144,7 @@ class Session(TransportProtocolListener):
 			return
 
 		self._state = state
-		self.listener.on_session_state_changed(self, state)
+		self.listener.session_state_changed(self, state)
 
 	@property
 	def status(self) -> str|None:
@@ -152,23 +152,25 @@ class Session(TransportProtocolListener):
 
 	def _change_status(self, status: str):
 		self._status = status
-		self.listener.on_session_state_changed(self, self._state)
+		self.listener.session_state_changed(self, self._state)
 
 
 	async def launch(self) -> None:
 		try:
-			self.launching_async = core.run(self._launch())
+			self.launching_async = self._launch()
 			await self.launching_async
 		except core.Error as e:
 			self.launching_async = None
 			core.exception(e)
 			self.log.error(str(e))
 			await self.stop_forced(reason=Session.stopped_reason_launch_error)
+			raise e
 		except core.CancelledError:
 			...
 
 		self.launching_async = None
 
+	@core.schedule
 	async def _launch(self) -> None:
 		assert self.state == Session.State.STOPPED, 'debugger not in stopped state?'
 		self.state = Session.State.STARTING
@@ -245,9 +247,6 @@ class Session(TransportProtocolListener):
 
 		return await self._transport.send_request_asyc(command, arguments)
 
-	async def wait(self) -> None:
-		await self.complete
-
 	async def run_pre_debug_task(self) -> bool:
 		pre_debug_command = self.configuration.pre_debug_task
 		if pre_debug_command:
@@ -266,7 +265,7 @@ class Session(TransportProtocolListener):
 
 	async def run_task(self, name: str, task: TaskExpanded) -> bool:
 		try:
-			await self.listener.on_session_task_request(self, task)
+			await self.listener.session_task_request(self, task)
 			return True
 
 		except core.CancelledError:
@@ -496,9 +495,7 @@ class Session(TransportProtocolListener):
 		self._change_status('Ended')
 
 		self.state = Session.State.STOPPED
-
-		if not self.complete.done():
-			self.complete.set_result(None)
+		self.listener.session_finished(self)
 
 	def dispose(self) -> None:
 		self.stop_debug_adapter_session()
@@ -565,7 +562,7 @@ class Session(TransportProtocolListener):
 
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
 		event = dap.OutputEvent(result.result + '\n', 'console', variablesReference=result.variablesReference)
-		self.listener.on_session_output_event(self, event)
+		self.listener.session_output_event(self, event)
 
 	async def evaluate_expression(self, expression: str, context: str|None) -> dap.EvaluateResponse:
 		frameId: int|None = None
@@ -585,12 +582,11 @@ class Session(TransportProtocolListener):
 		return response
 
 	async def read_memory(self, memory_reference: str, count: int, offset: int) -> dap.ReadMemoryResponse:
-		v = await self.request('readMemory', {
+		return await self.request('readMemory', {
 			'memoryReference': memory_reference,
 			'count': count,
 			'offset': offset
 		})
-		return v
 
 	async def stack_trace(self, thread_id: int) -> list[dap.StackFrame]:
 		body = await self.request('stackTrace', {
@@ -611,12 +607,11 @@ class Session(TransportProtocolListener):
 		return response['targets']
 
 	async def set_variable(self, variablesReference: int, name: str, value: str) -> dap.SetVariableResponse:
-		response = await self.request('setVariable', {
+		return await self.request('setVariable', {
 			'variablesReference': variablesReference,
 			'name': name,
 			'value': value,
 		})
-		return response
 
 	async def data_breakpoint_info(self, variablesReference: int, name: str) -> dap.DataBreakpointInfoResponse:
 		response = await self.request('dataBreakpointInfo', {
@@ -631,7 +626,7 @@ class Session(TransportProtocolListener):
 		})
 		scopes: list[dap.Scope] = body['scopes']
 		self.variables = [Variable.from_scope(self, scope) for scope in scopes]
-		self.listener.on_session_updated_variables(self)
+		self.listener.session_updated_variables(self)
 
 	async def get_source(self, source: dap.Source) -> tuple[str, str|None]:
 		body = await self.request('source', {
@@ -678,11 +673,11 @@ class Session(TransportProtocolListener):
 		if event.reason == 'changed':
 			self.modules[event.module.id] = event.module
 
-		self.listener.on_session_updated_modules(self)
+		self.listener.session_updated_modules(self)
 
 	def on_process_event(self, event: dap.ProcessEvent):
 		self.process = event
-		self.listener.on_session_state_changed(self, self.state)
+		self.listener.session_state_changed(self, self.state)
 
 	def on_loaded_source_event(self, event: dap.LoadedSourceEvent):
 		id = f'{event.source.name}~{event.source.path}~{event.source.sourceReference}'
@@ -697,7 +692,7 @@ class Session(TransportProtocolListener):
 		elif event.reason == 'changed':
 			self.sources[id] = event.source
 
-		self.listener.on_session_updated_sources(self)
+		self.listener.session_updated_sources(self)
 
 	# this is a bit of a weird case. Initialized will happen at some point in time
 	# it depends on when the debug adapter chooses it is ready for configuration information
@@ -718,7 +713,7 @@ class Session(TransportProtocolListener):
 		core.run(run())
 	
 	def on_output_event(self, event: dap.OutputEvent):
-		self.listener.on_session_output_event(self, event)
+		self.listener.session_output_event(self, event)
 
 	@core.schedule
 	async def on_terminated_event(self, event: dap.TerminatedEvent):
@@ -752,7 +747,7 @@ class Session(TransportProtocolListener):
 
 	async def on_run_in_terminal(self, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		try:
-			return await self.listener.on_session_terminal_request(self, request)
+			return await self.listener.session_terminal_request(self, request)
 		except core.Error as e:
 			self.log.error(str(e))
 			raise e
@@ -777,7 +772,6 @@ class Session(TransportProtocolListener):
 
 	def set_selected(self, thread: Thread, frame: dap.StackFrame|None):
 		self.select(thread, frame, explicitly=True)
-		self.listener.on_session_updated_threads(self)
 		self._refresh_state()
 
 	# after a successfull launch/attach, stopped event, thread event we request all threads
@@ -798,7 +792,7 @@ class Session(TransportProtocolListener):
 			t.name = thread.name
 			self.threads.append(t)
 
-		self.listener.on_session_updated_threads(self)
+		self.listener.session_updated_threads(self)
 
 	def on_threads_event(self, event: dap.ThreadEvent) -> None:
 		self.refresh_threads()
@@ -830,7 +824,7 @@ class Session(TransportProtocolListener):
 				self.select(thread, None, explicitly=False)
 				self.expand_thread(thread)
 
-		self.listener.on_session_updated_threads(self)
+		self.listener.session_updated_threads(self)
 		self.refresh_threads()
 		self._refresh_state()
 
@@ -847,7 +841,7 @@ class Session(TransportProtocolListener):
 			frame = first_non_subtle_frame(children)
 			self.select(thread, frame, explicitly=False)
 
-			self.listener.on_session_updated_threads(self)
+			self.listener.session_updated_threads(self)
 			self._refresh_state()
 
 	def on_continued_event(self, continued: dap.ContinuedEvent, stepping = False):
@@ -871,7 +865,7 @@ class Session(TransportProtocolListener):
 		if continued.allThreadsContinued or thread is self.selected_thread:
 			self.select(None, None, explicitly=False)
 
-		self.listener.on_session_updated_threads(self)
+		self.listener.session_updated_threads(self)
 		self._refresh_state()
 
 	def select(self, thread: Thread|None, frame: dap.StackFrame|None, explicitly: bool):
@@ -882,13 +876,14 @@ class Session(TransportProtocolListener):
 		self.selected_thread = thread
 		self.selected_frame = frame
 		
-		self.listener.on_session_selected_frame(self, frame)
+		self.listener.session_selected_frame(self, frame)
+
 		if frame:
 			core.run(self.refresh_scopes(frame))
 			core.run(self.watch.evaluate(self, frame))
 		else:
 			self.variables.clear()
-			self.listener.on_session_updated_variables(self)
+			self.listener.session_updated_variables(self)
 
 	def on_event(self, event: str, body: Any):
 		if not self._transport:

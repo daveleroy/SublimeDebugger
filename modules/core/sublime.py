@@ -130,4 +130,4 @@ class DebuggerEventsListener(sublime_plugin.EventListener):
 		on_pre_close_window(window)
 
 	def on_exit(self):
-		on_exit.post()
+		on_exit()

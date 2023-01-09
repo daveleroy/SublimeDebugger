@@ -4,7 +4,7 @@ from typing import Any
 
 from .import core 
 
-def ansi_colorize(text, color: str|None = None, previous_color: str|None = None):
+def ansi_colorize(text: str, color: str|None = None, previous_color: str|None = None):
 	text = text.replace('\r\n', '\n')
 
 	def replacement(x: Any):

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable
+from typing import Any, Callable
 
 from .. import core
 from .layout import Layout

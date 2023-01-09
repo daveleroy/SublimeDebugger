@@ -1,7 +1,5 @@
 from __future__ import annotations
-
-
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from ..import ui
 from ..import core
@@ -9,12 +7,12 @@ from .. import dap
 from . import css
 from .tabbed_panel import Panel
 
+from ..debugger_output_panel import DebuggerPanelTabs, DebuggerOutputPanel
 
 import os
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
-	from ..debugger_output_panel import DebuggerOutputPanel
 
 class CallStackState:
 	def __init__(self):
@@ -39,7 +37,6 @@ class CallStackPanel (Panel):
 		super().__init__('Callstack')
 		self.debugger = debugger
 		self.state = CallStackState()
-		from ..debugger_output_panel import DebuggerPanelTabs
 		self.header = DebuggerPanelTabs(self.debugger, panel)
 
 	def panel_header(self, expanded: bool) -> list[ui.span] | None:
@@ -48,10 +45,10 @@ class CallStackPanel (Panel):
 		]
 
 	def added(self):
-		self.on_updated = self.debugger.on_session_threads_updated.add(self.on_threads_updated)
-		self.on_selected = self.debugger.on_session_active.add(self.on_threads_updated)
-		self.on_added_session = self.debugger.on_session_added.add(self.on_threads_updated)
-		self.on_removed_session = self.debugger.on_session_removed.add(self.on_threads_updated)
+		self.on_updated = self.debugger.on_session_threads_updated.add(self.dirty_session)
+		self.on_selected = self.debugger.on_session_active.add(self.dirty_session)
+		self.on_added_session = self.debugger.on_session_added.add(self.dirty_session)
+		self.on_removed_session = self.debugger.on_session_removed.add(self.dirty_session)
 
 	def removed(self):
 		self.on_updated.dispose()
@@ -59,7 +56,7 @@ class CallStackPanel (Panel):
 		self.on_added_session.dispose()
 		self.on_removed_session.dispose()
 
-	def on_threads_updated(self, session: dap.Session):
+	def dirty_session(self, session: dap.Session):
 		self.dirty()
 
 	def selected_session(self, session: dap.Session):

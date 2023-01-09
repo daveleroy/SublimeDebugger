@@ -68,12 +68,14 @@ def plugin_unloaded() -> None:
 	except Exception as e:
 		core.info('Unable to uninstall Debugger33', e)
 
+	for _, debugger in dict(Debugger.instances).items():
+		core.info('Dispose Debugger')
+		debugger.dispose()
 
-	for key, instance in dict(Debugger.instances).items():
-		core.info('Removing debugger')
-		instance.dispose()
 	Debugger.instances = {}
+
 	ui.shutdown()
+
 	core.info('[finished]')
 
 def open_debugger_in_window_or_view(window_or_view: sublime.View|sublime.Window):

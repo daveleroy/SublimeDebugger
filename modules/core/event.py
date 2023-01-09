@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import Any, Callable, overload
-from .typing import TypeVar, TypeVarTuple, Unpack, Generic
+from .typing import TypeVar, TypeVarTuple, Generic, ParamSpec
 
 T = TypeVar('T')
-Args = TypeVarTuple('Args')
+P = ParamSpec('P',)
 
 class Handle:
 	def __init__(self, event: Any, callback: Any) -> None:
@@ -11,70 +11,46 @@ class Handle:
 		self.event = event
 
 	def dispose(self) -> None:
-		try:
-			self.event.handlers.remove(self)
-		except ValueError:
-			...
+		try: self.event.handles.remove(self)
+		except ValueError: ...
 
-
-class Event (Generic[Unpack[Args]]):
+class Event (Generic[P]):
 	def __init__(self) -> None:
-		self.handlers: list[Handle] = []
+		self.handles: list[Handle] = []
 
 	@overload
-	def add(self, callback: Callable[[], Any]) -> Handle: ...
-
-	@overload
-	def add(self, callback: Callable[[Unpack[Args]], Any]) -> Handle: ...
-
-	def add(self, callback: Any) -> Handle:
+	def add(self: Event[None], callback: Callable[[], Any]) -> Handle: ... #type: ignore
+	def add(self, callback: Callable[P, Any]) -> Handle: #type: ignore
 		handle = Handle(self, callback)
-		self.handlers.append(handle)
+		self.handles.append(handle)
 		return handle
 
-	def add_handle(self, handle: Handle) -> None:
-		self.handlers.append(handle)
-
-	def __call__(self, *data: Unpack[Args]) -> bool:
+	@overload
+	def __call__(self: Event[None]) -> bool: ... #type: ignore
+	def __call__(self, *args: P.args, **kwargs: P.kwargs) -> bool: #type: ignore
 		r = False
-		for h in self.handlers:
-			r = r or h.callback(*data)
+		for h in self.handles:
+			r = r or h.callback(*args, **kwargs)
+
 		return bool(r)
-		return self.post(*data) #type: ignore
-
-	def post(self) -> bool:
-		return self() #type: ignore
-
-	def __bool__(self) -> bool:
-		return bool(self.handlers)
 
 
-class EventReturning (Generic[T, Unpack[Args]]):
+class EventReturning (Generic[P, T]):
 	def __init__(self) -> None:
-		self.handlers: list[Handle] = []
+		self.handles: list[Handle] = []
 
 	@overload
-	def add(self, callback: Callable[[], Any]) -> Handle: ...
-
-	@overload
-	def add(self, callback: Callable[[Unpack[Args]], T|None]) -> Handle: ...
-
-	def add(self, callback: Any) -> Handle:
+	def add(self: Event[None], callback: Callable[[], Any]) -> Handle: ... #type: ignore
+	def add(self, callback: Callable[P, Any]) -> Handle: #type: ignore
 		handle = Handle(self, callback)
-		self.handlers.append(handle)
+		self.handles.append(handle)
 		return handle
 
-	def add_handle(self, handle: Handle) -> None:
-		self.handlers.append(handle)
-
-	def __call__(self, *data: Unpack[Args]) -> T:
-		return self.post(*data) #type: ignore
-
-	def __bool__(self) -> bool:
-		return bool(self.handlers)
-
-	def post(self, *data: Unpack[Args]) -> T|None:
+	@overload
+	def __call__(self: Event[None]) -> T|None: ... #type: ignore
+	def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T|None: #type: ignore
 		r = None
-		for h in self.handlers:
-			r = r or h.callback(*data)
+		for h in self.handles:
+			r = r or h.callback(*args, **kwargs)
 		return r
+	

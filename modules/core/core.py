@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, Iterable, TypeVar
-from .typing import TypeVarTuple, Unpack
+from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, Iterable, Protocol, TypeVar
+from .typing import TypeVarTuple, Unpack, ParamSpec
 
 import sublime
 import concurrent
@@ -42,23 +42,23 @@ def create_future() -> Future[Any]:
 def run_in_executor(func: Callable[[Unpack[Args]], T], *args: Unpack[Args]) -> Future[T]:
 	return asyncio.futures.wrap_future(sublime_event_loop_executor.submit(func, *args), loop=sublime_event_loop) #type: ignore
 
-def wait(fs: Iterable[Awaitable[Any]]):
-	return asyncio.wait(fs, loop=sublime_event_loop)
+def wait(fs: Iterable[Awaitable[Any]]) -> Awaitable[list[Any]]:
+	return asyncio.wait(fs, loop=sublime_event_loop) #type: ignore
 
 def sleep(delay: float) -> Awaitable[None]:
-	return asyncio.sleep(delay, loop=sublime_event_loop)
+	return asyncio.sleep(delay, loop=sublime_event_loop) #type: ignore
 
-def schedule(func: Callable[[Unpack[Args]], Coroutine[Any, Any, T]], *args: Any) -> Callable[[Unpack[Args]], Future[T]]:
+def schedule(func: Callable[P, Coroutine[Any, Any, T]], *args: Any) -> Callable[P, Future[T]]:
 	def wrap(*args):
 		return asyncio.ensure_future(func(*args), loop=sublime_event_loop) #type: ignore
 	wrap.__name__ = func.__name__ #type: ignore
 	return wrap #type: ignore
 
 def gather(*coros_or_futures: Awaitable[T]) -> Awaitable[tuple[T]]:
-	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop)
+	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop) #type: ignore
 
 def gather_results(*coros_or_futures: Awaitable[T]) -> Awaitable[list[T|Exception]]:
-	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop, return_exceptions=True)
+	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop, return_exceptions=True) #type: ignore
 
 def run(awaitable: Awaitable[T], on_done: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None) -> Future[T]:
 	task: Future[T] = asyncio.ensure_future(awaitable, loop=sublime_event_loop) #type: ignore

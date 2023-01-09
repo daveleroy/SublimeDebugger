@@ -24,7 +24,7 @@ from typing import (
 )
 
 try:
-	from typing_extensions import Unpack, TypeVarTuple
+	from typing_extensions import Unpack, TypeVarTuple, ParamSpec
 except ImportError as e:
 
 	class _GetAttr(type):
@@ -36,5 +36,6 @@ except ImportError as e:
 
 	# just add these in so things compile if needed
 	globals()['TypeVarTuple'] = TypeVar
+	globals()['ParamSpec'] = TypeVar
 	globals()['Unpack'] = _Generic
 	globals()['Generic'] = _Generic

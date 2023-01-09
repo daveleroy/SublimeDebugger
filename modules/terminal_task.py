@@ -280,17 +280,11 @@ class TaskRunner(Protocol):
 
 
 class Tasks:
-	tasks: list[TaskRunner]
-
-	added: core.Event[TaskRunner]
-	removed: core.Event[TaskRunner]
-	updated: core.Event[TaskRunner]
-
 	def __init__(self) -> None:
-		self.added = core.Event()
-		self.removed = core.Event()
-		self.updated = core.Event()
-		self.tasks = []
+		self.added = core.Event[TaskRunner]()
+		self.removed = core.Event[TaskRunner]()
+		self.updated = core.Event[TaskRunner]()
+		self.tasks: list[TaskRunner] = []
 
 	def is_active(self):
 		for task in self.tasks:
@@ -305,7 +299,7 @@ class Tasks:
 		# this matches the behavior of vscode?
 		for t in self.tasks:
 			if t.task.name == task.name and not t.is_finished():
-				debugger.on_info('This task has already been started')
+				debugger.console.info('This task has already been started')
 				if not t.task.background:
 					await t.wait()
 				return

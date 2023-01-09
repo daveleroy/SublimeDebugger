@@ -12,7 +12,6 @@ class Watch:
 			self.value = value
 			self.message = ""
 			self.evaluate_response: dap.Variable|None = None
-			self.on_updated: core.Event[None] = core.Event()
 
 		def into_json(self) -> dap.Json:
 			return {
@@ -26,12 +25,12 @@ class Watch:
 
 	def __init__(self):
 		self.expressions: list[Watch.Expression] = []
-		self.on_updated: core.Event[None] = core.Event()
-		self.on_added: core.Event[Watch.Expression] = core.Event()
+		self.on_updated = core.Event[None]()
+		self.on_added = core.Event[Watch.Expression]()
 
 	def load_json(self, json: list[dap.Json]):
 		self.expressions = list(map(lambda j: Watch.Expression.from_json(j), json))
-		self.on_updated.post()
+		self.on_updated()
 
 	def into_json(self) -> list[dap.Json]:
 		return list(map(lambda e: e.into_json(), self.expressions))
@@ -40,7 +39,7 @@ class Watch:
 		expression = Watch.Expression(value)
 		self.expressions.append(expression)
 		self.on_added(expression)
-		self.on_updated.post()
+		self.on_updated()
 
 	def add_command(self) -> None:
 		def add(value: str):
@@ -57,7 +56,7 @@ class Watch:
 		evaluations = await core.gather_results(*results)
 		for expression, evaluation in zip(self.expressions, evaluations):
 			self.evaluated(session, expression, evaluation)
-		self.on_updated.post()
+		self.on_updated()
 
 	async def evaluate_expression(self, session: dap.Session, expression: Watch.Expression) -> None:
 		try:
@@ -65,7 +64,7 @@ class Watch:
 			self.evaluated(session, expression, result)
 		except dap.Error as result:
 			self.evaluated(session, expression, result)
-		self.on_updated.post()
+		self.on_updated()
 
 	def evaluated(self, session: dap.Session, expression: Watch.Expression, evaluation: Exception|dap.EvaluateResponse):
 		if isinstance(evaluation, Exception):
@@ -77,12 +76,12 @@ class Watch:
 		for expression in self.expressions:
 			expression.message = ''
 			expression.evaluate_response = None
-		self.on_updated.post()
+		self.on_updated()
 
 	def edit(self, expression: Watch.Expression) -> ui.InputList:
 		def remove():
 			self.expressions.remove(expression)
-			self.on_updated.post()
+			self.on_updated()
 
 		return ui.InputList([
 			ui.InputListItem(remove, "Remove"),

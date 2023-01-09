@@ -12,7 +12,7 @@ class Setting(Generic[T], object):
 		self.default = default
 		self.description = description
 		self.visible = visible
-		self.scehma = schema
+		self.schema = schema
 
 	def __get__(self, obj, objtype=None) -> T:
 		return SettingsRegistery.settings.get(self.key, self.default)
@@ -187,11 +187,11 @@ class SettingsRegistery:
 			if not isinstance(setting, Setting):
 				continue
 
-			t = typing.get_args(setting.__orig_class__)[0]
+			t = typing.get_args(setting.__orig_class__)[0] #type: ignore
 
 			schema: dict[str, Any] = {}
-			if setting.scehma:
-				schema = setting.scehma
+			if setting.schema:
+				schema = setting.schema
 			elif t == bool:
 				schema = { 'type': 'boolean' }
 			elif t == int:

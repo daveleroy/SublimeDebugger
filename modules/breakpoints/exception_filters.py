@@ -50,8 +50,8 @@ class ExceptionBreakpointsFilter:
 class ExceptionBreakpointsFilters:
 	def __init__(self) -> None:
 		self.filters: dict[str, ExceptionBreakpointsFilter] = {}
-		self.on_updated: core.Event[Iterable[ExceptionBreakpointsFilter]] = core.Event()
-		self.on_send: core.Event[Iterable[ExceptionBreakpointsFilter]] = core.Event()
+		self.on_updated = core.Event[Iterable[ExceptionBreakpointsFilter]]()
+		self.on_send = core.Event[Iterable[ExceptionBreakpointsFilter]]()
 
 	def __iter__(self):
 		return iter(self.filters.values())

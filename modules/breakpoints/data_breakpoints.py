@@ -48,8 +48,8 @@ class DataBreakpoint(Breakpoint):
 class DataBreakpoints:
 	def __init__(self):
 		self.breakpoints: list[DataBreakpoint] = []
-		self.on_updated: core.Event[list[DataBreakpoint]] = core.Event()
-		self.on_send: core.Event[list[DataBreakpoint]] = core.Event()
+		self.on_updated = core.Event['list[DataBreakpoint]']()
+		self.on_send = core.Event['list[DataBreakpoint]']()
 
 	def __iter__(self):
 		return iter(self.breakpoints)

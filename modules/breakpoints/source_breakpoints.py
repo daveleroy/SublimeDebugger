@@ -160,8 +160,8 @@ class SourceBreakpointView:
 class SourceBreakpoints:
 	def __init__(self):
 		self.breakpoints: list[SourceBreakpoint] = []
-		self.on_updated: core.Event[SourceBreakpoint] = core.Event()
-		self.on_send: core.Event[SourceBreakpoint] = core.Event()
+		self.on_updated = core.Event[SourceBreakpoint]()
+		self.on_send = core.Event[SourceBreakpoint]()
 
 		self.disposeables = [
 			core.on_view_load.add(self.on_view_load),

@@ -56,8 +56,8 @@ class FunctionBreakpoint(Breakpoint):
 class FunctionBreakpoints:
 	def __init__(self):
 		self.breakpoints: list[FunctionBreakpoint] = []
-		self.on_updated: core.Event[list[FunctionBreakpoint]] = core.Event()
-		self.on_send: core.Event[list[FunctionBreakpoint]] = core.Event()
+		self.on_updated = core.Event['list[FunctionBreakpoint]']()
+		self.on_send = core.Event['list[FunctionBreakpoint]']()
 
 	def __iter__(self):
 		return iter(self.breakpoints)
