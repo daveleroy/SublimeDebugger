@@ -8,9 +8,10 @@ from .settings import Settings
 import sublime
 import os
 
+
 class Project:
-	def __init__(self, window: sublime.Window):
-		if not Settings.global_debugger_configurations:
+	def __init__(self, window: sublime.Window, skip_project_check: bool):
+		if not skip_project_check and not Settings.global_debugger_configurations:
 			project_name = window.project_file_name()
 			while not project_name:
 				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")

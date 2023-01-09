@@ -16,10 +16,10 @@ for m in modules_to_remove:
 
 
 # import all the commands so that sublime sees them
-from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
 from .modules.adapters.util.lsp import DebuggerLspBridgeResponseCommand
 
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
+from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
 from .modules.debugger_output_panel import DebuggerConsoleListener
 from .modules.terminal_integrated import DebuggerTerminusPostViewHooks
 
@@ -50,7 +50,6 @@ def plugin_loaded() -> None:
 
 	core.info('[startup]')
 	SettingsRegistery.initialize(on_updated=updated_settings)
-	CommandsRegistry.initialize()
 	AdaptersRegistry.initialize()
 
 	ui.startup()

@@ -35,13 +35,13 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	creating: dict[int, bool] = {}
 
 	@staticmethod
-	def create(window: sublime.Window) -> Debugger:
-		debugger = Debugger.get(window, True)
+	def create(window: sublime.Window, skip_project_check = False) -> Debugger:
+		debugger = Debugger.get(window, create=True, skip_project_check=skip_project_check)
 		assert debugger
 		return debugger
 
 	@staticmethod
-	def get(window_or_view: sublime.Window|sublime.View, create: bool = False) -> Debugger|None:
+	def get(window_or_view: sublime.Window|sublime.View, create = False, skip_project_check = False) -> Debugger|None:
 		if isinstance(window_or_view, sublime.View):
 			window = window_or_view.window()
 		else:
@@ -59,7 +59,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 			Debugger.creating[id] = True
 			try:
-				instance = Debugger(window)
+				instance = Debugger(window, skip_project_check=skip_project_check)
 				Debugger.instances[id] = instance
 
 			except core.Error:
@@ -72,7 +72,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		return instance
 
-	def __init__(self, window: sublime.Window) -> None:
+	def __init__(self, window: sublime.Window, skip_project_check = False) -> None:
 		self.window = window
 
 		self.on_error: core.Event[str] = core.Event()
@@ -102,7 +102,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.output_panels: list[DebuggerOutputPanel] = []
 		self.on_output_panels_updated: core.Event[None] = core.Event()
 
-		self.project = Project(window)
+		self.project = Project(window, skip_project_check)
 		self.run_to_current_line_breakpoint: SourceBreakpoint|None = None
 
 		self.breakpoints = Breakpoints()

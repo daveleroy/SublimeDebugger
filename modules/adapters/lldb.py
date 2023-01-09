@@ -12,21 +12,6 @@ from ..import settings
 from .import util
 
 
-class LLDBCommands(commands.Commands):
-	lldb_toggle_disassembly = commands.CommandDebugger(
-		'LLDB Toggle Disassembly',
-		lambda debugger: LLDB.toggle_disassembly(debugger)
-	)
-	lldb_display = commands.CommandDebugger(
-		'LLDB Display Options',
-		lambda debugger: LLDB.display_menu(debugger).run()
-	)
-	lldb_toggle_dereference = commands.CommandDebugger(
-		'LLDB Toggle Dereference',
-		lambda debugger: LLDB.toggle_deref(debugger)
-	)
-
-
 def is_valid_asset(asset: str):
 	arch = core.platform.architecture
 	if core.platform.windows and arch == 'x64':
@@ -47,21 +32,11 @@ class LLDB(dap.AdapterConfiguration):
 	type = 'lldb'
 	docs = 'https://github.com/vadimcn/vscode-lldb/blob/master/MANUAL.md#starting-a-new-debug-session'
 
-
-	# toggle_disassembly = commands.CommandDebugger(
-	# 	'LLDB Toggle Disassembly',
-	# 	lambda debugger: LLDB.toggle_disassembly(debugger)
-	# )
-
-	# display = commands.CommandDebugger(
-	# 	'LLDB Display Options',
-	# 	lambda debugger: LLDB.display_menu(debugger).run()
-	# )
-	# toggle_dereference = commands.CommandDebugger(
-	# 	'LLDB Toggle Dereference',
-	# 	lambda debugger: LLDB.toggle_deref(debugger)
-	# )
-
+	installer = util.GitInstaller (
+		type='lldb',
+		repo='vadimcn/vscode-lldb', 
+		is_valid_asset=is_valid_asset
+	)
 
 	lldb_show_disassembly = settings.Setting[str](
 		key='lldb_show_disassembly',
@@ -85,11 +60,22 @@ class LLDB(dap.AdapterConfiguration):
 		description='Which lldb library to use'
 	)
 
-	installer = util.GitInstaller (
-		type='lldb',
-		repo='vadimcn/vscode-lldb', 
-		is_valid_asset=is_valid_asset
-	)
+	def __init__(self) -> None:
+		commands.Command(
+			name='LLDB Toggle Disassembly',
+			key='lldb_toggle_disassembly',
+			action=lambda debugger: self.toggle_disassembly(debugger)
+		)
+		commands.Command(
+			name='LLDB Display Options',
+			key='lldb_display',
+			action=lambda debugger: self.display_menu(debugger).run()
+		)
+		commands.Command(
+			name='LLDB Toggle Dereference',
+			key='lldb_toggle_dereference',
+			action=lambda debugger: self.toggle_deref(debugger)
+		)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = util.vscode.install_path(self.type)
@@ -156,7 +142,7 @@ class LLDB(dap.AdapterConfiguration):
 		self.updated_settings(debugger)
 
 
-	def toggle_deref(self,debugger: dap.Debugger):
+	def toggle_deref(self, debugger: dap.Debugger):
 		self.lldb_dereference_pointers = not self.lldb_dereference_pointers
 		self.updated_settings(debugger)
 

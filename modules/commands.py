@@ -4,7 +4,7 @@ from .adapters_registry import AdaptersRegistry
 from .settings import SettingsRegistery
 
 from .debugger import Debugger
-from .command import Command, CommandDebugger, CommandsRegistry, open_settings
+from .command import Command, CommandsRegistry
 
 class Commands:
 	
@@ -12,152 +12,178 @@ class Commands:
 	# this command also regenerates the LSP-json package.json file for any installed adapters
 	generate_commands = Command(
 		name='Generate Commands/Settings/Schema',
-		action=lambda _: (CommandsRegistry.generate_commands_and_menus(), AdaptersRegistry.recalculate_schema(), SettingsRegistery.generate_settings()),
-		flags=Command.menu_commands
+		key='generate_commands',
+		window_action=lambda window: (CommandsRegistry.generate_commands_and_menus(), AdaptersRegistry.recalculate_schema(), SettingsRegistery.generate_settings()),
+		flags=Command.menu_commands|Command.development
 	)
-
-	open = CommandDebugger (
+	open = Command (
 		name='Open',
+		key='open',
 		action=lambda debugger: debugger.open(),
 	)
-	quit = CommandDebugger (
+	quit = Command (
 		name='Quit',
+		key='quit',
 		action=lambda debugger: debugger.dispose(),
 		flags=Command.menu_commands|Command.menu_main|Command.visible_debugger_open,
 	)
 	settings = Command(
 		name='Settings',
-		action=open_settings,
+		key='settings',
+		window_action=lambda window: window.run_command('edit_settings', { 'base_file': '${packages}/Debugger/debugger.sublime-settings' }),
 		flags=Command.menu_main
 	)
 	settings = Command(
 		name='Preferences: Debugger Settings',
-		action=open_settings,
+		key='settings',
+		window_action=lambda window: window.run_command('edit_settings', { 'base_file': '${packages}/Debugger/debugger.sublime-settings' }),
 		flags=Command.menu_commands | Command.menu_no_prefix
 	)
 
-	install_adapters = CommandDebugger (
+	install_adapters = Command (
 		name='Install Adapters',
+		key='install_adapters',
 		action=lambda debugger: debugger.install_adapters()
 	)
-	change_configuration = CommandDebugger (
+	change_configuration = Command (
 		name='Add or Select Configuration',
+		key='change_configuration',
 		action=lambda debugger: debugger.change_configuration()
 	)
 	
-	add_configuration = CommandDebugger (
+	add_configuration = Command (
 		name='Add Configuration',
+		key='add_configuration',
 		action=lambda debugger: debugger.add_configuration()
 	)
 	
 	# - 
 
-	start = CommandDebugger (
+	start = Command (
 		name='Start',
-		action_with_arguments=lambda debugger, args: debugger.start(False, args),
-		flags=Command.menu_commands|Command.menu_main|Command.open_without_running|Command.section_start
+		key='start',
+		action=lambda debugger, **args: debugger.start(False, args),
+		flags=Command.menu_commands|Command.menu_main|Command.open_without_running|Command.section_start|Command.allow_debugger_outside_project
 	)
-	open_and_start: CommandDebugger = CommandDebugger (
+	open_and_start = Command (
 		name='Open and Start',
-		action_with_arguments=lambda debugger, args: debugger.start(False, args),
-		flags=0
+		key='open_and_start',
+		action=lambda debugger, **args: debugger.start(False, args),
+		flags=Command.allow_debugger_outside_project
 	)
-	start_no_debug = CommandDebugger (
+	start_no_debug = Command (
 		name='Start (no debug)',
-		action=lambda debugger: debugger.start(True),
+		key='start_no_debug',
+		action=lambda debugger: debugger.start(True, None),
 	)
-	stop = CommandDebugger (
+	stop = Command (
 		name='Stop',
-		action=lambda debugger: debugger.stop(), #type: ignore
+		key='stop',
+		action=lambda debugger: debugger.stop(None),
 		enabled=Debugger.is_stoppable
 	)
 
-	continue_ = CommandDebugger (
+	continue_ = Command (
 		name='Continue',
+		key='continue',
 		action=lambda debugger: debugger.resume(),
 		enabled=Debugger.is_paused
 	)
-	pause = CommandDebugger (
+	pause = Command (
 		name='Pause',
+		key='pause',
 		action=lambda debugger: debugger.pause(),
 		enabled=Debugger.is_running,
 	)
-	step_over = CommandDebugger (
+	step_over = Command (
 		name='Step Over',
+		key='step_over',
 		action=lambda debugger: debugger.step_over(),
 		enabled=Debugger.is_paused
 	)
-	step_in = CommandDebugger (
+	step_in = Command (
 		name='Step In',
+		key='step_in',
 		action=lambda debugger: debugger.step_in(),
 		enabled=Debugger.is_paused
 	)
-	step_out = CommandDebugger (
+	step_out = Command (
 		name='Step Out',
+		key='step_out',
 		action=lambda debugger: debugger.step_out(),
 		enabled=Debugger.is_paused
 	)
 
 	# -
 
-	input_command = CommandDebugger (
+	input_command = Command (
 		name='Input Command',
+		key='input_command',
 		action=lambda debugger: debugger.on_input_command(),
-		flags=Command.section_start
-		# enabled=Debugger.is_active
 	)
-	run_task = CommandDebugger (
+	run_task = Command (
 		name='Run Task',
-		action=Debugger.on_run_task,
+		key='run_task',
+		action=lambda debugger: debugger.on_run_task(),
 	)
-	run_last_task = CommandDebugger (
+	run_last_task = Command (
 		name='Run Last Task',
-		action=Debugger.on_run_last_task,
+		key='run_last_task',
+		action=lambda debugger: debugger.on_run_last_task(),
 		flags=Command.menu_main,
 	)
-	add_function_breakpoint = CommandDebugger (
+	add_function_breakpoint = Command (
 		name='Add Function Breakpoint',
+		key='add_function_breakpoint',
 		action=lambda debugger: debugger.add_function_breakpoint(),
 	)
-	clear_breakpoints = CommandDebugger (
+	clear_breakpoints = Command (
 		name='Clear Breakpoints',
-		action=Debugger.clear_all_breakpoints,
+		key='clear_breakpoints',
+		action=lambda debugger: debugger.clear_all_breakpoints(),
 		flags=Command.menu_widget|Command.menu_commands|Command.menu_main,
 	)
-	clear_console = CommandDebugger (
+	clear_console = Command (
 		name='Clear Console',
+		key='clear_console',
 		action=lambda debugger: debugger.console.clear(),
 		flags=Command.menu_widget|Command.menu_commands|Command.menu_main,
 	)
-	show_protocol = CommandDebugger (
+	show_protocol = Command (
 		name='Show Protocol',
+		key='show_protocol',
 		action=lambda debugger: debugger.console.protocol.open(),
 		flags=Command.menu_widget|Command.menu_commands|Command.menu_main,
 	)
-	add_watch_expression = CommandDebugger (
+	add_watch_expression = Command (
 		name='Add Watch Expression',
+		key='add_watch_expression',
 		action=lambda debugger: debugger.add_watch_expression(),
 	)
-	save_data = CommandDebugger (
+	save_data = Command (
 		name='Force Save',
-		action=Debugger.save_data,
+		key='save_data',
+		action=lambda debugger: debugger.save_data(),
 	)
 
 	# - 
 
-	toggle_breakpoint = CommandDebugger (
+	toggle_breakpoint = Command (
 		name='Toggle Breakpoint',
+		key='toggle_breakpoint',
 		action=lambda debugger: debugger.toggle_breakpoint(),
 		flags=Command.menu_context,
 	)
-	toggle_column_breakpoint = CommandDebugger (
+	toggle_column_breakpoint = Command (
 		name='Toggle Column Breakpoint',
+		key='toggle_column_breakpoint',
 		action=lambda debugger: debugger.toggle_column_breakpoint(),
 		flags=Command.menu_context,
 	)
-	run_to_current_line = CommandDebugger (
+	run_to_current_line = Command (
 		name='Run To Selected Line',
-		action=Debugger.run_to_current_line,
+		key='run_to_current_line',
+		action=lambda debugger: debugger.run_to_current_line(),
 		enabled=Debugger.is_paused,
 		flags=Command.menu_context,
 	)
