@@ -12,12 +12,10 @@ class InputListView (ui.div):
 		items: list[ui.div] = []
 		for input in self.input.values:
 			items.append(ui.div(height=css.row_height)[
-				ui.click(lambda input=input: input.display_or_run())[
-					ui.align()[
-						ui.text(input.text, css=css.label_secondary),
-						ui.spacer(),
-						ui.text(input.annotation, css=css.button),
-					]
+				ui.span(on_click=lambda input=input: input.display_or_run())[
+					ui.text(input.text, css=css.label_secondary),
+					ui.spacer(),
+					ui.text(input.annotation, css=css.button),
 				]
 			])
 

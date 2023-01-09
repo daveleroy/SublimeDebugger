@@ -31,20 +31,17 @@ class VariableComponentState:
 
 
 class VariableComponent (ui.div):
-	def __init__(self, debugger: Debugger, variable: dap.Variable, source: Optional[dap.SourceLocation] = None, on_clicked_source: Optional[Callable[[dap.SourceLocation], None]] = None, state = VariableComponentState(), children_only = False) -> None:
+	def __init__(self, debugger: Debugger, variable: dap.Variable, state = VariableComponentState(), children_only = False) -> None:
 		super().__init__()
 		self.variable = variable
 		self.debugger = debugger
 		self.state = state
 		self.children_only = children_only
-		self.item_right = ui.span()
 		
 		self.variable_children: Optional[list[dap.Variable]] = None
 		self.error: Optional[core.Error] = None
 
 		self.edit_variable_menu = None
-		self.on_clicked_source = on_clicked_source
-		self.source = source
 
 		if self.state.is_expanded(self.variable):
 			self.set_expanded()
@@ -176,100 +173,77 @@ class VariableComponent (ui.div):
 		self.state.set_number_expanded(self.variable, count + 20)
 		self.dirty()
 
-	def clicked_source(self):
-		if self.on_clicked_source and self.source:
-			self.on_clicked_source(self.source)
 
-	def render(self) -> ui.div.Children:
-		name =  self.variable.name
-		value = self.variable.value or ''
-		is_expanded = self.state.is_expanded(self.variable)
-		source = self.source
-
+	def render_header(self, name: str, value: str, is_expandable:bool, is_expanded: bool):
 		if name:
-			value_item = ui.click(self.edit_variable)[
-				ui.text(name, css=css.label_secondary),
+			value_item = [
+				ui.text(name, css=css.label_secondary, on_click=self.edit_variable),
 				ui.spacer(1),
 				ui.code(value),
 			]
 		else:
-			value_item = ui.click(self.edit_variable)[
+			value_item = ui.span(on_click=self.edit_variable)[
 				ui.code(value),
 			]
 
-		if source:
-			self.item_right = ui.click(self.clicked_source)[
-				ui.spacer(min=1),
-				ui.text(source.name, css=css.label_secondary)
-			]
-
-		if not self.variable.has_children:
-			return [
-				ui.div(height=css.row_height)[
-					ui.align()[
-						ui.spacer(3),
-						value_item,
-						self.item_right,
-					],
-				],
-			]
-
-
-		variable_label = ui.div(height=css.row_height)[
-			ui.align()[
-				ui.click(self.toggle_expand)[
-					ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close)
-				],
+		if is_expandable:
+			return ui.div(height=css.row_height)[
+				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=self.toggle_expand),
 				value_item,
-				self.item_right,
 			]
-		]
-
-		if not is_expanded:
-			return [
-				variable_label
-			]
-
-		variable_children: list[ui.div] = []
-		
-		if self.error:
-			variable_children.append(
-				ui.div(height=css.row_height)[
-					ui.align()[
-						ui.text(str(self.error), css=css.label_redish_secondary)
-					]
-				]
-			)
-		elif self.variable_children is None:
-			variable_children.append(
-				ui.div(height=css.row_height)[
-					ui.text('◌', css=css.label_secondary)
-				]
-			)
 		else:
-			count = self.state.number_expanded(self.variable)
-			for variable in self.variable_children[:count]:
-				variable_children.append(VariableComponent(self.debugger, variable, state=self.state))
+			return ui.div(height=css.row_height)[
+				ui.spacer(3),
+				value_item,
+			]
 
-			more_count = len(self.variable_children) - count
-			if more_count > 0:
-				variable_children.append(
-					ui.div(height=css.row_height)[
-						ui.click(self.show_more)[
-							ui.spacer(3),
-							ui.text('{} more items …'.format(more_count), css=css.label_secondary)
-						]
-					]
-				)
+	def render_children(self):
+		if self.error:
+			return ui.div(height=css.row_height)[
+				ui.text(str(self.error), css=css.label_redish_secondary)
+			]
+
+		if self.variable_children is None:
+			return ui.div(height=css.row_height)[
+				ui.spacer(3),
+				ui.text('◌', css=css.label_secondary)
+			]
+
+		children: list[ui.div] = []
+
+		count = self.state.number_expanded(self.variable)
+		for variable in self.variable_children[:count]:
+			children.append(VariableComponent(self.debugger, variable, state=self.state))
+
+		more_count = len(self.variable_children) - count
+		if more_count > 0:
+			children.append(
+				ui.div(height=css.row_height)[
+					ui.spacer(3),
+					ui.text('{} more items …'.format(more_count), css=css.label_secondary, on_click=self.show_more)
+				]
+			)
+
+		return children
+
+	def render(self) -> ui.div.Children:
+		name =  self.variable.name
+		value = self.variable.value or ''
+
+		is_expandable = self.variable.has_children
+		is_expanded = self.state.is_expanded(self.variable)
+
+		header = self.render_header(name, value, is_expandable, is_expanded)
+
+		if not is_expandable or not is_expanded:
+			return header
 
 		if self.children_only:
-			return ui.div(css=css.table_inset)[
-				variable_children
-			]
+			return self.render_children()
 
 		return [
-			variable_label,
+			header,
 			ui.div(css=css.table_inset)[
-				variable_children
+				self.render_children()
 			]
 		]

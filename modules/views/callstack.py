@@ -20,10 +20,8 @@ class CallStackState:
 
 	def is_expanded(self, item: Any, default: bool = False):
 		expanded = self._expanded.get(id(item))
-		
 		if expanded is None:
 			return default
-		
 		return expanded
 
 	def set_expanded(self, item: Any, value: bool):
@@ -66,11 +64,9 @@ class CallStackPanel (Panel):
 		session_views: list[SessionView] = []
 
 		if not self.debugger.sessions:
-			return [
-				ui.div(height=css.row_height)[
-					ui.spacer(1),
-					ui.text('No Active Debug Sessions', css=css.label_secondary)
-				],
+			return ui.div(height=css.row_height)[
+				ui.spacer(1),
+				ui.text('No Active Debug Sessions', css=css.label_secondary)
 			]
 
 		for session in self.debugger.sessions:
@@ -83,13 +79,8 @@ class CallStackPanel (Panel):
 
 def toggle(toggle_expand, item: ui.span, is_expanded) -> ui.div:
 	return ui.div(height=css.row_height)[
-		ui.align()[
-			ui.click(toggle_expand)[
-				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close)
-			],
-			item,
-			# self.item_right,
-		]
+		ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=toggle_expand),
+		item,
 	]
 
 class SessionView (ui.div):
@@ -124,16 +115,14 @@ class SessionView (ui.div):
 		else:
 			session_css_label = css.label_secondary
 
-		session_label = ui.click(lambda session=self.session: self.selected_session()) [
-			ui.text(name, css=session_css_label),
-		]
-
 		def on_toggle(session: dap.Session):
 			self.state.toggle_expanded(session, default=True)
 			self.dirty()
 
-		label_view = toggle(lambda session=self.session: on_toggle(session), session_label, is_expanded)
-
+		label_view = ui.div(height=css.row_height) [
+			ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=lambda session=self.session: on_toggle(session)),
+			ui.text(name, css=session_css_label, on_click=lambda session=self.session: self.selected_session())
+		]
 
 		if not is_expanded:
 			return label_view
@@ -208,21 +197,17 @@ class ThreadView (ui.div):
 
 		if expandable:
 			thread_item = ui.div(height=css.row_height)[
-				ui.align()[
-					ui.click(self.toggle_expand)[
-						ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close),
-					],
-					ui.click(self.on_select_thread)[
-						ui.text(self.thread.name, css=thread_css),
-						ui.spacer(1),
-						ui.text(self.thread.stopped_reason, css=css.label_secondary),
-					],
-				]
+				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=self.toggle_expand),
+				ui.span(on_click=self.on_select_thread)[
+					ui.text(self.thread.name.strip(), css=thread_css),
+					ui.spacer(1),
+					ui.text(self.thread.stopped_reason, css=css.label_secondary),
+				],
 			]
 		else:
 			thread_item = ui.div(height=css.row_height)[
 				ui.icon(ui.Images.shared.loading),
-				ui.click(self.on_select_thread)[
+				ui.span(on_click=self.on_select_thread)[
 					ui.text(self.thread.name, css=css.label),
 					ui.spacer(1),
 					ui.text(self.thread.stopped_reason, css=css.label_secondary),
@@ -236,53 +221,39 @@ class ThreadView (ui.div):
 			thread_item = ui.div()
 
 		if is_expanded:
+
+			stackframes: list[ui.div] = []
+			for frame in self.frames:
+				is_frame_selected = self.is_selected and self.session.selected_frame == frame
+				if (frame.presentationHint == 'label' or frame.presentationHint == 'subtle' or frame.presentationHint == 'deemphasize') or not frame.source or frame.source.presentationHint == 'deemphasize':
+					css_label = css.label_secondary
+				else:
+					css_label = css.label
+
+				line_str = str(frame.line)
+
+				items: list[ui.span] = [
+					ui.spacer([1, 3][self.show_thread_name]),
+					ui.text(frame.name, css=css_label),
+				]
+
+				if frame.source:
+					name = os.path.basename(frame.source.name or frame.source.path or '??')
+					items.append(ui.spacer(min=1))
+					items.append(ui.text(name, css=css.label_secondary))
+					items.append(ui.spacer(1))
+					items.append(ui.text(line_str, css=css.button))
+				stackframes.append(
+					ui.div(height=css.row_height, css=css.selected if is_frame_selected else None) [
+						ui.span(on_click=lambda frame=frame: self.on_select_frame(frame))[
+							items
+						]
+					]
+				)
+
 			return [
 				thread_item,
-				[StackFrameComponent(frame, self.is_selected and self.session.selected_frame == frame, lambda frame=frame: self.on_select_frame(frame), self.show_thread_name) for frame in self.frames]
+				stackframes
 			]
 		else:
 			return thread_item
-
-
-class StackFrameComponent (ui.div):
-	def __init__(self, frame: dap.StackFrame, is_selected: bool, on_click: Callable[[], None], show_thread_name: bool) -> None:
-		super().__init__(height=css.row_height)
-		self.frame = frame
-		self.on_click = on_click
-		self.show_thread_name = show_thread_name
-
-		if is_selected:
-			self.css = css.selected
-
-	def render(self) -> ui.div.Children:
-		frame = self.frame
-		source = frame.source
-
-		if (frame.presentationHint == 'label' or frame.presentationHint == 'subtle' or frame.presentationHint == 'deemphasize') or (source and source.presentationHint == 'deemphasize'):
-			css_label = css.label_secondary
-		else:
-			css_label = css.label
-
-		line_str = str(frame.line)
-
-		items: list[ui.span] = [
-			ui.spacer([1, 3][self.show_thread_name]),
-			ui.text(frame.name, css=css_label),
-		]
-
-		if source:
-			name = os.path.basename(source.name or source.path or '??')
-			items.append(ui.spacer(min=1))
-			items.append(ui.text(name, css=css.label_secondary))
-			items.append(ui.spacer(1))
-			items.append(ui.text(line_str, css=css.button))
-
-		file_and_line = ui.click(self.on_click)[
-			ui.align()[
-				items
-			]
-		]
-
-		return [
-			file_and_line
-		]

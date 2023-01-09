@@ -3,13 +3,13 @@ from .. import core
 
 from .phantom import Phantom, RawPhantom, RawAnnotation, Popup
 
-from .html import div, span, text, icon, click, code, html_escape, html_escape_multi_line
+from .html import div, span, text, icon, code, html_escape, html_escape_multi_line
 from .style import css
 
 from .layout import Layout
 from .image import Images, Image
 from .input import *
-from .align import align, spacer
+from .align import alignable, spacer
 
 from .debug import DEBUG_REFRESH
 

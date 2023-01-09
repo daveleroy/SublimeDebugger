@@ -38,9 +38,7 @@ class SourcesPanel(Panel):
 			for source in session.sources.values():
 				items.append(SourceView(source, self.on_click))
 
-		return [
-			ui.div()[items]
-		]
+		return items
 
 
 class SourceView(ui.div):
@@ -50,16 +48,6 @@ class SourceView(ui.div):
 		self.on_click = on_click
 
 	def render(self):
-		items = [
-			ui.div(height=css.row_height)[
-				ui.align()[
-					ui.click(lambda: self.on_click(dap.SourceLocation(self.source, None, None)))[
-						ui.text(self.source.path or self.source.name or "<no source name>", css=css.label_secondary)
-					]
-				]
-			]
+		return ui.div(height=css.row_height)[
+			ui.text(self.source.path or self.source.name or "<no source name>", css=css.label_secondary, on_click=lambda: self.on_click(dap.SourceLocation(self.source, None, None)))
 		]
-		# for sub_source in self.source.sources:
-		# 	items.append(SourceView(sub_source, self.on_click))
-
-		return items

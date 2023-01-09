@@ -114,16 +114,13 @@ class TabbedPanel(ui.div):
 
 			tab = item.panel_header(index == self.selected_index)
 
-			
-			tabs.append(ui.click(partial(self.show, index))[
+			tabs.append(ui.span(on_click=partial(self.show, index))[
 				tab
 			])
 
 		return [
 			ui.div(width=width, height=4)[
-				ui.align()[
-					tabs
-				]
+				tabs
 			],
 			ui.div(width=width - css.rounded_panel.padding_width, height=1000, css=css.rounded_panel)[
 				self.items[self.selected_index]

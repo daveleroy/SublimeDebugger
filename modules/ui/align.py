@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from . html import span, click, alignable
+from . html import div, span, alignable
 from . layout import Layout
 
 # spacers are integers so they can always undershoot the available space
 
 class spacer (span):
 	def __init__(self, width: int|None = None, min: int|None = None):
-		super().__init__(width, None, None)
+		super().__init__()
+		self._width = width
 		self.flex_width = width
 		self.flex_width_min = min
 
@@ -34,73 +35,67 @@ class spacer (span):
 		return '\u00A0' * self.flex_width
 
 
-class align (span):
-	def __init__(self, priority: float = 1.0):
-		super().__init__()
-		self.flex_priority = priority
+def aligned_html_inner(item: div, layout: Layout):
+	elements = item.children
+	width = int(item.width(layout))
+	# how much space was leftover that we can use to fill out any spacers
+	leftover = width
+	# how much space we need for items we can't resize
+	required = 0
 
-	def html(self, layout: Layout):
-		elements = self.children
-		width = int(self.width(layout) * self.flex_priority)
+	resizeables = []
+	spacers = []
 
-		# how much space was leftover that we can use to fill out any spacers
-		leftover = width
-		# how much space we need for items we can't resize
-		required = 0
+	def calculate(element):
+		nonlocal leftover
+		nonlocal required
 
-		resizeables = []
-		spacers = []
+		if type(element) == spacer:
+			w = element.required()
+			leftover -= w
+			required += w
+			spacers.append(element)
 
-		def calculate(element):
-			nonlocal leftover
-			nonlocal required
+		elif isinstance(element, alignable):
+			required += int(element.css.padding_width)
+			leftover -= int(element.css.padding_width)
+			required += element.align_required
+			leftover -= element.align_desired
+			resizeables.append(element)
 
-			if type(element) == spacer:
-				w = element.required()
-				leftover -= w
-				required += w
-				spacers.append(element)
+		elif type(element) == span:
+			required += int(element.css.padding_width)
+			leftover -= int(element.css.padding_width)
+			for element in element.children or []:
+				calculate(element)
 
-			elif isinstance(element, alignable):
-				required += int(element.css.padding_width)
-				leftover -= int(element.css.padding_width)
-				required += element.align_required
-				leftover -= element.align_desired
-				resizeables.append(element)
+		# don't look into any other elements just use their width calculation...
+		else:
+			w = int(element.width(layout))
+			leftover -= w
+			required += w
 
-			elif type(element) == span or type(element) == click:
-				required += int(element.css.padding_width)
-				leftover -= int(element.css.padding_width)
-				for element in element.children or []:
-					calculate(element)
+	for element in elements:
+		calculate(element)
 
-			# don't look into any other elements just use their width calculation...
-			else:
-				w = int(element.width(layout))
-				leftover -= w
-				required += w
+	width_for_spacers = max(leftover, 0)
+	width_for_resizeables = max(width - required, 0)
 
-		for element in elements:
-			calculate(element)
+	def sort_by_align_desired(v):
+		return v.align_desired
 
-		width_for_spacers = max(leftover, 0)
-		width_for_resizeables = max(width - required, 0)
+	resizeables.sort(key=sort_by_align_desired, reverse=False)
 
-		def sort_by_align_desired(v):
-			return v.align_desired
+	for element in spacers:
+		width_for_spacers -= element.resize(width_for_spacers)
 
-		resizeables.sort(key=sort_by_align_desired, reverse=False)
+	# divvy up the resizable space equally
+	resizeables_left = len(resizeables)
+	for element in resizeables:
+		max_width = int(width_for_resizeables/resizeables_left)
+		w = min(max_width, element.align_desired)
+		element.align(w)
+		width_for_resizeables -= w
+		resizeables_left -= 1
 
-		for element in spacers:
-			width_for_spacers -= element.resize(width_for_spacers)
-
-		# divvy up the resizable space equally
-		resizeables_left = len(resizeables)
-		for element in resizeables:
-			max_width = int(width_for_resizeables/resizeables_left)
-			w = min(max_width, element.align_desired)
-			element.align(w)
-			width_for_resizeables -= w
-			resizeables_left -= 1
-
-		return self.html_inner(layout)
+	return item.html_inner(layout)

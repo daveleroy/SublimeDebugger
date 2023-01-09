@@ -72,19 +72,13 @@ class BreakpointsPanel(ui.div):
 			for breakpoint in breakpoints:
 				items.append(
 					ui.div(height=css.row_height)[
-						ui.align()[
-							ui.click(partial(self.on_toggle, breakpoint))[
-								ui.icon(breakpoint.image),
-							],
-							ui.click(partial(self.on_select, breakpoint), title=breakpoint.description)[
-								ui.text(breakpoint.name, css=css.label_secondary),
-								[
-									ui.spacer(),
-									ui.text(breakpoint.tag, css=css.button),
-								] 
-								if breakpoint.tag else None
-							]
-						]
+						ui.icon(breakpoint.image, on_click=partial(self.on_toggle, breakpoint)),
+						ui.text(breakpoint.name, css=css.label_secondary, on_click=partial(self.on_select, breakpoint)),
+						[
+							ui.spacer(),
+							ui.text(breakpoint.tag, css=css.button),
+						] 
+						if breakpoint.tag else None
 					])
 
 		return items

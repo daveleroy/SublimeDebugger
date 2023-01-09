@@ -36,18 +36,14 @@ class DebuggerPanelTabs(ui.span):
 
 			name = panel.name
 
-			status = None
-			if status_image := panel.status:
-				status = ui.click(lambda panel=panel: panel.open_status()) [
-					ui.icon(status_image)
+			items.append(
+				ui.span(css=csss, on_click=lambda panel=panel: panel.open())[
+					ui.spacer(1),
+					ui.text(name, css=css.label_secondary),
+					ui.spacer(1),
+					ui.icon(panel.status, on_click=lambda panel=panel: panel.open_status()) if panel.status else None
 				]
-
-			items.append(ui.click(lambda panel=panel: panel.open())[ui.span(css=csss)[
-				ui.spacer(1),
-				ui.text(name, css=css.label_secondary),
-				ui.spacer(1),
-				status
-			]])
+			)
 
 			items.append(ui.spacer(1))
 

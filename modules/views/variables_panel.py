@@ -31,17 +31,8 @@ class VariablesView (ui.div):
 		self.debugger = debugger
 		self.debugger.on_session_variables_updated.add(self.on_updated)
 		self.debugger.on_session_removed.add(self.on_updated)
-		self.variables = []
 
 	def on_updated(self, session: dap.Session):
-		if self.debugger.session:
-			self.variables = [
-				VariableComponent(self.debugger, variable) for variable in self.debugger.session.variables
-			]
-			self.variables and self.variables[0].set_expanded()
-		else:
-			self.variables = []
-
 		self.dirty()
 
 	def render(self):
@@ -77,11 +68,10 @@ class WatchView(ui.div):
 			return None
 
 		header = ui.div(height=css.row_height)[
-			ui.click(self.toggle_expand)[
-				ui.icon(ui.Images.shared.open if self.open else ui.Images.shared.close)
-			],
+			ui.icon(ui.Images.shared.open if self.open else ui.Images.shared.close, on_click=self.toggle_expand),
 			ui.text('Watch', css=css.label_secondary)
 		]
+
 		if not self.open:
 			return header
 
@@ -110,12 +100,10 @@ class WatchExpressionView(ui.div):
 			component = VariableComponent(self.debugger, self.expression.evaluate_response)
 			return [component]
 
-		return [
-			ui.div(height=css.row_height, css=css.padding_left)[
-				ui.click(lambda: self.on_edit_not_available(self.expression))[
-					ui.text(self.expression.value, css=css.label_secondary),
-					ui.spacer(1),
-					ui.text("not available", css=css.label),
-				]
+		return ui.div(height=css.row_height, css=css.padding_left)[
+			ui.span(on_click=lambda: self.on_edit_not_available(self.expression)) [
+				ui.text(self.expression.value, css=css.label_secondary),
+				ui.spacer(1),
+				ui.text("not available", css=css.label),
 			]
 		]

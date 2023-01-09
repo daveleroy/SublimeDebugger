@@ -88,22 +88,18 @@ class DebuggerActionsTab(ui.span):
 
 	def render(self) -> ui.div.Children:
 		configuration_name = self.debugger.project.name
-		items = []
 
-	
 		items = [
-			DebuggerCommandButton(self.debugger.on_settings, ui.Images.shared.settings, 'Settings'),
+			ui.icon(ui.Images.shared.settings, on_click=self.debugger.on_settings, title='Settings'),
 			ui.spacer(1),
-			DebuggerCommandButton(self.debugger.start, ui.Images.shared.play, f'Start: {configuration_name}' if configuration_name else 'Add/Select Configuration'),
+			ui.icon(ui.Images.shared.play, on_click=self.debugger.start, title=f'Start: {configuration_name}' if configuration_name else 'Add/Select Configuration'),
 			ui.spacer(1),
 		]
 
-
-
 		if self.debugger.is_stoppable():
-			items.append(DebuggerCommandButton(self.debugger.stop, ui.Images.shared.stop, 'Stop'))
+			items.append(ui.icon(ui.Images.shared.stop, on_click=self.debugger.stop, title='Stop'))
 		else:
-			items.append(DebuggerCommandButton(self.debugger.stop, ui.Images.shared.stop_disable, 'Stop (Disabled)'))
+			items.append(ui.icon(ui.Images.shared.stop_disable, on_click=self.debugger.stop, title='Stop (Disabled)'))
 
 
 		name = self.debugger.project.name
@@ -112,59 +108,41 @@ class DebuggerActionsTab(ui.span):
 		else:
 			name = name.ljust(11, ' ')
 
+		items.append(ui.spacer(1))
+
 		if not self.debugger.is_active:
 			items.append(
-				ui.click(self.debugger.on_settings)[
-					ui.spacer(1),
-					ui.span(css=css.button_drop)[
-						ui.text(name, css=css.label_secondary),
-						# ui.spacer(1),
-						ui.icon(ui.Images.shared.open, align_left=False)
-					]
-				])
+				ui.span(css=css.button_drop, on_click=self.debugger.on_settings)[
+					ui.text(name, css=css.label_secondary),
+					ui.icon(ui.Images.shared.open, align_left=False)
+				]
+			)
 		else:
 
-			
-			items.append(ui.spacer(1))
-
 			if self.debugger.is_running():
-				items.append(DebuggerCommandButton(self.debugger.pause, ui.Images.shared.pause, 'Pause'))
+				items.append(ui.icon(ui.Images.shared.pause, on_click=self.debugger.pause, title='Pause'))
 			elif self.debugger.is_paused():
-				items.append(DebuggerCommandButton(self.debugger.resume, ui.Images.shared.resume, 'Continue'))
+				items.append(ui.icon(ui.Images.shared.resume, on_click=self.debugger.resume, title='Continue'))
 			else:
-				items.append(DebuggerCommandButton(self.debugger.pause, ui.Images.shared.pause_disable, 'Pause (Disabled)'))
+				items.append(ui.icon(ui.Images.shared.pause_disable, on_click=self.debugger.pause, title='Pause (Disabled)'))
 
 			items.append(ui.spacer(1))
 
 			if self.debugger.is_paused():
 				items.extend([
-					DebuggerCommandButton(self.debugger.step_over, ui.Images.shared.down, 'Step Over'),
+					ui.icon(ui.Images.shared.down, on_click=self.debugger.step_over, title='Step Over'),
 					ui.spacer(1),
-					DebuggerCommandButton(self.debugger.step_out, ui.Images.shared.left, 'Step Out'),
+					ui.icon(ui.Images.shared.left, on_click=self.debugger.step_out, title='Step Out'),
 					ui.spacer(1),
-					DebuggerCommandButton(self.debugger.step_in, ui.Images.shared.right, 'Step In'),
+					ui.icon(ui.Images.shared.right, on_click=self.debugger.step_in, title='Step In'),
 				])
 			else:
 				items.extend([
-					DebuggerCommandButton(self.debugger.step_over, ui.Images.shared.down_disable, 'Step Over (Disabled)'),
+					ui.icon(ui.Images.shared.down_disable, on_click=self.debugger.step_over, title='Step Over (Disabled)'),
 					ui.spacer(1),
-					DebuggerCommandButton(self.debugger.step_out, ui.Images.shared.left_disable, 'Step Out (Disabled)'),
+					ui.icon(ui.Images.shared.left_disable, on_click=self.debugger.step_out, title='Step Out (Disabled)'),
 					ui.spacer(1),
-					DebuggerCommandButton(self.debugger.step_in, ui.Images.shared.right_disable, 'Step In (Disabled)'),
+					ui.icon(ui.Images.shared.right_disable, on_click=self.debugger.step_in, title='Step In (Disabled)'),
 				])
 			items.append(ui.spacer(1))
 		return items
-
-
-class DebuggerCommandButton (ui.span):
-	def __init__(self, callback: Callable[[], Any], image: ui.Image, title: str) -> None:
-		super().__init__()
-
-		self.image = image
-		self.callback = callback
-		self.title = title
-
-	def render(self) -> ui.span.Children:
-		return ui.click(self.callback, title=self.title)[
-			ui.icon(self.image),
-		]
