@@ -289,7 +289,7 @@ class Session(TransportProtocolListener):
 		except core.Error as e:
 			self.state = Session.State.RUNNING
 
-	def add_breakpoints(self) -> None:
+	async def add_breakpoints(self) -> None:
 		assert self._transport
 
 		requests: list[Awaitable[Any]] = []
@@ -303,8 +303,8 @@ class Session(TransportProtocolListener):
 		if self.capabilities.supportsDataBreakpoints:
 			requests.append(self.set_data_breakpoints())
 
-		for request in requests:
-			core.run(request)
+		await core.gather_results(*requests)
+
 
 	async def set_exception_breakpoint_filters(self) -> None:
 		if not self._transport:
@@ -698,20 +698,14 @@ class Session(TransportProtocolListener):
 	# it depends on when the debug adapter chooses it is ready for configuration information
 	# when it does happen we can then add all the breakpoints and complete the configuration
 	# NOTE: some adapters appear to send the initialized event multiple times
-	def on_initialized_event(self):
-		self.add_breakpoints()
+
+	@core.schedule
+	async def on_initialized_event(self):
+		await self.add_breakpoints()
 
 		if self.capabilities.supportsConfigurationDoneRequest:
-			self.configuration_done()
+			await self.request('configurationDone', {})
 
-	def configuration_done(self):
-		async def run():
-			try:	
-				await self.request('configurationDone', {})
-			except core.Error as e:
-				self.log.error('there was an error in configuration done {}'.format(e))
-		core.run(run())
-	
 	def on_output_event(self, event: dap.OutputEvent):
 		self.listener.session_output_event(self, event)
 
