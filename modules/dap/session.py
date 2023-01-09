@@ -483,9 +483,16 @@ class Session(TransportProtocolListener):
 			self._transport.dispose()
 			self._transport = None
 
-	async def stop_forced(self, reason: int) -> None:
+	async def stop_forced(self, reason: int|None) -> None:
 		if self.state == Session.State.STOPPING or self.state == Session.State.STOPPED:
 			return
+
+		if reason is None:
+			if self.stop_requested or self.terminated_event != None:
+				reason = Session.stopped_reason_manual
+			else:
+				reason = Session.stopped_reason_stopped_unexpectedly
+
 
 		self.stopped_reason = self.stopped_reason or reason
 		self.state = Session.State.STOPPING
@@ -711,7 +718,9 @@ class Session(TransportProtocolListener):
 
 	@core.schedule
 	async def on_terminated_event(self, event: dap.TerminatedEvent):
+		self.terminated_event = event
 		await self.stop()
+
 		# TODO: This needs to be handled inside debugger_sessions
 		# restarting needs to be handled by creating a new session
 		# if event.restart:
@@ -719,12 +728,7 @@ class Session(TransportProtocolListener):
 
 	@core.schedule
 	async def on_transport_closed(self):
-		if self.stop_requested:
-			reason = Session.stopped_reason_manual
-		else:
-			reason = Session.stopped_reason_stopped_unexpectedly
-
-		await self.stop_forced(reason=reason)
+		await self.stop_forced(reason=None)
 		
 	async def on_reverse_request(self, command: str, arguments: Any):
 		if command == 'runInTerminal':
