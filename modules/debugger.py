@@ -355,7 +355,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	def remove_session(self, session: dap.Session):
 		if session.stopped_reason == dap.Session.stopped_reason_stopped_unexpectedly:
-			for _, data in self.console.protocol.pending:
+			for data in self.console.protocol.pending:
 				if isinstance(data, TransportStderrOutputLog):
 					self.console.error(data.output)
 

@@ -111,6 +111,7 @@ class Session(TransportProtocolListener):
 		self.stepping = False
 		self.stepping_stopped = False
 		self.stopped_reason = 0
+		self.terminated_event = None
 
 		self._state = Session.State.STARTING
 		self._status = 'Starting'
