@@ -154,5 +154,10 @@ class SourceNavigationProvider:
 		else:
 			raise core.Error('source has no reference or path')
 
+		if source.line_regex:
+			match = view.find(source.line_regex, 0)
+			if not match.empty():
+				line = view.rowcol(match.a)[0]
+
 		show_line(view, line, column, move_cursor)
 		return view

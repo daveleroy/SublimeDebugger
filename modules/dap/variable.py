@@ -17,9 +17,11 @@ class SourceLocation:
 	line: int|None = None
 	column: int|None = None
 
+	line_regex: str|None = None
+
 	@staticmethod
-	def from_path(file: str, line: int|None, column: int|None) -> SourceLocation:
-		return SourceLocation(dap.Source(os.path.basename(file), file), line, column)
+	def from_path(file: str, line: int|None = None, column: int|None = None, line_regex: str|None = None) -> SourceLocation:
+		return SourceLocation(dap.Source(os.path.basename(file), file), line, column, line_regex)
 
 	@property
 	def name(self) -> str:

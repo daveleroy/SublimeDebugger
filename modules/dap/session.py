@@ -7,7 +7,7 @@ from ..import core
 from .import dap
 
 from ..watch import Watch
-from .debugger import Debugger
+from .debugger import Console, Debugger
 from .error import Error
 
 from ..breakpoints import (
@@ -71,7 +71,7 @@ class Session(TransportProtocolListener):
 		breakpoints: Breakpoints, 
 		watch: Watch, 
 		listener: SessionListener, 
-		log: core.Logger,
+		log: Console,
 		debugger: Debugger,
 		parent: Session|None = None
 		) -> None:

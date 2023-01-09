@@ -48,6 +48,7 @@ from .configuration import (
 
 from .debugger import (
 	Debugger,
+	Console
 )
 
 from .transports import (

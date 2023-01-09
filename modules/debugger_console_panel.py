@@ -18,7 +18,7 @@ from .debugger_output_panel import DebuggerOutputPanel
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
-class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
+class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 	def __init__(self, debugger: Debugger) -> None:
 		super().__init__(debugger, 'Debugger Console', name='Console', show_tabs=True, remove_last_newline=True)
 
@@ -403,7 +403,9 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 				self.view.sel().add(self.view.size())
 			))
 
-	def log(self, type: str, value: Any):
+
+	
+	def log(self, type: str, value: Any, source: dap.SourceLocation|None = None):
 		if type == 'transport':
 			self.protocol.log(type, value)
 		elif type == 'error-no-open':
@@ -429,6 +431,9 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, core.Logger):
 			self.write(str(value).rstrip('\n'), 'green', ensure_new_line=True)
 		else:
 			self.write(str(value).rstrip('\n'), 'comment', ensure_new_line=True)
+
+		if source:
+			self.add_annotation(self.at() - 1, source)
 
 	def dispose_phantoms(self):
 		for phantom in self.phantoms:

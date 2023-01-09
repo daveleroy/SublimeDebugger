@@ -11,6 +11,8 @@ import re
 if TYPE_CHECKING:
 	from .session import Session
 	from .debugger import Debugger
+	from .variable import SourceLocation
+
 
 class AdapterInstaller:
 	async def install(self, version: str|None, log: core.Logger) -> None: ...
@@ -105,29 +107,24 @@ class AdapterConfiguration:
 
 
 class Configuration(Dict[str, Any]):
-	def __init__(self, name: str, index: int, type: str, request: str, all: dict[str, Any]):
+	def __init__(self, name: str, index: int, type: str, request: str, all: dict[str, Any], source: SourceLocation|None = None):
 		super().__init__(all)
 
 		self.name = name
 		self.id_ish = f'configuration_{name}_{index}'
 		self.type = type
 		self.request = request
+		self.source = source
 
 	@staticmethod
-	def from_json(json: dict[str, Any], index: int) -> 'Configuration':
-		name = json.get('name')
-		assert name, 'expecting name for debug.configuration'
-		type = json.get('type')
-		assert type, 'expecting type for debug.configuration'
-		request = json.get('request')
-		assert request, 'expecting request for debug.configuration'
-		return Configuration(name, index, type, request, json)
+	def from_json(json: dict[str, Any], index: int, source: SourceLocation|None = None) -> Configuration:
+		return Configuration(json['name'], index, json['type'], json['request'], json, source)
 
 
 class ConfigurationExpanded(Configuration):
 	def __init__(self, configuration: Configuration, variables: Any):
 		all = _expand_variables_and_platform(configuration, variables)
-		super().__init__(configuration.name, -1, configuration.type, configuration.request, all)
+		super().__init__(configuration.name, -1, configuration.type, configuration.request, all, configuration.source)
 
 		self.variables = variables
 		self.pre_debug_task: TaskExpanded|None = None
@@ -135,35 +132,33 @@ class ConfigurationExpanded(Configuration):
 
 
 class ConfigurationCompound:
-	def __init__(self, name: str, index: int, configurations: list[str]) -> None:
+	def __init__(self, name: str, index: int, configurations: list[str], source: SourceLocation|None = None) -> None:
 		self.name = name
 		self.id_ish = f'compound_{name}_{index}'
 		self.configurations = configurations
+		self.source = source
 
 	@staticmethod
-	def from_json(json: dict[str, Any], index: int) -> 'ConfigurationCompound':
-		name = json.get('name')
-		assert name, 'expecting name for debug.compound'
-		configurations = json.get('configurations')
-		assert configurations, 'expecting configurations for debug.compound'
-		return ConfigurationCompound(name, index, configurations)
+	def from_json(json: dict[str, Any], index: int, source: SourceLocation|None = None) -> ConfigurationCompound:
+		return ConfigurationCompound(json['name'], index, json['configurations'], source)
 
 
 class Task (Dict[str, Any]):
-	def __init__(self, arguments: dict[str, Any]) -> None:
+	def __init__(self, arguments: dict[str, Any], source: SourceLocation|None = None) -> None:
 		super().__init__(arguments)
-		self.name = arguments.get('name', 'Untitled')
+		self.name = arguments['name']
+		self.source = source
 
 	@staticmethod
-	def from_json(json: dict[str, Any]):
-		return Task(json)
+	def from_json(json: dict[str, Any], source: SourceLocation|None = None):
+		return Task(json, source)
 
 
 class TaskExpanded(Task):
 	def __init__(self, task: Task, variables: dict[str, str]) -> None:
 		arguments = _expand_variables_and_platform(task, variables)
 		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy		
-		super().__init__(arguments)
+		super().__init__(arguments, task.source)
 
 		cmd: str|list[str]|None = arguments.get('cmd')
 

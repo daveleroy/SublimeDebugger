@@ -1,13 +1,15 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Iterable
 
 from .import core
+from . import dap
 from .dap import Configuration, ConfigurationCompound, Task
 from .settings import Settings
 
 import sublime
 import os
 
+import contextlib
 
 class Project:
 	def __init__(self, window: sublime.Window, skip_project_check: bool):
@@ -34,8 +36,6 @@ class Project:
 		self.external_terminal_kind = 'platform'
 		self.ui_scale = 12
 		self.bring_window_to_front_on_pause = False
-
-		self.reload()
 
 	def dispose(self):
 		...
@@ -137,13 +137,13 @@ class Project:
 		if region:
 			view.show_at_center(region)
 
-	def reload(self):
+	def reload(self, console: dap.Console):
 		core.info("ProjectConfiguration.reload")
-		self.load_settings()
-		self.load_configurations()
+		self._load_settings()
+		self._load_configurations(console)
 		self.on_updated()
 
-	def load_settings(self):
+	def _load_settings(self):
 		core.log_configure(
 			log_info= Settings.log_info,
 			log_errors= Settings.log_errors,
@@ -154,37 +154,48 @@ class Project:
 		self.ui_scale = Settings.ui_scale
 		self.bring_window_to_front_on_pause = Settings.bring_window_to_front_on_pause
 
+	def _extract_from_project_data(self, project_data: Any, key: str) -> list[tuple[Any, dap.SourceLocation]]:
 
-	def configurations_from_project(self, project_data: Any, key: str) -> list[Any]:
-		configurations: list[Any] = []
-		for configuration_or_file in project_data.get(key, []):
-			# allow putting in string values here that point to other project files...
-			# this is for testing the /examples directory easily...
-			if isinstance(configuration_or_file, str):
-				configurations.extend(self.configurations_from_project_file(configuration_or_file, key))
-			else:
-				configurations.append(configuration_or_file)
+		def extract_from_project_file(path: str, key: str) -> Iterable[tuple[Any, dap.SourceLocation]]:
+			if not os.path.isabs(path):
+				path = os.path.join(self.window.extract_variables()['project_path'], path)
+
+			project_path = os.path.dirname(path)
+			with open(path , 'r') as file:
+				contents = file.read()
+
+			project_json = sublime.decode_value(contents) or {}		
+			json: list[Any] = project_json.get(key, [])
+			for configuration in json:
+				configuration['$'] = {
+					'project_path': project_path
+				}
+
+			source = dap.SourceLocation.from_path(path, line_regex=key)
+			return map(lambda i: (i, source), json)
+
+
+		configurations: list[tuple[Any, dap.SourceLocation]] = []
+
+		if location := self.location:
+			source = dap.SourceLocation.from_path(location, line_regex=key)
+			for configuration_or_file in project_data.get(key, []):
+				# allow putting in string values here that point to other project files...
+				# this is for testing the /examples directory easily...
+				if isinstance(configuration_or_file, str):
+					configurations.extend(extract_from_project_file(configuration_or_file, key))
+				else:
+					configurations.append((configuration_or_file, source))
+
+		if global_configurations := getattr(Settings, f'global_{key}'):
+			source = dap.SourceLocation.from_path('debugger.sublime-settings', line_regex=key)
+			configurations += map(lambda i: (i, source), global_configurations)
 
 		return configurations
 
-	def configurations_from_project_file(self, path: str, key: str) -> list[Any]:
-		if not os.path.isabs(path):
-			path = os.path.join(self.window.extract_variables()['project_path'], path)
-
-		project_path = os.path.dirname(path)
-		with open(path , 'r') as file:
-			contents = file.read()
-
-		project_json = sublime.decode_value(contents) or {}		
-		json: list[Any] = project_json.get(key, [])
-		for configuration in json:
-			configuration['$'] = {
-				'project_path': project_path
-			}
-		return json
 
 
-	def load_configurations(self):
+	def _load_configurations(self, console: dap.Console):
 		data: dict[str, Any]|None = self.window.project_data()
 		if data is None:
 			core.info('No project associated with window')
@@ -200,17 +211,25 @@ class Project:
 		configurations: list[Configuration] = []
 		compounds: list[ConfigurationCompound] = []
 
-		for task_json in self.configurations_from_project(data, 'debugger_tasks') + Settings.global_debugger_tasks:
-			task = Task.from_json(task_json)
-			tasks.append(task)
+		@contextlib.contextmanager
+		def report_issues(name: str, json: Any, source: dap.SourceLocation):
+			try:
+				yield
+			except KeyError as e:
+				console.log('warn', f'{source.name}: {name} requires {e} field', source)
+				console.info(core.json_encode(json, pretty=True))
 
-		for configuration_json in self.configurations_from_project(data, 'debugger_configurations') + Settings.global_debugger_configurations:
-			configuration = Configuration.from_json(configuration_json, len(configurations))
-			configurations.append(configuration)
+		for json, source in self._extract_from_project_data(data, 'debugger_configurations'):
+			with report_issues('Configuration', json, source):
+				configurations.append(Configuration.from_json(json, len(configurations), source))
 
-		for compound_json in self.configurations_from_project(data, 'debugger_compounds') + Settings.global_debugger_compounds:
-			compound = ConfigurationCompound.from_json(compound_json, len(compounds))
-			compounds.append(compound)
+		for json, source in self._extract_from_project_data(data, 'debugger_compounds'):
+			with report_issues('Configuration Compound', json, source):
+				compounds.append(ConfigurationCompound.from_json(json, len(compounds), source))
+
+		for json, source in self._extract_from_project_data(data, 'debugger_tasks'):
+			with report_issues('Task', json, source):
+				tasks.append(Task.from_json(json, source))
 
 		self.configurations = configurations
 		self.compounds = compounds

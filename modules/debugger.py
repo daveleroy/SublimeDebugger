@@ -109,10 +109,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			self.breakpoints,
 		])
 
-		self.load_data()
-
-		self.project.on_updated.add(self._on_project_or_settings_updated)
-
 		self.source_provider = SourceNavigationProvider(self.project, self)
 
 		self.tasks = Tasks()
@@ -120,9 +116,23 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			self.tasks,
 		])
 
-		self.console = DebuggerConsoleOutputPanel(self)
+		self.console: DebuggerConsoleOutputPanel = DebuggerConsoleOutputPanel(self)
 		self.console.on_input.add(self.on_run_command)
 		self.console.on_navigate.add(self._on_navigate_to_source)
+
+		self.project.reload(self.console)
+	
+
+		location = self.project.location
+		if location:
+			json = persistance.load(location)
+			self.project.load_from_json(json.get('project', {}))
+			self.breakpoints.load_from_json(json.get('breakpoints', {}))
+			self.watch.load_json(json.get('watch', []))
+		else:
+			core.info('Not loading data, project is not associated a location')
+
+		self.project.on_updated.add(self._on_project_or_settings_updated)
 
 		self.panels = DebuggerMainOutputPanel(self)
 		self.panels.on_closed = lambda: self.console.open()
@@ -462,17 +472,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		file, line, column = self.project.current_file_line_column()
 		self.run_to_line_breakpoint = self.breakpoints.source.add_breakpoint(file, line, column)
-
-	def load_data(self):
-		location = self.project.location
-		if not location:
-			core.info('Not loading data, project is not associated a location')
-			return
-
-		json = persistance.load(location)
-		self.project.load_from_json(json.get('project', {}))
-		self.breakpoints.load_from_json(json.get('breakpoints', {}))
-		self.watch.load_json(json.get('watch', []))
 
 	def save_data(self):
 		location = self.project.location

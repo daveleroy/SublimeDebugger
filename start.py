@@ -119,7 +119,7 @@ def debugger_for_view(view: sublime.View) -> Debugger|None:
 
 def updated_settings():
 	for debugger in Debugger.instances.values():
-		debugger.project.reload()
+		debugger.project.reload(debugger.console)
 
 
 class Listener (sublime_plugin.EventListener):
@@ -140,11 +140,11 @@ class Listener (sublime_plugin.EventListener):
 
 	def on_load_project(self, window: sublime.Window):
 		if debugger := Debugger.get(window):
-			debugger.project.reload()
+			debugger.project.reload(debugger.console)
 
 	def on_pre_close_project(self, window: sublime.Window):
 		if debugger := Debugger.get(window):
-			sublime.set_timeout(debugger.project.reload, 0)
+			sublime.set_timeout(lambda: debugger.project.reload(debugger.console), 0)
 
 	@core.schedule
 	async def on_hover(self, view: sublime.View, point: int, hover_zone: int):
