@@ -33,10 +33,10 @@ jobs:
     steps:
   
       -
-        uses: styfle/cancel-workflow-action@0.11.0
+        uses: potiuk/cancel-workflow-runs@master
         with:
-         workflow_id: ${{ github.run_id }}
-         access_token: ${{ github.token }}
+          cancelMode: self
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # sync tags with forked repo
       - 
