@@ -31,6 +31,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+  
+      -
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+         workflow_id: ${{ github.run_id }}
+         access_token: ${{ github.token }}
 
       # sync tags with forked repo
       - 
