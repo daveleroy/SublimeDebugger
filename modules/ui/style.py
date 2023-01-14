@@ -31,6 +31,10 @@ base_css = '''
 }
 a {
 	text-decoration: none;
+	color: var(--foreground);
+}
+s {
+	color: var(--foreground);
 }
 d {
 	display: block;
@@ -82,46 +86,54 @@ class css:
 	id = 0
 	instances = []
 
+	cached: dict[str, str] = {}
+
 	@staticmethod
 	def generate(layout: Layout):
-		css_string = base_css
+		key = f'{layout.em_width}-{layout.font_size}'
+		if c := css.cached.get(key):
+			return c
+
+		css_list = [base_css]
 
 		# rem units are based on character width now. 1 rem = 1 character width
-		css_string += 'html {{ font-size: {}px; line-height: 0; }}'.format(layout.em_width)
+		css_list.append(f'html {{ font-size: {layout.em_width}px; line-height: 0; }}')
 		
 
 		# Change the font-size back since we changed the font-size in the html tag for the rem units
 		# I have no idea why windows/linux needs pt instead of px to get the font-size correct...
 		if sublime.platform() == 'osx':
-			css_string += 'body {{ font-size: {}px; }}'.format(layout.font_size)
+			css_list.append(f'body {{ font-size: {layout.font_size}px; }}')
 		else:
-			css_string += 'body {{ font-size: {}pt; }}'.format(layout.font_size)
+			css_list.append(f'body {{ font-size: {layout.font_size}pt; }}')
 
 		for c in css.instances:
-			css_string += '#{}{{'.format(c.css_id)
+			css_list.append('#{}{{'.format(c.css_id))
 			if not c.height is None:
-				css_string += 'height:{}rem;'.format(c.height)
+				css_list.append(f'height:{c.height}rem;')
 			if not c.width is None:
-				css_string += 'width:{}rem;'.format(c.width)
+				css_list.append(f'width:{c.width}rem;')
 			if not c.padding_top is None:
-				css_string += 'padding-top:{}rem;'.format(c.padding_top)
+				css_list.append(f'padding-top:{c.padding_top}rem;')
 			if not c.padding_bottom is None:
-				css_string += 'padding-bottom:{}rem;'.format(c.padding_bottom)
+				css_list.append(f'padding-bottom:{c.padding_bottom}rem;')
 			if not c.padding_left is None:
-				css_string += 'padding-left:{}rem;'.format(c.padding_left)
+				css_list.append(f'padding-left:{c.padding_left}rem;')
 			if not c.padding_right is None:
-				css_string += 'padding-right:{}rem;'.format(c.padding_right)
+				css_list.append(f'padding-right:{c.padding_right}rem;')
 			if not c.background_color is None:
-				css_string += 'background-color:{};'.format(c.background_color)
+				css_list.append(f'background-color:{c.background_color};')
 			if not c.color is None:
-				css_string += 'color:{};'.format(c.color)
+				css_list.append(f'color:{c.color};')
 			if not c.radius is None:
-				css_string += 'border-radius:{}rem;'.format(c.radius)
+				css_list.append(f'border-radius:{c.radius}rem;')
 			if not c.raw is None:
-				css_string += c.raw
+				css_list.append(c.raw)
 
-			css_string += '}'
+			css_list.append('}')
 		
+		css_string = ''.join(css_list)
+		css.cached[key] = css_string
 		return css_string
 
 	def __init__(

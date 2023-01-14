@@ -4,20 +4,29 @@ from typing import Callable, ClassVar, Generator
 
 from ..import core
 from .style import css
-from .html import div, span, element
+from .html import HtmlResponse, div, span, element
 from .debug import DEBUG_TIMING, DEBUG_TIMING_STATUS
 from collections.abc import Iterable
 
 import sublime
 
-def flatten_without_none(items: element.Children) -> Generator[element, None, None]:
+def flatten_element_children(items: element.Children, list: list[element]):
 	if items is None:
 		pass
 	elif isinstance(items, Iterable):
 		for item in items:
-			yield from flatten_without_none(item)
+			flatten_element_children(item, list)
 	else:
-		yield items
+		list.append(items)
+
+
+def flatten_html_response(items: HtmlResponse, list: list[str]):
+	if type(items) is str:
+		list.append(items)
+		return
+
+	for item in items:
+		flatten_html_response(item, list)
 
 
 class Layout:
@@ -80,6 +89,7 @@ class Layout:
 		self.on_click_handlers: dict[int, Callable[[], None]] = {}
 		self.on_click_handlers_id = 0
 		self.requires_render = True
+		self.html_list: list[str] = []
 		self.html = ""
 		self.item: div|None = None
 		self.view = view
@@ -155,8 +165,8 @@ class Layout:
 		key = type(item).__name__
 		self.count[key] = self.count.get(key, 0) + 1
 
-		children = item.render()
-		item.children = list(flatten_without_none(children))
+		item.children.clear()
+		flatten_element_children(item.render(), item.children)
 
 		self.add_component_children(item)
 
@@ -190,13 +200,16 @@ class Layout:
 			timer(f'{len(css_string)}')
 
 		timer = core.stopwatch('html')
-		html = f'''
-		<body id="debugger" style="padding-top: {self.vertical_offset}px;">
-			<style>{css_string}</style>
-			{self.item.html(self)}
-		</body>'''
+		html = [
+			f'<body id="debugger" style="padding-top: {self.vertical_offset}px;">',
+				'<style>', css_string, '</style>',
+				self.item.html(),
+			f'</body>'
+		]
 
-		self.html = html
+		self.html_list.clear()
+		flatten_html_response(html, self.html_list)
+		self.html = ''.join(self.html_list)
 
 		if DEBUG_TIMING:
 			timer(f'{len(self.html)}')

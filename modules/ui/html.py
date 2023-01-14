@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Callable, Generator, Sequence, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Sequence, TypedDict, Union
 from ..core.typing import Unpack
 
 from .image import Image
@@ -17,6 +17,8 @@ class alignable:
 
 	def align(self, width: int):
 		...
+HtmlResponse = Union[str, Iterable['HtmlResponse']]
+
 
 class element:
 	Children = Union[Sequence['element'], 'element', None]
@@ -24,7 +26,7 @@ class element:
 	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
 		super().__init__()
 		self.layout: Layout = None #type: ignore
-		self.children: Sequence[element] = []
+		self.children: list[element] = []
 		self.requires_render = True
 		self._max_allowed_width: float|None = None
 		self._height = height
@@ -49,7 +51,7 @@ class element:
 			self.padding_height = 0
 			self.padding_width = 0
 
-	def height(self, layout: Layout) -> float:
+	def height(self) -> float:
 		if self._height is not None:
 			return self._height + self.padding_height
 
@@ -60,14 +62,14 @@ class element:
 			if item is None:
 				continue
 
-			height += item.height(layout)
+			height += item.height()
 			if item.is_inline and height > height_max:
 				height_max = max(height_max, height)
 				height = 0.0
 
 		return max(height_max, height) + self.padding_height
 
-	def width(self, layout: Layout) -> float:
+	def width(self) -> float:
 		if self._width is not None:
 			return self._width + self.padding_width
 
@@ -78,7 +80,7 @@ class element:
 		width_max = 0.0
 
 		for item in self.children:
-			width += item.width(layout)
+			width += item.width()
 			if not item.is_inline and width > width_max:
 				width_max = max(width_max, width)
 				width = 0.0
@@ -90,13 +92,14 @@ class element:
 			self.layout.dirty()
 		self.requires_render = True
 
-	def html_inner(self, layout: Layout) -> str:
-		html = ''
-		for item in self.children:
-			html += item.html(layout)
-		return html
 
-	def html(self, layout: Layout) -> str:
+	def _html_inner_child(self, child: element):
+		return child.html()
+
+	def html_inner(self) -> HtmlResponse:
+		return map(self._html_inner_child, self.children)
+
+	def html(self) -> HtmlResponse:
 		...
 
 	def added(self) -> None: ...
@@ -124,13 +127,13 @@ class span (element):
 		self._items = values
 		return self
 
-	def html_tag_and_attrbutes(self, layout: Layout):
-		attributes = f'id="{self.css_id}"'
+	def html_tag_and_attrbutes(self):
+		attributes = f'id="{self.css_id}"' if self.css else ''
 		tag = 's'
 
 		if on_click := self.kwargs.get('on_click'):
 			tag = 'a'
-			id = layout.register_on_click_handler(on_click)
+			id = self.layout.register_on_click_handler(on_click)
 			attributes += f' href="{id}"'
 
 		if title := self.kwargs.get('title'):
@@ -138,10 +141,14 @@ class span (element):
 
 		return (tag, attributes)
 
-	def html(self, layout: Layout) -> str:
-		inner = self.html_inner(layout)
-		tag, attributes = self.html_tag_and_attrbutes(layout)
-		return f'<{tag} {attributes}>{inner}</{tag}>'
+	def html(self) -> HtmlResponse:
+		inner = self.html_inner()
+		tag, attributes = self.html_tag_and_attrbutes()
+		return [
+			f'<{tag} {attributes}>',
+				inner,
+			f'</{tag}>',
+		]
 
 
 class div (element):
@@ -158,7 +165,12 @@ class div (element):
 		self._items = values
 		return self
 
-	def html(self, layout: Layout) -> str:
+	def html_tag_and_attrbutes(self):
+		attributes = f'id="{self.css_id}"' if self.css != none_css else ''
+		tag = 'd'
+		return (tag, attributes)
+
+	def html(self) -> HtmlResponse:
 		html = ''
 		children_inline = False
 		for item in self.children:
@@ -166,19 +178,21 @@ class div (element):
 
 		if children_inline:
 			from .align import aligned_html_inner
-			html = aligned_html_inner(self, layout)
+			html = aligned_html_inner(self)
 		else:
-			html = self.html_inner(layout)
+			html = self.html_inner()
 
-		h = self.height(layout) - self.padding_height
-		w = self.width(layout) - self.padding_width
+		h = self.height() - self.padding_height
+		w = self.width() - self.padding_width
 		offset= h / 2 - 0.5
+
+		tag, attributes = self.html_tag_and_attrbutes()
 		if children_inline:
 			# this makes it so that divs with an img in them and divs without an img in them all align the same
 			# and everything inside the div aligns vertically
-			return f'<d id="{self.css_id}" style="height:{h}rem; width:{w}rem; padding:{-offset}rem 0 {offset}rem 0"><img style="height:{h}rem">{html}</d>'
+			return f'<{tag} {attributes} style="height:{h:}rem; width:{w}rem; padding:{-offset}rem 0 {offset}rem 0"><img style="height:{h}rem">', html, f'</{tag}>'
 		else:
-			return f'<d id="{self.css_id}" style="height:{h}rem;width:{w}rem;">{html}</d>'
+			return f'<{tag} {attributes} style="height:{h}rem;width:{w}rem;">', html, f'</{tag}>'
 
 def html_escape(text: str) -> str:
 	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '\u00A0')
@@ -201,10 +215,10 @@ class text (span, alignable):
 			self._text_clipped = self._text[0:int(width-1)] + '…'
 			self._text_html = None
 
-	def width(self, layout: Layout) -> float:
+	def width(self) -> float:
 		return len(self._text_clipped) + self.padding_width
 
-	def html_inner(self, layout: Layout):
+	def html_inner(self):
 		if self._text_html is None:
 			self._text_html = html_escape(self._text_clipped)
 		return self._text_html
@@ -219,16 +233,16 @@ class icon (span):
 		self._width = width
 		self._height = height
 
-	def html(self, layout: Layout) -> str:
+	def html(self) -> HtmlResponse:
 		assert self._height
 		width = self._height - self.padding
 		required_padding = self.padding
-		tag, attributes = self.html_tag_and_attrbutes(layout)
+		tag, attributes = self.html_tag_and_attrbutes()
 		top = 0.75
 		if self.align_left:
-			return f'<{tag} {attributes} style="position:relative;top:{top}rem;padding-right:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></{tag}>'
+			return f'<{tag} {attributes} style="position:relative;top:{top}rem;padding-right:{required_padding}rem;"><img style="width:{width}rem;height:{width}rem;" src="', self.image.data(self.layout), f'"></{tag}>'
 		else:
-			return f'<{tag} {attributes} style="position:relative;top:{top}rem;padding-left:{required_padding:.2f}rem;"><img style="width:{width:.2f}rem;height:{width:.2f}rem;" src="{self.image.data(layout)}"></{tag}>'
+			return f'<{tag} {attributes} style="position:relative;top:{top}rem;padding-left:{required_padding}rem;"><img style="width:{width}rem;height:{width}rem;" src="', self.image.data(self.layout), f'"></{tag}>'
 
 
 tokenize_re = re.compile('(0x[0-9A-Fa-f]+)|([-.0-9]+)|(\'[^\']*\')|("[^"]*")|(.*?)')
@@ -240,14 +254,15 @@ class code(span, alignable):
 		self.text = text.replace("\n", "\\n")
 		self.align_required: int = 0
 		self.align_desired: int = len(self.text)
+		self.text_html = None
 
-	def width(self, layout: Layout) -> float:
+	def width(self) -> float:
 		return len(self.text) + self.padding_width
 
 	def align(self, width: int):
 		self.text = self.text[0:int(width)]
 
-	def html(self, layout: Layout) -> str:
+	def html(self) -> HtmlResponse:
 		self.text_html = ''
 		for number, number_hex, string, string_double, other in tokenize_re.findall(self.text):
 			string = string_double or string
@@ -259,13 +274,5 @@ class code(span, alignable):
 			if other:
 				self.text_html += html_escape(other)
 
-		return f'<s style="color:var(--foreground);">{self.text_html}</s>'
-
-def flatten_lists(item_or_list: list[Any]|Any) -> Generator[Any, None, None]:
-	if type(item_or_list) == list:
-		for item in item_or_list:
-			yield from flatten_lists(item)
-	else:
-		yield item_or_list
-		
-		
+		tag, attributes = self.html_tag_and_attrbutes()
+		return f'<{tag} {attributes}>{self.text_html}</{tag}>'
