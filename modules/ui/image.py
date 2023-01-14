@@ -26,18 +26,19 @@ class Image:
 	cached: dict[str, str] = {}
 
 	@staticmethod
-	def named(name: str) -> 'Image':
-		path = _path_for_image(name)
-		return Image(path, path)
+	def named(name: str) -> Image:
+		file = _path_for_image(f'universal/unoptimized-{name}')
+		file_optimized = _path_for_image(f'universal/{name}')
+		return Image(file, file_optimized, file_optimized)
 
 	@staticmethod
-	def named_light_dark(name: str) -> 'Image':
+	def named_light_dark(name: str) -> Image:
 		light = _path_for_image(f'light/{name}')
 		dark = _path_for_image(f'dark/{name}')
-		return Image(dark, light)
+		return Image(light, dark, light)
 
-	def __init__(self, file_dark: str, file_light: str) -> None:
-		self.file = file_light
+	def __init__(self, file: str, file_dark: str, file_light: str) -> None:
+		self.file = file
 		self.file_light = file_light
 		self.file_dark = file_dark
 
