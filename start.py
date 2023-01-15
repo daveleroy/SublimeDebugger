@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Any, Iterable, Set
-
+import os
 import sys
 import sublime
 import sublime_plugin
+import shutil
+from typing import Any, Iterable, Set
 
 if sublime.version() < '4000':
 	raise Exception('This version of Debugger requires st4, use the st3 branch')
