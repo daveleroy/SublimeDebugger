@@ -2,6 +2,10 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.9.1 - Jan 15, 2023
+- Fixes issue with latest release
+
+
 Version 0.9.0 - Jan 14, 2023
 - Add location information to some error messages such as launch errors which point to the configuration being run
 - Improved validation of configurations
