@@ -2,6 +2,10 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.9.2 - Jan 19, 2023
+- Fixes issue with Debugger unintentionally stealing command + click
+
+
 Version 0.9.1 - Jan 15, 2023
 - Fixes issue with latest release
 
