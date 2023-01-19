@@ -1,7 +1,0 @@
-[
-        {
-        "button": "button1", "count": 1, "modifiers": ["super"],
-        "press_command": "debugger_open_url",
-        // "press_args": {"additive": true}
-    },
-]
