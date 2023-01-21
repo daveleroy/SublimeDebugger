@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Sequence, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence, TypedDict, Union
 from ..core.typing import Unpack
 
 from .image import Image
-from .style import css, none_css
+from .style import css
 
 import re
 
@@ -32,28 +32,20 @@ class element:
 		self._height = height
 		self._width = width
 		self.is_inline = is_inline
-		self.css = css
-
-	@property
-	def css(self):
-		return self._css
-
-	@css.setter
-	def css(self, css: css|None):
+		
 		if css:
-			self._css = css
-			self.css_id = css.css_id
-			self.padding_height = css.padding_height
-			self.padding_width = css.padding_width
+			self.css_id = css.id
+			self.css_padding_height = css.padding_height
+			self.css_padding_width = css.padding_width
 		else:
-			self._css = none_css
-			self.css_id = none_css.css_id
-			self.padding_height = 0
-			self.padding_width = 0
+			self.css_id = None
+			self.css_padding_height = 0
+			self.css_padding_width = 0
+
 
 	def height(self) -> float:
 		if self._height is not None:
-			return self._height + self.padding_height
+			return self._height + self.css_padding_height
 
 		height = 0.0
 		height_max = 0.0
@@ -67,11 +59,11 @@ class element:
 				height_max = max(height_max, height)
 				height = 0.0
 
-		return max(height_max, height) + self.padding_height
+		return max(height_max, height) + self.css_padding_height
 
 	def width(self) -> float:
 		if self._width is not None:
-			return self._width + self.padding_width
+			return self._width + self.css_padding_width
 
 		if self._max_allowed_width:
 			return self._max_allowed_width
@@ -85,7 +77,7 @@ class element:
 				width_max = max(width_max, width)
 				width = 0.0
 
-		return max(width_max, width) + self.padding_width
+		return max(width_max, width) + self.css_padding_width
 
 	def dirty(self):
 		if self.layout:
@@ -120,7 +112,7 @@ class span (element):
 		self.kwargs = kwargs
 		self._items: span.Children = None
 
-	def render(self) -> Children:
+	def render(self) -> Children: #type: ignore
 		return self._items
 
 	def __getitem__(self, values: Children):
@@ -128,7 +120,7 @@ class span (element):
 		return self
 
 	def html_tag_and_attrbutes(self):
-		attributes = f'id="{self.css_id}"' if self.css else ''
+		attributes = f'id="{self.css_id}"' if self.css_id else ''
 		tag = 's'
 
 		if on_click := self.kwargs.get('on_click'):
@@ -158,7 +150,7 @@ class div (element):
 		super().__init__(False, width, height, css)
 		self._items: div.Children = None
 
-	def render(self) -> div.Children:
+	def render(self) -> div.Children: #type: ignore
 		return self._items
 
 	def __getitem__(self, values: div.Children):
@@ -166,7 +158,7 @@ class div (element):
 		return self
 
 	def html_tag_and_attrbutes(self):
-		attributes = f'id="{self.css_id}"' if self.css != none_css else ''
+		attributes = f'id="{self.css_id}"' if self.css_id else ''
 		tag = 'd'
 		return (tag, attributes)
 
@@ -182,8 +174,8 @@ class div (element):
 		else:
 			html = self.html_inner()
 
-		h = self.height() - self.padding_height
-		w = self.width() - self.padding_width
+		h = self.height() - self.css_padding_height
+		w = self.width() - self.css_padding_width
 		offset= h / 2 - 0.5
 
 		tag, attributes = self.html_tag_and_attrbutes()
@@ -216,7 +208,7 @@ class text (span, alignable):
 			self._text_html = None
 
 	def width(self) -> float:
-		return len(self._text_clipped) + self.padding_width
+		return len(self._text_clipped) + self.css_padding_width
 
 	def html_inner(self):
 		if self._text_html is None:
@@ -249,30 +241,32 @@ tokenize_re = re.compile('(0x[0-9A-Fa-f]+)|([-.0-9]+)|(\'[^\']*\')|("[^"]*")|(.*
 
 
 class code(span, alignable):
-	def __init__(self, text: str) -> None:
-		super().__init__()
+	def __init__(self, text: str, **kwargs: Unpack[SpanParams]) -> None:
+		super().__init__(**kwargs)
 		self.text = text.replace("\n", "\\n")
 		self.align_required: int = 0
 		self.align_desired: int = len(self.text)
-		self.text_html = None
 
 	def width(self) -> float:
-		return len(self.text) + self.padding_width
+		return len(self.text) + self.css_padding_width
 
 	def align(self, width: int):
-		self.text = self.text[0:int(width)]
+		if len(self.text) > width:
+			self.text_clipped = self.text[0:int(width-1)] + '…'
+		else:
+			self.text_clipped = self.text
 
 	def html(self) -> HtmlResponse:
-		self.text_html = ''
-		for number, number_hex, string, string_double, other in tokenize_re.findall(self.text):
+		text_html = ''
+		for number, number_hex, string, string_double, other in tokenize_re.findall(self.text_clipped):
 			string = string_double or string
 			number = number or number_hex
 			if number:
-				self.text_html += f'<s style="color:var(--yellowish);">{number}</s>'
+				text_html += f'<s style="color:var(--yellowish);">{number}</s>'
 			if string:
-				self.text_html += f'<s style="color:var(--greenish);">{html_escape(string)}</s>'
+				text_html += f'<s style="color:var(--greenish);">{html_escape(string)}</s>'
 			if other:
-				self.text_html += html_escape(other)
+				text_html += html_escape(other)
 
 		tag, attributes = self.html_tag_and_attrbutes()
-		return f'<{tag} {attributes}>{self.text_html}</{tag}>'
+		return f'<{tag} {attributes}>{text_html}</{tag}>'

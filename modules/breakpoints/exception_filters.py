@@ -78,18 +78,20 @@ class ExceptionBreakpointsFilters:
 		items: list[ui.InputListItem] = [ui.InputListItemChecked(
 			toggle_enabled,
 			breakpoint.enabled,
-			"Enabled",
-			"Disabled",
+			'Enabled',
+			'Disabled',
 		)]
 
 		if breakpoint.dap.supportsCondition:
 			items.insert(0, ui.InputListItemCheckedText(
 				set_condition,
-				"Condition",
-				breakpoint.dap.conditionDescription or "Breaks when expression is true",
+				'Condition',
+				breakpoint.dap.conditionDescription or 'Breaks when expression is true',
 				breakpoint.condition,
 			))
-		return ui.InputList(items, placeholder='Edit Exception Filter {}'.format(breakpoint.name), index=index)
+		return ui.InputList('Edit Exception Filter {}'.format(breakpoint.name), index=index)[
+			items
+		]
 
 	def toggle_enabled(self, filter: ExceptionBreakpointsFilter):
 		filter.enabled = not filter.enabled

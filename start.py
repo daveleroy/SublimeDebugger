@@ -29,7 +29,7 @@ from .modules import ui
 from .modules import dap
 
 from .modules.debugger import Debugger
-from .modules.views.variable import VariableComponent
+from .modules.views.variable import VariableView
 
 from .modules.adapters import * #import all the adapters so Adapters.initialize() will see them
 from .modules.adapters_registry import AdaptersRegistry
@@ -53,6 +53,7 @@ def plugin_loaded() -> None:
 	SettingsRegistery.initialize(on_updated=updated_settings)
 	AdaptersRegistry.initialize()
 
+	ui.Layout.debug = Settings.development
 	ui.startup()
 
 	for window in sublime.windows():
@@ -147,7 +148,7 @@ class Listener (sublime_plugin.EventListener):
 		if debugger := Debugger.get(window):
 			sublime.set_timeout(lambda: debugger.project.reload(debugger.console), 0)
 
-	@core.schedule
+	@core.run
 	async def on_hover(self, view: sublime.View, point: int, hover_zone: int):
 		if self.ignore(view): return
 
@@ -174,7 +175,7 @@ class Listener (sublime_plugin.EventListener):
 
 			
 			response = await session.evaluate_expression(word_string, 'hover')
-			component = VariableComponent(debugger, dap.Variable.from_evaluate(session, '', response))
+			component = VariableView(debugger, dap.Variable.from_evaluate(session, '', response))
 			component.toggle_expand()
 			
 			popup = None
@@ -231,7 +232,7 @@ class Listener (sublime_plugin.EventListener):
 				# only rewrite this command if someone actually consumed it
 				# otherwise let sublime do its thing
 				if self.on_view_gutter_clicked(view, line, event['button']):
-					return ('null', {})
+					return ('noop')
 
 	def on_view_gutter_clicked(self, view: sublime.View, line: int, button: int) -> bool:
 		line += 1 # convert to 1 based lines

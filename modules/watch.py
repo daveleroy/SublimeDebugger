@@ -12,6 +12,7 @@ class Watch:
 			self.value = value
 			self.message = ""
 			self.evaluate_response: dap.Variable|None = None
+			self.on_updated = core.Event[None]()
 
 		def into_json(self) -> dap.Json:
 			return {
@@ -83,9 +84,9 @@ class Watch:
 			self.expressions.remove(expression)
 			self.on_updated()
 
-		return ui.InputList([
-			ui.InputListItem(remove, "Remove"),
-		])
+		return ui.InputList('Remove expression?')[
+			ui.InputListItem(remove, "Remove")
+		]
 
 	def edit_run(self, expression: Watch.Expression):
 		self.edit(expression).run()

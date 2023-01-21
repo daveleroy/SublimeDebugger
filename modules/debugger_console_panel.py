@@ -7,7 +7,7 @@ from .import core
 from .import ui
 from .import dap
 
-from .views.variable import VariableComponent
+from .views.variable import VariableView
 
 from .settings import Settings
 from .ansi import ansi_colorize
@@ -159,7 +159,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		# phantom_at = at + len(indent)
 
 		def on_navigate(path: str):
-			component = VariableComponent(self.debugger, variable, children_only=True)
+			component = VariableView(self.debugger, variable, children_only=True)
 			component.set_expanded()
 			popup = ui.Popup(self.view, at)[
 				component
@@ -238,7 +238,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		if command_name == 'copy':
 			sublime.set_clipboard(sublime.get_clipboard().replace('\u200c', '').replace('\u200b', '').replace('\u200d', ''))
 
-	def on_text_command(self, command_name: str, args: Any):
+	def on_text_command(self, command_name: str, args: Any): #type: ignore
 		if command_name == 'insert' and args['characters'] == '\n' and self.enter():
 			return ('noop')
 
@@ -271,7 +271,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 					}
 				))
 
-		@core.schedule
+		@core.run
 		async def fetch():
 			try:
 				if not self.debugger.is_active or not self.debugger.active.capabilities.supportsCompletionsRequest:

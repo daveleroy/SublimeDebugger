@@ -27,8 +27,6 @@ from .terminal_integrated import TerminusIntegratedTerminal
 
 from .source_navigation import SourceNavigationProvider
 
-
-
 class Debugger (dap.Debugger, dap.SessionListener):
 	
 	instances: dict[int, 'Debugger'] = {}
@@ -86,9 +84,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_state_updated = core.Event[dap.Session, dap.Session.State]()
 		self.on_session_output = core.Event[dap.Session, dap.OutputEvent]()
 		self.on_session_output = core.Event[dap.Session, dap.OutputEvent]()
-
-		self.on_session_run_terminal_requested: core.EventReturning[[dap.Session, dap.RunInTerminalRequestArguments], Awaitable[dap.RunInTerminalResponse]] = core.EventReturning()
-		self.on_session_run_task_requested: core.EventReturning[[dap.Session|None, dap.TaskExpanded], Awaitable[None]] = core.EventReturning()
 
 		self.session: dap.Session|None = None
 		self.sessions: list[dap.Session] = []
@@ -150,8 +145,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_added.add(self._on_session_added)
 		self.on_session_removed.add(self._on_session_removed)
 		self.on_session_output.add(self._on_session_output)
-		self.on_session_run_terminal_requested.add(self._on_session_run_terminal_requested)
-		self.on_session_run_task_requested.add(self._on_session_run_task_requested)
 
 		if not self.project.location:
 			self.console.log('warn', 'Debugger not associated with a sublime-project so breakpoints and other data will not be saved')
@@ -207,14 +200,14 @@ class Debugger (dap.Debugger, dap.SessionListener):
 				if sublime.ok_cancel_dialog(install, 'Install'):
 					await self.install_adapter(adapter_configuration, None)
 
-	@core.schedule
+	@core.run
 	async def start(self, no_debug: bool = False, args: dict[str, Any]|None = None):
 		try:
 			if args and 'configuration' in args:
 				configuration = args['configuration']
 				if isinstance(configuration, str):
 					previous_configuration_or_compound = self.project.configuration_or_compound
-					self.project.load_configuration(configuration, None)
+					self.project.load_configuration(configuration)
 					if not self.project.configuration_or_compound:
 						raise core.Error(f'Unable to find the configuration with the name `{configuration}`')
 					
@@ -245,7 +238,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			core.exception()
 			core.display(e)
 
-	@core.schedule
+	@core.run
 	async def start_with_configurations(self, configurations: list[dap.Configuration], no_debug: bool = False):
 		
 		# grab variables before we open the console because the console will become the focus
@@ -264,7 +257,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		await self.ensure_installed(configurations)
 
 		for configuration in configurations:
-			@core.schedule
+			@core.run
 			async def launch(configuration: dap.Configuration):
 				try:
 					adapter_configuration = AdaptersRegistry.get(configuration.type)
@@ -313,12 +306,10 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.remove_session(session)
 
 	async def session_task_request(self, session: dap.Session, task: dap.TaskExpanded):
-		response = self.on_session_run_task_requested(session, task)
-		if not response: raise core.Error('No run task response')
-		return await response
+		return await self.tasks.run(self, task)
 
 	async def session_terminal_request(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
-		response = self.on_session_run_terminal_requested(session, request)
+		response = self._on_session_run_terminal_requested(session, request)
 		if not response: raise core.Error('No terminal session response')
 		return await response
 
@@ -368,9 +359,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			self.session = self.sessions[0] if self.sessions else None
 		
 			# try to select the first session with threads if there is one
-			for session in self.sessions:
-				if session.threads:
-					self.session = session
+			for s in self.sessions:
+				if s.threads:
+					self.session = s
 					break
 
 			self.on_session_active(session)
@@ -379,32 +370,32 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_removed(session)
 
 
-	@core.schedule
+	@core.run
 	async def resume(self) -> None:
 		try: await self.active.resume()
 		except core.Error as e: self.console.error(f'Unable to continue: {e}')
 
-	@core.schedule
+	@core.run
 	async def pause(self) -> None:
 		try: await self.active.pause()
 		except core.Error as e: self.console.error(f'Unable to pause: {e}')
 
-	@core.schedule
+	@core.run
 	async def step_over(self) -> None:
 		try: await self.active.step_over()
 		except core.Error as e: self.console.error(f'Unable to step over: {e}')
 
-	@core.schedule
+	@core.run
 	async def step_in(self) -> None:
 		try: await self.active.step_in()
 		except core.Error as e: self.console.error(f'Unable to step in: {e}')
 
-	@core.schedule
+	@core.run
 	async def step_out(self) -> None:
 		try: await self.active.step_out()
 		except core.Error as e: self.console.error(f'Unable to step out: {e}')
 
-	@core.schedule
+	@core.run
 	async def stop(self, session: dap.Session|None = None) -> None:
 		# the stop command stops all sessions in a hierachy
 		try: 
@@ -495,7 +486,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 			values.append(ui.InputListItem(run, task.name))
 
-		ui.InputList(values, 'Select task to run').run()
+		ui.InputList('Select task to run')[
+			values
+		].run()
 
 	def on_run_last_task(self) -> None:
 		if self.last_run_task:
@@ -503,16 +496,16 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		else:
 			self.on_run_task()
 
-	@core.schedule
+	@core.run
 	async def run_task(self, task: dap.Task):
 		self.dispose_terminals(unused_only=True)
 		variables = self.project.extract_variables()
-		await self.on_session_run_task_requested(None, dap.TaskExpanded(task, variables))
+		await self.tasks.run(self, dap.TaskExpanded(task, variables))
 
 	def refresh_phantoms(self) -> None:
 		ui.Layout.render_layouts()
 
-	@core.schedule
+	@core.run
 	async def on_run_command(self, command: str) -> None:
 		try: 
 			result = await self.active.evaluate_expression(command, context='repl')
@@ -527,7 +520,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		except core.Error as e:
 			self.console.error(f'{e}')
 
-	@core.schedule
+	@core.run
 	async def evaluate_selected_expression(self):
 		if view := sublime.active_window().active_view():
 			sel = view.sel()[0]
@@ -593,7 +586,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			if session.stepping:
 				...
 			else:
-				self.panels.middle_panel.select(self.panels.callstack_panel)
 				self.panels.open()
 
 		if state == dap.Session.State.RUNNING:
@@ -604,10 +596,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 					self.console.open()
 
 	def _on_session_output(self, session: dap.Session, event: dap.OutputEvent) -> None:
-		self.console.program_output(session, event)
-
-	async def _on_session_run_task_requested(self, session: dap.Session|None, task: dap.TaskExpanded) -> None:
-		await self.tasks.run(self, task)
+		self.console.program_output(session, event)		
 
 	async def _on_session_run_terminal_requested(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		title = request.title or session.configuration.name
@@ -681,7 +670,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	def open_panels(self) -> None:
 		self.panels.open()
-		self.panels.middle_panel.select(self.panels.callstack_panel)
 
 	def open_console(self) -> None:
 		self.console.open()
@@ -713,7 +701,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		values.append(ui.InputListItem(lambda: self.install_adapters(), 'Install Adapters'))
 		return values
 
-	@core.schedule
+	@core.run
 	async def on_settings(self) -> None:
 		def about():
 			webbrowser.open_new_tab('https://github.com/daveleroy/sublime_debugger#getting-started')
@@ -729,24 +717,32 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			ui.InputListItem(about, 'About/Getting Started', kind=(sublime.KIND_ID_AMBIGUOUS, '⧉', '')),
 		])
 
-		ui.InputList(values, 'Add or Select Configuration').run()
+		ui.InputList('Add or Select Configuration')[
+			values
+		].run()
 
-	@core.schedule
+	@core.run
 	async def change_configuration(self) -> None:
-		await ui.InputList(await self.change_configuration_input_items(), 'Add or Select Configuration').run()
+		await ui.InputList('Add or Select Configuration')[
+			await self.change_configuration_input_items()
+		].run()
 
-	@core.schedule
+	@core.run
 	async def add_configuration(self) -> None:
 		items = self.add_configuration_snippet_adapters_list_items()
-		return await ui.InputList(items, 'Add Debug Configuration').run()
+		return await ui.InputList('Add Debug Configuration')[
+			items
+		].run()
 
-	@core.schedule
+	@core.run
 	async def install_adapters(self) -> None:
 		self.console.open()
 		items = await self.install_adapters_list_items()
-		await ui.InputList(items, 'Install/Update Debug Adapters').run()
+		await ui.InputList('Install/Update Debug Adapters')[
+			items
+		].run()
 
-	@core.schedule
+	@core.run
 	async def install_adapter(self, adapter: dap.AdapterConfiguration, version: str|None) -> None:
 		self.console.log('info', f'[Installing {adapter.type}]')
 		try:
@@ -800,7 +796,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 						if installed_version:
 							items.append(ui.InputListItem(lambda: installer.uninstall(), 'Uninstall'))
 
-					return ui.InputList(items, 'Choose version to install')
+					return ui.InputList('Choose version to install')[
+						items
+					]
 
 				if installed_version:
 					return ui.InputListItemChecked(
@@ -855,7 +853,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 					subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
 
 					return ui.InputListItemChecked(
-						ui.InputList(snippet_input_items, 'choose a snippet to insert'),
+						ui.InputList('Choose a snippet to insert')[
+							snippet_input_items
+						],
 						installed_version != None,
 						name + '\t' + subtitle,
 						details= f'<a href="{adapter.docs}">documentation</a>'

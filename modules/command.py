@@ -96,22 +96,22 @@ class Command:
 		return False
 
 class DebuggerCommand (sublime_plugin.WindowCommand):
-	def run(self, action: str, **kwargs: dict[str, Any]):
+	def run(self, action: str, **kwargs: dict[str, Any]): #type: ignore
 		command = CommandsRegistry.commands_by_action[action]
 		command.run(self.window, kwargs)
 
-	def is_enabled(self, action: str, **kwargs: dict[str, Any]):
+	def is_enabled(self, action: str, **kwargs: dict[str, Any]): #type: ignore
 		command = CommandsRegistry.commands_by_action[action]
 		return command.is_enabled(self.window)
 
-	def is_visible(self, action: str, **kwargs: dict[str, Any]):
+	def is_visible(self, action: str, **kwargs: dict[str, Any]): #type: ignore
 		command = CommandsRegistry.commands_by_action[action]
 		return command.is_visible(self.window)
 
 
 # allow using debugger_exec to run a build system as a Debugger Task
 class DebuggerExecCommand(sublime_plugin.WindowCommand):
-	def run(self, **kwargs: dict[str, Any]):
+	def run(self, **kwargs: dict[str, Any]): #type: ignore
 		from .debugger import Debugger
 		from .dap import Task
 		
@@ -121,7 +121,7 @@ class DebuggerExecCommand(sublime_plugin.WindowCommand):
 		debugger.run_task(task)
 
 class DebuggerInputCommand(sublime_plugin.WindowCommand):
-	def input(self, args: Any):
+	def input(self, args: Any): #type: ignore
 		if not ui.CommandPaletteInputCommand.running_command:
 			raise core.Error('expected running_command')
 
@@ -129,7 +129,7 @@ class DebuggerInputCommand(sublime_plugin.WindowCommand):
 		ui.CommandPaletteInputCommand.running_command = None
 		return input
 
-	def run(self, **args: Any):
+	def run(self, **args: Any): #type: ignore
 		...
 
 	def is_visible(self):

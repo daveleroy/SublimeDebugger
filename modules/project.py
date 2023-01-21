@@ -66,7 +66,7 @@ class Project:
 		if configuration_name and configuration_id_ish:
 			self.load_configuration(configuration_name, configuration_id_ish)
 
-	def load_configuration(self, configuration_name: str, configuration_id_ish: str, skip_update: bool = False):
+	def load_configuration(self, configuration_name: str, configuration_id_ish: str = '', skip_update: bool = False):
 		def find_matching_configuration():
 			for compound in self.compounds:
 				if compound.id_ish == configuration_id_ish:
@@ -123,7 +123,7 @@ class Project:
 
 		return []
 
-	@core.schedule
+	@core.run
 	async def open_project_configurations_file(self):
 		project_name = self.window.project_file_name()
 		if not project_name:

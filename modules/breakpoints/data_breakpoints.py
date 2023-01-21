@@ -93,7 +93,7 @@ class DataBreakpoints:
 			self.breakpoints.remove(breakpoint)
 			self.updated()
 
-		return ui.InputList([
+		return ui.InputList('Edit Breakpoint @ {}'.format(breakpoint.name), index=index)[
 			ui.InputListItemCheckedText(
 				set_condition,
 				"Condition",
@@ -116,7 +116,7 @@ class DataBreakpoints:
 				remove,
 				"Remove"
 			),
-		], placeholder='Edit Breakpoint @ {}'.format(breakpoint.name), index=index)
+		]
 
 	def add(self, info: dap.DataBreakpointInfoResponse, type: Literal['read','write','readWrite']|None):
 		assert info.dataId, "this info request has no id"

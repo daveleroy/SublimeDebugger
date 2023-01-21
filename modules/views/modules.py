@@ -1,19 +1,19 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
+import sublime
+
 from ..import ui
 from ..import dap
 
-from .tabbed_panel import Panel
-
-
 from .import css
-import sublime
+from .tabbed import TabbedView
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
 
-class ModulesPanel(Panel):
+
+class ModulesTabbedView(TabbedView):
 	def __init__(self, debugger: Debugger):
 		super().__init__('Modules')
 		self.debugger = debugger
@@ -69,9 +69,9 @@ class ModulesPanel(Panel):
 							return
 
 						def copy():
-							ui.InputList([
+							ui.InputList(value)[
 								ui.InputListItem(lambda: sublime.set_clipboard(value), "Copy")
-							], value).run()
+							].run()
 
 						value_str = str(value)
 						body.append(

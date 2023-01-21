@@ -56,14 +56,12 @@ on_post_show_panel: Event[sublime.Window] = Event()
 class DebuggerAsyncTextCommand(sublime_plugin.TextCommand):
 	_run: Callable[[sublime.Edit], None] | None = None
 
-	def run(self, edit: sublime.Edit):
-		try:
-			assert DebuggerAsyncTextCommand._run
-			DebuggerAsyncTextCommand._run(edit)
-			DebuggerAsyncTextCommand._run = None
-		except Exception as e:
-			DebuggerAsyncTextCommand._run = None
-			raise e
+	def run(self, edit: sublime.Edit): #type: ignore
+		run = DebuggerAsyncTextCommand._run
+		DebuggerAsyncTextCommand._run = None
+		if run: run(edit)
+
+		
 
 class DebuggerEventsListener(sublime_plugin.EventListener):
 

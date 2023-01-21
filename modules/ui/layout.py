@@ -1,11 +1,10 @@
 from __future__ import annotations
-from typing import Callable, ClassVar, Generator
-
+from dataclasses import dataclass
+from typing import Callable, ClassVar
 
 from ..import core
 from .style import css
-from .html import HtmlResponse, div, span, element
-from .debug import DEBUG_TIMING, DEBUG_TIMING_STATUS
+from .html import HtmlResponse, div, element
 from collections.abc import Iterable
 
 import sublime
@@ -28,6 +27,15 @@ def flatten_html_response(items: HtmlResponse, list: list[str]):
 	for item in items:
 		flatten_html_response(item, list)
 
+@dataclass
+class LayoutStats:
+	name: str
+
+	render_count: int = 0
+	render_element_count: int = 0
+
+	render_time: float = 0
+	render_time_total: float = 0
 
 class Layout:
 	layouts_to_add:ClassVar[list[Layout]] = []
@@ -35,10 +43,24 @@ class Layout:
 	layouts: ClassVar[list[Layout]] = []
 	_render_scheduled = False
 
+	debug: bool = False
+
 	@staticmethod
 	def update_layouts():
 		for l in Layout.layouts:
 			l.update()
+
+		if Layout.debug:
+			Layout.render_debug_info()
+
+	@staticmethod
+	def render_debug_info():
+		status = ''
+		for r in Layout.layouts:
+			status += '         '
+			status += f'{r.stats.name}: {len(r.html)/1024:.1f}kb {r.stats.render_time:.1f}ms {r.stats.render_count}x'
+
+		sublime.active_window().status_message(status)
 
 	@staticmethod
 	def render_layouts():
@@ -55,19 +77,12 @@ class Layout:
 
 		Layout.layouts_to_remove.clear()
 
-		status = ' | '
-
-		if DEBUG_TIMING: print('-------------------------')
-
 		for r in Layout.layouts:
-			if DEBUG_TIMING: print('-------------------------')
-			stopwatch = core.stopwatch('total')
 			r.render()
-			if DEBUG_TIMING:  stopwatch.print()
 
-			status += f'{r.last_render_time:.2f} | '
+		if Layout.debug:
+			Layout.render_debug_info()
 
-		if DEBUG_TIMING_STATUS: sublime.active_window().status_message(status)
 
 	@staticmethod
 	def _schedule_render_layouts() -> None:
@@ -76,41 +91,40 @@ class Layout:
 
 		Layout._render_scheduled = True
 		core.call_soon(Layout.render_layouts)
-
 	
-
-	count: dict[str, int] = {}
-
-	# from sublime dip units to character width units
-	def from_dip(self, dip: float) -> float:
-		return dip / self.em_width
-
 	def __init__(self, view: sublime.View) -> None:
+		self.stats = LayoutStats(name=view.name())
+
 		self.on_click_handlers: dict[int, Callable[[], None]] = {}
 		self.on_click_handlers_id = 0
 		self.requires_render = True
 		self.html_list: list[str] = []
 		self.html = ""
-		self.item: div|None = None
+		
 		self.view = view
 		self._width = 0.0
 		self._height = 0.0
 		self._lightness = 0.0
-		self.last_render_time = 0
+
 		self._all = ()
 		self._vertical_offset = 0.0
 		self._last_check_was_differnt = False
+		
+		self.item = div()
+		self._add_element(self.item)
+
 		self.update()
 		Layout.layouts_to_add.append(self)
 
 	def dispose(self) -> None:
-		if self.item:
-			self.remove_component(self.item)
+		self._remove_element(self.item)
 		Layout.layouts_to_remove.append(self)
 
 	def __getitem__(self, values: div.Children):
-		self.item = div()[values]
-		self.add_component(self.item)
+		self.item [
+			values
+		]
+		self._add_element(self.item)
 		self.dirty()
 		return self
 
@@ -124,82 +138,70 @@ class Layout:
 			self._vertical_offset = value
 			self.dirty()
 
+	# from sublime dip units to character width units
+	def from_dip(self, dip: float) -> float:
+		return dip / self.em_width
+
 	def dirty(self) -> None:
 		self.requires_render = True
 		Layout._schedule_render_layouts()
 
-	def add_component_children(self, item: element) -> None:
+	def _add_element_children(self, item: element) -> None:
 		if item._width is not None:
 			_parent_width = item._width
 		else:
-			_parent_width = item._max_allowed_width and item._max_allowed_width - item.padding_width
+			_parent_width = item._max_allowed_width and item._max_allowed_width - item.css_padding_width
 
 		for item in item.children:
 			item._max_allowed_width = _parent_width
-			self.add_component(item)
+			self._add_element(item)
 
-	def add_component(self, item: element) -> None:
+	def _add_element(self, item: element) -> None:
 		assert not item.layout, 'This item already has a layout?'
 		item.layout = self
 		item.added()
 
-	def remove_component(self, item: element) -> None:
-		self.remove_component_children(item)
+	def _remove_element(self, item: element) -> None:
+		self._remove_element_children(item)
 		item.removed()
-		item.layout = None
+		item.layout = None #type: ignore
 
-	def remove_component_children(self, item: element) -> None:
+	def _remove_element_children(self, item: element) -> None:
 		for child in item.children:
-			assert child.layout
-			child.layout.remove_component(child)
+			self._remove_element(child)
 
 		item.children = []
 
-	def render_component_tree(self, item: element|None) -> None:
-		if item is None:
+	def render_element_tree(self, item: element, requires_render: bool = False) -> None:
+		if not requires_render and not item.requires_render:
+
+			# check the children elements
+			for child in item.children:
+				self.render_element_tree(child)
 			return
 
 		item.requires_render = False
-		self.remove_component_children(item)
 
-		key = type(item).__name__
-		self.count[key] = self.count.get(key, 0) + 1
-
+		# remove old and add new
+		self._remove_element_children(item)
 		item.children.clear()
 		flatten_element_children(item.render(), item.children)
+		self._add_element_children(item)
 
-		self.add_component_children(item)
-
+		# all the children must be rendered since the parent required rendering
 		for child in item.children:
-			self.render_component_tree(child)
-
-	def render_component(self, item: element) -> None:
-		if item.requires_render:
-			self.render_component_tree(item)
-		else:
-			for child in item.children:
-				self.render_component(child)
+			self.render_element_tree(child, True)
+			
 
 	def render(self) -> bool:
 		if not self.requires_render:
 			return False
 
-		if not self.item:
-			return False
-
 		self.on_click_handlers.clear()
 		self.requires_render = False
-		timer = core.stopwatch('render')
-		self.render_component(self.item)
-		if DEBUG_TIMING: timer()
+		self.render_element_tree(self.item)
 
-		timer = core.stopwatch('css')
 		css_string = css.generate(self)
-
-		if DEBUG_TIMING:
-			timer(f'{len(css_string)}')
-
-		timer = core.stopwatch('html')
 		html = [
 			f'<body id="debugger" style="padding-top: {self.vertical_offset}px;">',
 				'<style>', css_string, '</style>',
@@ -210,14 +212,7 @@ class Layout:
 		self.html_list.clear()
 		flatten_html_response(html, self.html_list)
 		self.html = ''.join(self.html_list)
-
-		if DEBUG_TIMING:
-			timer(f'{len(self.html)}')
-
-		self.count = {}
 		return True
-
-
 
 	def on_navigate(self, path: str) -> None:
 		id = int(path)
@@ -245,17 +240,18 @@ class Layout:
 		style = self.view.style()
 		background = style.get('background') if style else None
 
-		size = self.view.viewport_extent()
 		settings = self.view.settings()
 		font_size = settings.get('font_size') or 1
+
+		width, height = self.view.viewport_extent()
 		em_width = self.view.em_width() or 1
 
 		# check if anything has changed so we can avoid invalidating the layout
-		all = (background, font_size, em_width, size[0], size[1])
+		all = (background, font_size, em_width, width, height)
 		if self._all == all:
 
 			# only invalidate the layout after the user has stopped changing the layout to avoid redrawing while they are changing stuff
-			if self._last_check_was_differnt and self.item:
+			if self._last_check_was_differnt:
 				self._last_check_was_differnt = False
 				self.item.dirty()
 
@@ -264,11 +260,9 @@ class Layout:
 		self._all = all
 
 		self.font_size = font_size
-		self._width = size[0] / em_width
-		self._height = size[1] / em_width
+		self._width = width / em_width
+		self._height = height / em_width
 		self._lightness = lightness_from_color(background)
-
-		# units in minihtml are based on the font_size of the character however we want our units to be 1 character wide
 		self.em_width = em_width
 
 		self._last_check_was_differnt = True

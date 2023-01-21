@@ -227,38 +227,37 @@ class SourceBreakpoints:
 		def remove():
 			self.remove(breakpoint)
 
-		return ui.InputList([
+		return ui.InputList('Edit Breakpoint in {} @ {}'.format(breakpoint.name, breakpoint.tag), index=index)[
 			ui.InputListItemCheckedText(
 				set_log,
-				"Log",
-				"Message to log, expressions within {} are interpolated",
+				'Log',
+				'Message to log, expressions within {} are interpolated',
 				breakpoint.dap.logMessage,
 			),
 			ui.InputListItemCheckedText(
 				set_condition,
-				"Condition",
-				"Breaks when expression is true",
+				'Condition',
+				'Breaks when expression is true',
 				breakpoint.dap.condition,
 			),
 			ui.InputListItemCheckedText(
 				set_hit_condition,
-				"Count",
-				"Breaks when hit count condition is met",
+				'Count',
+				'Breaks when hit count condition is met',
 				breakpoint.dap.hitCondition,
 			),
 			ui.InputListItemChecked(
 				toggle_enabled,
 				breakpoint.enabled,
-				"Enabled",
-				"Enabled",
+				'Enabled',
+				'Enabled',
 			),
 			ui.InputListItem(
 				remove,
-				"Remove"
+				'Remove'
 			),
-		], 
-		placeholder="Edit Breakpoint in {} @ {}".format(breakpoint.name, breakpoint.tag),
-		index=index)
+		]
+		
 
 
 	def toggle_file_line(self, file: str, line: int):
@@ -286,7 +285,9 @@ class SourceBreakpoints:
 				)
 			)
 
-		ui.InputList(items).run()
+		ui.InputList('Edit breakpoint')[
+			items
+		].run()
 
 	# todo: fix... this is going to trigger a ton of breakpoint requests if the debugger is active
 	def remove_all(self):

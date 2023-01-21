@@ -125,7 +125,7 @@ class LLDB(dap.AdapterConfiguration):
 	# lldb settings must be resent to the debugger when updated
 	# we only resend them when chaging through the ui if not the adapter needs to be restarted
 
-	@core.schedule
+	@core.run
 	async def updated_settings(self, debugger: dap.Debugger) -> None:
 		for session in debugger.sessions:
 			if session.adapter_configuration.type == LLDB.type:
@@ -152,16 +152,15 @@ class LLDB(dap.AdapterConfiguration):
 			self.lldb_display_format = mode
 			self.updated_settings(debugger)
 
-		return ui.InputList([
-				ui.InputListItemChecked(lambda: set_display('auto'), self.lldb_display_format == 'auto', 'Auto', 'Auto'),
-				ui.InputListItemChecked(lambda: set_display('hex'), self.lldb_display_format == 'hex', 'Hex', 'Hex'),
-				ui.InputListItemChecked(lambda: set_display('decimal'), self.lldb_display_format == 'decimal', 'Decimal', 'Decimal'),
-				ui.InputListItemChecked(lambda: set_display('binary'), self.lldb_display_format == 'binary', 'Binary', 'Binary'),
-			],
-			'Display Options'
-		)
+		return ui.InputList('Display Options') [
+			ui.InputListItemChecked(lambda: set_display('auto'), self.lldb_display_format == 'auto', 'Auto', 'Auto'),
+			ui.InputListItemChecked(lambda: set_display('hex'), self.lldb_display_format == 'hex', 'Hex', 'Hex'),
+			ui.InputListItemChecked(lambda: set_display('decimal'), self.lldb_display_format == 'decimal', 'Decimal', 'Decimal'),
+			ui.InputListItemChecked(lambda: set_display('binary'), self.lldb_display_format == 'binary', 'Binary', 'Binary'),
+		]
+			
 
 	def ui(self, debugger: dap.Debugger):
-		return InputListView(ui.InputList([
+		return InputListView(ui.InputList()[
 			ui.InputListItemOnOff(lambda: self.toggle_disassembly(debugger), 'Disassembly', 'Disassembly', self.lldb_show_disassembly != 'auto'),
-		]))
+		])

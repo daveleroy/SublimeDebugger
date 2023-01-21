@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, Iterable, Protocol, TypeVar
+from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, Iterable, Protocol, TypeVar, overload
 from .typing import TypeVarTuple, Unpack, ParamSpec
 
 import sublime
@@ -10,12 +10,48 @@ from .sublime_event_loop import SublimeEventLoop
 
 T = TypeVar('T')
 Args = TypeVarTuple('Args')
+Params = ParamSpec('Params')
 
 CancelledError = asyncio.CancelledError
 
 sublime_event_loop = SublimeEventLoop() #type: ignore
 sublime_event_loop_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8) #type: ignore
-# asyncio.set_event_loop(sublime_event_loop)
+
+class Disposeable(Protocol):
+	def dispose(self): ...
+
+
+class Dispose:
+	_dispose: list[Disposeable] = []
+
+	def dispose(self):
+		for _dispose in self._dispose:
+			_dispose.dispose()
+
+	def dispose_remove(self, item: Disposeable):
+		self._dispose.remove(item)
+		item.dispose()
+
+	def dispose_add(self, item: Disposeable|list[Disposeable]):
+		if isinstance(item, list):
+			for i in item:
+				self._dispose.append(i)
+		else:
+			self._dispose.append(item)
+
+
+D = TypeVar("D", bound="Disposeable")
+
+def remove_and_dispose(list: list[D], filter: Callable[[D], bool]):
+	remove = []
+	for item in list:
+		if filter(item):
+			remove.append(item)
+
+	for item in remove:
+		list.remove(item)
+		item.dispose()
+
 
 class Future(asyncio.Future, Generic[T]):
 	def __init__(self):
@@ -28,7 +64,7 @@ class Future(asyncio.Future, Generic[T]):
 		return super().set_result(result) #type: ignore
 
 def call_soon_threadsafe(callback: Callable[[Unpack[Args]], None], *args: Unpack[Args]):
-	return sublime_event_loop.call_soon(callback, *args) #type: ignore
+	return sublime_event_loop.call_soon_threadsafe(callback, *args) #type: ignore
 
 def call_soon(callback: Callable[[Unpack[Args]], Any], *args: Unpack[Args]):
 	return sublime_event_loop.call_soon(callback, *args) #type: ignore
@@ -48,20 +84,26 @@ def wait(fs: Iterable[Awaitable[Any]]) -> Awaitable[list[Any]]:
 def sleep(delay: float) -> Awaitable[None]:
 	return asyncio.sleep(delay, loop=sublime_event_loop) #type: ignore
 
-def schedule(func: Callable[P, Coroutine[Any, Any, T]], *args: Any) -> Callable[P, Future[T]]:
-	def wrap(*args):
-		return asyncio.ensure_future(func(*args), loop=sublime_event_loop) #type: ignore
-	wrap.__name__ = func.__name__ #type: ignore
-	return wrap #type: ignore
-
 def gather(*coros_or_futures: Awaitable[T]) -> Awaitable[tuple[T]]:
 	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop) #type: ignore
 
 def gather_results(*coros_or_futures: Awaitable[T]) -> Awaitable[list[T|Exception]]:
 	return asyncio.gather(*coros_or_futures, loop=sublime_event_loop, return_exceptions=True) #type: ignore
 
-def run(awaitable: Awaitable[T], on_success: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None) -> Future[T]:
-	task: Future[T] = asyncio.ensure_future(awaitable, loop=sublime_event_loop) #type: ignore
+@overload
+def run(value: Callable[Params, Coroutine[Any, Any, T]], *args: Any) -> Callable[Params, Future[T]]: ...
+
+@overload
+def run(value: Awaitable[T], on_success: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None) -> Future[T]: ...
+
+def run(value: Awaitable[T] | Callable[Params, Coroutine[Any, Any, T]], on_success: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None, *args: Any) -> Any:
+	if callable(value):
+		def wrap(*args):
+			return asyncio.ensure_future(value(*args), loop=sublime_event_loop) #type: ignore
+		wrap.__name__ = value.__name__ #type: ignore
+		return wrap
+
+	task: Future[T] = asyncio.ensure_future(value, loop=sublime_event_loop) #type: ignore
 
 	def done(task: asyncio.Future[T]) -> None:
 		if on_error:

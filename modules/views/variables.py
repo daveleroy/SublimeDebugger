@@ -5,14 +5,15 @@ from ..import ui
 from ..import dap
 
 from ..watch import Watch
-from .variable import VariableComponent
+from .variable import VariableView
 from . import css
-from .tabbed_panel import Panel
+from .tabbed import TabbedView
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
 
-class VariablesPanel (Panel):
+
+class VariablesTabbedView (TabbedView):
 	def __init__(self, debugger: Debugger):
 		super().__init__('Variables')
 		self.watch_view = WatchView(debugger)
@@ -40,7 +41,7 @@ class VariablesView (ui.div):
 		if not session:
 			return
 
-		variables = [VariableComponent(self.debugger, variable) for variable in session.variables]
+		variables = [VariableView(self.debugger, variable) for variable in session.variables]
 		if variables:
 			variables[0].set_expanded()
 
@@ -51,7 +52,7 @@ class WatchView(ui.div):
 	def __init__(self, debugger: Debugger) -> None:
 		super().__init__()
 		self.debugger = debugger
-		self.open = True
+		self.open = self.debugger.watch.expressions
 
 	def added(self):
 		self.on_updated_handle = self.debugger.watch.on_updated.add(self.dirty)
@@ -64,12 +65,12 @@ class WatchView(ui.div):
 		self.dirty()
 
 	def render(self) -> ui.div.Children:
-		if not self.debugger.watch.expressions:
-			return None
 
 		header = ui.div(height=css.row_height)[
 			ui.icon(ui.Images.shared.open if self.open else ui.Images.shared.close, on_click=self.toggle_expand),
-			ui.text('Watch', css=css.label_secondary)
+			ui.text('Watch', css=css.label_secondary),
+			ui.spacer(),
+			ui.text('add', css=css.label_secondary, on_click=self.debugger.add_watch_expression)
 		]
 
 		if not self.open:
@@ -97,7 +98,7 @@ class WatchExpressionView(ui.div):
 
 	def render(self):
 		if self.expression.evaluate_response:
-			component = VariableComponent(self.debugger, self.expression.evaluate_response)
+			component = VariableView(self.debugger, self.expression.evaluate_response)
 			return [component]
 
 		return ui.div(height=css.row_height, css=css.padding_left)[

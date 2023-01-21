@@ -5,7 +5,7 @@ from ..import ui
 from ..import core
 from .. import dap
 from . import css
-from .tabbed_panel import Panel
+from .tabbed import TabbedView
 
 from ..debugger_output_panel import DebuggerPanelTabs, DebuggerOutputPanel
 
@@ -30,17 +30,15 @@ class CallStackState:
 	def toggle_expanded(self, item: Any, default: bool = False):
 		self._expanded[id(item)] = not self.is_expanded(item, default)
 
-class CallStackPanel (Panel):
+class CallStackTabbedView (TabbedView):
 	def __init__(self, debugger: Debugger, panel: DebuggerOutputPanel):
 		super().__init__('Callstack')
 		self.debugger = debugger
 		self.state = CallStackState()
-		self.header = DebuggerPanelTabs(self.debugger, panel)
+		self.tabs = DebuggerPanelTabs(self.debugger, panel)
 
-	def panel_header(self, expanded: bool) -> list[ui.span] | None:
-		return [
-			self.header
-		]
+	def header(self, is_selected):
+		return self.tabs
 
 	def added(self):
 		self.on_updated = self.debugger.on_session_threads_updated.add(self.dirty_session)
@@ -167,7 +165,7 @@ class ThreadView (ui.div):
 	def toggle_expanded(self):
 		self.state.toggle_expanded(self.thread)
 
-	@core.schedule
+	@core.run
 	async def fetch(self):
 		if not self.is_expanded or not self.thread.stopped:
 			return
@@ -191,31 +189,32 @@ class ThreadView (ui.div):
 		is_expanded = self.is_expanded
 
 		if self.is_selected:
-			thread_css = css.label
+			text_css = css.label
 		else:
-			thread_css = css.label_secondary
+			text_css = css.label_secondary
+
+		
+		thread_css = css.selected if self.is_selected and not self.session.selected_frame else None
+
+		def thread_name():
+			return ui.span(on_click=self.on_select_thread)[
+					ui.text(self.thread.name.strip(), css=text_css),
+					ui.spacer(1),
+					ui.text(self.thread.stopped_reason, css=css.label_secondary),
+				],
 
 		if expandable:
-			thread_item = ui.div(height=css.row_height)[
+			thread_item = ui.div(height=css.row_height, css=thread_css)[
 				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=self.toggle_expand),
-				ui.span(on_click=self.on_select_thread)[
-					ui.text(self.thread.name.strip(), css=thread_css),
-					ui.spacer(1),
-					ui.text(self.thread.stopped_reason, css=css.label_secondary),
-				],
+				thread_name()
 			]
 		else:
-			thread_item = ui.div(height=css.row_height)[
+			thread_item = ui.div(height=css.row_height, css=thread_css)[
 				ui.icon(ui.Images.shared.loading),
-				ui.span(on_click=self.on_select_thread)[
-					ui.text(self.thread.name, css=css.label),
-					ui.spacer(1),
-					ui.text(self.thread.stopped_reason, css=css.label_secondary),
-				],
+				thread_name()
 			]
 
-		if self.is_selected and not self.session.selected_frame:
-			thread_item.css = css.selected
+		
 
 		if not self.show_thread_name:
 			thread_item = ui.div()
@@ -239,7 +238,7 @@ class ThreadView (ui.div):
 
 				if frame.source:
 					name = os.path.basename(frame.source.name or frame.source.path or '??')
-					items.append(ui.spacer(min=1))
+					items.append(ui.spacer())
 					items.append(ui.text(name, css=css.label_secondary))
 					items.append(ui.spacer(1))
 					items.append(ui.text(line_str, css=css.button))

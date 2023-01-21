@@ -1,15 +1,17 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 
+from functools import partial
+
 from ..import ui
 from .. import dap
-from .tabbed_panel import Panel
 from . import css
+from .tabbed import TabbedView
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
 
-class SourcesPanel(Panel):
+class SourcesTabbedView(TabbedView):
 	def __init__(self, debugger: Debugger, on_click: Callable[[dap.SourceLocation], None]):
 		super().__init__('Sources')
 		self.debugger = debugger
@@ -23,31 +25,28 @@ class SourcesPanel(Panel):
 		return self._visible
 
 	def updated(self, session: dap.Session):
-		self._visible = False
+		visible = False
 		for session in self.debugger.sessions:
 			if session.sources:
-				self._visible = True
+				visible = True
 				break
 
-		self.dirty_header()
-		self.dirty()
+		if visible != self._visible:
+			self.dirty_header()
+
+		if visible:
+			self.dirty()
+
+	def on_clicked_source(self, source: dap.Source):
+		self.on_click(dap.SourceLocation(source, None, None))
 
 	def render(self):
-		items: list[SourceView] = []
+		items: list[ui.div] = []
 		for session in self.debugger.sessions:
 			for source in session.sources.values():
-				items.append(SourceView(source, self.on_click))
+				items.append(ui.div(height=css.row_height)[
+					ui.text(source.path or source.name or "<no source name>", css=css.label_secondary, on_click=partial(self.on_clicked_source, source))
+				])
 
 		return items
 
-
-class SourceView(ui.div):
-	def __init__(self, source: dap.Source, on_click: Callable[[dap.SourceLocation], None]):
-		super().__init__()
-		self.source = source
-		self.on_click = on_click
-
-	def render(self):
-		return ui.div(height=css.row_height)[
-			ui.text(self.source.path or self.source.name or "<no source name>", css=css.label_secondary, on_click=lambda: self.on_click(dap.SourceLocation(self.source, None, None)))
-		]

@@ -1,74 +1,66 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Callable
 
 from ..import ui
 from ..import dap
 from . import css
 
-from .breakpoints_panel import BreakpointsPanel
-
-from .input_list_view import InputListView
+from .breakpoints import BreakpointsView
+from .tabbed import TabbedView
+from .process import ProcessView
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
 
 
-class DebuggerPanel(ui.div):
+class DebuggerTabbedView(TabbedView):
 	def __init__(self, debugger: Debugger, on_navigate_to_source: Callable[[dap.SourceLocation], None]) -> None:
-		super().__init__()
+		super().__init__('Debugger')
+
 		self.debugger = debugger
 
-		self.breakpoints = BreakpointsPanel(debugger.breakpoints, on_navigate_to_source)
+		self.breakpoints = BreakpointsView(debugger.breakpoints, on_navigate_to_source)
 
 		self.debugger.on_session_state_updated.add(lambda session, state: self.dirty())
 		self.debugger.on_session_active.add(self.on_selected_session)
 		self.debugger.on_session_added.add(self.on_selected_session)
 
 		self.debugger.project.on_updated.add(self.dirty)
-		self.last_active_adapter: dap.AdapterConfiguration|None = None
+		self.last_adapter_configuration: dap.AdapterConfiguration|None = None
 		self.actions_tab = DebuggerActionsTab(debugger)
 
+		self.process = ProcessView(debugger)
+
+	def header(self, is_selected):
+		return self.actions_tab
+
 	def on_selected_session(self, session: dap.Session):
-		self.last_active_adapter = session.adapter_configuration
+		self.last_adapter_configuration = session.adapter_configuration
 		self.dirty()
 
 	def render(self) -> ui.div.Children:
 		# looks like
 		# current status
-		# breakpoints ...
-
-		if self.debugger.is_active:
-			self.last_active_adapter = self.debugger.active.adapter_configuration or self.last_active_adapter
+		# breakpoints ...			
 
 		panel_items: list[ui.div] = []
 
-		
-		if self.debugger.is_active:
-			session = self.debugger.active
-			status = session.status
-			if status:
+		if session := self.debugger.session: 
+			self.last_adapter_configuration = session.adapter_configuration
+
+			if status := session.status:
 				panel_items.append(ui.div(height=css.row_height)[
 					ui.text(status, css=css.label_secondary)
 				])
 
-		if self.last_active_adapter:
-			settings = self.last_active_adapter.settings(self.debugger)
-			for setting in settings:
-				panel_items.append(InputListView(setting))
+		if self.last_adapter_configuration:
+			if item := self.last_adapter_configuration.ui(self.debugger):
+				panel_items.append(item)
 
-			div = self.last_active_adapter.ui(self.debugger)
-			if div: panel_items.append(div)
-
+		panel_items.append(self.process)
 		panel_items.append(self.breakpoints)
 
-		return [
-			ui.div(height=css.header_height, width=30)[
-				self.actions_tab
-			],
-			ui.div(width=30 - css.rounded_panel.padding_width, height=1000, css=css.panel)[
-				panel_items
-			],
-		]
+		return panel_items
 
 
 class DebuggerActionsTab(ui.span):
@@ -86,10 +78,10 @@ class DebuggerActionsTab(ui.span):
 		self.on_session_state_updated.dispose()
 		self.on_project_updated.dispose()
 
-	def render(self) -> ui.div.Children:
+	def render(self) -> ui.span.Children:
 		configuration_name = self.debugger.project.name
 
-		items = [
+		items: list[ui.span] = [
 			ui.icon(ui.Images.shared.settings, on_click=self.debugger.on_settings, title='Settings'),
 			ui.spacer(1),
 			ui.icon(ui.Images.shared.play, on_click=self.debugger.start, title=f'Start: {configuration_name}' if configuration_name else 'Add/Select Configuration'),

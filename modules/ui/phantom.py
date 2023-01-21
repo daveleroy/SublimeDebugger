@@ -3,44 +3,32 @@ from typing import Any, Callable
 
 from .. import core
 from .layout import Layout
-from .debug import DEBUG_TIMING
 
 import sublime
 
-render_count = 0
-
 class Phantom(Layout):
-	id = 0
-	
-	def __init__(self, view: sublime.View, region: sublime.Region, layout: int = sublime.LAYOUT_INLINE) -> None:
+	def __init__(self, view: sublime.View, region: sublime.Region|int, layout: int = sublime.LAYOUT_INLINE, name: str|None = None) -> None:
 		super().__init__(view)
-		self.cached_phantom: sublime.Phantom|None = None
-		self.region = region
+		self.region = sublime.Region(region) if isinstance(region, int) else region
 		self.layout = layout
 		self.view = view
 		self.pid: int|None = None
-		Phantom.id += 1
-
-		# we use the region to track where we should place the new phantom so if text is inserted the phantom will be redrawn in the correct place
-		self.phantom_id = 'phantom_{}'.format(Phantom.id)
+		self.stats.name = name or self.stats.name
 		self.update()
 
 	def render(self) -> bool:
-		total = core.stopwatch()
+		timer = core.stopwatch()
 		updated = super().render()
 		
 		# don't need to update phantom
 		if not updated and self.pid is not None:
 			return False
 
-		global render_count
-		render_count += 1
-		
-		timer = core.stopwatch('phantom')
 		self.render_phantom()
 
-		if DEBUG_TIMING: timer()
-		self.last_render_time = total.elapsed()
+		self.stats.render_time = timer.elapsed()
+		self.stats.render_time_total += self.stats.render_time
+		self.stats.render_count += 1
 		return True
 
 	def render_region(self):
@@ -51,8 +39,8 @@ class Phantom(Layout):
 
 	def render_phantom(self):
 		region = self.render_region()
-		self.view.erase_phantoms(self.phantom_id)
-		self.pid = self.view.add_phantom(self.phantom_id, region, self.html, self.layout, self.on_navigate)
+		if self.pid: self.view.erase_phantom_by_id(self.pid)
+		self.pid = self.view.add_phantom('debugger', region, self.html, self.layout, self.on_navigate)
 
 	def render_if_out_of_position(self):
 		# if this phantom must be rendered just render it
@@ -71,17 +59,18 @@ class Phantom(Layout):
 
 	def dispose(self) -> None:
 		super().dispose()
-		self.view.erase_phantoms(self.phantom_id)
+		if self.pid: self.view.erase_phantom_by_id(self.pid)
 
 
 class RawPhantom:	
 	def __init__(self, view: sublime.View, region: sublime.Region, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[str], Any]|None = None) -> None:
 		self.region = region
 		self.view = view
-		self.pid = self.view.add_phantom(f'{id(self)}', region, html, layout, on_navigate)
+		self.pid = self.view.add_phantom(f'debugger', region, html, layout, on_navigate)
 
 	def dispose(self) -> None:
 		self.view.erase_phantom_by_id(self.pid)
+
 
 class RawAnnotation:
 	def __init__(self, view: sublime.View, region: sublime.Region, html: str):
@@ -115,17 +104,16 @@ class Popup(Layout):
 		if self.is_closed:
 			return False
 		
-		total = core.stopwatch()
+		timer = core.stopwatch()
 		updated = super().render()
 		if not updated:
 			return False
 
-		timer = core.stopwatch('popup')
-
 		self.create_or_update_popup()
 
-		if DEBUG_TIMING: timer()
-		self.last_render_time = total.elapsed()
+		self.stats.render_time = timer.elapsed()
+		self.stats.render_time_total += self.stats.render_time
+		self.stats.render_count += 1
 		return True
 
 	def create_or_update_popup(self):

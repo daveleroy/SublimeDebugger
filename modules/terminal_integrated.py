@@ -43,7 +43,7 @@ class TerminusIntegratedTerminal(DebuggerOutputPanel):
 		super().dispose()
 
 class DebuggerTerminusPostViewHooks(sublime_plugin.TextCommand):
-	def run(self, edit: sublime.Edit):
+	def run(self, edit: sublime.Edit): #type: ignore
 		settings = self.view.settings()
 		settings.set('scroll_past_end', False)
 		settings.set('draw_unicode_white_space', 'none')

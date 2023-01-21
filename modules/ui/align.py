@@ -1,38 +1,58 @@
 from __future__ import annotations
 
+from . import core
 from . html import element, div, span, alignable
 
+import math
 
 # spacers are integers so they can always undershoot the available space
 
 class spacer (span):
-	def __init__(self, width: int|None = None, min: int|None = None):
+	def __init__(self, width: int|None = None, min: int = 1):
 		super().__init__()
 		self._width = width
-		self.flex_width = width
-		self.flex_width_min = min
+
+		if width is None:
+			self.flex = True
+			self.flex_width_min = min
+		else:
+			self.flex = False
 
 	def required(self):
-		if self.flex_width is not None:
-			return self.flex_width
+		if not self.flex:
+			return self._width or 0
 
-		if self.flex_width_min is not None:
-			return self.flex_width_min
-
-		return 0
+		return self.flex_width_min
 
 	def resize(self, leftover: int) -> int:
-		if self.flex_width is not None:
+		if not self.flex:
 			return 0
 
-		width = leftover + (self.flex_width_min or 0)
+		width = leftover + self.flex_width_min
 		self._width = width
-		self.flex_width = width
 		return leftover
 
 	def html(self) -> str:
-		assert self.flex_width
-		return '\u00A0' * self.flex_width
+		if self._width is None:
+			core.error('flex width spacer was not aligned')
+
+		# slight optmization for the most common case
+		if self._width == 1:
+			return '\u00A0'
+
+		return f'<img style="width:{self._width or 0}rem">'
+
+
+class spacer_dip (span):
+	def __init__(self, width: int):
+		super().__init__()
+		self._width = width
+
+	def width(self):
+		return math.ceil(self._width/self.layout.em_width) # not ideal this might not match the actual width
+
+	def html(self) -> str:
+		return f'<img style="width:{self._width}px">'
 
 
 def aligned_html_inner(item: div):
@@ -56,15 +76,15 @@ def aligned_html_inner(item: div):
 			spacers.append(item)
 
 		elif isinstance(item, alignable):
-			required += int(item.css.padding_width)
-			leftover -= int(item.css.padding_width)
+			required += int(item.css_padding_width)
+			leftover -= int(item.css_padding_width)
 			required += item.align_required
 			leftover -= item.align_desired
 			resizeables.append(item)
 
 		elif type(item) is span:
-			required += int(item.css.padding_width)
-			leftover -= int(item.css.padding_width)
+			required += int(item.css_padding_width)
+			leftover -= int(item.css_padding_width)
 			for i in item.children:
 				calculate(i)
 

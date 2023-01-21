@@ -64,7 +64,7 @@ class Python(dap.AdapterConfiguration):
 		log.info('Using python `{}`'.format(python))
 
 		command = [
-			python,
+			f'{python}',
 			f'{install_path}/extension/pythonFiles/lib/python/debugpy/adapter',
 		]
 

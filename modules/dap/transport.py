@@ -34,7 +34,7 @@ class TransportProtocolListener (Protocol):
 	async def on_reverse_request(self, command: str, arguments: dict[str, Any]) -> dict[str, Any]:
 		...
 
-	def on_transport_closed(self): ...
+	def on_transport_closed(self) -> Any: ...
 
 
 @dataclass
@@ -206,7 +206,7 @@ class TransportProtocol:
 		self.transport_log.log('transport', TransportOutgoingDataLog(data))
 		self.send(data)
 
-	@core.schedule
+	@core.run
 	async def handle_reverse_request(self, request: dict[str, Any]):
 		command = request['command']
 

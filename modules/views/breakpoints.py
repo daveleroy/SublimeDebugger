@@ -17,7 +17,7 @@ from .import css
 
 from functools import partial
 
-class BreakpointsPanel(ui.div):
+class BreakpointsView(ui.div):
 	def __init__(self, breakpoints: Breakpoints, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
@@ -32,7 +32,7 @@ class BreakpointsPanel(ui.div):
 	def _updated(self, data: Any) -> None:
 		self.dirty()
 
-	def on_select(self, breakpoint: IBreakpoint) -> None:
+	def _on_edit(self, breakpoint: IBreakpoint) -> None:
 		if isinstance(breakpoint, DataBreakpoint):
 			self.breakpoints.data.edit(breakpoint).run()
 			return
@@ -43,13 +43,16 @@ class BreakpointsPanel(ui.div):
 			self.breakpoints.filters.edit(breakpoint).run()
 			return
 		if isinstance(breakpoint, SourceBreakpoint):
-			self.on_navigate(dap.SourceLocation.from_path(breakpoint.file, breakpoint.line, breakpoint.column))
 			self.breakpoints.source.edit(breakpoint).run()
 			return
 
 		assert False, "unreachable"
 
-	def on_toggle(self, breakpoint: IBreakpoint) -> None:
+	def _on_navigate(self, breakpoint: IBreakpoint) -> None:
+		if isinstance(breakpoint, SourceBreakpoint):
+			self.on_navigate(dap.SourceLocation.from_path(breakpoint.file, breakpoint.line, breakpoint.column))
+
+	def _on_toggle(self, breakpoint: IBreakpoint) -> None:
 		if isinstance(breakpoint, DataBreakpoint):
 			self.breakpoints.data.toggle_enabled(breakpoint)
 			return
@@ -72,11 +75,11 @@ class BreakpointsPanel(ui.div):
 			for breakpoint in breakpoints:
 				items.append(
 					ui.div(height=css.row_height)[
-						ui.icon(breakpoint.image, on_click=partial(self.on_toggle, breakpoint)),
-						ui.text(breakpoint.name, css=css.label_secondary, on_click=partial(self.on_select, breakpoint)),
+						ui.icon(breakpoint.image, on_click=partial(self._on_toggle, breakpoint)),
+						ui.text(breakpoint.name, css=css.label_secondary, on_click=partial(self._on_edit, breakpoint)),
 						[
 							ui.spacer(),
-							ui.text(breakpoint.tag, css=css.button),
+							ui.text(breakpoint.tag, css=css.button, on_click=partial(self._on_navigate, breakpoint)),
 						] 
 						if breakpoint.tag else None
 					])

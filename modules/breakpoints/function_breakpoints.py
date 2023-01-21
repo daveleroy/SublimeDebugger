@@ -113,37 +113,36 @@ class FunctionBreakpoints:
 			self.breakpoints.remove(breakpoint)
 			self.updated()
 
-		return ui.InputList([
+		return ui.InputList('Edit Breakpoint on function {}'.format(breakpoint.name), index=index)[
 			ui.InputListItemCheckedText(
 				set_name,
-				"Function",
-				"Name of function to break on",
+				'Function',
+				'Name of function to break on',
 				breakpoint.dap.name,
 			),
 			ui.InputListItemCheckedText(
 				set_condition,
-				"Condition",
-				"Breaks when expression is true",
+				'Condition',
+				'Breaks when expression is true',
 				breakpoint.dap.condition,
 			),
 			ui.InputListItemCheckedText(
 				set_hit_condition,
-				"Count",
-				"Breaks when hit count condition is met",
+				'Count',
+				'Breaks when hit count condition is met',
 				breakpoint.dap.hitCondition,
 			),
 			ui.InputListItemChecked(
 				toggle_enabled,
 				breakpoint.enabled,
-				"Enabled",
-				"Disabled",
+				'Enabled',
+				'Disabled',
 			),
 			ui.InputListItem(
 				remove,
-				"Remove"
+				'Remove'
 			),
-		],
-		placeholder="Edit Breakpoint on function {}".format(breakpoint.name), index=index)
+		]
 
 	def add_command(self):
 		ui.InputText(self.add, "Name of function to break on").run()

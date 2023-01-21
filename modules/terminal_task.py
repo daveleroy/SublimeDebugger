@@ -1,194 +1,19 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol, TypedDict, Callable
-
+from typing import TYPE_CHECKING, Protocol
 
 import sublime
-import Default #type: ignore
-import time
-import sys
 import re
 
 from .import core
 from .import dap
 from .import ui
 
-from .ansi import ansi_colorize
 from .debugger_output_panel import DebuggerOutputPanel
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
-@dataclass
-class Problem:
-	message: str
-	source: dap.SourceLocation
 
-class Position(TypedDict):
-	line: int
-	character: int|None
-
-class Range(TypedDict):
-	start: Position
-
-class Diagnostic(TypedDict):
-	range: Range
-	severity: int
-	message: str
-
-class Diagnostics(TypedDict):
-	file: str
-	base: str|None
-	errors: list[Diagnostic]
-
-class TerminalTask(DebuggerOutputPanel):
-
-	on_ended_event: core.Event[None]
-
-	# tasks can "finish" but still be running. For instance background tasks continue to run in the background but are finished right away
-	on_finished_event: core.Event[None]
-
-	on_options: Callable[[], None]|None = None
-
-	def __init__(self, debugger: Debugger, task: dap.TaskExpanded):
-		self.on_updated = core.Event()
-		self.on_ended_event = core.Event()
-		self.on_finished_event = core.Event()
-		self.task = task
-		super().__init__(debugger, task.name)
-
-		self.finished = False
-
-		self.on_problems_updated: core.Event[None] = core.Event()
-		self.diagnostics_per_file: list[Diagnostics] = []
-
-		self.future: core.Future[None] = core.Future()
-
-		# only save the views that have an assigned file
-		for view in self.window.views():
-			if view.file_name() and view.is_dirty():
-				view.run_command('save')
-
-		self.exec = Default.exec.ExecCommand(self.window)
-		self.exec.output_view = self.view
-
-		self.exec_update_annotations = self.exec.update_annotations
-
-		self._exec_on_finished_original = self.exec.on_finished
-		self.exec.on_finished = self._exec_on_finished
-
-
-		self._exec_write = self.exec.write
-		self.exec.write = self.write
-
-		self.view.set_viewport_position((0, sys.maxsize), False)
-		self.on_view_load_listener = core.on_view_load.add(self.on_view_load)
-
-		self.set_status(ui.Images.shared.loading)
-
-		def run():
-			self.exec.run(**arguments)
-			self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
-			self.open()
-
-		sublime.set_timeout(run, 0)
-
-
-	def write(self, characters: str):
-		self._exec_write(ansi_colorize(characters))
-
-	def open_status(self):
-		if on_options := self.on_options:
-			on_options()
-
-	def show_backing_panel(self):
-		self.open()
-
-	def on_view_load(self, view: sublime.View):
-		# refresh the phantoms from exec
-		self.exec.update_annotations()
-
-	def dispose(self):
-		super().dispose()
-
-		try:
-			self.exec.proc.kill()
-		except ProcessLookupError: 
-			...
-		except Exception as e:
-			core.exception(e)
-
-		self.exec.hide_annotations()
-		self.on_view_load_listener.dispose()
-
-	async def wait(self) -> None:
-		try:
-			await self.future
-		except core.CancelledError as e:
-			print(f'Command cancelled {self.name}')
-			self.exec.run(kill=True)
-			raise e
-
-	def cancel(self) -> None:
-		self.exec.run(kill=True)
-
-	def on_updated_errors(self, errors_by_file):
-		self.diagnostics_per_file.clear()
-
-		for file, errors in errors_by_file.items():
-			diagnostics: list[Diagnostic] = []
-			for error in errors:
-				diagnostic: Diagnostic = {
-					'severity': 1,
-					'message': error[2],
-					'range': {
-						'start': {
-							'line': error[0],
-							'character': error[1]
-						}
-					}
-				}
-				diagnostics.append(diagnostic)
-
-			self.diagnostics_per_file.append({
-				'file': file,
-				'base': None,
-				'errors': diagnostics
-			})
-
-		self.on_problems_updated.post()
-
-	def _exec_on_finished(self, proc):
-		self._exec_on_finished_original(proc)
-
-		if proc.killed:
-			exit_status = "[Cancelled]"
-			exit_code: int|None = None
-		else:
-			elapsed = time.time() - proc.start_time
-			exit_code: int|None = proc.exit_code() or 0
-			if exit_code == 0:
-				exit_status = "[Finished in %.1fs]" % elapsed
-			else:
-				exit_status = "[Finished in %.1fs with exit code %d]" % (elapsed, exit_code)
-
-
-		if self.finished:
-			return
-
-		self.finished = True
-		self.exit_code = exit_code
-		self.exit_status = exit_status
-
-		if exit_code is None:
-			self.future.cancel()
-			self.set_status(ui.Images.shared.clear)
-		elif exit_code == 0:
-			self.future.set_result(None)
-			self.set_status(ui.Images.shared.check_mark)
-		else:
-			self.set_status(ui.Images.shared.clear)
-			self.future.set_exception(core.Error(f'`{self.name}` failed with exit_code {exit_code}'))
 
 
 class TerminusTask(DebuggerOutputPanel):
@@ -292,7 +117,7 @@ class Tasks:
 				return True
 		return False
 
-	@core.schedule
+	@core.run
 	async def run(self, debugger: Debugger, task: dap.TaskExpanded):
 
 		# if there is already an existing task we wait on it to finish and do not start a new task
@@ -311,7 +136,7 @@ class Tasks:
 		self.tasks.append(terminal)
 		self.added(terminal)
 
-		@core.schedule
+		@core.run
 		async def update_when_done():
 			try:
 				await terminal.wait()
@@ -330,9 +155,9 @@ class Tasks:
 			self.cancel(task)
 			return
 
-		options = ui.InputList([
-			ui.InputListItem(lambda: self.cancel(task), 'Kill Task'),
-		])
+		options = ui.InputList('Kill task?') [
+			ui.InputListItem(lambda: self.cancel(task), 'Kill'),
+		]
 		options.run()
 
 	def remove_finished(self):

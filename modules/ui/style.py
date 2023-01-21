@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
 	from .layout import Layout
 
-from .debug import DEBUG_DRAW
-
 import sublime
 
 base_css = '''
@@ -44,46 +42,46 @@ l {
 }
 '''
 
+# for debugging purposes
 
-if DEBUG_DRAW:
-	base_css += '''
-d {
-	background-color: color(red alpha(0.1));
+# base_css += '''
+# d {
+# 	background-color: color(red alpha(0.1));
 
-	--panel-color: color(red alpha(0.25));
-	--segment-color: color(red alpha(0.25));
-	--panel-border: color(red alpha(0.25));
+# 	--panel-color: color(red alpha(0.25));
+# 	--segment-color: color(red alpha(0.25));
+# 	--panel-border: color(red alpha(0.25));
 
-	border-style: solid;
-	border-color: black;
-	border-width: 0.15px;
-}
-s {
-	background-color: color(blue alpha(0.15));
+# 	border-style: solid;
+# 	border-color: black;
+# 	border-width: 0.15px;
+# }
+# s {
+# 	background-color: color(blue alpha(0.15));
 
-	--tinted: color(blue alpha(0.25));
-	--light: color(blue alpha(0.25));
-	--medium: color(blue alpha(0.25));
-	--dark: color(blue alpha(0.25));
+# 	--tinted: color(blue alpha(0.25));
+# 	--light: color(blue alpha(0.25));
+# 	--medium: color(blue alpha(0.25));
+# 	--dark: color(blue alpha(0.25));
 
-	border-style: solid;
-	border-color: black;
-	border-width: 0.15px;
-}
+# 	border-style: solid;
+# 	border-color: black;
+# 	border-width: 0.15px;
+# }
 
-l {
-	background-color: color(green alpha(0.25));
+# l {
+# 	background-color: color(green alpha(0.25));
 
-	--tinted: color(green alpha(0.25));
-	--light: color(green alpha(0.25));
-	--medium: color(green alpha(0.25));
-	--dark: color(green alpha(0.25));
-}
+# 	--tinted: color(green alpha(0.25));
+# 	--light: color(green alpha(0.25));
+# 	--medium: color(green alpha(0.25));
+# 	--dark: color(green alpha(0.25));
+# }
 
-'''
+# '''
 
 class css:
-	id = 0
+	next_id = 1
 	instances = []
 
 	cached: dict[str, str] = {}
@@ -108,7 +106,7 @@ class css:
 			css_list.append(f'body {{ font-size: {layout.font_size}pt; }}')
 
 		for c in css.instances:
-			css_list.append('#{}{{'.format(c.css_id))
+			css_list.append('#{}{{'.format(c.id))
 			if not c.height is None:
 				css_list.append(f'height:{c.height}rem;')
 			if not c.width is None:
@@ -161,10 +159,8 @@ class css:
 		self.background_color = background_color
 		self.color = color
 
-		self.id = css.id
-		css.id += 1
-
-		self.css_id = '_{}'.format(self.id)
+		self.id = '_{}'.format(css.next_id)
+		css.next_id += 1
 
 		css.instances.append(self)
 
@@ -186,13 +182,3 @@ class css:
 
 		self.padding_height = additional_height
 		self.padding_width = additional_width
-
-
-
-none_css = css()
-
-icon_css = css(raw='''
-	position: relative;
-	top:0.5rem;
-	line-height:0;
-''')

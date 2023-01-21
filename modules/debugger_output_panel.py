@@ -7,7 +7,7 @@ import sublime_plugin
 from .import core
 from .import ui
 
-from .views.debugger_panel import DebuggerActionsTab
+from .views.debugger import DebuggerActionsTab
 from .views import css
 from .settings import Settings
 
@@ -29,39 +29,35 @@ class DebuggerPanelTabs(ui.span):
 		items: list[ui.span] = []
 		
 		for panel in self.debugger.output_panels:
-			if panel.output_panel_name == self.output_name:
-				csss = css.tab_selected
-			else:
-				csss = css.tab
-
-			name = panel.name
-
+			csss = css.tab_selected if panel.output_panel_name == self.output_name else css.tab
+			
 			items.append(
 				ui.span(css=csss, on_click=lambda panel=panel: panel.open())[
 					ui.spacer(1),
-					ui.text(name, css=css.label_secondary),
+					ui.text(panel.name, css=css.label_secondary),
 					ui.spacer(1),
 					ui.icon(panel.status, on_click=lambda panel=panel: panel.open_status()) if panel.status else None
 				]
 			)
 
-			items.append(ui.spacer(1))
+			items.append(ui.spacer_dip(10))
 
 		return items
 
 class DebuggerConsoleTabs(ui.div):
 	def __init__(self, debugger: Debugger, panel: DebuggerOutputPanel):
 		super().__init__(css=css.console_tabs_top if panel.show_tabs_top else css.console_tabs_bottom)
-		self.debugger_actions = DebuggerActionsTab(debugger)
+
+		self.actions = DebuggerActionsTab(debugger)
 		self.tabs = DebuggerPanelTabs(debugger, panel)
 		self.top = panel.show_tabs_top
 
 	def render(self):
 		return [
 			ui.div(height=css.header_height)[
-				self.debugger_actions,
-				ui.span(css=css.phantom_sized_spacer),
-				self.tabs
+				self.actions,
+				ui.spacer_dip(10),
+				self.tabs,
 			],
 			ui.div(height=0.25, width=self.layout.width() - 5, css=css.seperator) if self.top else None,
 			ui.div(height=1, width=1, css=css.seperator_cutout) if self.top else None,
@@ -109,7 +105,6 @@ class DebuggerOutputPanel:
 
 		settings.set('scroll_past_end', False)
 		settings.set('gutter', False)
-
 
 		# this is just a hack to get the output panel to have a bigger height
 		self.update_settings()
@@ -280,10 +275,6 @@ class DebuggerOutputPanel:
 
 
 class DebuggerConsoleListener (sublime_plugin.EventListener):
-	def __init__(self) -> None:
-		super().__init__()
-		self.phantoms = {}
-
 	def on_selection_modified(self, view: sublime.View) -> None:
 		panel = DebuggerOutputPanel.panels.get(view.id())
 		if not panel: return
@@ -406,12 +397,10 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 			height = self.view.layout_extent()[1]
 			desired_height = self.view.viewport_extent()[1]
 
+
 			controls_and_tabs_phantom.vertical_offset = max((desired_height-height) + controls_and_tabs_phantom.vertical_offset, 0)
 
-			if controls_and_tabs_phantom.requires_render:
-				controls_and_tabs_phantom.render()
-			else:
-				controls_and_tabs_phantom.render_if_out_of_position()
+			controls_and_tabs_phantom.render_if_out_of_position()
 			
 			# Figure out a better way that doesn't always scroll to the bottom when new content comes in
 			sublime.set_timeout(lambda: self.view.set_viewport_position((0, self.view.layout_extent()[1]), False), 0)

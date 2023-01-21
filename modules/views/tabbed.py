@@ -1,14 +1,14 @@
 from __future__ import annotations
-from typing import Any, Callable
+from typing import Any, Callable, Iterable, Sequence
 
 from ..import ui
 from .import css
 from functools import partial
 
 
-class Panel(ui.div):
+class TabbedView(ui.div):
 	name: str
-	parent: TabbedPanel|None
+	parent: TabbedViewContainer|None
 	on_show: Callable[[], None]|None = None
 
 	def __init__(self, name: str):
@@ -16,56 +16,48 @@ class Panel(ui.div):
 		self.name = name
 		self.parent = None
 
-	def panel_header(self, expanded: bool) -> list[ui.span] | None:
-		if expanded:
+	def header(self, is_selected: bool) -> ui.span.Children:
+		if is_selected:
 			csss = css.tab_selected
 		else:
 			csss = css.tab
 
-		return [
-			ui.span(css=csss) [
-				ui.text(self.name, css=css.label_secondary),
-			]
+		return ui.span(css=csss) [
+			ui.text(self.name, css=css.label_secondary),
 		]
 
 	def visible(self) -> bool:
 		return True
 
 	def dirty_header(self):
-		if not self.parent: return
+		if not self.parent or not self.visible(): return
 		self.parent.dirty()
 
-class TabbedPanel(ui.div):
-	def __init__(self, items: list[Panel], selected_index: int, width_scale: float, width_additional: float) -> None:
-		super().__init__()
-		self.items = items
-		self.selected_index = selected_index
-		self.width_scale = width_scale
-		self.width_additional = width_additional
 
-	def update(self, items: list[Panel]):
-		self.items = items
-		for item in items:
+class TabbedViewContainer(ui.div):
+	def __init__(self, width: float|None = None, width_scale: float|None = None, width_additional: float = 0, width_additional_dip: float = 0) -> None:
+		super().__init__()
+		self.selected_index = 0
+
+		self._width = width
+		self._width_scale = width_scale
+		self._width_additional = width_additional
+		self._width_additional_dip = width_additional_dip
+
+		self.items: Sequence[TabbedView] = []
+
+	def __getitem__(self, values: TabbedView|Sequence[TabbedView]): #type: ignore
+		self.items = values if isinstance(values, Iterable) else [values]
+		
+		for item in self.items:
 			item.parent = self
 				
-
-		if len(items) < self.selected_index:
-			self.selected_index = 0
-		self.dirty()
-
-	def add(self, item: Panel):
-		item.parent = self
-
-		self.items.append(item)
-		self.dirty()
-
-	def remove(self, panel: Any):
-		self.items.remove(panel)
-		panel.parent = None
-
 		if len(self.items) < self.selected_index:
 			self.selected_index = 0
+
 		self.dirty()
+
+		return self
 
 	def select(self, panel: Any):
 		for index, item in enumerate(self.items):
@@ -86,9 +78,6 @@ class TabbedPanel(ui.div):
 				return
 
 	def show(self, index: int):
-		# if self.selected_index == index and self.items[index].show_options:
-		# 	self.items[index].show_options()
-		# 	return
 		on_show = self.items[index].on_show
 		if on_show: on_show()
 		
@@ -102,20 +91,21 @@ class TabbedPanel(ui.div):
 
 		self.patch_selected()
 
-		# each phantom takes up 10 extra dip 5 on each side it looks like
-		layout_width = self.layout.width() -  self.layout.from_dip(30)
-
-		width = (layout_width + self.width_additional) * self.width_scale
+		if self._width:
+			width = self._width
+		else:	
+			# each phantom takes up 10 extra dip 5 on each side it looks like
+			layout_width = self.layout.width() + self._width_additional + self.layout.from_dip(self._width_additional_dip)
+			width = layout_width * self._width_scale if self._width_scale else layout_width
 
 		tabs: list[ui.span] = []
+
 		for index, item in enumerate(self.items):
 			if not item.visible():
 				continue
 
-			tab = item.panel_header(index == self.selected_index)
-
 			tabs.append(ui.span(on_click=partial(self.show, index))[
-				tab
+				item.header(index == self.selected_index)
 			])
 
 		return [

@@ -61,8 +61,8 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 		return await dap.SocketTransport.connect_with_process(log, command, port)
 
-	async def on_custom_request(self, session: dap.Session, request: str, arguments: Any) -> Any:
-		if request == 'attachedChildSession':
+	async def on_custom_request(self, session: dap.Session, command: str, arguments: Any) -> Any:
+		if command == 'attachedChildSession':
 			debugger = session.debugger
 			config = dap.Configuration.from_json(arguments['config'], 0)
 			await debugger.launch(session.breakpoints, self, dap.ConfigurationExpanded(config, session.configuration.variables), parent=session)

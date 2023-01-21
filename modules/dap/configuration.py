@@ -89,12 +89,6 @@ class AdapterConfiguration:
 	async def on_custom_request(self, session: Session, command: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
 		...
 
-	def commands(self) -> list[Any]:
-		return []
-
-	def settings(self, debugger: Debugger) -> list[Any]:
-		return []
-
 	def ui(self, debugger: Debugger) -> Any|None:
 		...
 

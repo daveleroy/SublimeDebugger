@@ -12,9 +12,6 @@ if TYPE_CHECKING:
 	from .variable import SourceLocation
 
 class Debugger(Protocol):
-	on_error: core.Event[str]
-	on_info: core.Event[str]
-
 	on_session_added: core.Event[Session]
 	on_session_removed: core.Event[Session]
 	on_session_active: core.Event[Session]

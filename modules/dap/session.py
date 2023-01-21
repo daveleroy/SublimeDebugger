@@ -171,7 +171,7 @@ class Session(TransportProtocolListener):
 
 		self.launching_async = None
 
-	@core.schedule
+	@core.run
 	async def _launch(self) -> None:
 		assert self.state == Session.State.STOPPED, 'debugger not in stopped state?'
 		self.state = Session.State.STARTING
@@ -707,7 +707,7 @@ class Session(TransportProtocolListener):
 	# when it does happen we can then add all the breakpoints and complete the configuration
 	# NOTE: some adapters appear to send the initialized event multiple times
 
-	@core.schedule
+	@core.run
 	async def on_initialized_event(self):
 		await self.add_breakpoints()
 
@@ -717,7 +717,7 @@ class Session(TransportProtocolListener):
 	def on_output_event(self, event: dap.OutputEvent):
 		self.listener.session_output_event(self, event)
 
-	@core.schedule
+	@core.run
 	async def on_terminated_event(self, event: dap.TerminatedEvent):
 		self.terminated_event = event
 		await self.stop()
@@ -727,14 +727,14 @@ class Session(TransportProtocolListener):
 		# if event.restart:
 		# 	await self.launch(self.adapter_configuration, self.configuration, event.restart)
 
-	@core.schedule
+	@core.run
 	async def on_transport_closed(self):
 		await self.stop_forced(reason=None)
 		
-	async def on_reverse_request(self, command: str, arguments: Any):
+	async def on_reverse_request(self, command: str, arguments: Any) -> dict[str, Any]:
 		if command == 'runInTerminal':
 			response = await self.on_run_in_terminal(arguments)
-			return response
+			return response #type: ignore
 
 		assert self.adapter_configuration
 		response = await self.adapter_configuration.on_custom_request(self, command, arguments)
@@ -777,7 +777,7 @@ class Session(TransportProtocolListener):
 	# see https://microsoft.github.io/debug-adapter-protocol/overview
 	# updates all the threads from the dap model
 	# @NOTE threads_for_id will retain all threads for the entire session even if they are removed
-	@core.schedule
+	@core.run
 	async def refresh_threads(self):
 		# the Java debugger requires an empty object instead of `None`
 		# See https://github.com/daveleroy/sublime_debugger/pull/106#issuecomment-793802989
@@ -827,7 +827,7 @@ class Session(TransportProtocolListener):
 		self.refresh_threads()
 		self._refresh_state()
 
-	@core.schedule
+	@core.run
 	async def expand_thread(self, thread: Thread):
 		children = await thread.children()
 		if children and not self.selected_frame and not self.selected_explicitly and self.selected_thread is thread:

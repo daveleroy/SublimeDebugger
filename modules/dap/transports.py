@@ -85,7 +85,6 @@ class Process:
 			if not line:
 				break
 
-			core.info(line)
 			core.call_soon_threadsafe(callback, line)
 
 	def _readline(self, pipe: IO[bytes]) -> bytes:

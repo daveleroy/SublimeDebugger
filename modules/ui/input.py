@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Protocol, Sequence
 
 from ..import core
 
@@ -78,10 +78,10 @@ class InputListItem:
 class InputList(sublime_plugin.ListInputHandler):
 	id = 0
 
-	def __init__(self, values: list[InputListItem], placeholder: str|None = None, index: int = 0):
+	def __init__(self, placeholder: str = '', index: int = 0):
 		super().__init__()
 		self._next_input = None
-		self.values = values
+		self.values: Sequence[InputListItem] = []
 		self._placeholder = placeholder
 		self.index = index
 
@@ -91,7 +91,14 @@ class InputList(sublime_plugin.ListInputHandler):
 		self.arg_name = 'list_{}'.format(InputList.id)
 		InputList.id += 1
 
-	@core.schedule
+	def __getitem__(self, values: Sequence[InputListItem]|InputListItem):
+		self.values = values if isinstance(values, Sequence) else [values]
+		return self
+
+	def __await__(self):
+		return self.run().__await__()
+
+	@core.run
 	async def run(self):
 		command = CommandPaletteInputCommand(sublime.active_window(), self)
 		try:
@@ -108,8 +115,8 @@ class InputList(sublime_plugin.ListInputHandler):
 	def want_event(self) -> bool:
 		return True
 
-	def list_items(self):
-		items: list[Any] = []
+	def list_items(self): #type: ignore
+		items: list[sublime.ListInputItem] = []
 		for index, value in enumerate(self.values):
 			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind, annotation=value.annotation)) #type: ignore
 
@@ -136,23 +143,23 @@ class InputList(sublime_plugin.ListInputHandler):
 		if self._on_run_internal:
 			self._on_run_internal()
 
-	def preview(self, value: int):
-		if preview := self.values[value].preview:
+	def preview(self, arg: int): #type: ignore
+		if preview := self.values[arg].preview:
 			return preview()
 
-	def next_input(self, args: Any):
+	def next_input(self, args: Any): #type: ignore
 		n = self._next_input
 		self._next_input = None
 		return n
 
-	def validate(self, value: int, event: Any):
+	def validate(self, value: int, event: Any): #type: ignore
 		return True
 
 	def cancel(self):
 		if self._on_cancel_internal:
 			self._on_cancel_internal()
 
-	def description(self, value: int, text: str):
+	def description(self, value: int, text: str): #type: ignore
 		return self.values[value].name or self.values[value].text.split('\t')[0]
 
 class InputEnable (Protocol):
@@ -179,16 +186,16 @@ class InputText(sublime_plugin.TextInputHandler):
 		self.arg_name = 'text_{}'.format(InputText.id)
 		InputText.id += 1
 
-	@core.schedule
+	@core.run
 	async def run(self):
 		await CommandPaletteInputCommand(sublime.active_window(), self).wait()
 
-	def placeholder(self):
+	def placeholder(self): #type: ignore
 		if self._enable:
 			self._enable.enable()
 		return self._placeholder
 
-	def initial_text(self):
+	def initial_text(self): #type: ignore
 		return self._initial
 
 	def confirm(self, value: str):
@@ -200,7 +207,7 @@ class InputText(sublime_plugin.TextInputHandler):
 		if self._on_run_internal:
 			self._on_run_internal()
 
-	def next_input(self, args: Any):
+	def next_input(self, args: Any): #type: ignore
 		n = self._next_input
 		self._next_input = None
 		return n

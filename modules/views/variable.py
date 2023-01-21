@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Callable
+from typing import TYPE_CHECKING, Optional
 
 from ..import core
 from ..import ui
@@ -12,7 +12,7 @@ import sublime
 if TYPE_CHECKING:
 	from ..debugger import Debugger
 
-class VariableComponentState:
+class VariableViewState:
 	def __init__(self):
 		self._expanded: dict[int, bool] = {}
 		self._number_expanded: dict[int, int] = {}
@@ -30,8 +30,8 @@ class VariableComponentState:
 		self._number_expanded[id(variable)] = value
 
 
-class VariableComponent (ui.div):
-	def __init__(self, debugger: Debugger, variable: dap.Variable, state = VariableComponentState(), children_only = False) -> None:
+class VariableView (ui.div):
+	def __init__(self, debugger: Debugger, variable: dap.Variable, state = VariableViewState(), children_only = False) -> None:
 		super().__init__()
 		self.variable = variable
 		self.debugger = debugger
@@ -46,7 +46,7 @@ class VariableComponent (ui.div):
 		if self.state.is_expanded(self.variable):
 			self.set_expanded()
 
-	@core.schedule
+	@core.run
 	async def edit_variable(self) -> None:
 		if not self.variable.containerVariablesReference:
 			raise core.Error('Not able to set value of this item')
@@ -76,7 +76,7 @@ class VariableComponent (ui.div):
 		def on_edit_variable(value: str):
 			core.run(on_edit_variable_async(value))
 
-		@core.schedule
+		@core.run
 		async def copy_value():
 			session = self.variable.session
 			if evaluateName:
@@ -142,11 +142,13 @@ class VariableComponent (ui.div):
 					lambda: on_add_data_breakpoint(acessType),
 					labels.get(acessType) or 'Break On Value Change'
 				))
-		self.edit_variable_menu = ui.InputList(items, '{} {}'.format(name, value)).run()
+		self.edit_variable_menu = ui.InputList(f'{name} {value}')[
+			items
+		]
 		await self.edit_variable_menu
 		self.edit_variable_menu = None
 
-	@core.schedule
+	@core.run
 	async def set_expanded(self) -> None:
 		self.state.set_expanded(self.variable, True)
 		self.error = None
@@ -159,7 +161,7 @@ class VariableComponent (ui.div):
 
 		self.dirty()
 
-	@core.schedule
+	@core.run
 	async def toggle_expand(self) -> None:
 		is_expanded = self.state.is_expanded(self.variable)
 		if is_expanded:
@@ -213,7 +215,7 @@ class VariableComponent (ui.div):
 
 		count = self.state.number_expanded(self.variable)
 		for variable in self.variable_children[:count]:
-			children.append(VariableComponent(self.debugger, variable, state=self.state))
+			children.append(VariableView(self.debugger, variable, state=self.state))
 
 		more_count = len(self.variable_children) - count
 		if more_count > 0:
@@ -226,7 +228,7 @@ class VariableComponent (ui.div):
 
 		return children
 
-	def render(self) -> ui.div.Children:
+	def render(self):
 		name =  self.variable.name
 		value = self.variable.value or ''
 
