@@ -833,7 +833,7 @@ class Session(TransportProtocolListener):
 		if children and not self.selected_frame and not self.selected_explicitly and self.selected_thread is thread:
 			def first_non_subtle_frame(frames: list[dap.StackFrame]):
 				for frame in frames:
-					if frame.presentationHint != 'subtle':
+					if frame.presentationHint != 'subtle' and frame.source:
 						return frame
 				return frames[0]
 
