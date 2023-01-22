@@ -211,6 +211,12 @@ class VariableView (ui.div):
 				ui.text('◌', css=css.label_secondary)
 			]
 
+		if not self.variable_children:
+			return ui.div(height=css.row_height)[
+				ui.spacer(3),
+				ui.text('zero items …', css=css.label_secondary)
+			]
+
 		children: list[ui.div] = []
 
 		count = self.state.number_expanded(self.variable)
