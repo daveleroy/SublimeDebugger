@@ -163,16 +163,11 @@ class SocketTransport(Transport):
 		raise exception or core.Error('unreachable')
 
 	@staticmethod
-	async def connect_with_process(log: core.Logger, command: list[str], port: int, process_is_program_output: bool = False):
+	async def connect_with_process(log: core.Logger, command: list[str], port: int, process_is_program_output: bool = False, cwd: str|None = None):
 		log.log('transport', f'-- socket transport process: {command}')
-		process = Process(command)
+		process = Process(command, cwd=cwd)
 
-		# log the data to the console here instead of sending it to the protocol panel
-		# this is for vscode-go which is doing something goofy
-		if process_is_program_output:
-			process.on_stdout(lambda data: log.log('stdout', data))
-			process.on_stderr(lambda data: log.log('stderr', data))
-		else:
+		if not process_is_program_output:
 			process.on_stdout(lambda data: log.log('transport', TransportStdoutOutputLog(data)))
 			process.on_stderr(lambda data: log.log('transport', TransportStderrOutputLog(data)))
 

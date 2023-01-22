@@ -33,4 +33,21 @@ class Go(dap.AdapterConfiguration):
 		command = [
 			dlv, 'dap', '--listen', f'localhost:{port}'
 		]
-		return await dap.SocketTransport.connect_with_process(log, command, port, process_is_program_output=True)
+
+
+		transport = await dap.SocketTransport.connect_with_process(log, command, port, process_is_program_output=True, cwd=configuration.get('cwd'))
+		assert transport.process
+
+		def stdout(data: str):
+			# ignore this none program output line
+			if data.startswith('DAP server listening at:'):
+				return
+
+			log.log('stdout', data)
+
+		def stderr(data: str):
+			log.log('stderr', data)
+
+		transport.process.on_stdout(stdout)
+		transport.process.on_stderr(stderr)
+		return transport
