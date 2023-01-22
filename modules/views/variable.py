@@ -152,13 +152,16 @@ class VariableView (ui.div):
 	async def set_expanded(self) -> None:
 		self.state.set_expanded(self.variable, True)
 		self.error = None
-		self.dirty()
+		
+		# Give this a little time to load before marking it as dirty to avoid showing loading indicator in most cases
+		timer = core.timer(self.dirty, 0.2)
 		
 		try:
 			self.variable_children = await self.variable.children()
 		except core.Error as error:
 			self.error = error
 
+		timer.dispose()
 		self.dirty()
 
 	@core.run
@@ -208,7 +211,7 @@ class VariableView (ui.div):
 		if self.variable_children is None:
 			return ui.div(height=css.row_height)[
 				ui.spacer(3),
-				ui.text('◌', css=css.label_secondary)
+				ui.text('…', css=css.label_secondary)
 			]
 
 		if not self.variable_children:
