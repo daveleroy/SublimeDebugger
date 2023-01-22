@@ -9,7 +9,6 @@ from .import dap
 
 from .views.variable import VariableView
 
-from .settings import Settings
 from .ansi import ansi_colorize
 
 from .debugger_protocol_panel import DebuggerProtocolPanel
@@ -39,7 +38,11 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		self._history_offset = 0
 		self._history = []
 
+		self._annotation_id = 0
 
+		self._last_output_event: dap.OutputEvent|None = None
+		self._last_output_event_annotation_id = 0
+		self._last_output_event_count = 0
 
 		settings = self.view.settings()
 		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
@@ -62,25 +65,30 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		if type == 'telemetry':
 			return
 
+		source = None
+		if event.source:
+			source = dap.SourceLocation(event.source, event.line)
+
 		color_for_type: dict[str|None, str|None] = {
 			'stderr': 'red',
 			'stdout': 'foreground',
-			'debugger.error': 'red',
-			'debugger.info': 'blue',
+			'important': 'magenta',
 		}
+
+		color = color_for_type.get(type) or 'blue'
 
 		if event.group == 'end':
 			self.end_indent()
 
 		if event.variablesReference:
-			self.write(f'\u200b\n', color_for_type.get(type), ensure_new_line=True, ignore_indent=False)
-			placeholder = self.add_annotation(self.at() - 1, event.source, event.line)
+			self.write(f'\u200b\n', color, ensure_new_line=True, ignore_indent=False)
+			placeholder = self.add_annotation(self.at() - 1, source)
 
 			async def appendVariabble(variablesReference: int) -> None:
 				try:
 					variables = await session.get_variables(variablesReference, without_names=True)
 					for variable in variables:
-						at = placeholder()
+						at = self.annotation_region(placeholder).a
 						self.write_variable(variable, at, variable==variables[-1])
 
 				# if a request is cancelled it is because the debugger session ended
@@ -94,12 +102,33 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 			core.run(appendVariabble(event.variablesReference))
 
 		elif event.output:
-			self.write(event.output, color_for_type.get(type), ignore_indent=False)
-			if event.source:
-				self.add_annotation(self.at() - 1, event.source, event.line)
+			if self.is_output_identical_to_previous(event):
+				self._last_output_event_count += 1
+				self._last_output_event_annotation_id = self.add_annotation(self.at() - 1, source, self._last_output_event_count, self._last_output_event_annotation_id)
+			else:
+				self._last_output_event = event
+				self._last_output_event_count = 1
+
+				self.write(event.output, color, ignore_indent=False)
+				if event.source:
+					self._last_output_event_annotation_id = self.add_annotation(self.at() - 1, source)
+				else:
+					self._last_output_event_annotation_id = None
 
 		if event.group == 'start' or event.group == 'startCollapsed':
 			self.start_indent()
+
+	def is_output_identical_to_previous(self, event: dap.OutputEvent):
+		if not self._last_output_event:
+			return False
+
+		if event.group:
+			return False
+
+		if self._last_output_event.group:
+			return False
+
+		return self._last_output_event.category == event.category and self._last_output_event.output == event.output
 
 	def start_indent(self, forced: bool = False):
 		if forced:
@@ -178,42 +207,65 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		phantom = ui.RawPhantom(self.view, sublime.Region(at, at), html, on_navigate=on_navigate)
 		self.phantoms.append(phantom)
 
-	def add_annotation(self, at: int, source: dap.Source|None, line: int|None):
-		if source:
-			location = dap.SourceLocation(source, line)
-			name = ui.html_escape(f'@{location.name}')
+	def add_annotation(self, at: int, source: dap.SourceLocation|None = None, count: int|None = None, annotation_id: int|None = None):
+
+		if not annotation_id:
+			self._annotation_id += 1
+			annotation_id = self._annotation_id
+
+		if source or count and count > 1:
+
+			if source:				
+				on_navigate = lambda _: self.on_navigate(source)
+				source_html = f'<a href="">{source.name}</a>'
+			else:
+				on_navigate = None
+				source_html = ''
+
+			count_html = f'<span>{count}</span>' if count else ''
+
 			html = f'''
-				<style>
+			<style>
 				html {{
 					background-color: var(--background);
 				}}
 				a {{
-					color: color(var(--foreground) alpha(0.25));
+					color: color(var(--foreground) alpha(0.33));
 					text-decoration: none;
 				}}
-				</style>
-				<body id="debugger">
-					<a href="">{name}</a>
-				</body>
+				span {{
+					color: color(var(--foreground) alpha(0.66));
+					background-color: color(var(--accent) alpha(0.5));
+					padding-right: 1.1rem;
+					padding-left: -0.1rem;
+					border-radius: 0.5rem;
+				}}
+			</style>
+			<body id="debugger">
+				<div>
+					{count_html}
+					{source_html}
+				</div>
+			</body>
 			'''
-		
-			def on_navigate(path: str):
-				self.on_navigate(location)
 
-			self.view.add_regions(f'an{at}', [sublime.Region(at, at)], annotation_color="#fff0", annotations=[html], on_navigate=on_navigate)
+			self.view.add_regions(f'an{annotation_id}', [sublime.Region(at, at)], annotation_color="#fff0", annotations=[html], on_navigate=on_navigate)
 		else:
-			self.view.add_regions(f'an{at}', [sublime.Region(at, at)])
+			self.view.add_regions(f'an{annotation_id}', [sublime.Region(at, at)])
 
-		return lambda: self.view.get_regions(f'an{at}')[0].a
+		return annotation_id
+
+	def annotation_region(self, id: int):
+		return self.view.get_regions(f'an{id}')[0]
 
 	def clear(self):
 		self.indent = ''
 		self.forced_indent = ''
 		self.protocol.clear()
 		self.dispose_phantoms()
-
+		self._last_output_event = None
 		self.color = None
-		self.edit(lambda edit: self.view.replace(edit, sublime.Region(0, self.view.size()), ''))
+		self.edit(lambda edit: self.view.replace(edit, sublime.Region(0, self.view.size()), '\u200b'))
 		self.view.set_read_only(True)
 
 	def on_selection_modified(self):
@@ -236,7 +288,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 
 	def on_post_text_command(self, command_name: str, args: Any):
 		if command_name == 'copy':
-			sublime.set_clipboard(sublime.get_clipboard().replace('\u200c', '').replace('\u200b', '').replace('\u200d', ''))
+			sublime.set_clipboard(sublime.get_clipboard().replace('\u200c', '').replace('\u200b', ''))
 
 	def on_text_command(self, command_name: str, args: Any): #type: ignore
 		if command_name == 'insert' and args['characters'] == '\n' and self.enter():
@@ -352,7 +404,8 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		a = self.view.size()
 
 		def edit(edit):
-			size = self.view.insert(edit, a, '\n\u200c:')
+			marker = '\n\u200c:' if a > 1 else '\u200c:' 
+			size = self.view.insert(edit, a, marker)
 			self.input_size = size
 			self.view.add_regions('input', [sublime.Region(a, a+size)])
 
