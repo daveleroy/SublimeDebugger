@@ -294,6 +294,13 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		if command_name == 'insert' and args['characters'] == '\n' and self.enter():
 			return ('noop')
 
+		# I have no idea why left_delete breaks layout_extent when getting the height of the content + phantom but it does...
+		# this causes every left_delete to make the spacer at the bottom larger and larger
+		# performing our own left_delete seems to fix this
+		if command_name == 'left_delete':
+			core.edit(self.view, lambda edit: self.view.erase(edit, sublime.Region(self.view.size() -1 ,self.view.size())))
+			return ('noop')
+
 		if not self.view.is_auto_complete_visible() and command_name == 'move' and args['by'] =='lines':
 			self.set_input_mode()
 			if args['forward']:
