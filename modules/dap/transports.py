@@ -153,7 +153,7 @@ class SocketTransport(Transport):
 	@staticmethod
 	async def connect_with_retry(log: core.Logger, host: str, port: int):
 		exception: Exception|None = None
-		for _ in range(0, 8):
+		for _ in range(0, 20):
 			try:
 				return SocketTransport(log, host, port)
 			except Exception as e:
