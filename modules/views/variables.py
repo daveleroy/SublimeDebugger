@@ -64,6 +64,15 @@ class WatchView(ui.div):
 		self.open = not self.open
 		self.dirty()
 
+	def render_children(self):
+		if not self.debugger.watch.expressions:
+			return ui.div(height=css.row_height)[
+				ui.spacer(3),
+				ui.text('zero items …', css=css.label_secondary)
+			]
+
+		return [WatchExpressionView(self.debugger, expresion, on_edit_not_available=self.debugger.watch.edit_run) for expresion in self.debugger.watch.expressions]
+
 	def render(self) -> ui.div.Children:
 
 		header = ui.div(height=css.row_height)[
@@ -79,7 +88,7 @@ class WatchView(ui.div):
 		return [
 			header,
 			ui.div(css=css.table_inset)[
-				[WatchExpressionView(self.debugger, expresion, on_edit_not_available=self.debugger.watch.edit_run) for expresion in self.debugger.watch.expressions]
+				self.render_children()
 			]
 		]
 
@@ -101,7 +110,8 @@ class WatchExpressionView(ui.div):
 			component = VariableView(self.debugger, self.expression.evaluate_response)
 			return [component]
 
-		return ui.div(height=css.row_height, css=css.padding_left)[
+		return ui.div(height=css.row_height)[
+			ui.spacer(3),
 			ui.span(on_click=lambda: self.on_edit_not_available(self.expression)) [
 				ui.text(self.expression.value, css=css.label_secondary),
 				ui.spacer(1),
