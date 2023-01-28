@@ -7,7 +7,6 @@ from . import css
 
 from .breakpoints import BreakpointsView
 from .tabbed import TabbedView
-from .process import ProcessView
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
@@ -29,7 +28,7 @@ class DebuggerTabbedView(TabbedView):
 		self.last_adapter_configuration: dap.AdapterConfiguration|None = None
 		self.actions_tab = DebuggerActionsTab(debugger)
 
-		self.process = ProcessView(debugger)
+
 
 	def header(self, is_selected):
 		return self.actions_tab
@@ -57,7 +56,6 @@ class DebuggerTabbedView(TabbedView):
 			if item := self.last_adapter_configuration.ui(self.debugger):
 				panel_items.append(item)
 
-		panel_items.append(self.process)
 		panel_items.append(self.breakpoints)
 
 		return panel_items
