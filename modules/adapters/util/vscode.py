@@ -10,7 +10,6 @@ import gzip
 import urllib.request
 import json
 import pathlib
-import certifi
 import sublime
 
 from dataclasses import dataclass
@@ -122,7 +121,7 @@ async def request(url: str, config: Config = Config()):
 			headers[h] = v
 
 	request = urllib.request.Request(url, headers=headers, data=config.body)
-	response = urllib.request.urlopen(request, cafile=certifi.where())
+	response = urllib.request.urlopen(request)
 
 	content_encoding = response.headers.get('Content-Encoding')
 	if content_encoding == 'gzip':

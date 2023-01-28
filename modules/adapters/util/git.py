@@ -4,14 +4,11 @@ from typing import Any, Callable
 import urllib.request
 import urllib.error
 import json
-import certifi
 
 from ...import core
 from ...import dap
 
 from .import vscode
-
-from ...libs.semver import semver
 
 cached_etag: dict[str, str] = {}
 cached_response: dict[str, Any] = {}
@@ -29,7 +26,7 @@ async def request_json(url: str, timeout: int|None = 30) -> Any:
 
 		request = urllib.request.Request(url, headers=headers)
 		try:
-			response = urllib.request.urlopen(request, cafile=certifi.where(), timeout=timeout)
+			response = urllib.request.urlopen(request, timeout=timeout)
 		
 		except urllib.error.HTTPError as error:
 			if error.code == 304:
