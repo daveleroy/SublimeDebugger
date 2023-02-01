@@ -31,8 +31,8 @@ async def request(session_name: str, method: str, params: Any) -> Any:
 		del _futures[_id]
 
 
-	if resolve := command_response.get('resolve'):
-		return resolve
+	if 'resolve' in command_response:
+		return command_response.get('resolve')
 
 	raise core.Error(command_response.get('reject') or 'Expected `resolve` or `reject`')
 
