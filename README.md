@@ -81,20 +81,19 @@ Tasks are based on sublime build_systems with more integration so they can be us
 see https://www.sublimetext.com/docs/3/build_systems.html
 
 Tasks are basically the same as sublime builds but there are a few additional parameters.
-`name` which will show up in the debugger ui and the be the name of the panel
+`name` which will show up in the debugger UI and be the name of the panel
 
 ```
 "debugger_tasks" : [
     {
-        "name" : "Name of your configuration",
-        "request" : "launch"|"attach",
-        "type" : "debugger name",
+        "name" : "Name of your task",
+        "cmd" : ["task", "command"],
          ...
     }
 ]
 ```
 - Tasks can be run with `Debugger: Run Tasks`
-- You can run tasks before and after debugging by adding `pre_debug_task` or `post_debug_task` to your configuration specifiying the name of the task to run.
+- You can run tasks before and after debugging by adding `pre_debug_task` or `post_debug_task` to your configuration specifying the name of the task to run.
 
 
 ## Settings
