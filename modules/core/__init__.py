@@ -21,8 +21,9 @@ def package_path(*components: str) -> str:
 		return os.path.join(_current_package_path, *components)
 	return _current_package_path
 
-def package_path_relative(*components: str) -> str:
-	return os.path.join('Packages', _current_package, *components)
+def package_path_relative(component: str) -> str:
+	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region?
+	return f'Packages/{_current_package}/{component}'
 
 
 class stopwatch:
