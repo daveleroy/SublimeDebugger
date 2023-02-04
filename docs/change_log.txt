@@ -2,6 +2,13 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.9.3 - Feb 4, 2023
+- Minor improvements to the variables/watch display
+- Show duplicate lines in the console with a counter
+- Show none stderr/stdout output events as blue
+- Fixes an issue with the java adapter (@LDAP)
+
+
 Version 0.9.2 - Jan 19, 2023
 - Fixes issue with Debugger unintentionally stealing command + click
 

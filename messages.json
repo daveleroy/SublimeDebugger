@@ -1,5 +1,6 @@
 {
 	"install": "docs/change_log.txt",
+	"0.9.3": "docs/change_log.txt",
 	"0.9.0": "docs/change_log.txt",
 	"0.8.3": "docs/change_log.txt",
 	"0.8.2": "docs/change_log.txt",
