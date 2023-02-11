@@ -155,9 +155,7 @@ class TransportProtocol:
 
 		except Exception as e:
 			msg = '-- end transport protocol: ' + (str(e) or 'eof')
-
-			core.call_soon_threadsafe(lambda: self.transport_log.log('transport', msg))
-			core.call_soon_threadsafe(self.events.on_transport_closed)
+			core.call_soon_threadsafe(self.on_closed, msg)
 
 	def send(self, message: dict[str, Any]):
 		content = core.json_encode(message)
@@ -165,9 +163,6 @@ class TransportProtocol:
 
 	def dispose(self) -> None:
 		self.transport.dispose()
-
-	def transport_message(self, message: dict[str, Any]) -> None:
-		self.recieved_msg(message)
 
 	def send_request_asyc(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
 		future: core.Future[dict[str, Any]] = core.Future()
@@ -215,6 +210,12 @@ class TransportProtocol:
 			self.send_response(request, response)
 		except core.Error as e:
 			self.send_response(request, {}, error=str(e))
+
+	def on_closed(self, msg: str) -> None:
+		self.transport_log.log('transport', msg)
+
+		# use call_soon so that events and respones are handled in the same order as the server sent them
+		core.call_soon(self.events.on_transport_closed)
 
 	def recieved_msg(self, data: dict[str, Any]) -> None:
 		self.transport_log.log('transport', TransportIncomingDataLog(data))
