@@ -66,6 +66,7 @@ jobs:
       repository: vscode-elixir-ls
 
       build: |
+        sudo apt-get install erlang-dev
         sudo apt-get install elixir
         mix local.hex --force
         npm install
