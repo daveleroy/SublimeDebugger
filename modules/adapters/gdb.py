@@ -9,9 +9,9 @@ class GDB(dap.AdapterConfiguration):
 	type = 'gdb'
 	docs = 'https://github.com/WebFreak001/code-debug#debug'
 
-	installer = util.OpenVsxInstaller(
+	installer = util.GitInstaller(
 		type='gdb',
-		repo='webfreak/debug'
+		repo='WebFreak001/code-debug'
 	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):

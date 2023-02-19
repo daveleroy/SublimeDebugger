@@ -14,9 +14,9 @@ class EmuliciousDebugger(dap.AdapterConfiguration):
 	type = 'emulicious-debugger'
 	docs = 'https://github.com/Calindro/emulicious-debugger#usage'
 
-	installer = util.OpenVsxInstaller(
+	installer = util.GitInstaller(
 		type='emulicious-debugger',
-		repo='emulicious/emulicious-debugger'
+		repo='calindro/emulicious-debugger'
 	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):

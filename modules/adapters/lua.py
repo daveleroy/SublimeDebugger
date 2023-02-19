@@ -10,9 +10,9 @@ class Lua(dap.AdapterConfiguration):
 	type = 'lua-local'
 	docs = 'https://github.com/tomblind/local-lua-debugger-vscode'
 
-	installer = util.OpenVsxInstaller (
+	installer = util.GitInstaller (
 		type='lua-local',
-		repo='tomblind/local-lua-debugger-vscode'
+		repo='daveleroy/local-lua-debugger-vscode'
 	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):

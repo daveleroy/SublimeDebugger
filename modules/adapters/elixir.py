@@ -11,9 +11,9 @@ class Elixir(dap.AdapterConfiguration):
 
 	docs = 'https://github.com/elixir-lsp/elixir-ls#debugger-support'
 
-	installer = util.OpenVsxInstaller(
+	installer = util.GitInstaller(
 		type='elixir', 
-		repo='elixir-lsp/elixir-ls'
+		repo='daveleroy/vscode-elixir-ls'
 	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):

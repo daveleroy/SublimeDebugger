@@ -17,9 +17,9 @@ class Java(dap.AdapterConfiguration):
 	type = 'java'
 	docs = 'https://github.com/redhat-developer/vscode-java/blob/master/README.md'
 
-	installer = util.OpenVsxInstaller(
+	installer = util.GitInstaller(
 		type='java',
-		repo='vscjava/vscode-java-debug'
+		repo='microsoft/vscode-java-debug'
 	)
 
 	async def start(self, log, configuration):
