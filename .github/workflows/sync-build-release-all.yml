@@ -58,5 +58,34 @@ jobs:
       token: ${{ secrets.PUSH_TOKEN }}
 
 
+  vscode-elixir-ls:
+    uses: ./.github/workflows/sync-build-release.yml
+
+    with:
+      upstream: elixir-lsp/vscode-elixir-ls
+      repository: vscode-elixir-ls
+
+      build: |
+        sudo apt-get install erlang-dev
+        sudo apt-get install elixir
+        mix local.hex --force
+        npm install
+        npx vsce package -o extension.vsix
+          
+    secrets:
+      token: ${{ secrets.PUSH_TOKEN }}
 
 
+  local-lua-debugger-vscode:
+    uses: ./.github/workflows/sync-build-release.yml
+
+    with:
+      upstream: tomblind/local-lua-debugger-vscode
+      repository: local-lua-debugger-vscode
+
+      build: |
+        npm install
+        npx vsce package -o extension.vsix
+          
+    secrets:
+      token: ${{ secrets.PUSH_TOKEN }}

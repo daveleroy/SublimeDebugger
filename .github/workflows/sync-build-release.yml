@@ -75,7 +75,7 @@ jobs:
         with:
           repository: daveleroy/${{ inputs.repository }}
           ref: ${{ steps.tags.outputs.tag }}
-
+          submodules: true
 
 
        # Build
