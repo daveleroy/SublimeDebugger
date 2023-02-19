@@ -67,7 +67,7 @@ jobs:
 
       build: |
         sudo apt-get install elixir
-        mix local.hex
+        mix local.hex --force
         npm install
         npx vsce package -o extension.vsix
           
