@@ -5,7 +5,6 @@ from .settings import SettingsRegistery
 from .import dap
 from .import core
 
-import sublime
 import json
 import os
 
@@ -14,7 +13,10 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 
 	allOf: list[Any] = []
 	installed_adapters: list[str] = []
+	all_adapters: list[str] = []
 	for adapter in adapters:
+		all_adapters.append(adapter.type)
+
 		if adapter.installed_version:
 			installed_adapters.append(adapter.type)
 
@@ -26,18 +28,49 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 				'type': {
 				'type':'string',
 				'description': 'Type of configuration.',
-				'enum': installed_adapters,
+				'enum': all_adapters,
 			},
 		},
 		'required': ['type'],
 	}
+
+	definitions['type_installed'] = {
+		'properties': {
+				'type': {
+				'type':'string',
+				'description': 'Type of configuration.',
+				'enum': installed_adapters,
+				'errorMessage': 'This adapter is not installed, install this adapter to get completions',
+			},
+		},
+		'required': ['type'],
+	}
+
 	allOf.append({
-		'$ref': F'sublime://settings/debugger#/definitions/type'
+		'if': {
+			'$ref': F'sublime://settings/debugger#/definitions/type',
+		},
+		'then': {
+			'$ref': F'sublime://settings/debugger#/definitions/type_installed'
+		},
+		'else': {
+			'$ref': F'sublime://settings/debugger#/definitions/type',
+		},
 	})
 
 	for adapter in adapters:
 		schema = adapter.configuration_schema or {}
 		snippets = adapter.configuration_snippets or []
+		installed = adapter.installed_version
+		
+		if not installed:
+			continue
+
+		if installed and not schema:
+			core.info(f'Warning: {adapter.type}: schema not provided')
+
+		if installed and not snippets:
+			core.info(f'Warning: {adapter.type}: snippets not provided')
 
 		requests: list[str] = []
 		for key, value in schema.items():
@@ -58,13 +91,10 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 			'required': ['type', 'name', 'request'],
 		}
 
-
-
 		allOf.append({
 			'if': {
 				'properties': {
 					'type': { 'const': adapter.type }, 
-					# 'request': { "not": { 'type': 'string', "enum": requests }}
 				},
 				'required': ['type'],
 			},
