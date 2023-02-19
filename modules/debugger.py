@@ -151,25 +151,28 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		self._refresh_none_debugger_output_panels()
 
-	def _refresh_none_debugger_output_panels(self):
+	def _refresh_none_debugger_output_panel(self, panel_name: str):
+		name = panel_name.replace('output.', '')
+
 		panels = Settings.integrated_output_panels
+		if not name in panels:
+			return
 
-		def find_output_panel(name: str):
-			for panel in self.output_panels:
-				print(panel.output_panel_name)
-				if panel.output_panel_name == name:
-					return panel
+		panel = panels[name]
+		view = self.window.find_output_panel(name)
+		if not view:
+			return
 
+		# this view was already added
+		if view.settings().has('debugger'):
+			return
+
+		output_panel = DebuggerOutputPanel(self, name, name=panel.get('name'), show_panel=False, show_tabs=True, show_tabs_top=panel.get('position') != 'bottom', create=False)
+		self.disposeables.append(output_panel)
+
+	def _refresh_none_debugger_output_panels(self):
 		for panel_name in self.window.panels():
-			name = panel_name.replace('output.', '')
-			if not name in panels:
-				continue
-
-			if not find_output_panel(panel_name):
-				panel = panels[name]
-				output_panel = DebuggerOutputPanel(self, name, name=panel.get('name'), show_panel=False, show_tabs=True, show_tabs_top=panel.get('position') != 'bottom', create=False)
-				self.disposeables.append(output_panel)
-
+			self._refresh_none_debugger_output_panel(panel_name)
 
 	def add_output_panel(self, panel: DebuggerOutputPanel):
 		# force integrated terminals to sit between the console and callstack

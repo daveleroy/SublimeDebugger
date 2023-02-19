@@ -98,11 +98,11 @@ class DebuggerOutputPanel:
 
 		settings = self.view.settings()
 		if create:
-			settings.set('debugger', True)
-			settings.set('debugger.output_panel', True)
 			settings.set('draw_unicode_white_space', 'none')
 			settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 
+		settings.set('debugger', True)
+		settings.set('debugger.output_panel', True)
 		settings.set('scroll_past_end', False)
 		settings.set('gutter', False)
 
@@ -178,6 +178,12 @@ class DebuggerOutputPanel:
 
 		if self.create:
 			self.window.destroy_output_panel(self.panel_name)
+
+		# remove debugger markers we added
+		else:
+			settings = self.view.settings()
+			del settings['debugger']
+			del settings['debugger.output_panel']
 
 		self.on_post_show_panel.dispose()
 		self.on_pre_hide_panel.dispose()
