@@ -7,9 +7,9 @@
 	"debugger_configurations": [
 		{
 			"name": "Ruby",
-			"type": "ruby",
+			"type": "rdbg",
 			"request": "launch",
-			"program": "${project_path}/main.rb",
+			"script": "${project_path}/main.rb",
 		},
 	],
 }

@@ -10,29 +10,52 @@ import shutil
 
 class Ruby(dap.AdapterConfiguration):
 
-	type = 'ruby'
-	docs = 'https://github.com/castwide/vscode-ruby-debug#debugging-external-programs'
+	type = 'rdbg'
+	types = ['ruby', 'ruby-debug']
 
-	installer = util.openvsx.OpenVsxInstaller (
-		type='ruby',
-		repo='wingrunr21/vscode-ruby'
+	docs = 'https://github.com/ruby/vscode-rdbg#how-to-use'
+
+	installer = util.git.GitSourceInstaller (
+		type='rdbg',
+		repo='ruby/vscode-rdbg',
 	)
 
-	ruby_readapt = Setting['str|None'] (
-		key='ruby_readapt',
-		default=None,
-		description='Sets a specific path for `readapt` otherwise whatever is in your path will be used'
-	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
-		readapt = self.ruby_readapt or shutil.which('readapt')
-		if not readapt:
-			raise core.Error('You must install the `readapt` gem. Install it by running `gem install readapt` see https://github.com/castwide/vscode-ruby-debug for details.')
+		rdbg = shutil.which('rdbg')
+		if not rdbg:
+			raise core.Error('You must install the `rdbg` gem. Install it by running `gem install rdbg`')
 
+		port = util.get_open_port()
 		command = [
-			readapt,
-			'stdio'
+			rdbg,
+			"--open", "--host", "localhost", "--port", f'{port}', '-c', '--',
 		]
-		return dap.StdioTransport(log, command)
+
+		configuration['command'] = configuration.get('command') or 'ruby'
+
+		script = configuration['script']
+
+		if configuration.get('useBundler'):
+			command.extend(["bundle", "exec", configuration['command'], script])
+		else:
+			command.extend([configuration['command'], script])
+
+		transport = await dap.SocketTransport.connect_with_process(log, command, port, process_is_program_output=True)
+		assert transport.process
+
+		def stdout(data: str):
+			log.log('stdout',data)
+
+		def stderr(data: str):
+			hidden = data.startswith('DEBUGGER: ')
+			if hidden:
+				log.log('transport', dap.TransportStderrOutputLog(data))
+			else:
+				log.log('stderr',data)
+
+		transport.process.on_stdout(stdout)
+		transport.process.on_stderr(stderr)
+		return transport
 
 
