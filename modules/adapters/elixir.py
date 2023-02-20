@@ -7,7 +7,7 @@ from . import util
 
 class Elixir(dap.AdapterConfiguration):
 	type = 'elixir'
-	types = ['exiter', 'mix_task']
+	types = ['mix_task']
 
 	docs = 'https://github.com/elixir-lsp/elixir-ls#debugger-support'
 
@@ -18,7 +18,7 @@ class Elixir(dap.AdapterConfiguration):
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 
-		install_path = util.vscode.install_path(self.type)
+		install_path = self.installer.install_path()
 		extension = 'bat' if core.platform.windows else 'sh'
 		command = [
 			f'{install_path}/extension/elixir-ls-release/debugger.{extension}'

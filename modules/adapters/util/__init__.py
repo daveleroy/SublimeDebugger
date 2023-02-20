@@ -7,3 +7,4 @@ from .import git
 from .import openvsx
 from .import vscode
 from .import lsp
+from .import request

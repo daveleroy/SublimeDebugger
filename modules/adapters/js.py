@@ -6,18 +6,6 @@ from ..import dap
 
 from .import util
 
-import re
-
-
-class Transport(dap.SocketTransport):
-	def __init__(self, log: core.Logger, process: Any, port: int):
-		super().__init__(log, 'localhost', port)
-		self.process = process
-
-	def dispose(self) -> None:
-		self.process.dispose()
-
-
 class JSAdapterConfiguration(dap.AdapterConfiguration):
 	type = 'js'
 	type_internal = 'js'
@@ -34,11 +22,11 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 	@property
 	def configuration_snippets(self):
-		return util.vscode.configuration_snippets('js', self.type_internal)
+		return self.installer.configuration_snippets(self.type)
 
 	@property
 	def configuration_schema(self):
-		return util.vscode.configuration_schema('js', self.type_internal)
+		return self.installer.configuration_schema(self.type)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		__jsDebugChildServer = configuration.get('__jsDebugChildServer')
@@ -49,7 +37,7 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 			return transport
 
 		node = await util.get_and_warn_require_node(self.type, log)
-		install_path = util.vscode.install_path('js')
+		install_path = self.installer.install_path()
 
 		port = util.get_open_port()
 

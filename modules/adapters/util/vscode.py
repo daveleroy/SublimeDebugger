@@ -1,13 +1,14 @@
 from __future__ import annotations
-from typing import Any, Awaitable, BinaryIO, Callable
+from typing import Any, Awaitable, Callable
 
 from ...import core
+from ...import dap
+
+from . import request
 
 import os
 import shutil
 import zipfile
-import gzip
-import urllib.request
 import json
 import pathlib
 import sublime
@@ -16,9 +17,144 @@ from dataclasses import dataclass
 
 _info_for_type: dict[str, AdapterInfo] = {}
 
+class AdapterInstaller(dap.AdapterInstaller):
+	type: str
 
-def install_path(type: str) -> str:
-	return f'{core.package_path()}/data/adapters/{type}'
+	_package_info: AdapterInfo|None = None
+
+	async def install_from_asset(self, url: str, log: core.Logger, post_download_action: Callable[[], Awaitable[Any]]|None = None):
+		try:
+			del _info_for_type[self.type]
+		except KeyError:
+			...
+		
+		def log_info(value: str):
+			sublime.status_message(f'Debugger: {value}')
+			# core.call_soon_threadsafe(log.info, value)
+
+		path = self.install_path()
+		temporary_path = path + '_temp'
+
+		# ensure adapters folder exists
+		adapters_path = pathlib.Path(path).parent
+		
+		archive_name = '{}.zip'.format(path)
+
+		if not adapters_path.is_dir():
+			adapters_path.mkdir()
+
+		_remove_files_or_directories([path, temporary_path, archive_name])
+
+		log_info('downloading...')
+		response = await request.request(url)
+
+		def blocking():
+			
+			os.mkdir(temporary_path)	
+
+			archive_name = '{}.zip'.format(path)
+			with open(archive_name, 'wb') as out_file:
+				copyfileobj(response.data, out_file, log_info, int(response.headers.get('Content-Length', '0')))
+
+			log_info('...downloaded')
+
+			log_info('extracting...')
+			with ZipfileLongPaths(archive_name) as zf:
+				top = {item.split('/')[0] for item in zf.namelist()}
+				zf.extractall(temporary_path)
+
+				# if the zip is a single item rename it
+				if len(top) == 1:
+					os.rename(os.path.join(temporary_path, top.pop()), os.path.join(temporary_path, 'extension'))
+
+			log_info('...extracted')
+			os.remove(archive_name)
+			os.rename(temporary_path, path)
+
+
+		log.info('Downloading {}'.format(url))
+
+		try:
+			await core.run_in_executor(blocking)
+			if post_download_action:
+				await post_download_action()
+		finally:
+			_remove_files_or_directories([temporary_path, archive_name])
+
+	async def uninstall(self):
+		try:
+			del _info_for_type[self.type]
+		except KeyError:
+			...
+
+		_remove_files_or_directories([self.install_path()])
+
+	
+	def configuration_snippets(self, schema_type: str|None = None):
+		if i := self.package_info():
+			if contributes := i.schema_and_snippets.get(schema_type or self.type):
+				return contributes['snippets']
+			return None
+		return None
+
+	def configuration_schema(self, schema_type: str|None = None):
+		if i := self.package_info():
+			if contributes := i.schema_and_snippets.get(schema_type or self.type):
+				return contributes['schema']
+		return None
+
+	def installed_version(self) -> str|None:
+		if i := self.package_info():
+			return i.version
+		return None
+
+	def install_path(self) -> str: 
+		return f'{core.package_path()}/data/adapters/{self.type}'
+
+
+	def package_info(self) -> AdapterInfo|None:
+		if self._package_info:
+			return self._package_info
+
+		extension = f'{self.install_path()}/extension'
+		if not os.path.exists(extension):
+			return None
+
+		version = '??'
+		contributes: dict[str, Any] = {}
+		strings: dict[str, str] = {}
+
+		try:
+			with open(f'{extension}/package.nls.json', encoding='utf8') as file:
+				# add % so that we can just match string values directly in the package.json since we are only matching entire strings
+				# strings_json = core.json_decode_readable(file)
+				strings_json = json.load(file)
+				strings = { F'%{key}%' : value for key, value in strings_json.items() }
+		except:
+			...
+
+		try:
+			with open(f'{extension}/package.json', encoding='utf8') as file:
+				package_json = replace_localized_placeholders(json.load(file), strings)
+				version = package_json.get('version')
+				for debugger in package_json.get('contributes', {}).get('debuggers', []):
+					debugger_type = debugger.get('type') or self.type
+					contributes[debugger_type] = {
+						'snippets': debugger.get('configurationSnippets', []),
+						'schema': debugger.get('configurationAttributes', {}),
+					}
+
+		except:
+			core.exception()
+			return None
+
+		info = AdapterInfo(
+			version=version,
+			schema_and_snippets=contributes,
+		)
+		self._package_info = info
+		return self._package_info
+
 
 @dataclass
 class AdapterInfo:
@@ -38,106 +174,7 @@ def replace_localized_placeholders(json: Any, strings: dict[str, str]) -> Any:
 
 	return json
 
-def info(type: str) -> AdapterInfo|None:
-	info = _info_for_type.get(type)
-	if info:
-		return info
 
-	path = f'{core.package_path()}/data/adapters/{type}'
-
-	if not os.path.exists(path):
-		return None
-
-	version = '??'
-	contributes: dict[str, Any] = {}
-	
-	strings: dict[str, str] = {}
-
-	try:
-		with open(f'{path}/extension/package.nls.json', encoding='utf8') as file:
-			# add % so that we can just match string values directly in the package.json since we are only matching entire strings
-			# strings_json = core.json_decode_readable(file)
-			strings_json = json.load(file)
-			strings = { F'%{key}%' : value for key, value in strings_json.items() }
-	except:
-		...
-
-	with open(f'{path}/extension/package.json', encoding='utf8') as file:
-		package_json = replace_localized_placeholders(json.load(file), strings)
-		version = package_json.get('version')
-		for debugger in package_json.get('contributes', {}).get('debuggers', []):
-			debugger_type = debugger.get('type') or type
-			contributes[debugger_type] = {
-				'snippets': debugger.get('configurationSnippets', []),
-				'schema': debugger.get('configurationAttributes', {}),
-			}
-
-	info = AdapterInfo(
-		version=version,
-		schema_and_snippets=contributes,
-	)
-	_info_for_type[type] = info
-	return info
-
-def installed_version(type: str) -> str|None:
-	if i := info(type):
-		return i.version
-	return None
-
-def configuration_schema(type: str, vscode_type: str|None = None) -> dict[str, Any] | None:
-	if i := info(type):
-		if contributes := i.schema_and_snippets.get(vscode_type or type):
-			return contributes['schema']
-
-	return None
-
-def configuration_snippets(type: str, vscode_type: str|None = None) -> list[Any] | None:
-	if i := info(type):
-		if contributes := i.schema_and_snippets.get(vscode_type or type):
-			return contributes['snippets']
-
-	return None
-
-
-
-@dataclass
-class Config:
-	headers: dict[str, str]|None = None
-	body: bytes|None = None
-	method: str|None = None
-
-
-@dataclass
-class Response:
-	headers: dict[str, str]
-	data: BinaryIO
-
-async def request(url: str, config: Config = Config()):
-	headers = {
-		'Accept-Encoding': 'gzip, deflate'
-	}
-	if config.headers:
-		for h, v in config.headers.items():
-			headers[h] = v
-
-	request = urllib.request.Request(url, headers=headers, data=config.body)
-	response = urllib.request.urlopen(request)
-
-	content_encoding = response.headers.get('Content-Encoding')
-	if content_encoding == 'gzip':
-		data_file = gzip.GzipFile(fileobj=response) #type: ignore
-	elif content_encoding == 'deflate':
-		data_file = response
-	elif content_encoding:
-		raise core.Error(f'Unknown Content-Encoding {content_encoding}')
-	else:
-		data_file = response
-
-	return Response(headers=response.headers, data=data_file) #type: ignore
-
-# async def request_json(url: str, config: Config):
-# 	file = request(url, config)
-# 	return json file.read()
 
 def _remove_files_or_directories(paths: list[str]):
 	for p in paths:
@@ -149,66 +186,6 @@ def _remove_files_or_directories(paths: list[str]):
 			core.debug(f'removing previous file: {p}')
 			os.remove(p)
 
-def uninstall(type: str):
-	try:
-		del _info_for_type[type]
-	except KeyError:
-		...
-	path = install_path(type)
-	_remove_files_or_directories([path])
-
-async def install(type: str, url: str, log: core.Logger, post_download_action: Callable[[], Awaitable[Any]]|None = None):
-	try:
-		del _info_for_type[type]
-	except KeyError:
-		...
-	
-	def log_info(value: str):
-		sublime.status_message(f'Debugger: {value}')
-		# core.call_soon_threadsafe(log.info, value)
-
-	path = install_path(type)
-	temporary_path = path + '_temp'
-
-	# ensure adapters folder exists
-	adapters_path = pathlib.Path(path).parent
-	
-	archive_name = '{}.zip'.format(path)
-
-	if not adapters_path.is_dir():
-		adapters_path.mkdir()
-
-	_remove_files_or_directories([path, temporary_path, archive_name])
-
-	log_info('downloading...')
-	response = await request(url)
-
-	def blocking():
-		
-		os.mkdir(temporary_path)	
-
-		archive_name = '{}.zip'.format(path)
-		with open(archive_name, 'wb') as out_file:
-			copyfileobj(response.data, out_file, log_info, int(response.headers.get('Content-Length', '0')))
-
-		log_info('...downloaded')
-
-		log_info('extracting...')
-		with ZipfileLongPaths(archive_name) as zf:
-			zf.extractall(temporary_path)
-		log_info('...extracted')
-		os.remove(archive_name)
-		os.rename(temporary_path, path)
-
-
-	log.info('Downloading {}'.format(url))
-
-	try:
-		await core.run_in_executor(blocking)
-		if post_download_action:
-			await post_download_action()
-	finally:
-		_remove_files_or_directories([temporary_path, archive_name])
 
 
 # https://stackoverflow.com/questions/29967487/get-progress-back-from-shutil-file-copy-thread

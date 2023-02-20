@@ -6,33 +6,15 @@ from .. import core
 
 import os
 
-class Mock(dap.AdapterConfiguration):
-
+class MockInstaller(util.vscode.AdapterInstaller):
 	type = 'mock'
-	docs = 'https://github.com/microsoft/vscode-mock-debug#vs-code-mock-debug'
-	development = True
 
-	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
-		node = await util.get_and_warn_require_node(self.type, log)
-		install_path = util.vscode.install_path(self.type)
-		command = [
-			node,
-			f'{install_path}/extension/out/debugAdapter.js'
-		]
-		return dap.StdioTransport(log, command)
-
-	async def install(self, log: core.Logger):
+	async def install(self, version: str|None, log: core.Logger):
 		url = 'https://codeload.github.com/microsoft/vscode-mock-debug/zip/refs/heads/main'
 
 		async def post_download_action():
-			install_path = util.vscode.install_path(self.type)
-			
-			original_folder = os.path.join(install_path, 'vscode-mock-debug-main')
+			install_path = self.install_path()
 			extension_folder = os.path.join(install_path, 'extension')
-			
-			# rename the folder so it matches the vscode convention
-			# since the util.vscode code assumes this
-			os.rename(original_folder, extension_folder)
 
 			log.info('building mock debug adapter')
 			log.info('npm install')
@@ -40,17 +22,25 @@ class Mock(dap.AdapterConfiguration):
 			log.info('npm run compile')
 			await dap.Process.check_output(['npm', 'run', 'compile'], cwd=extension_folder)
 
-		await util.vscode.install(self.type, url, log, post_download_action)
-		
+		await self.install_from_asset(url, log, post_download_action)
+	
+	async def installable_versions(self, log: core.Logger):
+		return ['head']
 
-	@property
-	def installed_version(self):
-		return util.vscode.installed_version(self.type)
+class Mock(dap.AdapterConfiguration):
 
-	@property
-	def configuration_snippets(self):
-		return util.vscode.configuration_snippets(self.type)
+	type = 'mock'
+	docs = 'https://github.com/microsoft/vscode-mock-debug#vs-code-mock-debug'
+	development = True
+	installer = MockInstaller()
 
-	@property
-	def configuration_schema(self):
-		return util.vscode.configuration_schema(self.type)
+	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
+		node = await util.get_and_warn_require_node(self.type, log)
+		install_path = self.installer.install_path()
+		command = [
+			node,
+			f'{install_path}/extension/out/debugAdapter.js'
+		]
+		return dap.StdioTransport(log, command)
+
+

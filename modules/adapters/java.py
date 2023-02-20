@@ -6,14 +6,10 @@ from ..import dap
 from .import util
 
 import sublime
-import sublime_plugin
 import json
 
 
 class Java(dap.AdapterConfiguration):
-	jdtls_bridge: dict[int, core.Future] = {}
-	jdtls_bridge_current_id = 0
-
 	type = 'java'
 	docs = 'https://github.com/redhat-developer/vscode-java/blob/master/README.md'
 

@@ -78,7 +78,7 @@ class LLDB(dap.AdapterConfiguration):
 		)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
-		install_path = util.vscode.install_path(self.type)
+		install_path = self.installer.install_path()
 		port = util.get_open_port()
 		command = [
 			f'{install_path}/extension/adapter/codelldb',

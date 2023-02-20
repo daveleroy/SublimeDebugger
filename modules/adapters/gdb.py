@@ -16,7 +16,7 @@ class GDB(dap.AdapterConfiguration):
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		node = await util.get_and_warn_require_node(self.type, log)
-		install_path = util.vscode.install_path(self.type)
+		install_path = self.installer.install_path()
 		command = [
 			node,
 			f'{install_path}/extension/out/src/gdb.js'

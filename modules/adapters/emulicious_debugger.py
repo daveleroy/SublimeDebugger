@@ -106,7 +106,7 @@ class EmuliciousDebugger(dap.AdapterConfiguration):
 
 	@property
 	def configuration_snippets(self):
-		snippets = util.vscode.configuration_snippets(self.type)
+		snippets = self.installer.configuration_snippets()
 		if not snippets:
 			return 
 

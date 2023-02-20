@@ -38,7 +38,7 @@ class Python(dap.AdapterConfiguration):
 			if not configuration.get('listen') and not configuration.get('processId'):
 				sublime.error_message('Warning: Check your debugger configuration.\n\n"attach" requires "connect", "listen" or "processId".\n\nIf they contain a $variable that variable may not have existed.')
 
-		install_path = util.vscode.install_path(self.type)
+		install_path = self.installer.install_path()
 
 		python = configuration.get('pythonPath') or configuration.get('python')
 
@@ -79,12 +79,31 @@ class Python(dap.AdapterConfiguration):
 			core.info(f'event not handled `{event}`')
 
 	# TODO: patch in env since python seems to not inherit it from the adapter process.
-	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
-		if configuration.request == 'launch':
-			if not configuration.get('program') and not configuration.get('module'):
-				sublime.error_message('Warning: Check your debugger configuration.\n\nBold fields `program` and `module` in configuration are empty. If they contained a $variable that variable may not have existed.')
+	# async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
+	# 	...
 
-		return configuration
+	@property
+	def configuration_snippets(self) -> list[dict[str, Any]] | None:
+		return [
+			{	
+				'label': 'Python: Current File',
+				'body': {
+					'name': 'Python: Current File',
+					'type': 'python',
+					'request': 'launch',
+					'program': '\\${file}'
+				}
+			},
+			{
+				'label': 'Python: Attach using process id',
+				'body': {
+					'name': 'Python: Attach using process id',
+					'type': 'python',
+					'request': 'launch',
+					'processId': '${1:process id}'
+				}
+			}
+		]
 
 	def get_venv(self, log: core.Logger, start: Path) -> tuple[Path, Path]|None:
 		"""
