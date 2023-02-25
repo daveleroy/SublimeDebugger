@@ -319,9 +319,27 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	def session_state_changed(self, session: dap.Session, state: dap.Session.State):
 		self.on_session_state_updated(session, state)
 
+		if self.is_active and self.active != session:
+			return
+
+		if state == dap.Session.State.PAUSED:
+			self.window.bring_to_front()
+			# util.bring_sublime_text_to_front()
+
+			if session.stepping:
+				...
+			else:
+				self.panels.open()
+
+		if state.previous == dap.Session.State.PAUSED and state == dap.Session.State.RUNNING:
+			if not session.stepping:
+				if terminals := self.integrated_terminals.get(session):
+					terminals[0].open()
+				else:
+					self.console.open()
+
 	def session_selected_frame(self, session: dap.Session, frame: dap.StackFrame|None):
 		self.session = session
-		self.on_session_state_updated(session, session.state)
 		self.on_session_active(session)
 
 	def session_output_event(self, session: dap.Session, event: dap.OutputEvent):
@@ -341,6 +359,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	def add_session(self, session: dap.Session):
 		self.sessions.append(session)
+
 		# if a session is added select it
 		self.session = session
 
@@ -369,7 +388,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 			self.on_session_active(session)
 
-		self.on_session_state_updated(session, dap.Session.State.STOPPED)
 		self.on_session_removed(session)
 
 
@@ -577,26 +595,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		if not self.is_active:
 			self.console.info('Debugging ended')
-
-	def _on_session_state_updated(self, session: dap.Session, state: dap.Session.State):
-		if self.is_active and self.active != session:
-			return
-
-		if state == dap.Session.State.PAUSED:
-			self.window.bring_to_front()
-			# util.bring_sublime_text_to_front()
-
-			if session.stepping:
-				...
-			else:
-				self.panels.open()
-
-		if state == dap.Session.State.RUNNING:
-			if not session.stepping:
-				if terminals := self.integrated_terminals.get(session):
-					terminals[0].open()
-				else:
-					self.console.open()
 
 	def _on_session_output(self, session: dap.Session, event: dap.OutputEvent) -> None:
 		self.console.program_output(session, event)		

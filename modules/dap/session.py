@@ -55,6 +55,12 @@ class Session(TransportProtocolListener):
 		PAUSED = 1
 		RUNNING = 2
 
+		def __init__(self, value):
+			super().__init__()
+
+			self.status = ''
+			self.previous: 'Session.State' = 0 #type: ignore
+
 	stopped_reason_build_failed=0
 	stopped_reason_launch_error=1
 	stopped_reason_dispose=2
@@ -114,7 +120,6 @@ class Session(TransportProtocolListener):
 		self.terminated_event = None
 
 		self._state = Session.State.STARTING
-		self._status = 'Starting'
 
 		self.disposeables: list[Any] = []
 
@@ -139,22 +144,17 @@ class Session(TransportProtocolListener):
 	def state(self) -> State:
 		return self._state
 
-	@state.setter
-	def state(self, state: State) -> None:
-		if self._state == state:
-			return
+	def _change_state(self, state: State) -> None:
+		if self._state == state: return
 
+		state.previous = self.state
 		self._state = state
 		self.listener.session_state_changed(self, state)
 
-	@property
-	def status(self) -> str|None:
-		return self._status
-
-	def _change_status(self, status: str):
-		self._status = status
+	def _change_state_status(self, status: str):
+		self._state.status = status
+		self._state.previous = self._state
 		self.listener.session_state_changed(self, self._state)
-
 
 	async def launch(self) -> None:
 		try:
@@ -174,7 +174,7 @@ class Session(TransportProtocolListener):
 	@core.run
 	async def _launch(self) -> None:
 		assert self.state == Session.State.STOPPED, 'debugger not in stopped state?'
-		self.state = Session.State.STARTING
+		self._change_state(Session.State.STARTING)
 		self.configuration = await self.adapter_configuration.configuration_resolve(self.configuration)
 		
 		installed_version = self.adapter_configuration.installed_version
@@ -186,7 +186,7 @@ class Session(TransportProtocolListener):
 			await self.stop_forced(reason=Session.stopped_reason_build_failed)
 			return
 
-		self._change_status('Starting')
+		self._change_state_status('Starting')
 		try:
 			self.log.log('transport', f'-- adapter: type={self.adapter_configuration.type} version={installed_version}')
 			transport = await self.adapter_configuration.start(log=self.log, configuration=self.configuration)
@@ -239,19 +239,19 @@ class Session(TransportProtocolListener):
 		self.refresh_threads()
 
 		# At this point we are running?
-		self._change_status('Running')
-		self.state = Session.State.RUNNING
+		self._change_state_status('Running')
+		self._change_state(Session.State.RUNNING)
 
 	async def request(self, command: str, arguments: Any) -> Any:
 		if not self._transport:
-			raise core.Error(f'Debug Session {self.status}')
+			raise core.Error(f'Debug Session {self.state.status}')
 
 		return await self._transport.send_request_asyc(command, arguments)
 
 	async def run_pre_debug_task(self) -> bool:
 		pre_debug_command = self.configuration.pre_debug_task
 		if pre_debug_command:
-			self._change_status('Running pre debug task')
+			self._change_state_status('Running pre debug task')
 			r = await self.run_task('pre_debug_task', pre_debug_command)
 			return r
 		return True
@@ -259,7 +259,7 @@ class Session(TransportProtocolListener):
 	async def run_post_debug_task(self) -> bool:
 		post_debug_command = self.configuration.post_debug_task
 		if post_debug_command:
-			self._change_status('Running post debug task')
+			self._change_state_status('Running post debug task')
 			r = await self.run_task('post_debug_task', post_debug_command)
 			return r
 		return True
@@ -281,14 +281,14 @@ class Session(TransportProtocolListener):
 		try:
 			thread = self.command_thread
 			if thread.stopped:
-				self._change_status('Paused')
-				self.state = Session.State.PAUSED
+				self._change_state_status('Paused')
+				self._change_state(Session.State.PAUSED)
 			else:
-				self._change_status('Running')
-				self.state = Session.State.RUNNING
+				self._change_state_status('Running')
+				self._change_state(Session.State.RUNNING)
 
 		except core.Error as e:
-			self.state = Session.State.RUNNING
+			self._change_state(Session.State.RUNNING)
 
 	async def add_breakpoints(self) -> None:
 		assert self._transport
@@ -448,7 +448,7 @@ class Session(TransportProtocolListener):
 			return
 
 
-		self._change_status('Stop Requested')
+		self._change_state_status('Stop Requested')
 		self.stop_requested = True
 
 		# first try to terminate if we can
@@ -496,13 +496,13 @@ class Session(TransportProtocolListener):
 
 
 		self.stopped_reason = self.stopped_reason or reason
-		self.state = Session.State.STOPPING
+		self._change_state(Session.State.STOPPING)
 		self.stop_debug_adapter_session()
 
 		await self.run_post_debug_task()
-		self._change_status('Ended')
+		self._change_state_status('Ended')
 
-		self.state = Session.State.STOPPED
+		self._change_state(Session.State.STOPPED)
 		self.listener.session_finished(self)
 
 	def dispose(self) -> None:

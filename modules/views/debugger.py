@@ -47,7 +47,7 @@ class DebuggerTabbedView(TabbedView):
 		if session := self.debugger.session: 
 			self.last_adapter_configuration = session.adapter_configuration
 
-			if status := session.status:
+			if status := session.state.status:
 				panel_items.append(ui.div(height=css.row_height)[
 					ui.text(status, css=css.label_secondary)
 				])
