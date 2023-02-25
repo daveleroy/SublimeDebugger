@@ -6,5 +6,6 @@ from .openvsx import OpenVsxInstaller
 from .import git
 from .import openvsx
 from .import vscode
-from .import lsp
+from .import bridge
 from .import request
+from .import lsp

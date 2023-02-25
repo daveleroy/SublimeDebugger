@@ -17,10 +17,9 @@ for m in modules_to_remove:
 
 
 # import all the commands so that sublime sees them
-from .modules.adapters.util.lsp import DebuggerLspBridgeResponseCommand
-
 from .modules.core.sublime import DebuggerAsyncTextCommand, DebuggerEventsListener
 from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
+from .modules.adapters.util.bridge import DebuggerBridgeCommand
 from .modules.debugger_output_panel import DebuggerConsoleListener
 from .modules.terminal_integrated import DebuggerTerminusPostViewHooks
 
@@ -45,8 +44,8 @@ def plugin_loaded() -> None:
 		core.info("Installing Debugger33")
 		os.mkdir(debugger33_path)
 
-		with open(os.path.join(debugger33_path, "lsp33.py"), "w") as f:
-			data = sublime.load_resource("Packages/Debugger/modules/adapters/util/lsp33.py")
+		with open(os.path.join(debugger33_path, "bridge33.py"), "w") as f:
+			data = sublime.load_resource("Packages/Debugger/modules/adapters/util/bridge33.py")
 			f.write(data)
 
 	core.info('[startup]')
