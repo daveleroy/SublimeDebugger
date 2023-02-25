@@ -8,8 +8,8 @@ panel_padding= 2
 button = ui.css(
 	padding_left=1,
 	padding_right=1,
-	padding_top=1,
-	padding_bottom=1,
+	padding_top=1.1,
+	padding_bottom=0.9,
 	background_color='var(--dark)',
 	color='var(--primary)',
 	raw='border-radius: 0.4rem;'
@@ -18,8 +18,8 @@ button = ui.css(
 button_drop = ui.css(
 	padding_left=1,
 	padding_right=1,
-	padding_top=1.2,
-	padding_bottom=1.2,
+	padding_top=1.3,
+	padding_bottom=1.1,
 	background_color='var(--tinted)',
 	color='var(--primary)',
 	raw='''
@@ -98,13 +98,6 @@ console_tabs_bottom = ui.css(
 console_tabs_top = ui.css(
 	raw='''
 		padding-left: -3px;
-	'''
-)
-
-phantom_sized_spacer = ui.css(
-	padding_left=1.25,
-	raw='''
-		display: inline-block;
 	'''
 )
 

@@ -51,10 +51,6 @@ l {
 # 	--panel-color: color(red alpha(0.25));
 # 	--segment-color: color(red alpha(0.25));
 # 	--panel-border: color(red alpha(0.25));
-
-# 	border-style: solid;
-# 	border-color: black;
-# 	border-width: 0.15px;
 # }
 # s {
 # 	background-color: color(blue alpha(0.15));
@@ -64,18 +60,20 @@ l {
 # 	--medium: color(blue alpha(0.25));
 # 	--dark: color(blue alpha(0.25));
 
-# 	border-style: solid;
-# 	border-color: black;
-# 	border-width: 0.15px;
+# 	padding-top: 0.5rem;
+# 	padding-bottom: 0.5rem;
 # }
 
-# l {
+# a {
 # 	background-color: color(green alpha(0.25));
 
 # 	--tinted: color(green alpha(0.25));
 # 	--light: color(green alpha(0.25));
 # 	--medium: color(green alpha(0.25));
 # 	--dark: color(green alpha(0.25));
+
+# 	padding-top: 0.5rem;
+# 	padding-bottom: 0.5rem;
 # }
 
 # '''

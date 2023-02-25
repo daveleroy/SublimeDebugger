@@ -146,15 +146,19 @@ class Layout:
 		self.requires_render = True
 		Layout._schedule_render_layouts()
 
-	def _add_element_children(self, item: element) -> None:
-		if item._width is not None:
-			_parent_width = item._width
+	def _add_element_children(self, parent: element) -> None:
+		if parent.is_inline:
+			for child in parent.children:
+				self._add_element(child)
 		else:
-			_parent_width = item._max_allowed_width and item._max_allowed_width - item.css_padding_width
+			if parent.width is not None:
+				available_block_width = parent.width
+			else:
+				available_block_width = parent._available_block_width and parent._available_block_width - parent.css_padding_width
 
-		for item in item.children:
-			item._max_allowed_width = _parent_width
-			self._add_element(item)
+			for child in parent.children:
+				child._available_block_width = available_block_width
+				self._add_element(child)
 
 	def _add_element(self, item: element) -> None:
 		assert not item.layout, 'This item already has a layout?'
@@ -191,7 +195,6 @@ class Layout:
 		# all the children must be rendered since the parent required rendering
 		for child in item.children:
 			self.render_element_tree(child, True)
-			
 
 	def render(self) -> bool:
 		if not self.requires_render:
