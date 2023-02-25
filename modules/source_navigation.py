@@ -62,15 +62,15 @@ class SourceNavigationProvider:
 				core.error(error)
 
 		async def select_async(source: dap.SourceLocation, thread: dap.Thread):
+			delay = core.run(core.sleep(1.0/30.0))
 
-			# this timer is so that if the same location is deselected and reselected right away it will appear to deselect first
-			if delay := self.selected_frame_line_time_out:
-				self.selected_frame_line_time_out = None
-				await delay
-
-			self.clear_selected()
 			view = await self.navigate_to_source(source)
 
+			# delay least 1 frame at 30 fps so that a selected source at the same location right after clearing the previous one will briefly be removed before shown again
+			# this is just always done since its easy and the screen is scrolling to the source location anyway
+			await delay
+
+			self.clear_selected()
 			self.selected_frame_line = SelectedLine(view, source.line or 1, source.column, thread)
 
 		self.updating = core.run(select_async(source, thread), on_error=on_error)
@@ -98,7 +98,6 @@ class SourceNavigationProvider:
 
 	def clear_selected(self):
 		if self.selected_frame_line:
-			self.selected_frame_line_time_out = core.sleep(0.1)
 			self.selected_frame_line.dispose()
 			self.selected_frame_line = None
 

@@ -253,7 +253,10 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		# clear console if there are not any currently active sessions
 		if not self.sessions:
 			self.console.clear()
-			core.info('cleared console')
+
+			# This just ensures the console flashes briefly before starting the session if the adapter is just going to instantly put the exact same contents as before such as during a startup error
+			# Otherwise it can look like nothing happened
+			await core.sleep(1.0/30.0)
 
 		self.console.open()
 
