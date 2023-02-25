@@ -107,6 +107,7 @@ class Process:
 		self.closed = True
 		try:
 			self.process.kill()
+			self.process.wait()
 		except Exception:
 			core.exception()
 
@@ -151,16 +152,25 @@ class SocketTransport(Transport):
 		self.process: Process|None = None
 
 	@staticmethod
-	async def connect_with_retry(log: core.Logger, host: str, port: int):
-		exception: Exception|None = None
-		for _ in range(0, 20):
-			try:
-				return SocketTransport(log, host, port)
-			except Exception as e:
-				await core.sleep(0.25)
-				exception = e
+	async def connect_with_retry(log: core.Logger, host: str, port: int, process: Process|None = None, timeout: int = 5):
+		try:
+			exception: Exception|None = None
+			for _ in range(0, timeout * 4):
+				try:
+					socket = SocketTransport(log, host, port)
+					socket.process = process
+					return socket
 
-		raise core.Error(f'tcp://{host}:{port} {exception}')
+				except Exception as e:
+					await core.sleep(0.25)
+					exception = e
+
+			raise core.Error(f'tcp://{host}:{port} {exception}')
+
+		# use BaseException since we also want to dispose of the process during a CancelledError as well
+		except BaseException:
+			if process: process.dispose()
+			raise
 
 	@staticmethod
 	async def connect_with_process(log: core.Logger, command: list[str], port: int, process_is_program_output: bool = False, cwd: str|None = None):
@@ -171,14 +181,8 @@ class SocketTransport(Transport):
 			process.on_stdout(lambda data: log.log('transport', TransportStdoutOutputLog(data)))
 			process.on_stderr(lambda data: log.log('transport', TransportStderrOutputLog(data)))
 
-		try:
-			transport = await SocketTransport.connect_with_retry(log, 'localhost', port)
-			transport.process = process
-			return transport
+		return await SocketTransport.connect_with_retry(log, 'localhost', port, process)
 
-		except Exception as e:
-			process.dispose()
-			raise e
 
 	def write(self, message: bytes) -> None:
 		self.stdin.write(message)
@@ -199,7 +203,7 @@ class SocketTransport(Transport):
 			self.socket.close()
 		except:
 			core.exception()
-
+		
 		if self.process:
 			self.process.dispose()
 
