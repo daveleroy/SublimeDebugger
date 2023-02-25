@@ -3,20 +3,19 @@ from typing import Any
 from .import core
 
 import os
-import hashlib
 
 
 VERSION_NUMBER = 0
 
-def file_name_for_project_name(project_name: str):
-	hash = hashlib.sha224(project_name.encode('utf-8')).hexdigest()
-	file_name = os.path.join(core.package_path(), "data/{}.json".format(hash))
-	return file_name
-	
-def load(project_name: str) -> Any:
-	file_name = file_name_for_project_name(project_name)
+
+
+def load(key: str) -> core.JSON:
+	key = ''.join(x for x in key if x.isalnum())
+
+	path = f'{core.package_path()}/data/{key}.json'
+
 	try:
-		with open(file_name, 'r') as file:
+		with open(path, 'r') as file:
 			contents = file.read() or "{}"
 
 		json = core.json_decode(contents)
@@ -25,14 +24,12 @@ def load(project_name: str) -> Any:
 
 	except FileNotFoundError:
 		pass
-	return {}
 
-def save(project_name: str, data: Any):
-	file_name = file_name_for_project_name(project_name)
-	with open(file_name, 'w') as file:
-		data['_version'] = VERSION_NUMBER
-		data['_project_name'] = project_name
-		file.write(core.json_encode(data, pretty=True))
+	return core.JSON()
 
+def save(key: str, data: Any):
+	key = ''.join(x for x in key if x.isalnum())
 
-
+	data['_version'] = VERSION_NUMBER
+	core.make_directory(f'{core.package_path()}/data')
+	core.write(f'{core.package_path()}/data/{key}.json', core.json_encode(data, pretty=True), overwrite_existing=True)

@@ -3,10 +3,12 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from ..import core
 from ..import dap
+
 from .transport import Transport
 
 import sublime
 import re
+import os
 
 if TYPE_CHECKING:
 	from .session import Session
@@ -15,10 +17,32 @@ if TYPE_CHECKING:
 
 
 class AdapterInstaller:
-	async def install(self, version: str|None, log: core.Logger) -> None: ...
-	async def uninstall(self) -> None: ...
+	type: str
 
-	def install_path(self) -> str: ...
+	async def perform_install(self, version: str, log: core.Logger):
+		self.remove()
+		core.make_directory(self.data_path())
+		core.make_directory(self.temporary_install_path())
+
+		await self.install(version, log)
+
+
+		os.rename(self.temporary_install_path(), self.install_path())
+
+	async def install(self, version: str, log: core.Logger) -> None: ...
+
+	def remove(self) -> None:
+		core.remove_file_or_dir(self.temporary_install_path())
+		core.remove_file_or_dir(self.install_path())
+
+	def temporary_install_path(self) -> str: 
+		return f'{core.package_path()}/data/{self.type}.tmp'
+
+	def install_path(self) -> str: 
+		return f'{core.package_path()}/data/{self.type}'
+
+	def data_path(self) -> str: 
+		return f'{core.package_path()}/data'
 
 	def installed_version(self) -> str|None: 
 		return '1.0.0'

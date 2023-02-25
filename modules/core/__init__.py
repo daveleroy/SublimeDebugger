@@ -3,13 +3,13 @@ from __future__ import annotations
 import os
 import time
 
+from .util import *
 from .core import *
 from .sublime import *
 from .event import Handle, Event, EventReturning
 from . import platform
 from .error import Error
-
-from .json import json_encode, json_decode
+from .json import json_encode, json_decode, JSON
 
 from .log import *
 
@@ -22,7 +22,7 @@ def package_path(*components: str) -> str:
 	return _current_package_path
 
 def package_path_relative(component: str) -> str:
-	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region?
+	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region? and other places?
 	return f'Packages/{_current_package}/{component}'
 
 

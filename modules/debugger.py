@@ -746,10 +746,10 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		]
 
 	@core.run
-	async def install_adapter(self, adapter: dap.AdapterConfiguration, version: str|None) -> None:
+	async def install_adapter(self, adapter: dap.AdapterConfiguration, version: str) -> None:
 		self.console.log('info', f'[Installing {adapter.type}]')
 		try:
-			await adapter.installer.install(version, self.console)
+			await adapter.installer.perform_install(version, self.console)
 
 		except Exception as error:
 			self.console.error((str(error)))
@@ -797,27 +797,19 @@ class Debugger (dap.Debugger, dap.SessionListener):
 					]
 					if installer := adapter.installer:
 						if installed_version:
-							items.append(ui.InputListItem(lambda: installer.uninstall(), 'Uninstall'))
+							items.append(ui.InputListItem(lambda: installer.remove(), 'Remove'))
 
 					return ui.InputList('Choose version to install')[
 						items
 					]
 
-				if installed_version:
-					return ui.InputListItemChecked(
-						lambda: self.install_adapter(adapter, versions[0]),
-						installed_version != None,
-						name,
-						run_alt=input_list(),
-						details=f'<a href="{adapter.docs}">documentation</a>'
-					)
-				else:
-					return ui.InputListItemChecked(
-						input_list(),
-						installed_version != None,
-						name,
-						details=f'<a href="{adapter.docs}">documentation</a>'
-					)
+				return ui.InputListItemChecked(
+					lambda: self.install_adapter(adapter, versions[0] if versions else None),
+					installed_version != None,
+					name,
+					run_alt=input_list(),
+					details=f'<a href="{adapter.docs}">documentation</a>'
+				)
 
 			if adapter.installed_version:
 				installed.append(item(adapter))
