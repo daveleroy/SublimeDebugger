@@ -1,18 +1,27 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, BinaryIO, Mapping, TypeVar
 
 import json
 import dataclasses
+from .typing import TypeAlias
 
-def json_decode(contents: str|bytes) -> DottedDict:
+
+K = TypeVar("K") #  key type
+T = TypeVar("T") #  value type
+
+
+def json_decode(contents: str|bytes) -> JSON:
 	return json.loads(contents, object_hook=object_hook)
+
+def json_decode_b(contents: BinaryIO) -> JSON:
+	return json.load(contents, object_hook=object_hook)
 
 def json_encode(obj: Any, pretty=False):
 	if pretty:
 		return json.dumps(obj, cls=JSONEncoder, indent='\t')
 	return json.dumps(obj, cls=JSONEncoder)
 
-class DottedDict(dict): #type: ignore
+class DottedDict(dict, Mapping[K, T]):
 	__getitem__ = dict.get #type: ignore
 	__getattr__ = dict.get #type: ignore
 	__setattr__ = dict.__setitem__ #type: ignore
@@ -26,3 +35,7 @@ class JSONEncoder(json.JSONEncoder):
 		if dataclasses.is_dataclass(o):
 			return dataclasses.asdict(o)
 		return super().default(o)
+
+JSON: TypeAlias = DottedDict[str, "JSON_VALUE"]
+JSON_VALUE: TypeAlias = 'DottedDict[str, "JSON_VALUE"] | list[JSON_VALUE] | str | int | float | bool | None'
+

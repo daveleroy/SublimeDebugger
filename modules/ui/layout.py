@@ -204,9 +204,11 @@ class Layout:
 		css_string = css.generate(self)
 		html = [
 			f'<body id="debugger" style="padding-top: {self.vertical_offset}px;">',
-				'<style>', css_string, '</style>',
+				'<style>', 
+					css_string, 
+				'</style>',
 				self.item.html(),
-			f'</body>'
+			'</body>'
 		]
 
 		self.html_list.clear()

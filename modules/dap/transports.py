@@ -160,7 +160,7 @@ class SocketTransport(Transport):
 				await core.sleep(0.25)
 				exception = e
 
-		raise exception or core.Error('unreachable')
+		raise core.Error(f'tcp://{host}:{port} {exception}')
 
 	@staticmethod
 	async def connect_with_process(log: core.Logger, command: list[str], port: int, process_is_program_output: bool = False, cwd: str|None = None):

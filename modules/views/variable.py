@@ -142,9 +142,9 @@ class VariableView (ui.div):
 					lambda: on_add_data_breakpoint(acessType),
 					labels.get(acessType) or 'Break On Value Change'
 				))
-		self.edit_variable_menu = ui.InputList(f'{name} {value}')[
+		self.edit_variable_menu = core.run(ui.InputList(f'{name} {value}')[
 			items
-		]
+		])
 		await self.edit_variable_menu
 		self.edit_variable_menu = None
 

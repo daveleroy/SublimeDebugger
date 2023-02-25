@@ -22,17 +22,24 @@ class Disposeable(Protocol):
 
 
 class Dispose:
-	_dispose: list[Disposeable] = []
+	_dispose: list[Disposeable]|None = None
 
 	def dispose(self):
+		if not self._dispose: return
+
 		for _dispose in self._dispose:
 			_dispose.dispose()
 
 	def dispose_remove(self, item: Disposeable):
+		if not self._dispose: return
+
 		self._dispose.remove(item)
 		item.dispose()
 
 	def dispose_add(self, item: Disposeable|list[Disposeable]):
+		if not self._dispose:
+			self._dispose = []
+
 		if isinstance(item, list):
 			for i in item:
 				self._dispose.append(i)
@@ -96,10 +103,10 @@ def run(value: Callable[Params, Coroutine[Any, Any, T]], *args: Any) -> Callable
 @overload
 def run(value: Awaitable[T], on_success: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None) -> Future[T]: ...
 
-def run(value: Awaitable[T] | Callable[Params, Coroutine[Any, Any, T]], on_success: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None, *args: Any) -> Any:
+def run(value: Awaitable[T] | Callable[Params, Coroutine[Any, Any, T]], on_success: Callable[[T], None] | None = None, on_error: Callable[[BaseException], None] | None = None, *args: Any, **kwargs: Any) -> Any:
 	if callable(value):
-		def wrap(*args):
-			return asyncio.ensure_future(value(*args), loop=sublime_event_loop) #type: ignore
+		def wrap(*args, **kwargs):
+			return asyncio.ensure_future(value(*args, **kwargs), loop=sublime_event_loop) #type: ignore
 		wrap.__name__ = value.__name__ #type: ignore
 		return wrap
 

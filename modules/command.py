@@ -35,24 +35,20 @@ class Command:
 
 	development = 1 << 9
 
-	section_start = 1 << 8
-
 	allow_debugger_outside_project = 1 << 9
 
-	def __init__(self, name: str, key: str, action:CommandActionKwargs|CommandAction|None = None, window_action:CommandWindowActionKwargs|CommandWindowAction|None=None, enabled: Callable[[Debugger], bool] | None = None, flags: int = -1):
+	def __init__(self, name: str, key: str|None = None, action:CommandActionKwargs|CommandAction|None = None, window_action:CommandWindowActionKwargs|CommandWindowAction|None=None, enabled: Callable[[Debugger], bool] | None = None, flags: int = -1):
 		
 		self.name = name
 		self.action = action
 		self.key = key
 
-		if flags < 0 or flags == Command.section_start:
+		if flags < 0:
 			self.flags = Command.menu_commands|Command.menu_main
 		else:
 			self.flags = flags
 
-		self.command: str|None = None 
-
-		CommandsRegistry.register(self, key)
+		CommandsRegistry.register(self)
 
 		self.enabled = enabled
 		self.action = action
@@ -140,13 +136,10 @@ class CommandsRegistry:
 	commands_by_action: dict[str, Command] = {}
 
 	@staticmethod
-	def register(command: Command, name: str):
-		name = name or command.name
-		name = name.rstrip('_')
-
-		command.command = name
+	def register(command: Command):
 		CommandsRegistry.commands.append(command)
-		CommandsRegistry.commands_by_action[name] = command
+		if command.key:
+			CommandsRegistry.commands_by_action[command.key] = command
 
 	@staticmethod
 	def generate_commands_and_menus():
@@ -154,13 +147,20 @@ class CommandsRegistry:
 		def generate_commands(menu: int, prefix: str = "", include_seperators: bool = True):
 			out_commands: list[Any] = []
 
+
+			last_was_section = False
 			for command in CommandsRegistry.commands:
-				if command.flags & Command.section_start:
-					if include_seperators:
+
+				if command.name == '-':
+					if include_seperators and not last_was_section:
+						last_was_section = True
 						out_commands.append({"caption": '-'})
+					continue
 
 				if not (command.flags & menu):
 					continue
+
+				last_was_section = False
 
 				if command.flags & Command.menu_no_prefix:
 					caption = command.name
@@ -172,7 +172,7 @@ class CommandsRegistry:
 						"caption": caption,
 						"command": "debugger",
 						"args": {
-							"action": command.command,
+							"action": command.key,
 						}
 					}
 				)

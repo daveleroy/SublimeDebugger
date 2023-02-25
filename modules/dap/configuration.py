@@ -165,22 +165,14 @@ class TaskExpanded(Task):
 		else:
 			name = 'Untitled'
 
-		background = arguments.get('background', False)
-
 		self.name: str = name
-		self.background = background
+		self.background: bool = arguments.get('background', False)
+		self.start_file_regex: str|None = arguments.get('start_file_regex')
+		self.end_file_regex: str|None = arguments.get('end_file_regex')
 
-		if 'name' in self:
-			del self['name']
-		if 'background' in self:
-			del self['background']
-
-		if '$' in self:
-			del self['$']
-	
-
-	
-
+		for key in ['name', 'background', 'start_file_regex', 'end_file_regex', '$']:
+			if key in self:
+				del self[key]
 
 
 def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, str] | None):

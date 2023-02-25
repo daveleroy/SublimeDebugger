@@ -1,14 +1,14 @@
 from __future__ import annotations
 from typing import Any, Awaitable
 
-from .dap.transport import TransportStderrOutputLog
-from .import core, ui
-
 import sublime
 import webbrowser
 from functools import partial
 
+from .import core
+from .import ui
 from .import dap
+
 from .import persistance
 
 from .settings import Settings
@@ -350,7 +350,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	def remove_session(self, session: dap.Session):
 		if session.stopped_reason == dap.Session.stopped_reason_stopped_unexpectedly:
 			for data in self.console.protocol.pending:
-				if isinstance(data, TransportStderrOutputLog):
+				if isinstance(data, dap.TransportStderrOutputLog):
 					self.console.error(data.output)
 
 			self.console.error('Debugging session ended unexpectedly')
@@ -720,30 +720,30 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			ui.InputListItem(about, 'About/Getting Started', kind=(sublime.KIND_ID_AMBIGUOUS, '⧉', '')),
 		])
 
-		ui.InputList('Add or Select Configuration')[
+		await ui.InputList('Add or Select Configuration')[
 			values
-		].run()
+		]
 
 	@core.run
-	async def change_configuration(self) -> None:
+	async def change_configuration(self):
 		await ui.InputList('Add or Select Configuration')[
 			await self.change_configuration_input_items()
-		].run()
+		]
 
 	@core.run
-	async def add_configuration(self) -> None:
+	async def add_configuration(self):
 		items = self.add_configuration_snippet_adapters_list_items()
 		return await ui.InputList('Add Debug Configuration')[
 			items
-		].run()
+		]
 
 	@core.run
-	async def install_adapters(self) -> None:
+	async def install_adapters(self):
 		self.console.open()
 		items = await self.install_adapters_list_items()
 		await ui.InputList('Install/Update Debug Adapters')[
 			items
-		].run()
+		]
 
 	@core.run
 	async def install_adapter(self, adapter: dap.AdapterConfiguration, version: str|None) -> None:

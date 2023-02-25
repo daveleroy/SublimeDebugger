@@ -3,8 +3,6 @@ from __future__ import annotations
 from .import util
 from .. import dap
 from .. import core
-from ..settings import Setting
-
 import shutil
 
 

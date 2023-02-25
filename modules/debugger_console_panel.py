@@ -467,7 +467,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 	
 	def log(self, type: str, value: Any, source: dap.SourceLocation|None = None):
 		if type == 'transport':
-			self.protocol.log(type, value)
+			self.protocol.log('transport', value)
 		elif type == 'error-no-open':
 			self.write(str(value).rstrip('\n'), 'red', ensure_new_line=True)
 		elif type == 'error':
@@ -480,8 +480,10 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 			self.end_indent(forced=True)
 			self.write(str(value), None, ensure_new_line=True)
 		elif type == 'stdout':
+			self.protocol.log('stdout', value)
 			self.write(str(value), None)
 		elif type == 'stderr':
+			self.protocol.log('stderr', value)
 			self.write(str(value), 'red')
 		elif type == 'stdout':
 			self.write(str(value), None)

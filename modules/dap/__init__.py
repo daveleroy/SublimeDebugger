@@ -56,4 +56,7 @@ from .transports import (
 	Process,
 	StdioTransport,
 	SocketTransport,
+
+	TransportStderrOutputLog,
+	TransportStdoutOutputLog,
 )

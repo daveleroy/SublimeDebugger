@@ -57,13 +57,13 @@ class Commands:
 		action=lambda debugger: debugger.add_configuration()
 	)
 	
-	# - 
+	Command('-')
 
 	start = Command (
 		name='Start',
 		key='start',
 		action=lambda debugger, **args: debugger.start(False, args),
-		flags=Command.menu_commands|Command.menu_main|Command.open_without_running|Command.section_start|Command.allow_debugger_outside_project
+		flags=Command.menu_commands|Command.menu_main|Command.open_without_running|Command.allow_debugger_outside_project
 	)
 	open_and_start = Command (
 		name='Open and Start',
@@ -114,7 +114,7 @@ class Commands:
 		enabled=Debugger.is_paused
 	)
 
-	# -
+	Command('-')
 
 	input_command = Command (
 		name='Input Command',
@@ -166,7 +166,14 @@ class Commands:
 		action=lambda debugger: debugger.save_data(),
 	)
 
-	# - 
+	Command('-')
+
+	toggle_disassembly = Command (
+		name='Toggle Disassembly',
+		key='toggle_disassembly',
+		action=lambda debugger: debugger.show_disassembly(toggle=True),
+		flags=Command.menu_context|Command.menu_commands
+	)
 
 	toggle_breakpoint = Command (
 		name='Toggle Breakpoint',
@@ -187,3 +194,6 @@ class Commands:
 		enabled=Debugger.is_paused,
 		flags=Command.menu_context,
 	)
+
+	Command('-')
+
