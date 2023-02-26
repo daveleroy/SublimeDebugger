@@ -53,13 +53,14 @@ class DebuggerConsoleTabs(ui.div):
 		self.top = panel.show_tabs_top
 
 	def render(self):
-		return [
+		width = self.layout.width() - 5
+		return ui.div(width=width) [
 			ui.div(height=css.header_height)[
 				self.actions,
 				ui.spacer_dip(10),
 				self.tabs,
 			],
-			ui.div(height=0.25, width=self.layout.width() - 5, css=css.seperator) if self.top else None,
+			ui.div(height=0.25, css=css.seperator) if self.top else None,
 			ui.div(height=1, width=1, css=css.seperator_cutout) if self.top else None,
 		]
 
@@ -92,6 +93,8 @@ class DebuggerOutputPanel:
 
 		previous_panel = self.window.active_panel()
 		self.view = self.window.find_output_panel(self.panel_name) or self.window.create_output_panel(self.panel_name)
+		self.view.set_name(self.name)
+
 		self.controls_and_tabs_phantom = None
 
 		DebuggerOutputPanel.panels[self.view.id()] = self
@@ -100,6 +103,7 @@ class DebuggerOutputPanel:
 		if create:
 			settings.set('draw_unicode_white_space', 'none')
 			settings.set('context_menu', 'DebuggerWidget.sublime-menu')
+			settings.set('is_widget', True)
 
 		settings.set('debugger', True)
 		settings.set('debugger.output_panel', True)
@@ -115,6 +119,7 @@ class DebuggerOutputPanel:
 		self.update_settings()
 
 		if show_tabs and show_tabs_top:
+			
 			self.text_change_listener = OutputPanelTopTextChangeListener(self.view)
 			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE) [
@@ -204,7 +209,7 @@ class DebuggerOutputPanel:
 		self.window.run_command('show_panel', {
 			'panel': self.output_panel_name
 		})
-		sublime.set_timeout(self.scroll_to_end, 5)
+		# sublime.set_timeout(self.scroll_to_end, 5)
 
 	def open_status(self):
 		if on_opened_status := self.on_opened_status:
