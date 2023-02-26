@@ -108,11 +108,7 @@
                         }
                     },
                     {
-                        "caption": "Show Disassembly",
-                        "command": "debugger",
-                        "args": {
-                            "action": "show_disassembly"
-                        }
+                        "caption": "-"
                     },
                     {
                         "caption": "Input Command",
@@ -176,6 +172,9 @@
                         "args": {
                             "action": "save_data"
                         }
+                    },
+                    {
+                        "caption": "-"
                     },
                     {
                         "caption": "LLDB Toggle Disassembly",

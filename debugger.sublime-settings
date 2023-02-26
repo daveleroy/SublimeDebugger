@@ -14,7 +14,7 @@
 	"external_terminal": "terminus",
 
 	// Controls the minimum height of the debugger output panels in lines
-	"minimum_console_height": 15,
+	"minimum_console_height": 10,
 
 	// Some new features are locked behind this flag
 	"development": false,
@@ -59,8 +59,5 @@
 
 	// Sets a specific path for dlv if not set go will use whatever is in your path
 	"go_dlv": null,
-
-	// Sets a specific path for `readapt` otherwise whatever is in your path will be used
-	"ruby_readapt": null,
 
 }

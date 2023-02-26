@@ -255,6 +255,9 @@ class Project:
 		if folder := variables.get('folder'):
 			variables['workspaceFolder'] = folder
 			variables['workspaceRoot'] = folder
+
+		variables['packages'] = sublime.packages_path()
+
 		return variables
 
 	def current_file_line_column(self) -> tuple[str, int, int]:

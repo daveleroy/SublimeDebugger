@@ -61,8 +61,12 @@ class AdapterInstaller(dap.AdapterInstaller):
 
 		# check multiple places for the package.json
 		extension = f'{self.install_path()}'
-		if not os.path.exists(extension):
+
+		if os.path.exists(f'{self.install_path()}/extension/package.json'):
 			extension = f'{self.install_path()}/extension'
+		else:
+			extension = f'{self.install_path()}'
+
 		if not os.path.exists(extension):
 			return 
 

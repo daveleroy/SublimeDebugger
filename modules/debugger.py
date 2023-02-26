@@ -81,8 +81,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_sources_updated = core.Event[dap.Session]()
 		self.on_session_variables_updated = core.Event[dap.Session]()
 		self.on_session_threads_updated = core.Event[dap.Session]()
-		self.on_session_state_updated = core.Event[dap.Session, dap.Session.State]()
-		self.on_session_output = core.Event[dap.Session, dap.OutputEvent]()
+		self.on_session_state_updated = core.Event[[dap.Session, dap.Session.State]]()
 		self.on_session_output = core.Event[dap.Session, dap.OutputEvent]()
 
 		self.session: dap.Session|None = None
@@ -140,7 +139,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
 		self.integrated_terminals: dict[dap.Session, list[TerminusIntegratedTerminal]] = {}
 
-		self.on_session_state_updated.add(self._on_session_state_updated)
 		self.on_session_active.add(self._on_session_active)
 		self.on_session_added.add(self._on_session_added)
 		self.on_session_removed.add(self._on_session_removed)

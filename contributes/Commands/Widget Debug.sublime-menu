@@ -22,5 +22,8 @@
         "args": {
             "action": "show_protocol"
         }
+    },
+    {
+        "caption": "-"
     }
 ]

@@ -147,12 +147,7 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 			})
 		
 		for snippet in snippets:
-			debugger_snippets.append({
-				'label': snippet['label'],
-				'body': snippet['body'],
-				# 'bodyText': core.json_encode_json_language_service_format(snippet['body']),
-				'description': snippet.get('description')
-			})
+			debugger_snippets.append(snippet)
 
 	definitions['debugger_configuration'] = {
 		'defaultSnippets': debugger_snippets,

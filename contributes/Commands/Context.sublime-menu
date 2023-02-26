@@ -22,5 +22,8 @@
         "args": {
             "action": "run_to_current_line"
         }
+    },
+    {
+        "caption": "-"
     }
 ]

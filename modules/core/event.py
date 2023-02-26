@@ -20,6 +20,9 @@ class Event (Generic[P]):
 
 	@overload
 	def add(self: Event[None], callback: Callable[[], Any]) -> Handle: ... #type: ignore
+
+	@overload
+	def add(self, callback: Callable[P, Any]) -> Handle: ... #type: ignore
 	def add(self, callback: Callable[P, Any]) -> Handle: #type: ignore
 		handle = Handle(self, callback)
 		self.handles.append(handle)
@@ -27,6 +30,9 @@ class Event (Generic[P]):
 
 	@overload
 	def __call__(self: Event[None]) -> bool: ... #type: ignore
+	@overload
+	def __call__(self, *args: P.args, **kwargs: P.kwargs) -> bool: ... #type: ignore
+
 	def __call__(self, *args: P.args, **kwargs: P.kwargs) -> bool: #type: ignore
 		r = False
 		for h in self.handles:

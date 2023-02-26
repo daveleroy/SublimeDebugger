@@ -59,7 +59,7 @@ class Settings:
 
 	minimum_console_height = Setting[int] (
 		key='minimum_console_height',
-		default=15,
+		default=10,
 		description='''
 		Controls the minimum height of the debugger output panels in lines
 		'''
@@ -96,6 +96,7 @@ class Settings:
 		default=None,
 		description='Sets a specific path for node if not set adapters that require node to run will use whatever is in your path'
 	)
+
 
 	integrated_output_panels = Setting['dict[str, dict[str, str]]'] (
 		key='integrated_output_panels',
