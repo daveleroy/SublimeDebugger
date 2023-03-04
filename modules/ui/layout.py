@@ -91,7 +91,7 @@ class Layout:
 
 		Layout._render_scheduled = True
 		core.call_soon(Layout.render_layouts)
-	
+
 	def __init__(self, view: sublime.View) -> None:
 		self.stats = LayoutStats(name=view.name())
 
@@ -100,7 +100,7 @@ class Layout:
 		self.requires_render = True
 		self.html_list: list[str] = []
 		self.html = ""
-		
+
 		self.view = view
 		self._width = 0.0
 		self._height = 0.0
@@ -109,7 +109,7 @@ class Layout:
 		self._all = ()
 		self._vertical_offset = 0.0
 		self._last_check_was_differnt = False
-		
+
 		self.item = div()
 		self._add_element(self.item)
 
@@ -207,8 +207,8 @@ class Layout:
 		css_string = css.generate(self)
 		html = [
 			f'<body id="debugger" style="padding-top: {self.vertical_offset}px;">',
-				'<style>', 
-					css_string, 
+				'<style>',
+					css_string,
 				'</style>',
 				self.item.html(),
 			'</body>'

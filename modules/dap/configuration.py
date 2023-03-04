@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict
 from ..import core
 from ..import dap
 
-from .transport import Transport
+from .transport import Transport, TransportProtocol
 
 import sublime
 import re
@@ -35,19 +35,19 @@ class AdapterInstaller:
 		core.remove_file_or_dir(self.temporary_install_path())
 		core.remove_file_or_dir(self.install_path())
 
-	def temporary_install_path(self) -> str: 
+	def temporary_install_path(self) -> str:
 		return f'{core.package_path()}/data/{self.type}.tmp'
 
-	def install_path(self) -> str: 
+	def install_path(self) -> str:
 		return f'{core.package_path()}/data/{self.type}'
 
-	def data_path(self) -> str: 
+	def data_path(self) -> str:
 		return f'{core.package_path()}/data'
 
-	def installed_version(self) -> str|None: 
+	def installed_version(self) -> str|None:
 		return '1.0.0'
 
-	async def installable_versions(self, log: core.Logger) -> list[str]: 
+	async def installable_versions(self, log: core.Logger) -> list[str]:
 		return []
 
 	def configuration_snippets(self, schema_type: str|None = None) -> list[dict[str, Any]] | None: ...
@@ -57,17 +57,17 @@ class AdapterInstaller:
 class AdapterConfiguration:
 	type: str
 	types: list[str] = []
-	
+
 	docs: str | None
 	development: bool = False
 	internal: bool = False
 
 	installer = AdapterInstaller()
 
-	async def start(self, log: core.Logger, configuration: ConfigurationExpanded) -> Transport: ...
+	async def start(self, log: core.Logger, configuration: ConfigurationExpanded) -> Transport|TransportProtocol: ...
 
 	@property
-	def installed_version(self) -> str | None: 
+	def installed_version(self) -> str | None:
 		return self.installer.installed_version()
 
 	@property
@@ -175,7 +175,7 @@ class Task (Dict[str, Any]):
 class TaskExpanded(Task):
 	def __init__(self, task: Task, variables: dict[str, str]) -> None:
 		arguments = _expand_variables_and_platform(task, variables)
-		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy		
+		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
 		super().__init__(arguments, task.source)
 
 		cmd: str|list[str]|None = arguments.get('cmd')

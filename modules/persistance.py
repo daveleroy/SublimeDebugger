@@ -2,15 +2,11 @@ from __future__ import annotations
 from typing import Any
 from .import core
 
-import os
-
-
 VERSION_NUMBER = 0
-
-
 
 def load(key: str) -> core.JSON:
 	key = ''.join(x for x in key if x.isalnum())
+	key = key[-128:]
 
 	path = f'{core.package_path()}/data/{key}.json'
 
@@ -29,6 +25,7 @@ def load(key: str) -> core.JSON:
 
 def save(key: str, data: Any):
 	key = ''.join(x for x in key if x.isalnum())
+	key = key[-128:]
 
 	data['_version'] = VERSION_NUMBER
 	core.make_directory(f'{core.package_path()}/data')

@@ -4,7 +4,6 @@ from . import core
 
 import sublime
 
-
 T = TypeVar('T')
 class Setting(Generic[T], object):
 	def __init__(self, key: str, default: T, description: str = '', visible = True, schema: Any|None = None) -> None:
@@ -112,7 +111,7 @@ class Settings:
 			},
 			"Terminus": {
 				"name": "Terminal",
-				"position": "bottom"
+				"position": "bottom",
 			}
 		}
 		'''

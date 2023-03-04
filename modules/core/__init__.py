@@ -10,8 +10,20 @@ from .event import Handle, Event, EventReturning
 from . import platform
 from .error import Error
 from .json import json_encode, json_decode, JSON
-
 from .log import *
+from .asyncio import (
+	Future,
+	CancelledError,
+
+	call_later,
+	call_soon,
+	delay,
+	run,
+	run_in_executor,
+
+	gather,
+	gather_results,
+)
 
 _current_package = __package__.split('.', 1)[0]
 _current_package_path = os.path.join(sublime.packages_path(), _current_package)
@@ -46,11 +58,11 @@ class timer:
 	def __init__(self, callback: Callable[[], Any], interval: float, repeat: bool = False) -> None:
 		self.interval = interval
 		self.callback = callback
-		self.cancelable = core.call_later(interval, self.on_complete)
+		self.cancelable = call_later(interval, self.on_complete)
 		self.repeat = repeat
 
 	def schedule(self) -> None:
-		self.cancelable = core.call_later(self.interval, self.on_complete)
+		self.cancelable = call_later(self.interval, self.on_complete)
 
 	def on_complete(self) -> None:
 		self.callback()

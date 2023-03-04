@@ -29,7 +29,6 @@ class DebuggerTabbedView(TabbedView):
 		self.actions_tab = DebuggerActionsTab(debugger)
 
 
-
 	def header(self, is_selected):
 		return self.actions_tab
 
@@ -40,11 +39,11 @@ class DebuggerTabbedView(TabbedView):
 	def render(self) -> ui.div.Children:
 		# looks like
 		# current status
-		# breakpoints ...			
+		# breakpoints ...
 
 		panel_items: list[ui.div] = []
 
-		if session := self.debugger.session: 
+		if session := self.debugger.session:
 			self.last_adapter_configuration = session.adapter_configuration
 
 			if status := session.state.status:

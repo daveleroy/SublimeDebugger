@@ -77,7 +77,7 @@ class TransportDataLog:
 
 		if type == 'event':
 			command = data.get('event')
-			
+
 			return f'{command} .. {data_formatted}'
 
 		return f'unknown :: {data_formatted}'
@@ -96,22 +96,22 @@ class TransportOutgoingDataLog(TransportDataLog):
 
 
 class TransportProtocol:
-	def __init__(
-		self,
-		transport: Transport,
-		events: TransportProtocolListener,
-		transport_log: core.Logger,
-	) -> None:
-
-		self.events = events
-		self.transport_log = transport_log
+	def __init__(self, transport: Transport) -> None:
 		self.transport = transport
+
+	def start(self, listener: TransportProtocolListener, log: core.Logger):
+		self.events = listener
+		self.log = log
+
 		self.pending_requests: dict[int, core.Future[dict[str, Any]]] = {}
 		self.seq = 0
 
-		self.transport_log.log('transport', f'-- begin transport protocol')
-		self.thread = threading.Thread(target=self.read)
+		self.log.log('transport', f'-- begin transport protocol')
+		self.thread = threading.Thread(target=self.read_transport, name='dap')
 		self.thread.start()
+
+	def dispose(self) -> None:
+		self.transport.dispose()
 
 	# Content-Length: 119\r\n
 	# \r\n
@@ -123,7 +123,7 @@ class TransportProtocol:
 	#         "threadId": 3
 	#     }
 	# }
-	def read(self):
+	def read_transport(self):
 		header = b'Content-Length: '
 		header_length = len(header)
 
@@ -151,20 +151,17 @@ class TransportProtocol:
 					bytes_left = size - len(content)
 					content += self.transport.read(bytes_left)
 
-				core.call_soon_threadsafe(self.recieved_msg, core.json_decode(content))
+				self.on_message(core.json_decode(content))
 
 		except Exception as e:
 			msg = '-- end transport protocol: ' + (str(e) or 'eof')
-			core.call_soon_threadsafe(self.on_closed, msg)
+			core.call_soon(self.on_closed, msg)
 
 	def send(self, message: dict[str, Any]):
 		content = core.json_encode(message)
 		self.transport.write(bytes(f'Content-Length: {len(content)}\r\n\r\n{content}', 'utf-8'))
 
-	def dispose(self) -> None:
-		self.transport.dispose()
-
-	def send_request_asyc(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
+	def send_request(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
 		future: core.Future[dict[str, Any]] = core.Future()
 		self.seq += 1
 		request = {
@@ -176,9 +173,23 @@ class TransportProtocol:
 
 		self.pending_requests[self.seq] = future
 
-		self.transport_log.log('transport', TransportOutgoingDataLog(request))
+		self.log.log('transport', TransportOutgoingDataLog(request))
 		self.send(request)
 		return future
+
+
+	def send_event(self, event: str, body: dict[str, Any]) -> None:
+		self.seq += 1
+
+		data = {
+			'type': 'event',
+			'event': event,
+			'seq': self.seq,
+			'body': body,
+		}
+
+		self.log.log('transport', TransportOutgoingDataLog(data))
+		self.send(data)
 
 	def send_response(self, request: dict[str, Any], body: dict[str, Any], error: str|None = None) -> None:
 		self.seq += 1
@@ -198,27 +209,35 @@ class TransportProtocol:
 			'message': error,
 		}
 
-		self.transport_log.log('transport', TransportOutgoingDataLog(data))
+		self.log.log('transport', TransportOutgoingDataLog(data))
 		self.send(data)
 
-	@core.run
-	async def handle_reverse_request(self, request: dict[str, Any]):
+	def on_request(self, request: dict[str, Any]):
 		command = request['command']
 
-		try:
-			response = await self.events.on_reverse_request(command, request.get('arguments', {}))
-			self.send_response(request, response)
-		except core.Error as e:
-			self.send_response(request, {}, error=str(e))
+		@core.run
+		async def r():
+			try:
+				response = await self.events.on_reverse_request(command, request.get('arguments', {}))
+				self.send_response(request, response)
+			except core.Error as e:
+				self.send_response(request, {}, error=str(e))
+
+		r()
+
+
+	def on_event(self, event: str, body: Any):
+		# use call_soon so that events and respones are handled in the same order as the server sent them
+		core.call_soon(self.events.on_event, event, body)
 
 	def on_closed(self, msg: str) -> None:
-		self.transport_log.log('transport', msg)
+		self.log.log('transport', msg)
 
 		# use call_soon so that events and respones are handled in the same order as the server sent them
 		core.call_soon(self.events.on_transport_closed)
 
-	def recieved_msg(self, data: dict[str, Any]) -> None:
-		self.transport_log.log('transport', TransportIncomingDataLog(data))
+	def on_message(self, data: dict[str, Any]) -> None:
+		self.log.log('transport', TransportIncomingDataLog(data))
 
 		t = data['type']
 		if t == 'response':
@@ -244,12 +263,7 @@ class TransportProtocol:
 			return
 
 		if t == 'request':
-			core.call_soon(self.handle_reverse_request, data)
+			self.on_request(data)
 
 		if t == 'event':
-			event_body: dict[str, Any] = data.get('body', {})
-			event = data['event']
-
-			# use call_soon so that events and respones are handled in the same order as the server sent them
-			core.call_soon(self.events.on_event, event, event_body)
-
+			self.on_event(data['event'], data.get('body', {}))

@@ -29,7 +29,6 @@ def error(*args: Any) -> None:
 	print('Debugger: error:', *args)
 
 def alert(*args: Any) -> None:
-	print('ALERT')
 	sublime.error_message(str(args))
 
 	if not _should_log_error:
@@ -65,5 +64,6 @@ class Logger(Protocol):
 class StdioLogger(Logger):
 	def log(self, type: str, value: Any):
 		print(f'Debugger: {type}: {value}')
+
 
 stdio = StdioLogger()

@@ -252,7 +252,7 @@ class code(span, alignable):
 			self._text_clipped = self.text[0:int(width-1)] + '…'
 		else:
 			self._text_clipped = self.text
-		
+
 		return len(self._text_clipped)
 
 	def html(self) -> HtmlResponse:

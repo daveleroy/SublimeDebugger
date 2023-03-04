@@ -62,7 +62,7 @@ class SourceNavigationProvider:
 				core.error(error)
 
 		async def select_async(source: dap.SourceLocation, thread: dap.Thread):
-			delay = core.run(core.sleep(1.0/30.0))
+			delay = core.run(core.delay(1.0/30.0))
 
 			view = await self.navigate_to_source(source)
 

@@ -27,19 +27,19 @@ button_drop = ui.css(
 	border-radius: 0.4rem;
 	padding-right: 0.9rem;
 	padding-left: 0.9rem;
-	border-color: var(--dark); 
-	border-width: 0.1rem; 
+	border-color: var(--dark);
+	border-width: 0.1rem;
 	border-style: solid;
 	'''
 )
 
 button_secondary = ui.css(
-	padding_left=1, 
-	padding_right=1, 
+	padding_left=1,
+	padding_right=1,
 	padding_top=1,
-	padding_bottom=1, 
-	background_color='var(--dark)', 
-	color='var(--secondary)', 
+	padding_bottom=1,
+	background_color='var(--dark)',
+	color='var(--secondary)',
 	raw='border-radius: 0.4rem;'
 )
 
@@ -156,15 +156,6 @@ tab_selected = ui.css(
 	'''
 )
 
-
-tab_panel_spacer = ui.css(
-	background_color='var(--medium)',
-	raw='''
-	border-top-left-radius: 0.33rem;
-	border-top-right-radius: 0.33rem;
-	'''
-)
-
 tab_spacer = ui.css(
 	background_color='var(--redish)',
 	raw='''
@@ -174,8 +165,6 @@ tab_spacer = ui.css(
 	margin-bottom: 25px;
 	'''
 )
-
-
 
 controls_panel = ui.css(
 	background_color='var(--light)',

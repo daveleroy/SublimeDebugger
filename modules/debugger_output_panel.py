@@ -94,7 +94,6 @@ class DebuggerOutputPanel:
 		previous_panel = self.window.active_panel()
 		self.view = self.window.find_output_panel(self.panel_name) or self.window.create_output_panel(self.panel_name)
 		self.view.set_name(self.name)
-
 		self.controls_and_tabs_phantom = None
 
 		DebuggerOutputPanel.panels[self.view.id()] = self

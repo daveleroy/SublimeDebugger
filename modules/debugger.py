@@ -28,7 +28,7 @@ from .terminal_integrated import TerminusIntegratedTerminal
 from .source_navigation import SourceNavigationProvider
 
 class Debugger (dap.Debugger, dap.SessionListener):
-	
+
 	instances: dict[int, 'Debugger'] = {}
 	creating: dict[int, bool] = {}
 
@@ -96,7 +96,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.run_to_current_line_breakpoint: SourceBreakpoint|None = None
 
 		self.breakpoints = Breakpoints()
-		self.watch = Watch()		
+		self.watch = Watch()
 
 		self.disposeables.extend([
 			self.project,
@@ -115,7 +115,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.console.on_navigate.add(self._on_navigate_to_source)
 
 		self.project.reload(self.console)
-	
+
 
 		location = self.project.location
 		if location:
@@ -130,7 +130,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		self.panels = DebuggerMainOutputPanel(self)
 		self.panels.on_closed = lambda: self.console.open()
-		
+
 		self.disposeables.extend([
 			self.console,
 			self.panels,
@@ -211,7 +211,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 					self.project.load_configuration(configuration)
 					if not self.project.configuration_or_compound:
 						raise core.Error(f'Unable to find the configuration with the name `{configuration}`')
-					
+
 					if self.project.configuration_or_compound != previous_configuration_or_compound:
 						core.info('Saving data: configuration selection changed')
 						self.save_data()
@@ -241,7 +241,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	@core.run
 	async def start_with_configurations(self, configurations: list[dap.Configuration], no_debug: bool = False):
-		
+
 		# grab variables before we open the console because the console will become the focus
 		# and then things like $file would point to the console
 		variables = self.project.extract_variables()
@@ -254,7 +254,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 			# This just ensures the console flashes briefly before starting the session if the adapter is just going to instantly put the exact same contents as before such as during a startup error
 			# Otherwise it can look like nothing happened
-			await core.sleep(1.0/30.0)
+			await core.delay(1.0/30.0)
 
 		self.console.open()
 
@@ -294,9 +294,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			configuration=configuration,
 			restart=restart,
 			no_debug=no_debug,
-			breakpoints=breakpoints, 
-			watch=self.watch, 
-			listener=self, 
+			breakpoints=breakpoints,
+			watch=self.watch,
+			listener=self,
 			debugger=self,
 			parent=parent,
 			log=self.console,
@@ -380,7 +380,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		if self.session == session:
 			self.session = self.sessions[0] if self.sessions else None
-		
+
 			# try to select the first session with threads if there is one
 			for s in self.sessions:
 				if s.threads:
@@ -420,7 +420,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	@core.run
 	async def stop(self, session: dap.Session|None = None) -> None:
 		# the stop command stops all sessions in a hierachy
-		try: 
+		try:
 			if not session:
 				root = self.active
 				while root.parent:
@@ -432,7 +432,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			session_stop = session.stop()
 			for child in session.children:
 				self.stop(child)
-			
+
 			await session_stop
 
 		except core.Error as e: self.console.error(f'Unable to stop: {e}')
@@ -529,7 +529,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	@core.run
 	async def on_run_command(self, command: str) -> None:
-		try: 
+		try:
 			result = await self.active.evaluate_expression(command, context='repl')
 			if result.variablesReference:
 				self.console.write(f'', 'blue', ensure_new_line=True)
@@ -546,7 +546,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	async def evaluate_selected_expression(self):
 		if view := sublime.active_window().active_view():
 			sel = view.sel()[0]
-			expression = view.substr(sel) 
+			expression = view.substr(sel)
 			self.on_run_command(expression)
 
 	def toggle_breakpoint(self):
@@ -598,7 +598,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			self.console.info('Debugging ended')
 
 	def _on_session_output(self, session: dap.Session, event: dap.OutputEvent) -> None:
-		self.console.program_output(session, event)		
+		self.console.program_output(session, event)
 
 	async def _on_session_run_terminal_requested(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		title = request.title or session.configuration.name
@@ -620,12 +620,12 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 				if self.project.external_terminal_kind == 'terminus':
 					return ExternalTerminalTerminus(title, cwd, commands, env)
-				
+
 				raise core.Error('unknown external terminal type "{}"'.format(self.project.external_terminal_kind))
 
 			terminal = external_terminal()
 			self.external_terminals.setdefault(session, []).append(terminal)
-			return dap.RunInTerminalResponse(processId=None, shellProcessId=None) 
+			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
 
 		if request.kind == 'integrated':
 			terminal = TerminusIntegratedTerminal(self, request.title or 'Untitled', request.cwd, request.args, request.env)
@@ -663,7 +663,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			if panel.is_open():
 				return True
 		return False
-	
+
 	def open(self) -> None:
 		if not self.is_active:
 			self.open_console()
@@ -814,7 +814,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 				installed.append(item(adapter))
 			else:
 				not_installed.append(item(adapter))
-			
+
 		items = list(await core.gather(*(installed + not_installed)))
 		self.console.log('group-end', '[Finished]')
 		return items
@@ -834,7 +834,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			def item(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
 				name = adapter.type
 				installed_version = adapter.installed_version
-		
+
 				if installed_version:
 					snippet_input_items: list[ui.InputListItem] = []
 
@@ -866,5 +866,5 @@ class Debugger (dap.Debugger, dap.SessionListener):
 				installed.append(item(adapter))
 			else:
 				not_installed.append(item(adapter))
-			
+
 		return installed + not_installed

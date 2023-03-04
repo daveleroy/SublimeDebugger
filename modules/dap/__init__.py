@@ -12,7 +12,7 @@ from .dap import (
 
 	EvaluateResponse,
 	ReadMemoryResponse,
-	
+
 	Breakpoint,
 	FunctionBreakpoint,
 	DataBreakpoint,
@@ -21,11 +21,11 @@ from .dap import (
 	ExceptionBreakpointsFilter,
 
 	ExceptionInfoResponseBody,
-	
+
 	RunInTerminalRequest,
 	RunInTerminalResponse,
 	RunInTerminalRequestArguments,
-	
+
 	Module,
 	Source,
 	CompletionItem,
@@ -51,8 +51,13 @@ from .debugger import (
 	Console
 )
 
-from .transports import (
+from .transport import (
 	Transport,
+	TransportProtocol,
+	TransportProtocolListener,
+)
+
+from .transports import (
 	Process,
 	StdioTransport,
 	SocketTransport,

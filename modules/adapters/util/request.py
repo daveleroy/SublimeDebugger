@@ -37,23 +37,22 @@ _cached_response: dict[str, JSON] = {}
 # we have 60 requests per hour for an anonymous user to the github api
 # conditional requests don't count against the 60 requests per hour limit so implement some very basic caching
 # see https://docs.github.com/en/rest/overview/resources-in-the-rest-api
-async def request(url: str, timeout: int|None = 30):
-	def blocking():
-		headers = {
-			'User-Agent': 'Sublime-Debugger',
-			'Accept-Encoding': 'gzip, deflate'
-		}
-		return Response(urlopen(Request(url, headers=headers), timeout=timeout))
+@core.run_in_executor
+def request(url: str, timeout: int|None = 30):
+	headers = {
+		'User-Agent': 'Sublime-Debugger',
+		'Accept-Encoding': 'gzip, deflate'
+	}
+
 	try:
-		result = await core.run_in_executor(blocking)
+		return Response(urlopen(Request(url, headers=headers), timeout=timeout))
 	except Exception as error:
 		raise core.Error(f'{error}: Unable to download file ${url}')
 
-	return result
 
-async def json(url: str, timeout: int|None = 30) -> JSON:
-
-	def blocking():
+@core.run_in_executor
+def json(url: str, timeout: int|None = 30) -> JSON:
+	try:
 		headers = {
 			'User-Agent': 'Sublime-Debugger',
 			'Accept-Encoding': 'gzip, deflate'
@@ -63,11 +62,11 @@ async def json(url: str, timeout: int|None = 30) -> JSON:
 
 		try:
 			response = Response(urlopen(Request(url, headers=headers), timeout=timeout))
-			
+
 		except HTTPError as error:
 			if error.code == 304 and _cached_response[url]:
 				return _cached_response[url]
-			raise error		
+			raise error
 
 		result = json_decode_b(response.data)
 		if etag := response.headers.get('Etag'):
@@ -76,12 +75,8 @@ async def json(url: str, timeout: int|None = 30) -> JSON:
 
 		return result
 
-	try:
-		result = await core.run_in_executor(blocking)
 	except Exception as error:
 		raise core.Error(f'{error}: Unable to download file ${url}')
-
-	return result	
 
 
 async def download_and_extract_zip(url: str, path: str, log: core.Logger):
@@ -92,8 +87,9 @@ async def download_and_extract_zip(url: str, path: str, log: core.Logger):
 	archive_name = f'{path}.zip'
 	response = await request(url)
 
+	@core.run_in_executor
 	def blocking():
-		
+
 		with open(archive_name, 'wb') as out_file:
 			_copyfileobj(response.data, out_file, log_info, int(response.headers.get('Content-Length', '0')))
 
@@ -103,7 +99,7 @@ async def download_and_extract_zip(url: str, path: str, log: core.Logger):
 			top = {item.split('/')[0] for item in zf.namelist()}
 			zipinfos = zf.infolist()
 
-			
+
 
 			# if the zip is a single item extract rename it so its not multiple levels deep
 			if len(top) == 1:
@@ -115,11 +111,11 @@ async def download_and_extract_zip(url: str, path: str, log: core.Logger):
 				zf.extractall(path)
 
 		log_info('...extracted')
-		
+
 
 	log.info('Downloading {}'.format(url))
 
-	await core.run_in_executor(blocking)
+	await blocking()
 	core.remove_file_or_dir(archive_name)
 
 
@@ -133,7 +129,7 @@ def _copyfileobj(fsrc, fdst, log_info, total, length=128*1024):
 			break
 		fdst.write(buf)
 		copied += len(buf)
-		
+
 		# handle the case where the total size isn't known
 		if total:
 			log_info('{:.2f} mb {}%'.format(copied/1024/1024, int(copied/total*100)))

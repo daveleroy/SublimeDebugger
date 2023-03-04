@@ -4,7 +4,7 @@ from typing import Any, Callable
 import sublime
 import sublime_plugin
 
-from .core import create_future, Future
+from .asyncio import Future
 from .event import Event
 
 async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None, group: int=-1) -> sublime.View:
@@ -19,7 +19,7 @@ async def sublime_open_file_async(window: sublime.Window, file: str, line: int|N
 
 async def wait_for_view_to_load(view: sublime.View):
 	if view.is_loading():
-		future_view: Future[sublime.View] = create_future()
+		future_view: Future[sublime.View] = Future()
 
 		def loaded_view(v: sublime.View) -> None:
 			if view.id() == v.id():
@@ -61,7 +61,7 @@ class DebuggerAsyncTextCommand(sublime_plugin.TextCommand):
 		DebuggerAsyncTextCommand._run = None
 		if run: run(edit)
 
-		
+
 
 class DebuggerEventsListener(sublime_plugin.EventListener):
 

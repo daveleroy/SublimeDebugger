@@ -124,7 +124,7 @@ class SessionView (ui.div):
 
 		if not is_expanded:
 			return label_view
-			
+
 
 		items: list[SessionView|ThreadView] = []
 
@@ -146,8 +146,8 @@ class ThreadView (ui.div):
 		super().__init__()
 		self.session = session
 		self.is_selected = session.selected_thread == thread and debugger.session == session
-	
-		
+
+
 		self.show_thread_name = len(session.threads) > 1
 		self.thread = thread
 		self.state = state
@@ -193,7 +193,7 @@ class ThreadView (ui.div):
 		else:
 			text_css = css.label_secondary
 
-		
+
 		thread_css = css.selected if self.is_selected and not self.session.selected_frame else None
 
 		def thread_name():
@@ -214,7 +214,7 @@ class ThreadView (ui.div):
 				thread_name()
 			]
 
-		
+
 
 		if not self.show_thread_name:
 			thread_item = ui.div()

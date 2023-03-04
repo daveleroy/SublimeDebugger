@@ -86,7 +86,7 @@ class Project:
 
 		previous_configuration_or_compound = self.configuration_or_compound
 		self.configuration_or_compound = find_matching_configuration()
-		
+
 		if previous_configuration_or_compound != self.configuration_or_compound:
 			if not skip_update:
 				self.on_updated()
@@ -130,7 +130,7 @@ class Project:
 			self.window.run_command('edit_settings', {
 				'base_file': '${packages}/Debugger/debugger.sublime-settings'
 			})
-			return	
+			return
 
 		view = await core.sublime_open_file_async(self.window, project_name)
 		region = view.find(r'debugger_configurations', 0)
@@ -164,7 +164,7 @@ class Project:
 			with open(path , 'r') as file:
 				contents = file.read()
 
-			project_json = sublime.decode_value(contents) or {}		
+			project_json = sublime.decode_value(contents) or {}
 			json: list[Any] = project_json.get(key, [])
 			for configuration in json:
 				configuration['$'] = {

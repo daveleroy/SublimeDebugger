@@ -69,14 +69,14 @@ class Session(TransportProtocolListener):
 	stopped_reason_manual=5
 	stopped_reason_stopped_unexpectedly=6
 
-	def __init__(self, 
-		adapter_configuration: AdapterConfiguration, 
-		configuration: ConfigurationExpanded, 
-		restart: Any|None, 
-		no_debug: bool, 
-		breakpoints: Breakpoints, 
-		watch: Watch, 
-		listener: SessionListener, 
+	def __init__(self,
+		adapter_configuration: AdapterConfiguration,
+		configuration: ConfigurationExpanded,
+		restart: Any|None,
+		no_debug: bool,
+		breakpoints: Breakpoints,
+		watch: Watch,
+		listener: SessionListener,
 		log: Console,
 		debugger: Debugger,
 		parent: Session|None = None
@@ -176,7 +176,7 @@ class Session(TransportProtocolListener):
 		assert self.state == Session.State.STOPPED, 'debugger not in stopped state?'
 		self._change_state(Session.State.STARTING)
 		self.configuration = await self.adapter_configuration.configuration_resolve(self.configuration)
-		
+
 		installed_version = self.adapter_configuration.installed_version
 		if not installed_version:
 			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(self.adapter_configuration.type))
@@ -193,11 +193,9 @@ class Session(TransportProtocolListener):
 		except Exception as e:
 			raise core.Error(f'Unable to start adapter: {e}')
 
-		self._transport = TransportProtocol(
-			transport,
-			self,
-			self.log
-		)
+
+		self._transport = transport if isinstance(transport, TransportProtocol) else TransportProtocol(transport)
+		self._transport.start(self, self.log)
 
 		capabilities: dap.Capabilities = await self.request('initialize', {
 			'clientID': 'sublime',
@@ -246,7 +244,7 @@ class Session(TransportProtocolListener):
 		if not self._transport:
 			raise core.Error(f'Debug Session {self.state.status}')
 
-		return await self._transport.send_request_asyc(command, arguments)
+		return await self._transport.send_request(command, arguments)
 
 	async def run_pre_debug_task(self) -> bool:
 		pre_debug_command = self.configuration.pre_debug_task
@@ -381,7 +379,7 @@ class Session(TransportProtocolListener):
 
 		enabled_breakpoints: list[SourceBreakpoint] = []
 		dap_breakpoints: list[dap.SourceBreakpoint] = []
-		
+
 		lines: list[int] = []
 
 		for breakpoint in breakpoints:
@@ -659,7 +657,7 @@ class Session(TransportProtocolListener):
 				v.name = ''
 				v.value = v.value.split('\n')[0]
 
- 
+
 		return [Variable.from_variable(self, variablesReference, v) for v in variables]
 
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
@@ -730,7 +728,7 @@ class Session(TransportProtocolListener):
 	@core.run
 	async def on_transport_closed(self):
 		await self.stop_forced(reason=None)
-		
+
 	async def on_reverse_request(self, command: str, arguments: Any) -> dict[str, Any]:
 		if command == 'runInTerminal':
 			response = await self.on_run_in_terminal(arguments)
@@ -874,7 +872,7 @@ class Session(TransportProtocolListener):
 		self.selected_explicitly = explicitly
 		self.selected_thread = thread
 		self.selected_frame = frame
-		
+
 		self.listener.session_selected_frame(self, frame)
 
 		if frame:

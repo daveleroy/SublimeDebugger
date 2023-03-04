@@ -38,4 +38,3 @@ class JSONEncoder(json.JSONEncoder):
 
 JSON: TypeAlias = DottedDict[str, "JSON_VALUE"]
 JSON_VALUE: TypeAlias = 'DottedDict[str, "JSON_VALUE"] | list[JSON_VALUE] | str | int | float | bool | None'
-

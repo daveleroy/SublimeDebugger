@@ -7,7 +7,7 @@ import shutil
 from typing import Any, Iterable, Set
 
 if sublime.version() < '4000':
-	raise Exception('This version of Debugger requires st4, use the st3 branch')
+	raise Exception('Debugger only supports Sublime Text 4')
 
 module_starts_with = __package__ + '.'
 
@@ -61,8 +61,9 @@ def plugin_loaded() -> None:
 	core.info('[finished]')
 
 def plugin_unloaded() -> None:
+
 	core.info('[shutdown]')
-	
+
 	try:
 		core.info("Uninstalling Debugger33")
 		shutil.rmtree(debugger33_path)
@@ -172,11 +173,11 @@ class Listener (sublime_plugin.EventListener):
 
 		try:
 
-			
+
 			response = await session.evaluate_expression(word_string, 'hover')
 			component = VariableView(debugger, dap.Variable.from_evaluate(session, '', response))
 			component.toggle_expand()
-			
+
 			popup = None
 
 			def on_close_popup():
@@ -247,9 +248,9 @@ class Listener (sublime_plugin.EventListener):
 
 			if window := view.window():
 				window.focus_view(view)
-			
+
 			source_breakpoints = breakpoints.source.get_breakpoints_on_line(file, line)
-			
+
 			if not source_breakpoints and button == 1:
 				debugger.breakpoints.source.toggle_file_line(file, line)
 
@@ -268,9 +269,9 @@ class Listener (sublime_plugin.EventListener):
 		debugger = debugger_for_view(view)
 
 		def apply_operator(value: Any):
-			if operator == sublime.OP_EQUAL: 
+			if operator == sublime.OP_EQUAL:
 				return value == operand
-			elif operator == sublime.OP_NOT_EQUAL: 
+			elif operator == sublime.OP_NOT_EQUAL:
 				return value != operand
 
 		if key == 'debugger':

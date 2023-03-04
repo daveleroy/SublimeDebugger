@@ -37,8 +37,9 @@ class Process:
 		Process.processes.add(process)
 
 	@staticmethod
-	async def check_output(command: list[str], cwd: str|None = None) -> bytes:
-		return await core.run_in_executor(lambda: subprocess.check_output(command, cwd=cwd))
+	@core.run_in_executor
+	def check_output(command: list[str], cwd: str|None = None) -> bytes:
+		return subprocess.check_output(command, cwd=cwd)
 
 	def __init__(self, command: list[str], cwd: str|None = None, env: dict[str, str]|None = None):
 		# taken from Default/exec.py
@@ -67,16 +68,15 @@ class Process:
 		self.stdin = stdin
 		self.stderr = stderr
 		self.stdout = stdout
-
 		self.closed = False
-		
+
 
 	def on_stdout(self, callback: Callable[[str], None]):
-		thread = threading.Thread(target=self._read_all, args=(self.process.stdout, callback))
+		thread = threading.Thread(target=self._read_all, args=(self.process.stdout, callback), name=f'stdout')
 		thread.start()
 
 	def on_stderr(self, callback: Callable[[str], None]):
-		thread = threading.Thread(target=self._read_all, args=(self.process.stderr, callback))
+		thread = threading.Thread(target=self._read_all, args=(self.process.stderr, callback), name='stderr')
 		thread.start()
 
 	def _read_all(self, file: Any, callback: Callable[[str], None]) -> None:
@@ -85,7 +85,7 @@ class Process:
 			if not line:
 				break
 
-			core.call_soon_threadsafe(callback, line)
+			core.call_soon(callback, line)
 
 	def _readline(self, pipe: IO[bytes]) -> bytes:
 		if l := pipe.readline():
@@ -97,11 +97,13 @@ class Process:
 			return l
 		raise EOFError
 
-	async def readline(self, pipe: IO[bytes]) -> bytes:
-		return await core.run_in_executor(lambda: self._readline(pipe))
+	@core.run_in_executor
+	def readline(self, pipe: IO[bytes]) -> bytes:
+		return self._readline(pipe)
 
-	async def read(self, pipe: IO[bytes], nbytes: int) -> bytes:
-		return await core.run_in_executor(lambda: self._read(pipe, nbytes))
+	@core.run_in_executor
+	def read(self, pipe: IO[bytes], nbytes: int) -> bytes:
+		return self._read(pipe, nbytes)
 
 	def dispose(self):
 		self.closed = True
@@ -115,7 +117,7 @@ class Process:
 class StdioTransport(Transport):
 	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None, stderr: Callable[[str], None] | None = None):
 		log.log('transport', f'-- stdio transport: {command}')
-		
+
 		def log_stderr(data: str):
 			log.log('transport', TransportStderrOutputLog(data))
 			if stderr:
@@ -162,7 +164,7 @@ class SocketTransport(Transport):
 					return socket
 
 				except Exception as e:
-					await core.sleep(0.25)
+					await core.delay(0.25)
 					exception = e
 
 			raise core.Error(f'tcp://{host}:{port} {exception}')
@@ -203,7 +205,6 @@ class SocketTransport(Transport):
 			self.socket.close()
 		except:
 			core.exception()
-		
+
 		if self.process:
 			self.process.dispose()
-
