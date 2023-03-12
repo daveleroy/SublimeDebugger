@@ -1,21 +1,25 @@
 from __future__ import annotations
+
 import shutil
 import zipfile
+import os
+import sublime
 
 from .log import debug
 from .error import Error
-from . import platform
-
-import os
 
 
 def symlink(origin: str, destination: str):
 	try:
 		os.symlink(origin, destination)
 
-	# try not to delete real links if we can avoid it
+	# try not to delete real stuff if we can avoid it
 	except FileExistsError:
 		if os.path.islink(destination):
+			os.remove(destination)
+			os.symlink(origin, destination)
+			return
+		if os.path.isdir(destination) and len(os.listdir(destination)) == 0:
 			os.remove(destination)
 			os.symlink(origin, destination)
 			return
@@ -70,7 +74,7 @@ class ZipFile(zipfile.ZipFile):
 		return ret_val
 
 def _abspath_fix(path):
-	if platform.windows:
+	if sublime.platform() == 'windows':
 		path = os.path.abspath(path)
 		if path.startswith('\\\\'):
 			path = '\\\\?\\UNC\\' + path[2:]

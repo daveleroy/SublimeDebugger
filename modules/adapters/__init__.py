@@ -18,4 +18,6 @@ from .firefox import Firefox
 
 from .mock import Mock
 
+from .sublime_debug import Sublime
+
 from .emulicious_debugger import EmuliciousDebugger

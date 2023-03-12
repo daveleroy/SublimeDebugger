@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": ".",
+		},
+	],
+	"debugger_configurations": [
+		{
+			"name": "Sublime",
+			"request": "launch",
+			"type": "sublime",
+
+			// open text.txt in a new window
+			"args": [
+				"-n",
+				"${project_path}/text.txt"
+			],
+			"linked_packages": [
+				"${project_path}",
+
+				// so that the debug version has the same settings as the none debug version
+				"${packages}/User/Preferences.sublime-settings"
+			]
+		}
+	]
+}
