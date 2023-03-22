@@ -161,6 +161,13 @@
         }
     },
     {
+        "caption": "Debugger: Toggle Disassembly",
+        "command": "debugger",
+        "args": {
+            "action": "toggle_disassembly"
+        }
+    },
+    {
         "caption": "Debugger: LLDB Toggle Disassembly",
         "command": "debugger",
         "args": {

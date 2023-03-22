@@ -3,6 +3,13 @@
         "caption": "-"
     },
     {
+        "caption": "Toggle Disassembly",
+        "command": "debugger",
+        "args": {
+            "action": "toggle_disassembly"
+        }
+    },
+    {
         "caption": "Toggle Breakpoint",
         "command": "debugger",
         "args": {

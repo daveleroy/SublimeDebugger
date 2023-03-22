@@ -1,0 +1,25 @@
+%YAML 1.2
+---
+
+scope: source.disassembly
+name: 'Disassembly'
+hidden: true
+
+contexts:
+  main:
+    - match: "^([A-Za-z0-9]+:) ([A-Za-z][A-Za-z0-9]*)"
+      captures:
+        1: comment
+        2: variable.function
+
+    - match: "((\\$|\\b)((0x)|[0-9])[A-Za-z0-9]+\\b)"
+      captures:
+        1: constant.numeric
+    
+    - match: "(%[A-Za-z][A-Za-z0-9]*)"
+      captures:
+        1: constant.numeric
+
+    - match: "(;.*$)"
+      captures:
+        1: comment.line.semicolon

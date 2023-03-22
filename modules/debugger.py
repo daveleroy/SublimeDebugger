@@ -21,6 +21,8 @@ from .debugger_console_panel import DebuggerConsoleOutputPanel
 from .debugger_main_panel import DebuggerMainOutputPanel
 from .debugger_output_panel import DebuggerOutputPanel
 
+from .disassemble import DisassembleView
+
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
 from .terminal_task import Tasks
 from .terminal_integrated import TerminusIntegratedTerminal
@@ -138,6 +140,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
 		self.integrated_terminals: dict[dap.Session, list[TerminusIntegratedTerminal]] = {}
+		self.disassembly_view: DisassembleView|None = None
 
 		self.on_session_active.add(self._on_session_active)
 		self.on_session_added.add(self._on_session_added)
@@ -392,6 +395,20 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_removed(session)
 
 
+	def stepping_granularity(self):
+		if not self.disassembly_view:
+			return None
+
+		view = self.disassembly_view.view
+		window = view.window()
+		if not window:
+			return None
+
+		if window.active_view() != view:
+			return None
+
+		return 'instruction'
+
 	@core.run
 	async def resume(self) -> None:
 		try: await self.active.resume()
@@ -404,17 +421,17 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	@core.run
 	async def step_over(self) -> None:
-		try: await self.active.step_over()
+		try: await self.active.step_over(granularity=self.stepping_granularity())
 		except core.Error as e: self.console.error(f'Unable to step over: {e}')
 
 	@core.run
 	async def step_in(self) -> None:
-		try: await self.active.step_in()
+		try: await self.active.step_in(granularity=self.stepping_granularity())
 		except core.Error as e: self.console.error(f'Unable to step in: {e}')
 
 	@core.run
 	async def step_out(self) -> None:
-		try: await self.active.step_out()
+		try: await self.active.step_out(granularity=self.stepping_granularity())
 		except core.Error as e: self.console.error(f'Unable to step out: {e}')
 
 	@core.run
@@ -460,6 +477,9 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	def dispose(self) -> None:
 		self.save_data()
+
+		if self.disassembly_view:
+			self.disassembly_view.dispose()
 
 		self.dispose_terminals()
 
@@ -675,6 +695,26 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	def open_console(self) -> None:
 		self.console.open()
+
+	def show_disassembly(self, toggle: bool = False):
+		if not self.disassembly_view:
+			self.disassembly_view = DisassembleView(self.window, self)
+			return
+
+		view = self.disassembly_view.view
+		window = view.window()
+
+
+		# view is currently visible so toggle the view off
+		if toggle and window and view.sheet() in window.selected_sheets():
+			self.disassembly_view.dispose()
+			self.disassembly_view = None
+			return
+
+		# recreate the view
+		self.disassembly_view.dispose()
+		self.disassembly_view = DisassembleView(self.window, self)
+
 
 	def _on_navigate_to_source(self, source: dap.SourceLocation):
 		self.source_provider.show_source_location(source)

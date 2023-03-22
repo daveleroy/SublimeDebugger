@@ -535,25 +535,28 @@ class Session(TransportProtocolListener):
 			'threadId': self.command_thread.id
 		})
 
-	async def step_over(self):
+	async def step_over(self, granularity: str|None = None):
 		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
 
 		await self.request('next', {
-			'threadId': self.command_thread.id
+			'threadId': self.command_thread.id,
+			'granularity': granularity,
 		})
 
-	async def step_in(self):
+	async def step_in(self, granularity: str|None = None):
 		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
 
 		await self.request('stepIn', {
-			'threadId': self.command_thread.id
+			'threadId': self.command_thread.id,
+			'granularity': granularity,
 		})
 
-	async def step_out(self):
+	async def step_out(self, granularity: str|None = None):
 		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
 
 		await self.request('stepOut', {
-			'threadId': self.command_thread.id
+			'threadId': self.command_thread.id,
+			'granularity': granularity,
 		})
 
 	async def exception_info(self, thread_id: int) -> dap.ExceptionInfoResponseBody:
@@ -586,6 +589,13 @@ class Session(TransportProtocolListener):
 			raise Error('expression did not return a result')
 
 		return response
+
+	async def disassemble(self, memory_reference: str, instruction_offset: int, instruction_count: int) -> dap.DisassembleResponseBody:
+		return await self.request('disassemble', {
+			'memoryReference': memory_reference,
+			'instructionOffset': instruction_offset,
+			'instructionCount': instruction_count,
+		})
 
 	async def read_memory(self, memory_reference: str, count: int, offset: int) -> dap.ReadMemoryResponse:
 		return await self.request('readMemory', {

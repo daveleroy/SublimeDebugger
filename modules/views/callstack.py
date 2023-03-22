@@ -144,6 +144,7 @@ class SessionView (ui.div):
 class ThreadView (ui.div):
 	def __init__(self, debugger: Debugger, session: dap.Session, thread: dap.Thread, state: CallStackState):
 		super().__init__()
+		self.debugger = debugger
 		self.session = session
 		self.is_selected = session.selected_thread == thread and debugger.session == session
 
@@ -183,6 +184,9 @@ class ThreadView (ui.div):
 
 	def on_select_frame(self, frame: dap.StackFrame):
 		self.session.set_selected(self.thread, frame)
+
+	def on_select_frame_instructions_view(self):
+		self.debugger.show_disassembly()
 
 	def render(self) -> ui.div.Children:
 		expandable = self.thread.has_children()
@@ -242,6 +246,15 @@ class ThreadView (ui.div):
 					items.append(ui.text(name, css=css.label_secondary))
 					items.append(ui.spacer(1))
 					items.append(ui.text(line_str, css=css.button))
+
+				if is_frame_selected and frame.instructionPointerReference:
+					if frame.source:
+						items.append(ui.spacer(1))
+					else:
+						items.append(ui.spacer())
+
+					items.append(ui.text('☰', css=css.button, on_click=self.on_select_frame_instructions_view))
+
 				stackframes.append(
 					ui.div(height=css.row_height, css=css.selected if is_frame_selected else None) [
 						ui.span(on_click=lambda frame=frame: self.on_select_frame(frame))[

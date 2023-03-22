@@ -34,14 +34,8 @@ class LLDB(dap.AdapterConfiguration):
 
 	installer = util.GitInstaller (
 		type='lldb',
-		repo='vadimcn/vscode-lldb', 
+		repo='vadimcn/vscode-lldb',
 		is_valid_asset=is_valid_asset
-	)
-
-	lldb_show_disassembly = settings.Setting[str](
-		key='lldb_show_disassembly',
-		default='auto',
-		visible=False,
 	)
 	lldb_display_format = settings.Setting[str](
 		key='lldb_display_format',
@@ -53,7 +47,6 @@ class LLDB(dap.AdapterConfiguration):
 		default=True,
 		visible=False,
 	)
-
 	lldb_library = settings.Setting['str|None'](
 		key='lldb_library',
 		default=None,
@@ -61,11 +54,6 @@ class LLDB(dap.AdapterConfiguration):
 	)
 
 	def __init__(self) -> None:
-		commands.Command(
-			name='LLDB Toggle Disassembly',
-			key='lldb_toggle_disassembly',
-			action=lambda debugger: self.toggle_disassembly(debugger)
-		)
 		commands.Command(
 			name='LLDB Display Options',
 			key='lldb_display',
@@ -100,16 +88,15 @@ class LLDB(dap.AdapterConfiguration):
 
 		configuration['_adapterSettings'] = self.adapter_settings()
 
-		if 'pid' in configuration and configuration['pid'] == '${command_pick_process}':
-			from ..util import select_process
-			configuration['pid'] = await select_process()
+		if 'pid' in configuration and configuration['pid'] == '{command_pick_process}':
+			from .util import process
+			configuration['pid'] = await process.select()
 
 		return configuration
 
 
 	def adapter_settings(self):
 		return {
-			'showDisassembly': self.lldb_show_disassembly,
 			'displayFormat': self.lldb_display_format,
 			'dereferencePointers': self.lldb_dereference_pointers,
 		}
@@ -132,20 +119,9 @@ class LLDB(dap.AdapterConfiguration):
 				await session.request('_adapterSettings', self.adapter_settings())
 
 
-	def toggle_disassembly(self,debugger: dap.Debugger):
-		print('toggle_disassembly')
-		if self.lldb_show_disassembly == 'auto':
-			self.lldb_show_disassembly = 'always'
-		else:
-			self.lldb_show_disassembly = 'auto'
-
-		self.updated_settings(debugger)
-
-
 	def toggle_deref(self, debugger: dap.Debugger):
 		self.lldb_dereference_pointers = not self.lldb_dereference_pointers
 		self.updated_settings(debugger)
-
 
 	def display_menu(self,debugger: dap.Debugger):
 		def set_display(mode: str):
@@ -158,9 +134,3 @@ class LLDB(dap.AdapterConfiguration):
 			ui.InputListItemChecked(lambda: set_display('decimal'), self.lldb_display_format == 'decimal', 'Decimal', 'Decimal'),
 			ui.InputListItemChecked(lambda: set_display('binary'), self.lldb_display_format == 'binary', 'Binary', 'Binary'),
 		]
-			
-
-	def ui(self, debugger: dap.Debugger):
-		return InputListView(ui.InputList()[
-			ui.InputListItemOnOff(lambda: self.toggle_disassembly(debugger), 'Disassembly', 'Disassembly', self.lldb_show_disassembly != 'auto'),
-		])
