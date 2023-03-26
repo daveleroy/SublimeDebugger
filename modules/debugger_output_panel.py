@@ -103,6 +103,7 @@ class DebuggerOutputPanel:
 			settings.set('draw_unicode_white_space', 'none')
 			settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 			settings.set('is_widget', True)
+			settings.set('rulers', [])
 
 		settings.set('debugger', True)
 		settings.set('debugger.output_panel', True)
