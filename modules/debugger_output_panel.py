@@ -27,10 +27,10 @@ class DebuggerPanelTabs(ui.span):
 
 	def render(self):
 		items: list[ui.span] = []
-		
+
 		for panel in self.debugger.output_panels:
 			csss = css.tab_selected if panel.output_panel_name == self.output_name else css.tab
-			
+
 			items.append(
 				ui.span(css=csss, on_click=lambda panel=panel: panel.open())[
 					ui.spacer(1),
@@ -69,7 +69,7 @@ class DebuggerOutputPanel:
 	on_opened_status: Callable[[], Any] | None = None
 
 	on_closed: Callable[[], Any] | None = None
-	
+
 	panels: ClassVar[Dict[int, DebuggerOutputPanel]] = {}
 
 	def __init__(self, debugger: Debugger, panel_name: str, name: str|None = None, show_panel = True, show_tabs = True, show_tabs_top = False, remove_last_newline = False, create = True):
@@ -119,7 +119,7 @@ class DebuggerOutputPanel:
 		self.update_settings()
 
 		if show_tabs and show_tabs_top:
-			
+
 			self.text_change_listener = OutputPanelTopTextChangeListener(self.view)
 			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE) [
@@ -166,14 +166,14 @@ class DebuggerOutputPanel:
 			return
 
 		self.status = status
-		
+
 		# if the status of a panel changes we need to re-render all the output panels
 		for panel in self.debugger.output_panels:
 			panel.updated_status()
 
 	def updated_status(self):
 		if controls_and_tabs := self.controls_and_tabs:
-			controls_and_tabs.dirty()		
+			controls_and_tabs.dirty()
 
 	def dispose(self):
 		self.debugger.remove_output_panel(self)
@@ -223,7 +223,7 @@ class DebuggerOutputPanel:
 	def _on_show_panel(self, window: sublime.Window):
 		if window == self.window and window.active_panel() == self.output_panel_name:
 			self.scroll_to_end()
-			if self.on_opened: 
+			if self.on_opened:
 				self.on_opened()
 
 			if self.text_change_listener:
@@ -234,13 +234,13 @@ class DebuggerOutputPanel:
 			# run on_closed after hiding the panel otherwise showing other panels will not work
 			sublime.set_timeout(self.on_closed, 0)
 
-	def is_locked_selection(self): 
+	def is_locked_selection(self):
 		return self._locked_selection != 0
 
 	def scroll_to_end(self):
 		sel = self.view.sel()
 		core.edit(self.view, lambda edit: (
-			sel.clear(), 
+			sel.clear(),
 			sel.add(self.view.size()),
 		))
 
@@ -273,7 +273,7 @@ class DebuggerOutputPanel:
 		if at != 0 and self.view.substr(at -1) != '\n':
 			text = '\n' + text
 
-		return text		
+		return text
 
 
 	def on_selection_modified(self): ...
@@ -290,7 +290,7 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 		panel = DebuggerOutputPanel.panels.get(view.id())
 		if not panel: return
 
-		# the view is locked so we do not allow changing the selection. 
+		# the view is locked so we do not allow changing the selection.
 		# This allows the view to be scrolled to the bottom without issues when the selection is changed.
 		if panel.is_locked_selection():
 			view.sel().clear()
@@ -350,7 +350,7 @@ class OutputPanelTopTextChangeListener(sublime_plugin.TextChangeListener):
 		is_readonly = self.view.is_read_only()
 		self.view.set_read_only(False)
 
-		if self.view.substr(0) != '\n':			
+		if self.view.substr(0) != '\n':
 			self.view.insert(edit, 0, '\n')
 
 		self.view.set_read_only(is_readonly)
@@ -412,7 +412,7 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 			controls_and_tabs_phantom.vertical_offset = max((desired_height-height) + controls_and_tabs_phantom.vertical_offset, 0)
 
 			controls_and_tabs_phantom.render_if_out_of_position()
-			
+
 			# Figure out a better way that doesn't always scroll to the bottom when new content comes in
 			sublime.set_timeout(lambda: self.view.set_viewport_position((0, self.view.layout_extent()[1]), False), 0)
 

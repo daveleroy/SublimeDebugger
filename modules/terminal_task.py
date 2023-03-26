@@ -176,7 +176,7 @@ class Tasks:
 			self.tasks.remove(task)
 		except ValueError:
 			return
-			
+
 		# todo actually cancel...
 		self.removed(task)
 		task.dispose()

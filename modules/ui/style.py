@@ -94,7 +94,7 @@ class css:
 
 		# rem units are based on character width now. 1 rem = 1 character width
 		css_list.append(f'html {{ font-size: {layout.em_width}px; line-height: 0; }}')
-		
+
 
 		# Change the font-size back since we changed the font-size in the html tag for the rem units
 		# I have no idea why windows/linux needs pt instead of px to get the font-size correct...
@@ -127,7 +127,7 @@ class css:
 				css_list.append(c.raw)
 
 			css_list.append('}')
-		
+
 		css_string = ''.join(css_list)
 		css.cached[key] = css_string
 		return css_string

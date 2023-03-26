@@ -428,8 +428,7 @@ class Session(TransportProtocolListener):
 		core.run(self.set_exception_breakpoint_filters())
 
 	def on_send_source_breakpoint(self, breakpoint: SourceBreakpoint) -> None:
-		file = breakpoint.file
-		core.run(self.set_breakpoints_for_file(file, self.breakpoints.source.breakpoints_for_file(file)))
+		core.run(self.set_breakpoints_for_file(breakpoint.file, self.breakpoints.source.breakpoints_for_file(breakpoint.file)))
 
 	async def stop(self):
 		# this seems to be what the spec says to do in the overview

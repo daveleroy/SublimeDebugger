@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, BinaryIO, Mapping, TypeVar
+from typing import Any, BinaryIO, Callable, Mapping, TypeVar
 
 import json
 import dataclasses
@@ -22,8 +22,8 @@ def json_encode(obj: Any, pretty=False):
 	return json.dumps(obj, cls=JSONEncoder)
 
 class DottedDict(dict, Mapping[K, T]):
-	__getitem__ = dict.get #type: ignore
-	__getattr__ = dict.get #type: ignore
+	__getitem__ = dict.get
+	__getattr__:Callable[[self, str], Any] = dict.get #type: ignore
 	__setattr__ = dict.__setitem__ #type: ignore
 	__delattr__ = dict.__delitem__ #type: ignore
 
@@ -36,5 +36,5 @@ class JSONEncoder(json.JSONEncoder):
 			return dataclasses.asdict(o)
 		return super().default(o)
 
-JSON: TypeAlias = DottedDict[str, "JSON_VALUE"]
+JSON: TypeAlias = DottedDict[str, 'JSON_VALUE']
 JSON_VALUE: TypeAlias = 'DottedDict[str, "JSON_VALUE"] | list[JSON_VALUE] | str | int | float | bool | None'

@@ -1,10 +1,9 @@
 from __future__ import annotations
-from typing import Any, Dict, TypeVar
+from typing import Dict, TypeVar
 from ..import core
 
 from .import dap
 
-Json = Dict[str, Any]
 
 T = TypeVar('T')
 V = TypeVar('V')

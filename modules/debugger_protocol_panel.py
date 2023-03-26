@@ -37,9 +37,9 @@ class DebuggerProtocolPanel(core.Logger):
 			settings.set('scroll_past_end', False)
 
 			self.output.view.run_command('append', {
-			'characters': self.platform_info(),
-			'force': True,
-			'scroll_to_end': True,
+				'characters': self.platform_info(),
+				'force': True,
+				'scroll_to_end': True,
 			})
 
 

@@ -27,7 +27,7 @@ class DebuggerMainOutputPanel(DebuggerOutputPanel, core.Dispose):
 		self.disposeables = []
 
 		self.lock_selection()
-		
+
 		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
 		# otherwise they will get reordered when one of them gets redrawn
 		# we use zero width characters so we don't have extra around phantoms

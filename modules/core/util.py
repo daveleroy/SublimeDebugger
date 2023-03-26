@@ -25,7 +25,7 @@ def symlink(origin: str, destination: str):
 			return
 		raise
 
-def write(path, data, overwrite_existing=False):
+def write(path: str, data: str, overwrite_existing=False):
 	if not overwrite_existing and os.path.exists(path):
 		return
 

@@ -147,7 +147,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		self.window.focus_view(self.view)
 
 	def at(self):
-		# there is always a single invisible character at the end of the content otherwise every single write causes the phantom to be out of position and require re-rendering 
+		# there is always a single invisible character at the end of the content otherwise every single write causes the phantom to be out of position and require re-rendering
 		if input := self.input():
 			return max(input.a - 1, 0)
 		return max(self.view.size() - 1, 0)
@@ -196,7 +196,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 
 		def edit(edit: sublime.Edit):
 			# remove trailing \n if it exists since we already inserted a newline to place this variable in
-			content = (variable.value or variable.name or '{variable}').rstrip('\n') 
+			content = (variable.value or variable.name or '{variable}').rstrip('\n')
 			if not last:
 				content += ' '
 
@@ -215,7 +215,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 
 		if source or count and count > 1:
 
-			if source:				
+			if source:
 				on_navigate = lambda _: self.on_navigate(source)
 				source_html = f'<a href="">{source.name}</a>'
 			else:
@@ -305,7 +305,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 			self.set_input_mode()
 			if args['forward']:
 				self.autofill(-1)
-			else: 
+			else:
 				self.autofill(1)
 			return ('noop')
 
@@ -360,7 +360,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 							'characters': completion.text or completion.label
 						}
 					)
-				
+
 					items.append(item)
 
 			except core.Error as e:
@@ -411,12 +411,12 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		a = self.view.size()
 
 		def edit(edit):
-			marker = '\n\u200c:' if a > 1 else '\u200c:' 
+			marker = '\n\u200c:' if a > 1 else '\u200c:'
 			size = self.view.insert(edit, a, marker)
 			self.input_size = size
 			self.view.add_regions('input', [sublime.Region(a, a+size)])
 
-		self.edit(edit)		
+		self.edit(edit)
 		self.view.set_read_only(False)
 		self.scroll_to_end()
 
@@ -450,7 +450,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		if not input: return False
 
 		text_region = sublime.Region(input.b, self.view.size())
-		if self._history_offset:	
+		if self._history_offset:
 			self.edit(lambda edit: (
 				self.view.replace(edit, text_region, self._history[-self._history_offset]),
 				self.view.sel().clear(),
@@ -464,7 +464,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 			))
 
 
-	
+
 	def log(self, type: str, value: Any, source: dap.SourceLocation|None = None):
 		if type == 'transport':
 			self.protocol.log('transport', value)

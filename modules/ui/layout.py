@@ -6,7 +6,6 @@ from ..import core
 from .style import css
 from .html import HtmlResponse, div, element
 from collections.abc import Iterable
-
 import sublime
 
 def flatten_element_children(items: element.Children, list: list[element]):

@@ -48,10 +48,10 @@ class TabbedViewContainer(ui.div):
 
 	def __getitem__(self, values: TabbedView|Sequence[TabbedView]): #type: ignore
 		self.items = values if isinstance(values, Iterable) else [values]
-		
+
 		for item in self.items:
 			item.parent = self
-				
+
 		if len(self.items) < self.selected_index:
 			self.selected_index = 0
 
@@ -80,7 +80,7 @@ class TabbedViewContainer(ui.div):
 	def show(self, index: int):
 		on_show = self.items[index].on_show
 		if on_show: on_show()
-		
+
 		self.selected_index = index
 		self.dirty()
 
@@ -93,7 +93,7 @@ class TabbedViewContainer(ui.div):
 
 		if self._width:
 			width = self._width
-		else:	
+		else:
 			# each phantom takes up 10 extra dip 5 on each side it looks like
 			layout_width = self.layout.width() + self._width_additional + self.layout.from_dip(self._width_additional_dip)
 			width = layout_width * self._width_scale if self._width_scale else layout_width
