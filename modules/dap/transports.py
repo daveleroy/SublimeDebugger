@@ -175,9 +175,9 @@ class SocketTransport(Transport):
 			raise
 
 	@staticmethod
-	async def connect_with_process(log: core.Logger, command: list[str], port: int, process_is_program_output: bool = False, cwd: str|None = None):
+	async def connect_with_process(log: core.Logger, command: list[str], port: int, process_is_program_output: bool = False, cwd: str|None = None, env: dict[str, str]|None = None):
 		log.log('transport', f'-- socket transport process: {command}')
-		process = Process(command, cwd=cwd)
+		process = Process(command, cwd=cwd, env=env)
 
 		if not process_is_program_output:
 			process.on_stdout(lambda data: log.log('transport', TransportStdoutOutputLog(data)))
