@@ -27,14 +27,17 @@ class ModulesTabbedView(TabbedView):
 		return self._visible
 
 	def updated(self, session: dap.Session):
-		self._visible = False
+		visible = False
 		for session in self.debugger.sessions:
 			if session.modules:
-				self._visible = True
+				visible = True
 				break
 
-		self.dirty_header()
-		self.dirty()
+		if visible != self._visible:
+			self.dirty_header()
+
+		if visible:
+			self.dirty()
 
 	def is_expanded(self, module: dap.Module):
 		return self.expanded.get(module.id, False)
@@ -77,7 +80,7 @@ class ModulesTabbedView(TabbedView):
 						body.append(
 							ui.div(height=3)[
 								ui.span(on_click=copy)[
-									ui.text(label, css=css.label_secondary),
+									ui.text(label, css=css.secondary),
 									ui.spacer(1),
 									ui.text(value_str, css=css.label),
 								]

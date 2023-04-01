@@ -45,8 +45,7 @@ class SourcesTabbedView(TabbedView):
 		for session in self.debugger.sessions:
 			for source in session.sources.values():
 				items.append(ui.div(height=css.row_height)[
-					ui.text(source.path or source.name or "<no source name>", css=css.label_secondary, on_click=partial(self.on_clicked_source, source))
+					ui.text(source.path or source.name or "<no source name>", css=css.secondary, on_click=partial(self.on_clicked_source, source))
 				])
 
 		return items
-

@@ -76,11 +76,11 @@ class BreakpointsView(ui.div):
 				items.append(
 					ui.div(height=css.row_height)[
 						ui.icon(breakpoint.image, on_click=partial(self._on_toggle, breakpoint)),
-						ui.text(breakpoint.name, css=css.label_secondary, on_click=partial(self._on_edit, breakpoint)),
+						ui.text(breakpoint.name, css=css.secondary, on_click=partial(self._on_edit, breakpoint)),
 						[
 							ui.spacer(),
 							ui.text(breakpoint.tag, css=css.button, on_click=partial(self._on_navigate, breakpoint)),
-						] 
+						]
 						if breakpoint.tag else None
 					])
 

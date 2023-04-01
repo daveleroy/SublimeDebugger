@@ -17,13 +17,8 @@ class TabbedView(ui.div):
 		self.parent = None
 
 	def header(self, is_selected: bool) -> ui.span.Children:
-		if is_selected:
-			csss = css.tab_selected
-		else:
-			csss = css.tab
-
-		return ui.span(css=csss) [
-			ui.text(self.name, css=css.label_secondary),
+		return ui.span(css=css.tab_selected if is_selected else css.tab) [
+			ui.text(self.name, css=css.label if is_selected else css.secondary),
 		]
 
 	def visible(self) -> bool:
@@ -112,7 +107,7 @@ class TabbedViewContainer(ui.div):
 			ui.div(width=width, height=4)[
 				tabs
 			],
-			ui.div(width=width - css.rounded_panel.padding_width, height=1000, css=css.rounded_panel)[
+			ui.div(width=width - css.panel.padding_width, height=500, css=css.panel)[
 				self.items[self.selected_index]
 			],
 		]

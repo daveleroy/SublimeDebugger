@@ -6,95 +6,91 @@ if TYPE_CHECKING:
 
 import sublime
 
-base_css = '''
-.dark {
-	--tinted: color(var(--background) blend(black 97%));
-
-	--light: color(var(--background) blend(black 93%));
-	--medium: color(var(--background) blend(black 85%));
-	--dark: color(var(--background) blend(black 75%));
-
-	--primary: var(--foreground);
-	--secondary: color(var(--foreground) alpha(0.7));
-}
-.light {
-	--tinted: color(var(--background) blend(black 99%));
-
-	--light: color(var(--background) blend(black 95%));
-	--medium: color(var(--background) blend(black 98%));
-	--dark: color(var(--background) blend(black 92%));
-
-	--primary: var(--foreground);
-	--secondary: color(var(--foreground) alpha(0.7));
-}
-a {
-	text-decoration: none;
-	color: var(--foreground);
-}
-s {
-	color: var(--foreground);
-}
-d {
-	display: block;
-}
-l {
-	display: inline-block;
-}
-'''
-
-# for debugging purposes
-
-# base_css += '''
-# d {
-# 	background-color: color(red alpha(0.1));
-
-# 	--panel-color: color(red alpha(0.25));
-# 	--segment-color: color(red alpha(0.25));
-# 	--panel-border: color(red alpha(0.25));
-# }
-# s {
-# 	background-color: color(blue alpha(0.15));
-
-# 	--tinted: color(blue alpha(0.25));
-# 	--light: color(blue alpha(0.25));
-# 	--medium: color(blue alpha(0.25));
-# 	--dark: color(blue alpha(0.25));
-
-# 	padding-top: 0.5rem;
-# 	padding-bottom: 0.5rem;
-# }
-
-# a {
-# 	background-color: color(green alpha(0.25));
-
-# 	--tinted: color(green alpha(0.25));
-# 	--light: color(green alpha(0.25));
-# 	--medium: color(green alpha(0.25));
-# 	--dark: color(green alpha(0.25));
-
-# 	padding-top: 0.5rem;
-# 	padding-bottom: 0.5rem;
-# }
-
-# '''
-
 class css:
 	next_id = 1
 	instances = []
 
-	cached: dict[str, str] = {}
+	_cached_css: dict[str, str] = {}
+	_variables_css = ''
+	_base_css = '''
+	a {
+		text-decoration: none;
+		color: var(--foreground);
+	}
+	s {
+		color: var(--foreground);
+	}
+	d {
+		display: block;
+	}
+	i {
+		display: inline-block;
+	}
+	'''
+	# for debugging purposes
+	# d {
+	# 	background-color: color(red alpha(0.1));
+
+	# 	--panel-color: color(red alpha(0.25));
+	# 	--segment-color: color(red alpha(0.25));
+	# 	--panel-border: color(red alpha(0.25));
+	# }
+	# s {
+	# 	background-color: color(blue alpha(0.15));
+
+	# 	--tinted: color(blue alpha(0.25));
+	# 	--light: color(blue alpha(0.25));
+	# 	--medium: color(blue alpha(0.25));
+	# 	--dark: color(blue alpha(0.25));
+
+	# 	padding-top: 0.5rem;
+	# 	padding-bottom: 0.5rem;
+	# }
+
+	# a {
+	# 	background-color: color(green alpha(0.25));
+
+	# 	--tinted: color(green alpha(0.25));
+	# 	--light: color(green alpha(0.25));
+	# 	--medium: color(green alpha(0.25));
+	# 	--dark: color(green alpha(0.25));
+
+	# 	padding-top: 0.5rem;
+	# 	padding-bottom: 0.5rem;
+	# }
+
+	# '''
+
+	@staticmethod
+	def variables(dark: dict[str, str], light: dict[str, str]):
+		style = ''
+		style += '.dark {\n'
+		for color, value in dark.items():
+			style += f'--{color}: {value};'
+		style += '}\n'
+
+		style += '.light {\n'
+		for color, value in light.items():
+			style += f'--{color}: {value};'
+		style += '}\n'
+
+		css._variables_css = style
+		css.invalidate()
+
+	@staticmethod
+	def invalidate():
+		css._cached_css.clear()
 
 	@staticmethod
 	def generate(layout: Layout):
 		key = f'{layout.em_width}-{layout.font_size}'
-		if c := css.cached.get(key):
+		if c := css._cached_css.get(key):
 			return c
 
-		css_list = [base_css]
+		css_list = [css._base_css, css._variables_css]
 
 		# rem units are based on character width now. 1 rem = 1 character width
 		css_list.append(f'html {{ font-size: {layout.em_width}px; line-height: 0; }}')
-
 
 		# Change the font-size back since we changed the font-size in the html tag for the rem units
 		# I have no idea why windows/linux needs pt instead of px to get the font-size correct...
@@ -129,7 +125,7 @@ class css:
 			css_list.append('}')
 
 		css_string = ''.join(css_list)
-		css.cached[key] = css_string
+		css._cached_css[key] = css_string
 		return css_string
 
 	def __init__(

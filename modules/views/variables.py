@@ -68,7 +68,7 @@ class WatchView(ui.div):
 		if not self.debugger.watch.expressions:
 			return ui.div(height=css.row_height)[
 				ui.spacer(3),
-				ui.text('zero items …', css=css.label_secondary)
+				ui.text('zero items …', css=css.secondary)
 			]
 
 		return [WatchExpressionView(self.debugger, expresion, on_edit_not_available=self.debugger.watch.edit_run) for expresion in self.debugger.watch.expressions]
@@ -77,9 +77,9 @@ class WatchView(ui.div):
 
 		header = ui.div(height=css.row_height)[
 			ui.icon(ui.Images.shared.open if self.open else ui.Images.shared.close, on_click=self.toggle_expand),
-			ui.text('Watch', css=css.label_secondary),
+			ui.text('Watch', css=css.secondary),
 			ui.spacer(),
-			ui.text('add', css=css.label_secondary, on_click=self.debugger.add_watch_expression)
+			ui.text('add', css=css.secondary, on_click=self.debugger.add_watch_expression)
 		]
 
 		if not self.open:
@@ -113,7 +113,7 @@ class WatchExpressionView(ui.div):
 		return ui.div(height=css.row_height)[
 			ui.spacer(3),
 			ui.span(on_click=lambda: self.on_edit_not_available(self.expression)) [
-				ui.text(self.expression.value, css=css.label_secondary),
+				ui.text(self.expression.value, css=css.secondary),
 				ui.spacer(1),
 				ui.text("not available", css=css.label),
 			]

@@ -5,6 +5,30 @@ header_height = 4
 row_height = 3
 panel_padding= 2
 
+ui.css.variables(
+dark={
+	'tinted': 'color(var(--background) blend(black 97%))',
+
+	'light': 'color(var(--background) blend(black 90%))',
+	'medium': 'color(var(--background) blend(black 75%))',
+	'dark': 'color(var(--background) blend(black 75%))',
+
+	'primary': 'var(--foreground)',
+	'secondary': 'color(var(--foreground) alpha(0.7))',
+	'placeholder': 'color(var(--foreground) alpha(0.3))',
+},
+light={
+	'tinted': 'color(var(--background) blend(black 99%))',
+
+	'light': 'color(var(--background) blend(black 95%))',
+	'medium': 'color(var(--background) blend(black 85%))',
+	'dark': 'color(var(--background) blend(black 92%))',
+
+	'primary': 'var(--foreground)',
+	'secondary': 'color(var(--foreground) alpha(0.7))',
+	'placeholder': 'color(var(--foreground) alpha(0.3))',
+})
+
 button = ui.css(
 	padding_left=1,
 	padding_right=1,
@@ -33,38 +57,25 @@ button_drop = ui.css(
 	'''
 )
 
-button_secondary = ui.css(
-	padding_left=1,
-	padding_right=1,
-	padding_top=1,
-	padding_bottom=1,
-	background_color='var(--dark)',
-	color='var(--secondary)',
-	raw='border-radius: 0.4rem;'
-)
-
 label = ui.css(
 	color='var(--primary)'
 )
-label_secondary = ui.css(
+secondary = ui.css(
 	color='var(--secondary)'
 )
-label_placeholder = ui.css(
-	color='color(var(--secondary) alpha(0.25)'
-)
-label_redish = ui.css(
+redish = ui.css(
 	color='var(--redish)'
 )
-label_greenish = ui.css(
-	color='var(--greenish)'
-)
-label_redish_secondary = ui.css(
+redish_secondary = ui.css(
 	color='color(var(--redish) alpha(0.7)'
 )
-label_yellowish = ui.css(
+greenish = ui.css(
+	color='var(--greenish)'
+)
+yellowish = ui.css(
 	color='var(--yellowish)'
 )
-label_bluish = ui.css(
+bluish = ui.css(
 	color='var(--bluish)'
 )
 
@@ -75,18 +86,6 @@ padding = ui.css(
 
 padding_left = ui.css(
 	padding_left=1
-)
-
-rounded_panel = ui.css(
-	padding_top=0.5,
-	padding_left=1,
-	padding_right=1,
-	background_color='var(--tinted)',
-	raw='''
-		border-style: solid;
-		border-top-width: 1px;
-		border-color: var(--medium);
-	'''
 )
 
 # these work around minor alignment issues where inline phantoms and bottom phantoms do not align the same
@@ -105,8 +104,7 @@ seperator = ui.css(
 	raw='''
 		border-style: solid;
 		border-top-width: 1px;
-		border-color: var(--medium);
-		padding-top: 0px;
+		border-color: var(--light);
 	'''
 )
 seperator_cutout = ui.css(
@@ -120,17 +118,25 @@ seperator_cutout = ui.css(
 )
 
 panel = ui.css(
+	padding_top=0.5,
 	padding_left=1,
 	padding_right=1,
-	padding_top=0.5,
 	background_color='var(--tinted)',
 	raw='''
-		border-style: solid;
-		border-top-width: 1px;
-		border-color: var(--medium);
 	'''
 )
 
+controls_panel = ui.css(
+	background_color='var(--light)',
+	padding_left=1,
+	padding_right=1,
+	padding_top= 2,
+	padding_bottom=2,
+	raw='''
+	border-top-right-radius: 0.5rem;
+	border-top-left-radius: 0.5rem;
+	'''
+)
 
 tab = ui.css(
 	background_color='var(--light)',
@@ -139,8 +145,8 @@ tab = ui.css(
 	padding_top= 2,
 	padding_bottom=2,
 	raw='''
-	border-top-left-radius: 0.33rem;
-	border-top-right-radius: 0.33rem;
+	border-top-left-radius: 0.5rem;
+	border-top-right-radius: 0.5rem;
 	'''
 )
 
@@ -151,8 +157,8 @@ tab_selected = ui.css(
 	padding_top= 2,
 	padding_bottom=2,
 	raw='''
-	border-top-left-radius: 0.33rem;
-	border-top-right-radius: 0.33rem;
+	border-top-left-radius: 0.5rem;
+	border-top-right-radius: 0.5rem;
 	'''
 )
 
@@ -166,17 +172,7 @@ tab_spacer = ui.css(
 	'''
 )
 
-controls_panel = ui.css(
-	background_color='var(--light)',
-	padding_left=1,
-	padding_right=1,
-	padding_top= 2,
-	padding_bottom=2,
-	raw='''
-	border-top-right-radius: 0.33rem;
-	border-top-left-radius: 0.33rem;
-	'''
-)
+
 
 table_inset = ui.css(
 	padding_left=3

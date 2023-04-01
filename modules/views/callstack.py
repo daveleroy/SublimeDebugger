@@ -64,7 +64,7 @@ class CallStackTabbedView (TabbedView):
 		if not self.debugger.sessions:
 			return ui.div(height=css.row_height)[
 				ui.spacer(1),
-				ui.text('No Active Debug Sessions', css=css.label_secondary)
+				ui.text('No Active Debug Sessions', css=css.secondary)
 			]
 
 		for session in self.debugger.sessions:
@@ -111,7 +111,7 @@ class SessionView (ui.div):
 		if self.session == self.debugger.session:
 			session_css_label = css.label
 		else:
-			session_css_label = css.label_secondary
+			session_css_label = css.secondary
 
 		def on_toggle(session: dap.Session):
 			self.state.toggle_expanded(session, default=True)
@@ -195,7 +195,7 @@ class ThreadView (ui.div):
 		if self.is_selected:
 			text_css = css.label
 		else:
-			text_css = css.label_secondary
+			text_css = css.secondary
 
 
 		thread_css = css.selected if self.is_selected and not self.session.selected_frame else None
@@ -204,7 +204,7 @@ class ThreadView (ui.div):
 			return ui.span(on_click=self.on_select_thread)[
 					ui.text(self.thread.name.strip(), css=text_css),
 					ui.spacer(1),
-					ui.text(self.thread.stopped_reason, css=css.label_secondary),
+					ui.text(self.thread.stopped_reason, css=css.secondary),
 				],
 
 		if expandable:
@@ -229,7 +229,7 @@ class ThreadView (ui.div):
 			for frame in self.frames:
 				is_frame_selected = self.is_selected and self.session.selected_frame == frame
 				if (frame.presentationHint == 'label' or frame.presentationHint == 'subtle' or frame.presentationHint == 'deemphasize') or not frame.source or frame.source.presentationHint == 'deemphasize':
-					css_label = css.label_secondary
+					css_label = css.secondary
 				else:
 					css_label = css.label
 
@@ -243,7 +243,7 @@ class ThreadView (ui.div):
 				if frame.source:
 					name = os.path.basename(frame.source.name or frame.source.path or '??')
 					items.append(ui.spacer())
-					items.append(ui.text(name, css=css.label_secondary))
+					items.append(ui.text(name, css=css.secondary))
 					items.append(ui.spacer(1))
 					items.append(ui.text(line_str, css=css.button))
 

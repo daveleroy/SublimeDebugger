@@ -37,7 +37,7 @@ class VariableView (ui.div):
 		self.debugger = debugger
 		self.state = state
 		self.children_only = children_only
-		
+
 		self.variable_children: Optional[list[dap.Variable]] = None
 		self.error: Optional[core.Error] = None
 
@@ -58,7 +58,7 @@ class VariableView (ui.div):
 		expression = self.variable.name
 		value = self.variable.value or ''
 		evaluateName = self.variable.evaluateName
-		
+
 		if session.capabilities.supportsDataBreakpoints:
 			info = await session.data_breakpoint_info(containerVariablesReference, name)
 
@@ -81,7 +81,7 @@ class VariableView (ui.div):
 			session = self.variable.session
 			if evaluateName:
 				try:
-					# Attempt to match vscode behavior 
+					# Attempt to match vscode behavior
 					# If the adapter supports clipboard use it otherwise send the none standard 'variables' context
 					context = 'clipboard' if session.capabilities.supportsClipboardContext else 'variables'
 					v = await self.variable.session.evaluate_expression(evaluateName, context)
@@ -152,10 +152,10 @@ class VariableView (ui.div):
 	async def set_expanded(self) -> None:
 		self.state.set_expanded(self.variable, True)
 		self.error = None
-		
+
 		# Give this a little time to load before marking it as dirty to avoid showing loading indicator in most cases
 		timer = core.timer(self.dirty, 0.2)
-		
+
 		try:
 			self.variable_children = await self.variable.children()
 		except core.Error as error:
@@ -182,7 +182,7 @@ class VariableView (ui.div):
 	def render_header(self, name: str, value: str, is_expandable:bool, is_expanded: bool):
 		if name:
 			value_item = [
-				ui.text(name, css=css.label_secondary, on_click=self.edit_variable),
+				ui.text(name, css=css.secondary, on_click=self.edit_variable),
 				ui.spacer(1),
 				ui.code(value),
 			]
@@ -205,19 +205,19 @@ class VariableView (ui.div):
 	def render_children(self):
 		if self.error:
 			return ui.div(height=css.row_height)[
-				ui.text(str(self.error), css=css.label_redish_secondary)
+				ui.text(str(self.error), css=css.redish_secondary)
 			]
 
 		if self.variable_children is None:
 			return ui.div(height=css.row_height)[
 				ui.spacer(3),
-				ui.text('…', css=css.label_secondary)
+				ui.text('…', css=css.secondary)
 			]
 
 		if not self.variable_children:
 			return ui.div(height=css.row_height)[
 				ui.spacer(3),
-				ui.text('zero items …', css=css.label_secondary)
+				ui.text('zero items …', css=css.secondary)
 			]
 
 		children: list[ui.div] = []
@@ -231,7 +231,7 @@ class VariableView (ui.div):
 			children.append(
 				ui.div(height=css.row_height)[
 					ui.spacer(3),
-					ui.text('{} more items …'.format(more_count), css=css.label_secondary, on_click=self.show_more)
+					ui.text('{} more items …'.format(more_count), css=css.secondary, on_click=self.show_more)
 				]
 			)
 

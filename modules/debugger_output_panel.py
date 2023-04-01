@@ -29,12 +29,12 @@ class DebuggerPanelTabs(ui.span):
 		items: list[ui.span] = []
 
 		for panel in self.debugger.output_panels:
-			csss = css.tab_selected if panel.output_panel_name == self.output_name else css.tab
+			is_selected = panel.output_panel_name == self.output_name
 
 			items.append(
-				ui.span(css=csss, on_click=lambda panel=panel: panel.open())[
+				ui.span(css=css.tab_selected if is_selected else css.tab, on_click=lambda panel=panel: panel.open())[
 					ui.spacer(1),
-					ui.text(panel.name, css=css.label_secondary),
+					ui.text(panel.name, css=css.label if is_selected else css.secondary),
 					ui.spacer(1),
 					ui.icon(panel.status, on_click=lambda panel=panel: panel.open_status()) if panel.status else None
 				]
@@ -61,7 +61,7 @@ class DebuggerConsoleTabs(ui.div):
 				self.tabs,
 			],
 			ui.div(height=0.25, css=css.seperator) if self.top else None,
-			ui.div(height=1, width=1, css=css.seperator_cutout) if self.top else None,
+			# ui.div(height=1, width=1, css=css.seperator_cutout) if self.top else None,
 		]
 
 class DebuggerOutputPanel:

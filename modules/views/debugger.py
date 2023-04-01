@@ -48,7 +48,7 @@ class DebuggerTabbedView(TabbedView):
 
 			if status := session.state.status:
 				panel_items.append(ui.div(height=css.row_height)[
-					ui.text(status, css=css.label_secondary)
+					ui.text(status, css=css.secondary)
 				])
 
 		if self.last_adapter_configuration:
@@ -102,7 +102,7 @@ class DebuggerActionsTab(ui.span):
 		if not self.debugger.is_active:
 			items.append(
 				ui.span(css=css.button_drop, on_click=self.debugger.on_settings)[
-					ui.text(name, css=css.label_secondary),
+					ui.text(name, css=css.secondary),
 					ui.icon(ui.Images.shared.open, align_left=False)
 				]
 			)
