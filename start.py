@@ -200,7 +200,9 @@ class Listener (sublime_plugin.EventListener):
 			def show_popup():
 				nonlocal popup
 				popup = ui.Popup(view, region.a, on_close=on_close_popup)[
-					component
+					ui.div(width=500)[
+						component
+					]
 				]
 				view.add_regions('selected_hover', [region], scope='comment')
 
