@@ -73,6 +73,7 @@ class Sublime(dap.AdapterConfiguration):
 	type = 'sublime'
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
 	installer = SublimeInstaller()
+	development = True
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		python = configuration.get('pythonPath') or configuration.get('python') or shutil.which('python3') or shutil.which('python')
