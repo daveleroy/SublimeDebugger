@@ -39,6 +39,14 @@ was_opened_at_startup: Set[int] = set()
 debugger33_path = os.path.join(sublime.packages_path(), "Debugger33")
 
 def plugin_loaded() -> None:
+	# rename lowercase settings to uppercase this was changed to match other plugins which use uppercase
+	# there is some weird bug where if you have a lowercase settings file it behaves oddly when using sublime.save_settings
+	# sublime.load_settings won't find it but sublime.save_settings will not rename it to uppercase
+	try:
+		os.rename(f'{sublime.packages_path()}/User/debugger.sublime-settings', f'{sublime.packages_path()}/User/Debugger.sublime-settings')
+	except:
+		...
+
 	# move any files that are meant for the python 3.3 runtime into Debugger33 package
 	if not os.path.exists(debugger33_path):
 		core.info("Installing Debugger33")

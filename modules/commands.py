@@ -7,7 +7,7 @@ from .debugger import Debugger
 from .command import Command, CommandsRegistry
 
 class Commands:
-	
+
 	# if you add any commands use this command to regenerate any .sublime-menu files
 	# this command also regenerates the LSP-json package.json file for any installed adapters
 	generate_commands = Command(
@@ -30,13 +30,13 @@ class Commands:
 	settings = Command(
 		name='Settings',
 		key='settings',
-		window_action=lambda window: window.run_command('edit_settings', { 'base_file': '${packages}/Debugger/debugger.sublime-settings' }),
+		window_action=lambda window: window.run_command('edit_settings', { 'base_file': '${packages}/Debugger/Debugger.sublime-settings' }),
 		flags=Command.menu_main
 	)
 	settings = Command(
 		name='Preferences: Debugger Settings',
 		key='settings',
-		window_action=lambda window: window.run_command('edit_settings', { 'base_file': '${packages}/Debugger/debugger.sublime-settings' }),
+		window_action=lambda window: window.run_command('edit_settings', { 'base_file': '${packages}/Debugger/Debugger.sublime-settings' }),
 		flags=Command.menu_commands | Command.menu_no_prefix
 	)
 
@@ -50,13 +50,13 @@ class Commands:
 		key='change_configuration',
 		action=lambda debugger: debugger.change_configuration()
 	)
-	
+
 	add_configuration = Command (
 		name='Add Configuration',
 		key='add_configuration',
 		action=lambda debugger: debugger.add_configuration()
 	)
-	
+
 	Command('-')
 
 	start = Command (
@@ -82,7 +82,6 @@ class Commands:
 		action=lambda debugger: debugger.stop(None),
 		enabled=Debugger.is_stoppable
 	)
-
 	continue_ = Command (
 		name='Continue',
 		key='continue',
@@ -174,7 +173,6 @@ class Commands:
 		action=lambda debugger: debugger.show_disassembly(toggle=True),
 		flags=Command.menu_context|Command.menu_commands
 	)
-
 	toggle_breakpoint = Command (
 		name='Toggle Breakpoint',
 		key='toggle_breakpoint',
@@ -196,4 +194,3 @@ class Commands:
 	)
 
 	Command('-')
-

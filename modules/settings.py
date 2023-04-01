@@ -168,13 +168,13 @@ class SettingsRegistery:
 
 	@staticmethod
 	def initialize(on_updated: Callable[[], None]):
-		SettingsRegistery.settings = sublime.load_settings('debugger.sublime-settings')
+		SettingsRegistery.settings = sublime.load_settings('Debugger.sublime-settings')
 		SettingsRegistery.settings.clear_on_change('debugger_settings')
 		SettingsRegistery.settings.add_on_change('debugger_settings', on_updated)
 
 	@staticmethod
 	def save():
-		sublime.save_settings('debugger.sublime-settings')
+		sublime.save_settings('Debugger.sublime-settings')
 
 	@staticmethod
 	def schema():
@@ -246,5 +246,5 @@ class SettingsRegistery:
 
 		output += '}'
 
-		with open(f'{core.package_path()}/debugger.sublime-settings', 'w') as f:
+		with open(f'{core.package_path()}/Debugger.sublime-settings', 'w') as f:
 			f.write(output)
