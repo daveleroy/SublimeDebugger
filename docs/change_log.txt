@@ -2,6 +2,17 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.10.0 - April 1, 2023
+- Initial support for viewing and stepping through disassembly (not all adapters support this)
+- Fixes a few issues with how multiple simultaneous debug sessions are hanled
+- All adapters are now packaged on github instead of taking some from openvsx since the openvsx api can be really slow
+- LSP-json schema now issues an error message when an adapter type is not installed
+- A number of minor layout and color tweaks to make the ui fit better with the default adaptive theme
+
+- ruby: Switched to rdbg instead of readapt since that seems like the official dap server
+- go: Support for `env` configuration option and default `cwd` to `${folder}`
+
+
 Version 0.9.3 - Feb 4, 2023
 - Minor improvements to the variables/watch display
 - Show duplicate lines in the console with a counter
@@ -26,7 +37,7 @@ Version 0.9.0 - Jan 14, 2023
 - Optimize html and css generation
 - Delay resizing the ui until the layout stop changing
 
-- Fixes a few issues with stderr from the adapter not being logged correctly when a transport ends unexpectedly 
+- Fixes a few issues with stderr from the adapter not being logged correctly when a transport ends unexpectedly
 - Fixes an issue where the debugger output panel was being forced to be too tall (you may need to delete the cached values in your workspace file)
 - Fixes an issue with setting breakpoints in some adapters
 
@@ -93,7 +104,7 @@ Version 0.7.0
 - The hover expression behavior is smarter and can evaluate simple expressions like `a.b` `a->c` etc
 - lua: Adds lua debugger via lua-local (@naoufalzerai)
 - python: support for multiprocess debugging
-- ruby: allow specifying readapt path via `ruby_readapt` preference 
+- ruby: allow specifying readapt path via `ruby_readapt` preference
 - go: updated to use dlv dap
 
 Version 0.6.8
@@ -245,7 +256,7 @@ Version 0.2.0
 - Loaded Modules/Sources panels
 - Adds Node debug adapter (@appelgriebsch)
 - External terminal support. Terminal on Mac (Needs support for Windows/Linux) or Sublime's Terminus package.
-- Integrated terminal now strips ascii control sequences 
+- Integrated terminal now strips ascii control sequences
 - Settings button
 - Show currently installed version of an adapter, show download progress when installing an adapter
 - Fixes issues that sometimes occurred installing/reinstalling adapters
@@ -276,8 +287,8 @@ Version 0.1.4
 - New styling of panels and updated layout to better support temporary panels created for build results/integrated terminal (and in the future allow customizing the layout of the panels)
 - New console rendering code to support text wrapping and build results/integrated terminal
 - Support internal terminal requests to allow program input. Requires configuration changes to use this feature which depends on the adapter in question. (LLVM uses "terminal": "integrated")
-- Allow defining platform specific configuration settings with a top level object called "linux", "osx", or "windows" in your configuration. Same as vscode 
-- Fixes issue where hover providers/autocomplete/run command was not working for some debug adapters 
+- Allow defining platform specific configuration settings with a top level object called "linux", "osx", or "windows" in your configuration. Same as vscode
+- Fixes issue where hover providers/autocomplete/run command was not working for some debug adapters
 - Fixes issue where using $file and other variables in a configuration had their values expanded when the debugger was opened not when the debugger was started
 - Fixes some wonkiness that occurred when stepping the debugger that caused it to not update correctly
 
