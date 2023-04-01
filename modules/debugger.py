@@ -452,6 +452,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 			await session_stop
 
+		except dap.NoActiveSessionError: ...
 		except core.Error as e: self.console.error(f'Unable to stop: {e}')
 
 	@property
@@ -461,7 +462,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 	@property
 	def active(self):
 		if not self.session:
-			raise core.Error('No Active Debug Sessions')
+			raise dap.NoActiveSessionError()
 		return self.session
 
 	@active.setter

@@ -4,7 +4,10 @@ from .variable import (
 	SourceLocation,
 )
 
-from .error import Error, Json
+from .error import (
+	Error,
+	NoActiveSessionError,
+)
 
 from .dap import (
 	StackFrame,

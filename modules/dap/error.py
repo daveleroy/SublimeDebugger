@@ -31,3 +31,5 @@ class Error(core.Error):
 		return Error(format, message.url, message.urlLabel)
 
 
+class NoActiveSessionError(core.Error):
+	message = 'No Active Debug Session'
