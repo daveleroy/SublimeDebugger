@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from typing import Any
 
 from ..import core
@@ -13,10 +14,10 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 	docs = 'https://github.com/microsoft/vscode-js-debug/blob/main/OPTIONS.md'
 
 	installer = util.GitInstaller (
-		type='js',  
+		type='js',
 		repo='daveleroy/vscode-js-debug'
 	)
-	
+
 	pending_target_parents: dict[str, dap.Session] = {}
 	sessions: dict[dap.Session, Any] = {}
 
@@ -41,11 +42,22 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 		port = util.get_open_port()
 
-		command = [
-			node,
-			f'{install_path}/extension/src/vsDebugServer.bundle.js',
-			f'{port}',
-		]
+
+		# version >= 1.77.2
+		if os.path.exists(f'{install_path}/src/vsDebugServer.js'):
+			command = [
+				node,
+				f'{install_path}/src/vsDebugServer.js',
+				f'{port}',
+			]
+
+		# version < 1.77.2
+		else:
+			command = [
+				node,
+				f'{install_path}/extension/src/vsDebugServer.bundle.js',
+				f'{port}',
+			]
 
 		return await dap.SocketTransport.connect_with_process(log, command, port)
 
