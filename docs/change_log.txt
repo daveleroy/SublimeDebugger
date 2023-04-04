@@ -2,6 +2,10 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.10.1 - April 3, 2023
+- Fixes an issue with new versions of vscode-js-debug
+
+
 Version 0.10.0 - April 1, 2023
 - Initial support for viewing and stepping through disassembly (not all adapters support this)
 - Fixes a few issues with how multiple simultaneous debug sessions are hanled
