@@ -1,27 +1,4 @@
-from typing import (
-	Any,
-	Generic,
-	List,
-	Dict,
-	Tuple,
-	Awaitable,
-	Iterator,
-	Iterable,
-	TypeVar,
-	Union,
-	Protocol,
-	overload,
-	TYPE_CHECKING,
-	Optional,
-	Set,
-	Sequence,
-	Coroutine,
-	Callable,
-	ClassVar,
-	cast,
-	Generator,
-	Mapping,
-)
+from typing import Any, TypeVar, Generic
 
 try:
 	from typing_extensions import Unpack, TypeVarTuple, ParamSpec, TypeAlias

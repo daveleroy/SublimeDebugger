@@ -5,7 +5,7 @@ import sublime
 from concurrent.futures import ThreadPoolExecutor
 
 from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, Iterable, TypeVar, overload
-from .typing import TypeVarTuple, Unpack, ParamSpec
+from .typing_extensions import TypeVarTuple, Unpack, ParamSpec
 
 CancelledError = asyncio.CancelledError
 

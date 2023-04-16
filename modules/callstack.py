@@ -5,7 +5,7 @@ from . import core
 from . import ui
 from .import dap
 
-from .debugger_output_panel import DebuggerOutputPanel
+from .output_panel import OutputPanel
 
 from .views.tabbed import TabbedViewContainer
 from .views.debugger import DebuggerTabbedView
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 	from .debugger import Debugger
 
 
-class DebuggerMainOutputPanel(DebuggerOutputPanel, core.Dispose):
+class CallstackOutputPanel(OutputPanel, core.Dispose):
 	def __init__(self, debugger: Debugger) -> None:
 		super().__init__(debugger, 'Debugger', 'Callstack', show_tabs=False)
 

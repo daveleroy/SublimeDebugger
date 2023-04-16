@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from .debugger_output_panel import DebuggerOutputPanel
+from .output_panel import OutputPanel
 
 from .import core
 
@@ -11,7 +11,7 @@ import sublime_plugin
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
-class TerminusIntegratedTerminal(DebuggerOutputPanel):
+class TerminusIntegratedTerminal(OutputPanel):
 	def __init__(self, debugger: Debugger, title: str, cwd: str, commands: list[str], env: dict[str, str|None]|None):
 
 		# is there a better way to do this? This could mean the user customized the settings but not have terminus installed?
@@ -47,4 +47,3 @@ class DebuggerTerminusPostViewHooks(sublime_plugin.TextCommand):
 		settings = self.view.settings()
 		settings.set('scroll_past_end', False)
 		settings.set('draw_unicode_white_space', 'none')
-

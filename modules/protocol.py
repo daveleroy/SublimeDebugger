@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING, Any
 import sublime
 
 from .import core
-from .debugger_output_panel import DebuggerOutputPanel
+from .output_panel import OutputPanel
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
-class DebuggerProtocolPanel(core.Logger):
+class ProtocolPanel(core.Logger):
 	def __init__(self, debugger: Debugger):
 		self.debugger = debugger
-		self.output: DebuggerOutputPanel|None = None
+		self.output: OutputPanel|None = None
 		self.pending: list[Any] = []
 
 	def platform_info(self):
@@ -29,7 +29,7 @@ class DebuggerProtocolPanel(core.Logger):
 
 	def write_pending(self):
 		if not self.output:
-			self.output = DebuggerOutputPanel(self.debugger, 'Debugger Protocol', 'Protocol')
+			self.output = OutputPanel(self.debugger, 'Debugger Protocol', 'Protocol')
 			self.output.on_opened = lambda: self.write_pending_if_needed()
 			self.output.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerProtocol.sublime-syntax'))
 			settings = self.output.view.settings()

@@ -9,17 +9,15 @@ from .import core
 from .import ui
 from .import dap
 
-from .import persistance
-
 from .settings import Settings
 from .breakpoints import Breakpoints, SourceBreakpoint
 from .project import Project
 from .watch import Watch
 from .adapters_registry import AdaptersRegistry
 
-from .debugger_console_panel import DebuggerConsoleOutputPanel
-from .debugger_main_panel import DebuggerMainOutputPanel
-from .debugger_output_panel import DebuggerOutputPanel
+from .console import ConsoleOutputPanel
+from .callstack import CallstackOutputPanel
+from .output_panel import OutputPanel
 
 from .disassemble import DisassembleView
 
@@ -29,9 +27,9 @@ from .terminal_integrated import TerminusIntegratedTerminal
 
 from .source_navigation import SourceNavigationProvider
 
-class Debugger (dap.Debugger, dap.SessionListener):
+class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
-	instances: dict[int, 'Debugger'] = {}
+	instances: dict[int, Debugger|None] = {}
 	creating: dict[int, bool] = {}
 
 	@staticmethod
@@ -85,34 +83,32 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_threads_updated = core.Event[dap.Session]()
 		self.on_session_state_updated = core.Event[[dap.Session, dap.Session.State]]()
 		self.on_session_output = core.Event[dap.Session, dap.OutputEvent]()
+		self.on_output_panels_updated = core.Event[None]()
 
 		self.session: dap.Session|None = None
 		self.sessions: list[dap.Session] = []
-		self.disposeables: list[Any] = []
 		self.last_run_task = None
 
-		self.output_panels: list[DebuggerOutputPanel] = []
-		self.on_output_panels_updated = core.Event[None]()
 
-		self.project = Project(window, skip_project_check)
 		self.run_to_current_line_breakpoint: SourceBreakpoint|None = None
 
+		self.output_panels: list[OutputPanel] = []
+		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
+		self.integrated_terminals: dict[dap.Session, list[TerminusIntegratedTerminal]] = {}
+		self.memory_views: list[MemoryView] = []
+		self.disassembly_view: DisassembleView|None = None
+
+		self.project = Project(window, skip_project_check)
 		self.breakpoints = Breakpoints()
 		self.watch = Watch()
 
-		self.disposeables.extend([
-			self.project,
-			self.breakpoints,
-		])
+
 
 		self.source_provider = SourceNavigationProvider(self.project, self)
 
 		self.tasks = Tasks()
-		self.disposeables.extend([
-			self.tasks,
-		])
 
-		self.console: DebuggerConsoleOutputPanel = DebuggerConsoleOutputPanel(self)
+		self.console: ConsoleOutputPanel = ConsoleOutputPanel(self)
 		self.console.on_input.add(self.on_run_command)
 		self.console.on_navigate.add(self._on_navigate_to_source)
 
@@ -121,7 +117,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		location = self.project.location
 		if location:
-			json = persistance.load(location)
+			json = core.json.load_json_from_package_data(location)
 			self.project.load_from_json(json.get('project', {}))
 			self.breakpoints.load_from_json(json.get('breakpoints', {}))
 			self.watch.load_json(json.get('watch', []))
@@ -130,27 +126,39 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		self.project.on_updated.add(self._on_project_or_settings_updated)
 
-		self.panels = DebuggerMainOutputPanel(self)
-		self.panels.on_closed = lambda: self.console.open()
+		self.callstack = CallstackOutputPanel(self)
+		self.callstack.on_closed = lambda: self.console.open()
 
-		self.disposeables.extend([
+		self.dispose_add([
+			self.project,
+			self.breakpoints,
+			self.tasks,
+			self.source_provider,
 			self.console,
-			self.panels,
+			self.callstack,
 		])
 
-		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
-		self.integrated_terminals: dict[dap.Session, list[TerminusIntegratedTerminal]] = {}
-		self.disassembly_view: DisassembleView|None = None
-
 		self.on_session_active.add(self._on_session_active)
-		self.on_session_added.add(self._on_session_added)
-		self.on_session_removed.add(self._on_session_removed)
-		self.on_session_output.add(self._on_session_output)
 
 		if not self.project.location:
 			self.console.log('warn', 'Debugger not associated with a sublime-project so breakpoints and other data will not be saved')
 
 		self._refresh_none_debugger_output_panels()
+
+	def dispose(self) -> None:
+		self.save_data()
+
+		if self.disassembly_view:
+			self.disassembly_view.dispose()
+
+		self.dispose_terminals()
+
+		for session in self.sessions:
+			session.dispose()
+
+		super().dispose()
+
+		del Debugger.instances[self.window.id()]
 
 	def _refresh_none_debugger_output_panel(self, panel_name: str):
 		name = panel_name.replace('output.', '')
@@ -168,14 +176,14 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		if view.settings().has('debugger'):
 			return
 
-		output_panel = DebuggerOutputPanel(self, name, name=panel.get('name'), show_panel=False, show_tabs=True, show_tabs_top=panel.get('position') != 'bottom', create=False)
-		self.disposeables.append(output_panel)
+		output_panel = OutputPanel(self, name, name=panel.get('name'), show_panel=False, show_tabs=True, show_tabs_top=panel.get('position') != 'bottom', create=False)
+		self.dispose_add(output_panel)
 
 	def _refresh_none_debugger_output_panels(self):
 		for panel_name in self.window.panels():
 			self._refresh_none_debugger_output_panel(panel_name)
 
-	def add_output_panel(self, panel: DebuggerOutputPanel):
+	def add_output_panel(self, panel: OutputPanel):
 		# force integrated terminals to sit between the console and callstack
 		if isinstance(panel, TerminusIntegratedTerminal):
 			self.output_panels.insert(1, panel)
@@ -184,7 +192,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 		self.on_output_panels_updated()
 
-	def remove_output_panel(self, panel: DebuggerOutputPanel):
+	def remove_output_panel(self, panel: OutputPanel):
 		if panel.is_open():
 			self.console.open()
 
@@ -277,7 +285,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 						configuration_expanded.pre_debug_task = dap.TaskExpanded(self.project.get_task(pre_debug_task), variables)
 
 					if post_debug_task:
-						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)						
+						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)
 
 					await self.launch(self.breakpoints, adapter_configuration, configuration_expanded, no_debug=no_debug)
 				except core.Error as e:
@@ -327,13 +335,8 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			return
 
 		if state == dap.Session.State.PAUSED:
-			self.window.bring_to_front()
-			# util.bring_sublime_text_to_front()
-
-			if session.stepping:
-				...
-			else:
-				self.panels.open()
+			if not session.stepping:
+				self.callstack.open()
 
 		if state.previous == dap.Session.State.PAUSED and state == dap.Session.State.RUNNING:
 			if not session.stepping:
@@ -348,6 +351,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	def session_output_event(self, session: dap.Session, event: dap.OutputEvent):
 		self.on_session_output(session, event)
+		self.console.program_output(session, event)
 
 	def session_updated_modules(self, session: dap.Session):
 		self.on_session_modules_updated(session)
@@ -371,16 +375,12 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.on_session_active(session)
 
 	def remove_session(self, session: dap.Session):
-		if session.stopped_reason == dap.Session.stopped_reason_stopped_unexpectedly:
-			for data in self.console.protocol.pending:
-				if isinstance(data, dap.TransportStderrOutputLog):
-					self.console.error(data.output)
-
-			self.console.error('Debugging session ended unexpectedly')
-
-		self.sessions.remove(session)
 		session.dispose()
 
+		self.sessions.remove(session)
+		self.on_session_removed(session)
+
+		# select a new session if there is one
 		if self.session == session:
 			self.session = self.sessions[0] if self.sessions else None
 
@@ -392,8 +392,21 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 			self.on_session_active(session)
 
-		self.on_session_removed(session)
 
+		if session.stopped_unexpectedly:
+			for data in self.console.protocol.pending:
+				if isinstance(data, dap.TransportStderrOutputLog):
+					self.console.error(data.output)
+
+			self.console.error('Debugging session ended unexpectedly')
+
+		if not self.sessions:
+			self.console.info('Debugging ended')
+
+			# if the debugger panel is open switch to the console.
+			# note: We could be on a pre debug step panel which we want to remain on so only do this if we are on the callstack panel
+			if self.callstack.is_open():
+				self.console.open()
 
 	def stepping_granularity(self):
 		if not self.disassembly_view:
@@ -476,21 +489,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		self.breakpoints.source.remove_all()
 		self.breakpoints.function.remove_all()
 
-	def dispose(self) -> None:
-		self.save_data()
-
-		if self.disassembly_view:
-			self.disassembly_view.dispose()
-
-		self.dispose_terminals()
-
-		for session in self.sessions:
-			session.dispose()
-		for d in self.disposeables:
-			d.dispose()
-
-		del Debugger.instances[self.window.id()]
-
 	def is_paused(self):
 		return self.is_active and self.active.state == dap.Session.State.PAUSED
 
@@ -518,7 +516,7 @@ class Debugger (dap.Debugger, dap.SessionListener):
 			'breakpoints': self.breakpoints.into_json(),
 			'watch': self.watch.into_json(),
 		}
-		persistance.save(location, json)
+		core.json.save_json_to_package_data(location, json)
 
 	def on_run_task(self) -> None:
 		values: list[ui.InputListItem] = []
@@ -606,21 +604,6 @@ class Debugger (dap.Debugger, dap.SessionListener):
 		else:
 			self.source_provider.clear()
 
-	def _on_session_added(self, sessions: dap.Session):
-		self.console.open()
-
-	def _on_session_removed(self, session: dap.Session):
-
-		# if the debugger panel is open switch to the console. We could be on a pre debug step panel which we want to remain on.
-		if self.panels.is_open():
-			self.console.open()
-
-		if not self.is_active:
-			self.console.info('Debugging ended')
-
-	def _on_session_output(self, session: dap.Session, event: dap.OutputEvent) -> None:
-		self.console.program_output(session, event)
-
 	async def _on_session_run_terminal_requested(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		title = request.title or session.configuration.name
 		env = request.env or {}
@@ -687,15 +670,10 @@ class Debugger (dap.Debugger, dap.SessionListener):
 
 	def open(self) -> None:
 		if not self.is_active:
-			self.open_console()
+			self.console.open()
 		else:
-			self.open_panels()
+			self.callstack.open()
 
-	def open_panels(self) -> None:
-		self.panels.open()
-
-	def open_console(self) -> None:
-		self.console.open()
 
 	def show_disassembly(self, toggle: bool = False):
 		if not self.disassembly_view:

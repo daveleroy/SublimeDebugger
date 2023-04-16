@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Callable, overload
-from .typing import TypeVar, TypeVarTuple, Generic, ParamSpec
+from .typing_extensions import TypeVar, TypeVarTuple, ParamSpec, Generic
 
 T = TypeVar('T')
 P = ParamSpec('P',)
@@ -59,4 +59,3 @@ class EventReturning (Generic[P, T]):
 		for h in self.handles:
 			r = r or h.callback(*args, **kwargs)
 		return r
-	

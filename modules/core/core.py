@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, Iterable, Protocol, TypeVar, overload
-from .typing import TypeVarTuple, Unpack, ParamSpec
+from .typing_extensions import TypeVarTuple, Unpack, ParamSpec
 
 import sublime
 import concurrent

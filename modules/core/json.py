@@ -3,7 +3,10 @@ from typing import Any, BinaryIO, Callable, Mapping, TypeVar
 
 import json
 import dataclasses
-from .typing import TypeAlias
+
+from .util import package_path, make_directory, write
+
+from .typing_extensions import TypeAlias
 
 
 K = TypeVar("K") #  key type
@@ -38,3 +41,32 @@ class JSONEncoder(json.JSONEncoder):
 
 JSON: TypeAlias = DottedDict[str, 'JSON_VALUE']
 JSON_VALUE: TypeAlias = 'DottedDict[str, "JSON_VALUE"] | list[JSON_VALUE] | str | int | float | bool | None'
+
+VERSION_NUMBER = 0
+
+def load_json_from_package_data(key: str) -> JSON:
+	key = ''.join(x for x in key if x.isalnum())
+	key = key[-128:]
+
+	path = f'{package_path()}/data/{key}.json'
+
+	try:
+		with open(path, 'r') as file:
+			contents = file.read() or "{}"
+
+		json = json_decode(contents)
+		if json.get("_version") == VERSION_NUMBER:
+			return json
+
+	except FileNotFoundError:
+		pass
+
+	return JSON()
+
+def save_json_to_package_data(key: str, json: Any):
+	key = ''.join(x for x in key if x.isalnum())
+	key = key[-128:]
+
+	json['_version'] = VERSION_NUMBER
+	make_directory(f'{package_path()}/data')
+	write(f'{package_path()}/data/{key}.json', json_encode(json, pretty=True), overwrite_existing=True)

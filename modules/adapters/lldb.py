@@ -4,7 +4,6 @@ from ..import core
 from ..import ui
 
 from ..debugger import dap
-from ..views.input_list_view import InputListView
 
 from ..import commands
 from ..import settings

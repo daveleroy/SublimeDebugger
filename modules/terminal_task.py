@@ -8,91 +8,10 @@ from .import core
 from .import dap
 from .import ui
 
-from .debugger_output_panel import DebuggerOutputPanel
+from .output_panel import OutputPanel
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
-
-
-
-
-class TerminusTask(DebuggerOutputPanel):
-	def __init__(self, debugger: Debugger, task: dap.TaskExpanded):
-
-		# title: str, cwd: str, commands: list[str], env: dict[str, str|None]|None
-
-		# title = task.name
-		# cwd = task.get('working_dir')
-		# commands = task.
-
-		# is there a better way to do this? This could mean the user customized the settings but not have terminus installed?
-		settings = sublime.load_settings("Terminus.sublime-settings")
-		if not settings:
-			raise core.Error('Terminus must be installed to use the `console` value of `integratedTerminal`. Either install from Package control or change your debugging configuration `console` value to `integratedConsole`.')
-
-		super().__init__(debugger, task.name, show_tabs=True)
-
-		self.task = task
-		core.edit(self.view, lambda edit: self.view.insert(edit, 0, ''))
-
-		arguments = task.copy()
-		arguments['tag' ] = self.output_panel_name
-		arguments['panel_name'] = self.name
-		arguments['auto_close'] = False
-		arguments['post_view_hooks'] = [
-			['debugger_terminus_post_view_hooks', {}],
-		]
-		debugger.window.run_command('terminus_open', arguments)
-		
-
-		self.future: core.Future[None] = core.Future()
-		self.view.settings().add_on_change('debugger', self._on_settings_changed)
-
-		self.set_status(ui.Images.shared.loading)
-
-	def _check_status_code(self):
-		if self.future.done():
-			return
-
-		line = self.view.substr(self.view.full_line(self.view.size()))
-		if match := re.match(r'process is terminated with return code (.*)\.', line):
-			if match[1] == '0':
-				self.future.set_result(None)
-				self.set_status(ui.Images.shared.check_mark)
-			else:
-				self.future.set_exception(core.Error(line))
-				self.set_status(ui.Images.shared.clear)
-
-		elif match := re.match(r'\[Finished in (.*)s\]', line):
-			self.future.set_result(None)
-			self.set_status(ui.Images.shared.check_mark)
-
-		elif match := re.match(r'\[Finished in (.*)s with exit code (.*)\]', line):
-			self.future.set_exception(core.Error(line))
-			self.set_status(ui.Images.shared.clear)
-
-		else:
-			self.future.set_exception(core.CancelledError)
-			self.set_status(ui.Images.shared.clear)
-
-	def _on_settings_changed(self):
-		if self.future.done() or not self.is_finished():
-			return
-		
-		# terminus marks the terminal as finished before adding the status line
-		sublime.set_timeout(self._check_status_code, 0)
-
-	async def wait(self):
-		await self.future
-
-	def is_finished(self):
-		return self.view.settings().get('terminus_view.finished')
-
-	def cancel(self): ...
-
-	def dispose(self):
-		super().dispose()
-		self.view.run_command('terminus_close')
 
 
 class TaskRunner(Protocol):
@@ -187,3 +106,79 @@ class Tasks:
 			self.removed(task)
 			task.dispose()
 
+
+class TerminusTask(OutputPanel):
+	def __init__(self, debugger: Debugger, task: dap.TaskExpanded):
+
+		# is there a better way to do this? This could mean the user customized the settings but not have terminus installed?
+		settings = sublime.load_settings("Terminus.sublime-settings")
+		if not settings:
+			raise core.Error('Terminus must be installed to use the `console` value of `integratedTerminal`. Either install from Package control or change your debugging configuration `console` value to `integratedConsole`.')
+
+		super().__init__(debugger, task.name, show_tabs=True)
+
+		self.task = task
+		core.edit(self.view, lambda edit: self.view.insert(edit, 0, ''))
+
+		arguments = task.copy()
+		arguments['tag' ] = self.output_panel_name
+		arguments['panel_name'] = self.name
+		arguments['auto_close'] = False
+		arguments['post_view_hooks'] = [
+			['debugger_terminus_post_view_hooks', {}],
+		]
+		debugger.window.run_command('terminus_open', arguments)
+
+
+		self.future: core.Future[None] = core.Future()
+		self.view.settings().add_on_change('debugger', self._on_settings_changed)
+
+
+		self.set_status(ui.Images.shared.loading)
+
+
+	def _check_status_code(self):
+		if self.future.done():
+			return
+
+		line = self.view.substr(self.view.full_line(self.view.size()))
+		if match := re.match(r'process is terminated with return code (.*)\.', line):
+			if match[1] == '0':
+				self.future.set_result(None)
+				self.set_status(ui.Images.shared.check_mark)
+			else:
+				self.future.set_exception(core.Error(line))
+				self.set_status(ui.Images.shared.clear)
+
+		elif match := re.match(r'\[Finished in (.*)s\]', line):
+			self.future.set_result(None)
+			self.set_status(ui.Images.shared.check_mark)
+
+		elif match := re.match(r'\[Finished in (.*)s with exit code (.*)\]', line):
+			self.future.set_exception(core.Error(line))
+			self.set_status(ui.Images.shared.clear)
+
+		else:
+			self.future.set_exception(core.CancelledError)
+			self.set_status(ui.Images.shared.clear)
+
+	def _on_settings_changed(self):
+		if self.future.done() or not self.is_finished():
+			return
+
+		# terminus marks the terminal as finished before adding the status line
+		sublime.set_timeout(self._check_status_code, 0)
+
+	async def wait(self):
+		await self.future
+
+	def is_finished(self):
+		return self.view.settings().get('terminus_view.finished')
+
+	def cancel(self): ...
+
+	def dispose(self):
+		super().dispose()
+
+
+		self.view.run_command('terminus_close')

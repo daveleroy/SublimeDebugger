@@ -11,13 +11,13 @@ from .views.variable import VariableView
 
 from .ansi import ansi_colorize
 
-from .debugger_protocol_panel import DebuggerProtocolPanel
-from .debugger_output_panel import DebuggerOutputPanel
+from .protocol import ProtocolPanel
+from .output_panel import OutputPanel
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
-class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
+class ConsoleOutputPanel(OutputPanel, dap.Console):
 	def __init__(self, debugger: Debugger) -> None:
 		super().__init__(debugger, 'Debugger Console', name='Console', show_tabs=True, remove_last_newline=True)
 
@@ -25,7 +25,7 @@ class DebuggerConsoleOutputPanel(DebuggerOutputPanel, dap.Console):
 		self.on_navigate = core.Event[dap.SourceLocation]()
 		self.debugger = debugger
 
-		self.protocol = DebuggerProtocolPanel(debugger)
+		self.protocol = ProtocolPanel(debugger)
 
 		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
 		self.color: str|None = None

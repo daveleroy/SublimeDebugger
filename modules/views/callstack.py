@@ -7,7 +7,7 @@ from .. import dap
 from . import css
 from .tabbed import TabbedView
 
-from ..debugger_output_panel import DebuggerPanelTabs, DebuggerOutputPanel
+from ..output_panel import OutputPanelTabs, OutputPanel
 
 import os
 
@@ -31,11 +31,11 @@ class CallStackState:
 		self._expanded[id(item)] = not self.is_expanded(item, default)
 
 class CallStackTabbedView (TabbedView):
-	def __init__(self, debugger: Debugger, panel: DebuggerOutputPanel):
+	def __init__(self, debugger: Debugger, panel: OutputPanel):
 		super().__init__('Callstack')
 		self.debugger = debugger
 		self.state = CallStackState()
-		self.tabs = DebuggerPanelTabs(self.debugger, panel)
+		self.tabs = OutputPanelTabs(self.debugger, panel)
 
 	def header(self, is_selected):
 		return self.tabs

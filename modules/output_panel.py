@@ -14,8 +14,8 @@ from .settings import Settings
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
-class DebuggerPanelTabs(ui.span):
-	def __init__(self, debugger: Debugger, panel: DebuggerOutputPanel):
+class OutputPanelTabs(ui.span):
+	def __init__(self, debugger: Debugger, panel: OutputPanel):
 		super().__init__()
 		self.debugger = debugger
 		self.debugger.on_output_panels_updated.add(self.dirty)
@@ -44,12 +44,13 @@ class DebuggerPanelTabs(ui.span):
 
 		return items
 
-class DebuggerConsoleTabs(ui.div):
-	def __init__(self, debugger: Debugger, panel: DebuggerOutputPanel):
+
+class OutputPanelBar(ui.div):
+	def __init__(self, debugger: Debugger, panel: OutputPanel):
 		super().__init__(css=css.console_tabs_top if panel.show_tabs_top else css.console_tabs_bottom)
 
 		self.actions = DebuggerActionsTab(debugger)
-		self.tabs = DebuggerPanelTabs(debugger, panel)
+		self.tabs = OutputPanelTabs(debugger, panel)
 		self.top = panel.show_tabs_top
 
 	def render(self):
@@ -64,13 +65,13 @@ class DebuggerConsoleTabs(ui.div):
 			# ui.div(height=1, width=1, css=css.seperator_cutout) if self.top else None,
 		]
 
-class DebuggerOutputPanel:
+class OutputPanel:
 	on_opened: Callable[[], Any] | None = None
 	on_opened_status: Callable[[], Any] | None = None
 
 	on_closed: Callable[[], Any] | None = None
 
-	panels: ClassVar[Dict[int, DebuggerOutputPanel]] = {}
+	panels: ClassVar[Dict[int, OutputPanel]] = {}
 
 	def __init__(self, debugger: Debugger, panel_name: str, name: str|None = None, show_panel = True, show_tabs = True, show_tabs_top = False, remove_last_newline = False, create = True):
 		super().__init__()
@@ -96,7 +97,7 @@ class DebuggerOutputPanel:
 		self.view.set_name(self.name)
 		self.controls_and_tabs_phantom = None
 
-		DebuggerOutputPanel.panels[self.view.id()] = self
+		OutputPanel.panels[self.view.id()] = self
 
 		settings = self.view.settings()
 		if create:
@@ -121,14 +122,14 @@ class DebuggerOutputPanel:
 		if show_tabs and show_tabs_top:
 
 			self.text_change_listener = OutputPanelTopTextChangeListener(self.view)
-			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
+			self.controls_and_tabs = OutputPanelBar(debugger, self)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE) [
 				self.controls_and_tabs
 			]
 
 		elif show_tabs:
 			self.text_change_listener = OutputPanelBottomTextChangeListener(self)
-			self.controls_and_tabs = DebuggerConsoleTabs(debugger, self)
+			self.controls_and_tabs = OutputPanelBar(debugger, self)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(-1), sublime.LAYOUT_BLOCK) [
 				self.controls_and_tabs
 			]
@@ -194,7 +195,7 @@ class DebuggerOutputPanel:
 		self.on_pre_hide_panel.dispose()
 		if self.controls_and_tabs_phantom:
 			self.controls_and_tabs_phantom.dispose()
-		del DebuggerOutputPanel.panels[self.view.id()]
+		del OutputPanel.panels[self.view.id()]
 
 	def _get_free_output_panel_name(self, window: sublime.Window, name: str) -> str:
 		id = 1
@@ -287,7 +288,7 @@ class DebuggerOutputPanel:
 
 class DebuggerConsoleListener (sublime_plugin.EventListener):
 	def on_selection_modified(self, view: sublime.View) -> None:
-		panel = DebuggerOutputPanel.panels.get(view.id())
+		panel = OutputPanel.panels.get(view.id())
 		if not panel: return
 
 		# the view is locked so we do not allow changing the selection.
@@ -298,32 +299,32 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 		panel.on_selection_modified()
 
 	def on_activated(self, view: sublime.View):
-		if panel := DebuggerOutputPanel.panels.get(view.id()):
+		if panel := OutputPanel.panels.get(view.id()):
 			panel.on_activated()
 
 	def on_deactivated(self, view: sublime.View):
-		if panel := DebuggerOutputPanel.panels.get(view.id()):
+		if panel := OutputPanel.panels.get(view.id()):
 			panel.on_deactivated()
 
 	def on_text_command(self, view: sublime.View, command_name: str, args: Any):
-		if panel := DebuggerOutputPanel.panels.get(view.id()):
+		if panel := OutputPanel.panels.get(view.id()):
 			return panel.on_text_command(command_name, args)
 
 	def on_post_text_command(self, view: sublime.View, command_name: str, args: Any):
-		if panel := DebuggerOutputPanel.panels.get(view.id()):
+		if panel := OutputPanel.panels.get(view.id()):
 			return panel.on_post_text_command(command_name, args)
 
 	def on_query_context(self, view: sublime.View, key: str, operator: int, operand: Any, match_all: bool) -> bool|None:
 		if not key.startswith('debugger.'):
 			return None
 
-		if panel := DebuggerOutputPanel.panels.get(view.id()):
+		if panel := OutputPanel.panels.get(view.id()):
 			return panel.on_query_context(key, operator, operand, match_all)
 
 		return None
 
 	def on_query_completions(self, view: sublime.View, prefix: str, locations: list[int]) -> Any:
-		if panel := DebuggerOutputPanel.panels.get(view.id()):
+		if panel := OutputPanel.panels.get(view.id()):
 			return panel.on_query_completions(prefix, locations)
 
 class OutputPanelTopTextChangeListener(sublime_plugin.TextChangeListener):
@@ -356,7 +357,7 @@ class OutputPanelTopTextChangeListener(sublime_plugin.TextChangeListener):
 		self.view.set_read_only(is_readonly)
 
 class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
-	def __init__(self, panel: DebuggerOutputPanel) -> None:
+	def __init__(self, panel: OutputPanel) -> None:
 		super().__init__()
 		self.panel = panel
 		self.view = panel.view
