@@ -21,7 +21,7 @@ class AdapterInstaller:
 
 	async def perform_install(self, version: str, log: core.Logger):
 		self.remove()
-		core.make_directory(self.data_path())
+		core.debugger_storage_path(ensure_exists=True)
 		core.make_directory(self.temporary_install_path())
 
 		await self.install(version, log)
@@ -36,13 +36,10 @@ class AdapterInstaller:
 		core.remove_file_or_dir(self.install_path())
 
 	def temporary_install_path(self) -> str:
-		return f'{core.package_path()}/data/{self.type}.tmp'
+		return f'{core.debugger_storage_path()}/{self.type}.tmp'
 
 	def install_path(self) -> str:
-		return f'{core.package_path()}/data/{self.type}'
-
-	def data_path(self) -> str:
-		return f'{core.package_path()}/data'
+		return f'{core.debugger_storage_path()}/{self.type}'
 
 	def installed_version(self) -> str|None:
 		return '1.0.0'

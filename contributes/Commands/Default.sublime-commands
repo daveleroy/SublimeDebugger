@@ -28,6 +28,13 @@
         }
     },
     {
+        "caption": "Debugger: Browse Package storage",
+        "command": "debugger",
+        "args": {
+            "action": "browse_storage"
+        }
+    },
+    {
         "caption": "Debugger: Install Adapters",
         "command": "debugger",
         "args": {

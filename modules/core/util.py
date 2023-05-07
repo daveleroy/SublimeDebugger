@@ -29,6 +29,27 @@ from .asyncio import (
 _current_package = __package__.split('.', 1)[0]
 _current_package_path = os.path.join(sublime.packages_path(), _current_package)
 
+def debugger_storage_path(ensure_exists: bool = False):
+	"""
+	This is taken from LSP
+
+	The "Package Storage" is a way to store server data without influencing the behavior of Sublime Text's "catalog".
+	Its path is '$DATA/Package Storage', where $DATA means:
+
+	- on macOS: ~/Library/Application Support/Sublime Text
+	- on Windows: %AppData%/Sublime Text/Roaming
+	- on Linux: $XDG_CONFIG_DIR/sublime-text
+	"""
+	package_storage_path = os.path.abspath(os.path.join(sublime.cache_path(), '..', 'Package Storage'))
+
+	package_path = f'{package_storage_path}/Debugger'
+	if ensure_exists:
+		make_directory(package_storage_path)
+		make_directory(package_path)
+
+	return package_path
+
+
 def package_path(*components: str) -> str:
 	if components:
 		return os.path.join(_current_package_path, *components)

@@ -1,11 +1,12 @@
 from __future__ import annotations
+import os
 from typing import Any, BinaryIO, Callable, Mapping, TypeVar
 
 import json
 import dataclasses
+import hashlib
 
-from .util import package_path, make_directory, write
-
+from .util import debugger_storage_path, write
 from .typing_extensions import TypeAlias
 
 
@@ -44,11 +45,12 @@ JSON_VALUE: TypeAlias = 'DottedDict[str, "JSON_VALUE"] | list[JSON_VALUE] | str 
 
 VERSION_NUMBER = 0
 
-def load_json_from_package_data(key: str) -> JSON:
-	key = ''.join(x for x in key if x.isalnum())
-	key = key[-128:]
+def _file_from_key(key: str):
+	name = os.path.basename(key).split('.')[0]
+	return f'{debugger_storage_path()}/{name}({hashlib.md5(key.encode()).hexdigest()[:10]}).json'
 
-	path = f'{package_path()}/data/{key}.json'
+def load_json_from_package_data(key: str) -> JSON:
+	path = _file_from_key(key)
 
 	try:
 		with open(path, 'r') as file:
@@ -64,9 +66,7 @@ def load_json_from_package_data(key: str) -> JSON:
 	return JSON()
 
 def save_json_to_package_data(key: str, json: Any):
-	key = ''.join(x for x in key if x.isalnum())
-	key = key[-128:]
-
+	path = _file_from_key(key)
 	json['_version'] = VERSION_NUMBER
-	make_directory(f'{package_path()}/data')
-	write(f'{package_path()}/data/{key}.json', json_encode(json, pretty=True), overwrite_existing=True)
+	debugger_storage_path(ensure_exists=True)
+	write(path, json_encode(json, pretty=True), overwrite_existing=True)

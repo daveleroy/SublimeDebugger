@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .import core
+
 from .adapters_registry import AdaptersRegistry
 from .settings import SettingsRegistery
 
@@ -39,7 +41,12 @@ class Commands:
 		window_action=lambda window: window.run_command('edit_settings', { 'base_file': '${packages}/Debugger/Debugger.sublime-settings' }),
 		flags=Command.menu_commands | Command.menu_no_prefix
 	)
-
+	browse_storage = Command(
+		name='Debugger: Browse Package storage',
+		key='browse_storage',
+		window_action=lambda window: window.run_command('open_dir', { 'dir': core.debugger_storage_path(ensure_exists=True) }),
+		flags=Command.menu_commands | Command.menu_no_prefix
+	)
 	install_adapters = Command (
 		name='Install Adapters',
 		key='install_adapters',
