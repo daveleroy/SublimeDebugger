@@ -16,6 +16,7 @@ class Project:
 		if not skip_project_check and not Settings.global_debugger_configurations:
 			project_name = window.project_file_name()
 			while not project_name:
+				window.bring_to_front()
 				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
 				if r:
 					window.run_command('save_project_and_workspace_as')

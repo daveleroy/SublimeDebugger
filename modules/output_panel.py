@@ -207,6 +207,7 @@ class OutputPanel:
 			id += 1
 
 	def open(self):
+		self.window.bring_to_front()
 		self.window.run_command('show_panel', {
 			'panel': self.output_panel_name
 		})

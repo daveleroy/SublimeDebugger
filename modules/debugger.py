@@ -143,6 +143,7 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 		if not self.project.location:
 			self.console.log('warn', 'Debugger not associated with a sublime-project so breakpoints and other data will not be saved')
 
+		self.console.open()
 		self._refresh_none_debugger_output_panels()
 
 	def dispose(self) -> None:
@@ -205,12 +206,18 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 			if not configuration.type in types:
 				types.append(configuration.type)
 
+		all_adapters_installed = True
+
 		for type in types:
 			adapter_configuration = AdaptersRegistry.get(type)
 			if not adapter_configuration.installed_version:
-				install = 'Debug adapter with type name "{}" is not installed.\n Would you like to install it?'.format(adapter_configuration.type)
-				if sublime.ok_cancel_dialog(install, 'Install'):
+				all_adapters_installed = False
+
+				self.console.open()
+				if sublime.ok_cancel_dialog(f'Debug adapter with type name "{adapter_configuration.type}" is not installed.\n Would you like to install it?', 'Install'):
 					await self.install_adapter(adapter_configuration, None)
+
+		return all_adapters_installed
 
 	@core.run
 	async def start(self, no_debug: bool = False, args: dict[str, Any]|None = None):
@@ -269,7 +276,9 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
 		self.console.open()
 
-		await self.ensure_installed(configurations)
+		if not await self.ensure_installed(configurations):
+			return
+
 
 		for configuration in configurations:
 			@core.run
@@ -288,8 +297,12 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)
 
 					await self.launch(self.breakpoints, adapter_configuration, configuration_expanded, no_debug=no_debug)
+					self.console.open()
+
 				except core.Error as e:
-					if sublime.ok_cancel_dialog("Error Launching Configuration\n\n{}".format(str(e)), 'Open Project'):
+					self.console.open()
+
+					if sublime.ok_cancel_dialog("Unable To Start Debug Session\n\n{}".format(str(e)), 'Open Project'):
 						self.project.open_project_configurations_file()
 
 			launch(configuration)

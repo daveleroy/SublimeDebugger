@@ -81,7 +81,7 @@ class SourceNavigationProvider:
 
 		def on_error(error: BaseException):
 			if error is not core.CancelledError:
-				core.error(error)
+				core.alert(f'Unable to navigate to source @ {source.source.path} {error}')
 
 		async def navigate_async(source: dap.SourceLocation):
 			self.clear_generated_view()
