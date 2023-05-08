@@ -18,6 +18,10 @@ import threading
 from dataclasses import dataclass
 
 
+class TransportConnectionError(core.Error):
+	...
+
+
 class Transport(Protocol):
 	def write(self, message: bytes):
 		...

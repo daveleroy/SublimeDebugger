@@ -26,7 +26,7 @@ from .configuration import (
 	TaskExpanded
 )
 
-from .transport import TransportProtocol, TransportProtocolListener
+from .transport import TransportConnectionError, TransportProtocol, TransportProtocolListener
 
 class SessionListener (Protocol):
 	async def session_task_request(self, session: Session, task: TaskExpanded): ...
@@ -117,6 +117,7 @@ class Session(TransportProtocolListener):
 		self.stepping = False
 		self.stepping_stopped = False
 		self.stopped_reason = 0
+		self.stopped_unexpectedly = False
 		self.terminated_event = None
 
 		self._state = Session.State.STARTING
@@ -190,6 +191,9 @@ class Session(TransportProtocolListener):
 		try:
 			self.log.log('transport', f'-- adapter: type={self.adapter_configuration.type} version={installed_version}')
 			transport = await self.adapter_configuration.start(log=self.log, configuration=self.configuration)
+		except TransportConnectionError as e:
+			self.stopped_unexpectedly = True
+			raise core.Error(f'Unable to start adapter: {e}')
 		except Exception as e:
 			raise core.Error(f'Unable to start adapter: {e}')
 
@@ -489,6 +493,7 @@ class Session(TransportProtocolListener):
 			if self.stop_requested or self.terminated_event != None:
 				reason = Session.stopped_reason_manual
 			else:
+				self.stopped_unexpectedly = True
 				reason = Session.stopped_reason_stopped_unexpectedly
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import IO, Any, Callable
 
 from ..import core
-from .transport import Transport, TransportStderrOutputLog, TransportStdoutOutputLog
+from .transport import Transport, TransportStderrOutputLog, TransportStdoutOutputLog, TransportConnectionError
 
 import socket
 import os
@@ -167,7 +167,7 @@ class SocketTransport(Transport):
 					await core.delay(0.25)
 					exception = e
 
-			raise core.Error(f'tcp://{host}:{port} {exception}')
+			raise TransportConnectionError(f'tcp://{host}:{port} {exception}')
 
 		# use BaseException since we also want to dispose of the process during a CancelledError as well
 		except BaseException:
