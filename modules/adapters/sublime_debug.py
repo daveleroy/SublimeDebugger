@@ -148,18 +148,12 @@ class Sublime(dap.AdapterConfiguration):
 		}
 
 
-@dataclass
-class Client:
-	file: TextIO
-	socket: socket.socket
-
-	def close(self):
-		self.socket.close()
 
 
-class SublimeDebugTransport(dap.TransportProtocol, dap.Transport):
+
+class SublimeDebugTransport(dap.Transport):
 	def __init__(self, configuration: dap.ConfigurationExpanded, log: core.Logger) -> None:
-		super().__init__(self)
+		super().__init__()
 
 		# grab open ports for debugpy
 		self.port_33 = util.get_open_port()
@@ -321,17 +315,6 @@ class SublimeDebugTransport(dap.TransportProtocol, dap.Transport):
 			return {}
 
 		return {}
-
-	def on_transport_closed(self) -> Any: ...
-
-	def write(self, message: bytes):
-		raise NotImplemented()
-
-	def readline(self) -> bytes:
-		raise NotImplemented()
-
-	def read(self, n: int) -> bytes:
-		raise NotImplemented()
 
 	def dispose(self):
 		self.process.dispose()

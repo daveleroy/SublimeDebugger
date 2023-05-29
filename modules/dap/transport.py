@@ -21,17 +21,6 @@ from dataclasses import dataclass
 class TransportConnectionError(core.Error):
 	...
 
-
-class Transport(Protocol):
-	def write(self, message: bytes):
-		...
-	def readline(self) -> bytes:
-		...
-	def read(self, n: int) -> bytes:
-		...
-	def dispose(self):
-		...
-
 class TransportProtocolListener (Protocol):
 	def on_event(self, event: str, body: dict[str, Any]):
 		...
@@ -99,9 +88,28 @@ class TransportOutgoingDataLog(TransportDataLog):
 		return '<- ' + super().__str__()
 
 
-class TransportProtocol:
-	def __init__(self, transport: Transport) -> None:
-		self.transport = transport
+class Transport:
+	def start(self, listener: TransportProtocolListener, log: core.Logger):
+		...
+	def dispose(self) -> None:
+		...
+	def send_request(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
+		...
+	def send_event(self, event: str, body: dict[str, Any]) -> None:
+		...
+	def send_response(self, request: dict[str, Any], body: dict[str, Any], error: str|None = None) -> None:
+		...
+
+
+
+
+class TransportStream(Transport):
+	def write(self, message: bytes):
+		...
+	def readline(self) -> bytes:
+		...
+	def read(self, n: int) -> bytes:
+		...
 
 	def start(self, listener: TransportProtocolListener, log: core.Logger):
 		self.events = listener
@@ -115,7 +123,7 @@ class TransportProtocol:
 		self.thread.start()
 
 	def dispose(self) -> None:
-		self.transport.dispose()
+		...
 
 	# Content-Length: 119\r\n
 	# \r\n
@@ -134,7 +142,7 @@ class TransportProtocol:
 		try:
 			while True:
 				# handle Content-Length: 119\r\n
-				line = self.transport.readline()
+				line = self.readline()
 				if not header.startswith(header):
 					core.error('Expecting Content-Length: header but did not...')
 					continue
@@ -142,7 +150,7 @@ class TransportProtocol:
 				size = int(line[header_length:].strip())
 
 				#handle \r\n
-				line = self.transport.readline()
+				line = self.readline()
 				if line != b'\r\n':
 					core.error('Expected \\n\\r but did not find...')
 					core.error(line)
@@ -153,7 +161,7 @@ class TransportProtocol:
 				content = b''
 				while len(content) != size:
 					bytes_left = size - len(content)
-					content += self.transport.read(bytes_left)
+					content += self.read(bytes_left)
 
 				self.on_message(core.json_decode(content))
 
@@ -163,7 +171,7 @@ class TransportProtocol:
 
 	def send(self, message: dict[str, Any]):
 		content = core.json_encode(message)
-		self.transport.write(bytes(f'Content-Length: {len(content)}\r\n\r\n{content}', 'utf-8'))
+		self.write(bytes(f'Content-Length: {len(content)}\r\n\r\n{content}', 'utf-8'))
 
 	def send_request(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
 		future: core.Future[dict[str, Any]] = core.Future()

@@ -26,7 +26,7 @@ from .configuration import (
 	TaskExpanded
 )
 
-from .transport import TransportConnectionError, TransportProtocol, TransportProtocolListener
+from .transport import Transport, TransportConnectionError, TransportProtocolListener
 
 class SessionListener (Protocol):
 	async def session_task_request(self, session: Session, task: TaskExpanded): ...
@@ -108,7 +108,7 @@ class Session(TransportProtocolListener):
 		self.watch = watch
 		self.watch.on_added.add(lambda expr: self.watch.evaluate_expression(self, expr))
 
-		self._transport: TransportProtocol|None = None
+		self._transport: Transport|None = None
 
 		self.launching_async: core.Future|None = None
 		self.capabilities = dap.Capabilities()
@@ -198,7 +198,7 @@ class Session(TransportProtocolListener):
 			raise core.Error(f'Unable to start adapter: {e}')
 
 
-		self._transport = transport if isinstance(transport, TransportProtocol) else TransportProtocol(transport)
+		self._transport = transport
 		self._transport.start(self, self.log)
 
 		capabilities: dap.Capabilities = await self.request('initialize', {

@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import IO, Any, Callable
 
 from ..import core
-from .transport import Transport, TransportStderrOutputLog, TransportStdoutOutputLog, TransportConnectionError
+from .transport import Transport, TransportStderrOutputLog, TransportStdoutOutputLog, TransportConnectionError, TransportStream
 
 import socket
 import os
@@ -114,7 +114,7 @@ class Process:
 			core.exception()
 
 
-class StdioTransport(Transport):
+class StdioTransport(TransportStream):
 	def __init__(self, log: core.Logger, command: list[str], cwd: str|None = None, stderr: Callable[[str], None] | None = None):
 		log.log('transport', f'-- stdio transport: {command}')
 
@@ -144,7 +144,7 @@ class StdioTransport(Transport):
 		self.process.dispose()
 
 
-class SocketTransport(Transport):
+class SocketTransport(TransportStream):
 	def __init__(self, log: core.Logger, host: str, port: int):
 		log.log('transport', f'-- socket transport: {host}:{port}')
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
