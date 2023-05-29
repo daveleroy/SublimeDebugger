@@ -157,6 +157,7 @@ class OutputPanel:
 	def update_settings(self):
 		# these settings control the size of the ui calculated in ui/layout
 		settings = self.view.settings()
+		settings['internal_font_scale'] = Settings.internal_font_scale
 		if Settings.ui_scale:
 			settings['font_size'] = Settings.ui_scale
 		else:

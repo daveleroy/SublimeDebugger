@@ -83,7 +83,7 @@ class css:
 
 	@staticmethod
 	def generate(layout: Layout):
-		key = f'{layout.em_width}-{layout.font_size}'
+		key = f'{layout.em_width}-{layout.font_size}-{layout.internal_font_scale}'
 		if c := css._cached_css.get(key):
 			return c
 
@@ -95,9 +95,9 @@ class css:
 		# Change the font-size back since we changed the font-size in the html tag for the rem units
 		# I have no idea why windows/linux needs pt instead of px to get the font-size correct...
 		if sublime.platform() == 'osx':
-			css_list.append(f'body {{ font-size: {layout.font_size}px; }}')
+			css_list.append(f'body {{ font-size: {layout.font_size * layout.internal_font_scale}px; }}')
 		else:
-			css_list.append(f'body {{ font-size: {layout.font_size}pt; }}')
+			css_list.append(f'body {{ font-size: {layout.font_size * layout.internal_font_scale}pt; }}')
 
 		for c in css.instances:
 			css_list.append('#{}{{'.format(c.id))

@@ -246,12 +246,12 @@ class Layout:
 
 		settings = self.view.settings()
 		font_size = settings.get('font_size') or 1
-
+		internal_font_scale = settings.get('internal_font_scale') or 1
 		width, height = self.view.viewport_extent()
 		em_width = self.view.em_width() or 1
 
 		# check if anything has changed so we can avoid invalidating the layout
-		all = (background, font_size, em_width, width, height)
+		all = (background, font_size, internal_font_scale, em_width, width, height)
 		if self._all == all:
 
 			# only invalidate the layout after the user has stopped changing the layout to avoid redrawing while they are changing stuff
@@ -263,6 +263,7 @@ class Layout:
 
 		self._all = all
 
+		self.internal_font_scale = internal_font_scale
 		self.font_size = font_size
 		self._width = width / em_width
 		self._height = height / em_width

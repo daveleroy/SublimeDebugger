@@ -32,18 +32,16 @@ class Settings:
 		description='Open the debugger automatically when a project that is set up for debugging'
 	)
 
-	ui_scale = Setting['int|None'] (
+	ui_scale = Setting['float|None'] (
 		key='ui_scale',
 		default=None,
 		description='Sets the entire scale of the UI, defaults to font_size'
 	)
 
-	font_face = Setting[str] (
-		key='font_face',
-		default='Monospace',
-		description='''
-		Change at your own risk it may break the interface. Restart required to take effect
-		'''
+	internal_font_scale = Setting[float] (
+		key='internal_font_scale',
+		default=1,
+		description='Only change this if your font size does not match the panel size (overlapping text, panels not lining up, etc)'
 	)
 
 	external_terminal = Setting[str] (
@@ -116,7 +114,6 @@ class Settings:
 		}
 		'''
 	)
-
 
 	installed_packages = Setting['list[str]'] (
 		key='installed_packages',

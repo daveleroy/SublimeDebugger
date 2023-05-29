@@ -5,8 +5,8 @@
 	// Sets the entire scale of the UI, defaults to font_size
 	"ui_scale": null,
 
-	// Change at your own risk it may break the interface. Restart required to take effect
-	"font_face": "Monospace",
+	// Only change this if your font size does not match the panel size (overlapping text, panels not lining up, etc)
+	"internal_font_scale": 1,
 
 	// Which external terminal should be used when an adapter requests an external terminal
 	// "platform" (default) uses Terminal on MacOS, CMD (Not tested) on Windows, (Unimplemented) on Linux
