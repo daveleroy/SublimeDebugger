@@ -9,7 +9,7 @@ jobs:
 
   vscode-js-debug:
     uses: ./.github/workflows/sync-build-release.yml
-    
+
     with:
       upstream: microsoft/vscode-js-debug
       repository: vscode-js-debug
@@ -17,7 +17,7 @@ jobs:
 
       build: |
         npm install --legacy-peer-deps
-        node_modules/.bin/gulp vsDebugServerBundle 
+        node_modules/.bin/gulp vsDebugServerBundle
         mv dist extension
         zip -r extension.vsix extension
 
@@ -37,7 +37,7 @@ jobs:
         ./node_modules/.bin/gulp installPythonLibs
         npm run package
         mv ms-python-insiders.vsix extension.vsix
-          
+
     secrets:
       token: ${{ secrets.PUSH_TOKEN }}
 
@@ -53,7 +53,7 @@ jobs:
         npm install --legacy-peer-deps
         npm run build
         npm run package -- -o extension.vsix
-          
+
     secrets:
       token: ${{ secrets.PUSH_TOKEN }}
 
@@ -68,10 +68,12 @@ jobs:
       build: |
         sudo apt-get install erlang-dev
         sudo apt-get install elixir
-        mix local.hex --force
         npm install
+        (cd elixir-ls && mix local.hex --force)
+        (cd elixir-ls && mix deps.get)
+        MIX_ENV=prod mix compile
         npx vsce package -o extension.vsix
-          
+
     secrets:
       token: ${{ secrets.PUSH_TOKEN }}
 
@@ -86,6 +88,6 @@ jobs:
       build: |
         npm install
         npx vsce package -o extension.vsix
-          
+
     secrets:
       token: ${{ secrets.PUSH_TOKEN }}
