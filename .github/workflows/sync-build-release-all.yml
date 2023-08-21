@@ -85,6 +85,7 @@ jobs:
 
       build: |
         npm install
+        npm run build
         npx vsce package -o extension.vsix
           
     secrets:
