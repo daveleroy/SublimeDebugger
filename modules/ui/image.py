@@ -10,7 +10,7 @@ import sublime
 import base64
 
 def _path_for_image(name: str) -> str:
-	return core.package_path_relative(f'images/{name}')
+	return core.package_path_relative(f'contributes/Images/{name}')
 
 def _data_image_png_b64_png_from_resource(path: str) -> str:
 	png_data = sublime.load_binary_resource(path)
