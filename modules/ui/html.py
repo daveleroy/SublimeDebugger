@@ -230,12 +230,14 @@ class text (span, alignable):
 		return self._text_html
 
 
-tokenize_re = re.compile('(0x[0-9A-Fa-f]+)|([-.0-9]+)|(\'[^\']*\')|("[^"]*")|(.*?)')
+tokenize_re = re.compile('(0x[0-9A-Fa-f]+)|([-.0-9]+)|(\'[^\']*\')|("[^"]*")|(undefined|null)|(.*?)')
 
 class code(span, alignable):
 	def __init__(self, text: str, **kwargs: Unpack[SpanParams]) -> None:
 		super().__init__(**kwargs)
 		self.text = text.replace('\n', '\\n')
+		self.text_html: str|None = None
+		self.align_character_count = 0
 		self.align_required: int = 0
 		self.align_desired: int = len(self.text)
 
@@ -243,27 +245,54 @@ class code(span, alignable):
 		return len(self.text) + self.css_padding_width
 
 	def align(self, width: float):
+		self.text_html = None
+
 		length = len(self.text)
 		if width <= 0:
-			self._text_clipped = ''
+			self.align_character_count = 0
 		elif length > width:
-			self._text_clipped = self.text[0:int(width-1)] + '…'
+			self.align_character_count = width
 		else:
-			self._text_clipped = self.text
+			self.align_character_count = len(self.text)
 
-		return len(self._text_clipped)
+		return self.align_character_count
 
 	def html(self) -> HtmlResponse:
+		if self.text_html:
+			return self.text_html
+
 		text_html = ''
-		for number, number_hex, string, string_double, other in tokenize_re.findall(self._text_clipped):
+		leftover = self.align_character_count
+
+		def clip(value: str|None):
+			if not value:
+				return None
+
+			nonlocal leftover
+			if leftover <= 0:
+				return None
+
+			length = len(value)
+			if leftover < length:
+				leftover -= length
+				return value[0: leftover -1] + '…'
+
+			leftover -= length
+			return value
+
+
+		for number, number_hex, string, string_double, keyword, other in tokenize_re.findall(self.text):
 			string = string_double or string
 			number = number or number_hex
-			if number:
+			if number := clip(number):
 				text_html += f'<s style="color:var(--yellowish);">{number}</s>'
-			if string:
+			elif string := clip(string):
 				text_html += f'<s style="color:var(--greenish);">{html_escape(string)}</s>'
-			if other:
+			elif keyword := clip(keyword):
+				text_html += f'<s style="color:var(--redish);">{keyword}</s>'
+			elif other := clip(other):
 				text_html += html_escape(other)
 
 		tag, attributes = self.html_tag_and_attrbutes()
-		return f'<{tag} {attributes}>{text_html}</{tag}>'
+		self.text_html = f'<{tag} {attributes}>{text_html}</{tag}>'
+		return self.text_html
