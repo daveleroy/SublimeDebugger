@@ -25,7 +25,6 @@ from .asyncio import (
 )
 
 
-
 _current_package = __package__.split('.', 1)[0]
 _current_package_path = os.path.join(sublime.packages_path(), _current_package)
 

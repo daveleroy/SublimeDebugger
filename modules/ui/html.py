@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence, TypedDict, 
 from ..core.typing_extensions import Unpack
 
 from .image import Image
-from .style import css
+from .css import css
 
 import re
 

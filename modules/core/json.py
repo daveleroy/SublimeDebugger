@@ -1,6 +1,6 @@
 from __future__ import annotations
 import os
-from typing import Any, BinaryIO, Callable, Mapping, TypeVar
+from typing import Any, BinaryIO, TextIO, Callable, Mapping, TypeVar
 
 import json
 import dataclasses
@@ -17,7 +17,7 @@ T = TypeVar("T") #  value type
 def json_decode(contents: str|bytes) -> JSON:
 	return json.loads(contents, object_hook=object_hook)
 
-def json_decode_b(contents: BinaryIO) -> JSON:
+def json_decode_b(contents: BinaryIO|TextIO) -> JSON:
 	return json.load(contents, object_hook=object_hook)
 
 def json_encode(obj: Any, pretty=False):

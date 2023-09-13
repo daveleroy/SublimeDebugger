@@ -56,8 +56,7 @@ from .debugger import (
 
 from .transport import (
 	Transport,
-	TransportProtocol,
-	TransportProtocolListener,
+	TransportListener,
 )
 
 from .transports import (

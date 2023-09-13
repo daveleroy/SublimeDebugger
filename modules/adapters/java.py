@@ -133,11 +133,10 @@ class Java(dap.AdapterConfiguration):
 		)
 
 	async def lsp_execute_command(self, command, arguments=None):
-		return await self.lsp_request('workspace/executeCommand', { 
-			'command': command, 
-			'arguments': arguments 
+		return await self.lsp_request('workspace/executeCommand', {
+			'command': command,
+			'arguments': arguments
 		})
 
 	async def lsp_request(self, method, params) -> Any:
 		return await util.lsp.request('jdtls', method, params)
-

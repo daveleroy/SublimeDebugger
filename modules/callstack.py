@@ -20,13 +20,11 @@ if TYPE_CHECKING:
 
 class CallstackOutputPanel(OutputPanel, core.Dispose):
 	def __init__(self, debugger: Debugger) -> None:
-		super().__init__(debugger, 'Debugger', 'Callstack', show_tabs=False)
+		super().__init__(debugger, 'Debugger', 'Callstack', show_tabs=False, lock_selection=True)
 
 		self.on_input = core.Event[str]()
 		self.on_navigate = core.Event[dap.SourceLocation]()
 		self.disposeables = []
-
-		self.lock_selection()
 
 		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
 		# otherwise they will get reordered when one of them gets redrawn

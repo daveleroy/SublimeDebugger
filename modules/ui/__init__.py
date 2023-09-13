@@ -5,7 +5,7 @@ from .phantom import Phantom, RawPhantom, RawAnnotation, Popup
 
 from .html import div, span, text, icon, code, html_escape, html_escape_multi_line
 from .align import alignable, spacer, spacer_dip
-from .style import css
+from .css import css
 
 from .layout import Layout
 from .image import Images, Image

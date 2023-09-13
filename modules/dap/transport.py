@@ -21,10 +21,10 @@ from dataclasses import dataclass
 class TransportConnectionError(core.Error):
 	...
 
-class TransportProtocolListener (Protocol):
-	def on_event(self, event: str, body: dict[str, Any]):
+class TransportListener (Protocol):
+	def on_event(self, event: str, body: core.JSON):
 		...
-	async def on_reverse_request(self, command: str, arguments: dict[str, Any]) -> dict[str, Any]:
+	async def on_reverse_request(self, command: str, arguments: core.JSON) -> core.JSON:
 		...
 
 	def on_transport_closed(self) -> Any: ...
@@ -89,15 +89,15 @@ class TransportOutgoingDataLog(TransportDataLog):
 
 
 class Transport:
-	def start(self, listener: TransportProtocolListener, log: core.Logger):
+	def start(self, listener: TransportListener, log: core.Logger):
 		...
 	def dispose(self) -> None:
 		...
-	def send_request(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
+	def send_request(self, command: str, args: core.JSON|None) -> Awaitable[core.JSON]:
 		...
-	def send_event(self, event: str, body: dict[str, Any]) -> None:
+	def send_event(self, event: str, body: core.JSON) -> None:
 		...
-	def send_response(self, request: dict[str, Any], body: dict[str, Any], error: str|None = None) -> None:
+	def send_response(self, request: core.JSON, body: core.JSON, error: str|None = None) -> None:
 		...
 
 
@@ -111,11 +111,11 @@ class TransportStream(Transport):
 	def read(self, n: int) -> bytes:
 		...
 
-	def start(self, listener: TransportProtocolListener, log: core.Logger):
+	def start(self, listener: TransportListener, log: core.Logger):
 		self.events = listener
 		self.log = log
 
-		self.pending_requests: dict[int, core.Future[dict[str, Any]]] = {}
+		self.pending_requests: dict[int, core.Future[core.JSON]] = {}
 		self.seq = 0
 
 		self.log.log('transport', f'-- begin transport protocol')
@@ -173,8 +173,8 @@ class TransportStream(Transport):
 		content = core.json_encode(message)
 		self.write(bytes(f'Content-Length: {len(content)}\r\n\r\n{content}', 'utf-8'))
 
-	def send_request(self, command: str, args: dict[str, Any]|None) -> Awaitable[dict[str, Any]]:
-		future: core.Future[dict[str, Any]] = core.Future()
+	def send_request(self, command: str, args: core.JSON|None) -> Awaitable[core.JSON]:
+		future: core.Future[core.JSON] = core.Future()
 		self.seq += 1
 		request = {
 			'seq': self.seq,
@@ -190,7 +190,7 @@ class TransportStream(Transport):
 		return future
 
 
-	def send_event(self, event: str, body: dict[str, Any]) -> None:
+	def send_event(self, event: str, body: core.JSON) -> None:
 		self.seq += 1
 
 		data = {
@@ -203,7 +203,7 @@ class TransportStream(Transport):
 		self.log.log('transport', TransportOutgoingDataLog(data))
 		self.send(data)
 
-	def send_response(self, request: dict[str, Any], body: dict[str, Any], error: str|None = None) -> None:
+	def send_response(self, request: core.JSON, body: core.JSON, error: str|None = None) -> None:
 		self.seq += 1
 
 		if error:
@@ -224,7 +224,7 @@ class TransportStream(Transport):
 		self.log.log('transport', TransportOutgoingDataLog(data))
 		self.send(data)
 
-	def on_request(self, request: dict[str, Any]):
+	def on_request(self, request: core.JSON):
 		command = request['command']
 
 		@core.run
@@ -233,7 +233,7 @@ class TransportStream(Transport):
 				response = await self.events.on_reverse_request(command, request.get('arguments', {}))
 				self.send_response(request, response)
 			except core.Error as e:
-				self.send_response(request, {}, error=str(e))
+				self.send_response(request, core.JSON(), error=str(e))
 
 		r()
 
@@ -248,7 +248,7 @@ class TransportStream(Transport):
 		# use call_soon so that events and respones are handled in the same order as the server sent them
 		core.call_soon(self.events.on_transport_closed)
 
-	def on_message(self, data: dict[str, Any]) -> None:
+	def on_message(self, data: core.JSON) -> None:
 		self.log.log('transport', TransportIncomingDataLog(data))
 
 		t = data['type']
@@ -262,7 +262,7 @@ class TransportStream(Transport):
 
 			success = data['success']
 			if not success:
-				body: dict[str, Any] = data.get('body', {})
+				body: core.JSON = data.get('body', {})
 				if error := body.get('error'):
 					future.set_exception(Error.from_message(error))
 					return
@@ -270,7 +270,7 @@ class TransportStream(Transport):
 				future.set_exception(Error(data.get('message', 'no error message')))
 				return
 			else:
-				body: dict[str, Any] = data.get('body', {})
+				body: core.JSON = data.get('body', {})
 				future.set_result(body)
 			return
 

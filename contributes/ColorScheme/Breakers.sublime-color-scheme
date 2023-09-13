@@ -2,7 +2,7 @@
 	"rules": [
 		{
 			"scope": "debugger.background",
-			"background": "var(background)",
+			"background": "hsla(100%, 100%, 100%, 0)",
 		},
 		{
 			"scope": "debugger.selection",

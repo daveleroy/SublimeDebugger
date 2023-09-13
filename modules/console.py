@@ -1,5 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable
+if TYPE_CHECKING:
+	from .debugger import Debugger
 
 import sublime
 
@@ -14,8 +16,6 @@ from .ansi import ansi_colorize
 from .protocol import ProtocolPanel
 from .output_panel import OutputPanel
 
-if TYPE_CHECKING:
-	from .debugger import Debugger
 
 class ConsoleOutputPanel(OutputPanel, dap.Console):
 	def __init__(self, debugger: Debugger) -> None:

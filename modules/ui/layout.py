@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Callable, ClassVar
 
 from ..import core
-from .style import css
+from .css import css
 from .html import HtmlResponse, div, element
 from collections.abc import Iterable
 import sublime

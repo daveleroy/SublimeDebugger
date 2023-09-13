@@ -19,7 +19,7 @@ class Phantom(Layout):
 	def render(self) -> bool:
 		timer = core.stopwatch()
 		updated = super().render()
-		
+
 		# don't need to update phantom
 		if not updated and self.pid is not None:
 			return False
@@ -62,7 +62,7 @@ class Phantom(Layout):
 		if self.pid: self.view.erase_phantom_by_id(self.pid)
 
 
-class RawPhantom:	
+class RawPhantom:
 	def __init__(self, view: sublime.View, region: sublime.Region, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[str], Any]|None = None) -> None:
 		self.region = region
 		self.view = view
@@ -94,7 +94,7 @@ class Popup(Layout):
 		self.created_popup = False
 
 	def on_hide(self) -> None:
-		self.is_closed = True		
+		self.is_closed = True
 		self.dispose()
 
 		if self.on_close:
@@ -103,7 +103,7 @@ class Popup(Layout):
 	def render(self) -> bool:
 		if self.is_closed:
 			return False
-		
+
 		timer = core.stopwatch()
 		updated = super().render()
 		if not updated:

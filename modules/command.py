@@ -38,7 +38,7 @@ class Command:
 	allow_debugger_outside_project = 1 << 9
 
 	def __init__(self, name: str, key: str|None = None, action:CommandActionKwargs|CommandAction|None = None, window_action:CommandWindowActionKwargs|CommandWindowAction|None=None, enabled: Callable[[Debugger], bool] | None = None, flags: int = -1):
-		
+
 		self.name = name
 		self.action = action
 		self.key = key
@@ -61,7 +61,7 @@ class Command:
 		debugger = Debugger.get(window)
 		if not debugger or not debugger.is_open():
 			debugger = Debugger.create(window, skip_project_check = bool(self.flags & Command.allow_debugger_outside_project))
-			
+
 			# don't run this command if the debugger is not visible
 			if self.flags & Command.open_without_running:
 				return
@@ -110,7 +110,7 @@ class DebuggerExecCommand(sublime_plugin.WindowCommand):
 	def run(self, **kwargs: dict[str, Any]): #type: ignore
 		from .debugger import Debugger
 		from .dap import Task
-		
+
 		debugger = Debugger.create(self.window)
 
 		task = Task.from_json(kwargs)
@@ -212,7 +212,7 @@ class CommandsRegistry:
 
 
 		commands_context = generate_commands(Command.menu_widget)
-		save_commands('contributes/Commands/Widget Debug.sublime-menu', commands_context)
+		save_commands('contributes/Commands/DebuggerWidget.sublime-menu', commands_context)
 
 		syntax = generate_ansi_syntax()
 		with open(core.package_path('contributes/Syntax/DebuggerConsole.sublime-syntax'), 'w') as f:

@@ -1,12 +1,9 @@
 {
 	"*": {
-		">=3124": [
-			"ptyprocess"
-		]
-	},
-	"windows": {
-		">=3124": [
-			"pywinpty"
+		"*": [
+			"psutil"
 		]
 	}
 }
+
+

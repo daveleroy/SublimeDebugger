@@ -26,7 +26,7 @@ from .configuration import (
 	TaskExpanded
 )
 
-from .transport import Transport, TransportConnectionError, TransportProtocolListener
+from .transport import Transport, TransportConnectionError, TransportListener
 
 class SessionListener (Protocol):
 	async def session_task_request(self, session: Session, task: TaskExpanded): ...
@@ -44,7 +44,7 @@ class SessionListener (Protocol):
 
 	def session_finished(self, session: Session): ...
 
-class Session(TransportProtocolListener):
+class Session(TransportListener):
 
 	class State (IntEnum):
 		STARTING = 3

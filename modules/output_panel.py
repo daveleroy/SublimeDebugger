@@ -73,7 +73,7 @@ class OutputPanel:
 
 	panels: ClassVar[Dict[int, OutputPanel]] = {}
 
-	def __init__(self, debugger: Debugger, panel_name: str, name: str|None = None, show_panel = True, show_tabs = True, show_tabs_top = False, remove_last_newline = False, create = True):
+	def __init__(self, debugger: Debugger, panel_name: str, name: str|None = None, show_panel = True, show_tabs = True, show_tabs_top = False, remove_last_newline = False, create = True, lock_selection=False):
 		super().__init__()
 		self.panel_name = self._get_free_output_panel_name(debugger.window, panel_name) if create else panel_name
 		self.output_panel_name = f'output.{self.panel_name}'
@@ -85,9 +85,8 @@ class OutputPanel:
 		self.show_tabs_top = show_tabs_top
 		self.remove_last_newline = remove_last_newline
 		self.debugger = debugger
-
-		# if a panel with the same name already exists add a unique id
-		self._locked_selection = 0
+		self.lock_selection = lock_selection
+		
 		self.status: ui.Image|None = None
 
 		self.removed_newline: int|None = None
@@ -237,9 +236,6 @@ class OutputPanel:
 			# run on_closed after hiding the panel otherwise showing other panels will not work
 			sublime.set_timeout(self.on_closed, 0)
 
-	def is_locked_selection(self):
-		return self._locked_selection != 0
-
 	def scroll_to_end(self):
 		sel = self.view.sel()
 		core.edit(self.view, lambda edit: (
@@ -252,16 +248,6 @@ class OutputPanel:
 		else:
 			height = self.view.layout_extent()[1]
 			self.view.set_viewport_position((0, height), False)
-
-	def lock_selection(self):
-		self._locked_selection += 1
-
-	def unlock_selection(self):
-		self._locked_selection -= 1
-
-	def lock_selection_temporarily(self):
-		self.lock_selection()
-		sublime.set_timeout(self.unlock_selection, 100)
 
 	def at(self):
 		return self.view.size()
@@ -295,7 +281,7 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 
 		# the view is locked so we do not allow changing the selection.
 		# This allows the view to be scrolled to the bottom without issues when the selection is changed.
-		if panel.is_locked_selection():
+		if panel.lock_selection:
 			view.sel().clear()
 
 		panel.on_selection_modified()

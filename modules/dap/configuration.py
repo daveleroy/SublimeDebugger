@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict
 from ..import core
 from ..import dap
 
-from .transport import Transport, TransportProtocol
+from .transport import Transport
 
 import sublime
 import re
@@ -61,7 +61,7 @@ class AdapterConfiguration:
 
 	installer = AdapterInstaller()
 
-	async def start(self, log: core.Logger, configuration: ConfigurationExpanded) -> Transport|TransportProtocol: ...
+	async def start(self, log: core.Logger, configuration: ConfigurationExpanded) -> Transport: ...
 
 	@property
 	def installed_version(self) -> str | None:
