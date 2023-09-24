@@ -289,6 +289,6 @@ class Listener (sublime_plugin.EventListener):
 			return apply_operator(debugger.is_open()) if debugger else apply_operator(False)
 
 		if key == 'debugger.active':
-			return apply_operator(debugger.is_open()) if debugger else apply_operator(False)
+			return apply_operator(debugger.is_active) if debugger else apply_operator(False)
 
 		return None
