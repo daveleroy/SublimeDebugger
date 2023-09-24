@@ -40,14 +40,13 @@ class AdapterInstaller(dap.AdapterInstaller):
 		if i := self.package_info():
 			if contributes := i.schema_and_snippets.get(schema_type or self.type):
 				return contributes['snippets']
-			return None
-		return None
+		return []
 
 	def configuration_schema(self, schema_type: str|None = None):
 		if i := self.package_info():
 			if contributes := i.schema_and_snippets.get(schema_type or self.type):
 				return contributes['schema']
-		return None
+		return {}
 
 	def installed_version(self) -> str|None:
 		if i := self.package_info():

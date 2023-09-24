@@ -1,6 +1,5 @@
 {
-	"folders":
-	[
+	"folders": [
 		{
 			"folder_exclude_patterns":
 			[
@@ -9,40 +8,25 @@
 			"path": ".",
 		},
 	],
-	"debugger_tasks": [
-		"examples/cpp/cpp.sublime-project",
-		"examples/go/go.sublime-project",
-		"examples/mock/mock.sublime-project",
-		"examples/php/php.sublime-project",
-		"examples/python/python.sublime-project",
-		"examples/ruby/ruby.sublime-project",
-		"examples/web/web.sublime-project",
-		"examples/elixir/elixir.sublime-project",
-		"examples/lua/lua.sublime-project",
-		"examples/java/java.sublime-project",
-	],
-	"debugger_compounds": [
-		"examples/cpp/cpp.sublime-project",
-		"examples/go/go.sublime-project",
-		"examples/mock/mock.sublime-project",
-		"examples/php/php.sublime-project",
-		"examples/python/python.sublime-project",
-		"examples/ruby/ruby.sublime-project",
-		"examples/web/web.sublime-project",
-		"examples/elixir/elixir.sublime-project",
-		"examples/lua/lua.sublime-project",
-		"examples/java/java.sublime-project",
-	],
+	// this is a private setting that says to include all the example projects as if they are part of this project
+	// this way we can run all the examples from here
+	"debugger_include_examples": true,
 	"debugger_configurations": [
-		"examples/cpp/cpp.sublime-project",
-		"examples/go/go.sublime-project",
-		"examples/mock/mock.sublime-project",
-		"examples/php/php.sublime-project",
-		"examples/python/python.sublime-project",
-		"examples/ruby/ruby.sublime-project",
-		"examples/web/web.sublime-project",
-		"examples/elixir/elixir.sublime-project",
-		"examples/lua/lua.sublime-project",
-		"examples/java/java.sublime-project",
-	],
+		{
+			"name": "Debugger",
+			"type": "sublime",
+			"request": "launch",
+			"args": [
+				"${project_path}/examples/go/go.sublime-project"
+			],
+			"entry": "Debugger.start",
+			"linked_packages": [
+				"Debugger",
+				// "sublime_plugin_debug",
+				"User/Adaptive.sublime-theme",
+				"User/Default (OSX).sublime-keymap",
+				"User/Preferences.sublime-settings",
+			]
+		},
+	]
 }

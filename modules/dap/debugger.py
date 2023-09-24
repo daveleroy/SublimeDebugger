@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING, Any, Protocol
 from ..import core
 
 if TYPE_CHECKING:
-	from .configuration import AdapterConfiguration, ConfigurationExpanded
+	from .adapter import AdapterConfiguration
+	from .configuration import ConfigurationExpanded
+
 	from ..breakpoints import Breakpoints
 	from . import Session
 	from . import OutputEvent

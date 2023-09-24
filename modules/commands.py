@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from .import menus
 from .import core
+from .dap.schema import generate_lsp_json_schema
 
-from .adapters_registry import AdaptersRegistry
 from .settings import SettingsRegistery
 
 from .debugger import Debugger
@@ -15,7 +16,7 @@ class Commands:
 	generate_commands = Command(
 		name='Generate Commands/Settings/Schema',
 		key='generate_commands',
-		window_action=lambda window: (CommandsRegistry.generate_commands_and_menus(), AdaptersRegistry.recalculate_schema(), SettingsRegistery.generate_settings()),
+		window_action=lambda window: (CommandsRegistry.generate_commands_and_menus(), generate_lsp_json_schema(), SettingsRegistery.generate_settings()),
 		flags=Command.menu_commands|Command.development
 	)
 	open = Command (
@@ -50,18 +51,30 @@ class Commands:
 	install_adapters = Command (
 		name='Install Adapters',
 		key='install_adapters',
-		action=lambda debugger: debugger.install_adapters()
+		action=lambda debugger: menus.install_adapters(debugger)
 	)
 	change_configuration = Command (
 		name='Add or Select Configuration',
 		key='change_configuration',
-		action=lambda debugger: debugger.change_configuration()
+		action=lambda debugger: menus.change_configuration(debugger)
 	)
 
 	add_configuration = Command (
 		name='Add Configuration',
 		key='add_configuration',
-		action=lambda debugger: debugger.add_configuration()
+		action=lambda debugger: menus.add_configuration(debugger)
+	)
+	
+	add_configuration = Command (
+		name='Edit Configurations',
+		key='edit_configurations',
+		action=lambda debugger: debugger.project.open_project_configurations_file()
+	)
+
+	example_projects = Command (
+		name='Example Projects',
+		key='example_projects',
+		action=lambda debugger: menus.example_projects()
 	)
 
 	Command('-')

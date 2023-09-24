@@ -2,18 +2,16 @@ from __future__ import annotations
 from typing import Any, Awaitable
 
 import sublime
-import webbrowser
-from functools import partial
 
 from .import core
 from .import ui
 from .import dap
+from .import menus
 
 from .settings import Settings
 from .breakpoints import Breakpoints, SourceBreakpoint
 from .project import Project
 from .watch import Watch
-from .adapters_registry import AdaptersRegistry
 
 from .console import ConsoleOutputPanel
 from .callstack import CallstackOutputPanel
@@ -209,13 +207,13 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 		all_adapters_installed = True
 
 		for type in types:
-			adapter_configuration = AdaptersRegistry.get(type)
+			adapter_configuration = dap.AdapterConfiguration.get(type)
 			if not adapter_configuration.installed_version:
 				all_adapters_installed = False
 
 				self.console.open()
 				if sublime.ok_cancel_dialog(f'Debug adapter with type name "{adapter_configuration.type}" is not installed.\n Would you like to install it?', 'Install'):
-					await self.install_adapter(adapter_configuration, None)
+					await dap.AdapterConfiguration.install_adapter(self.console, adapter_configuration, None)
 
 		return all_adapters_installed
 
@@ -245,7 +243,7 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 				configurations = self.project.active_configurations()
 				if not configurations:
 					self.console.error('Add or select a configuration to begin debugging')
-					await self.change_configuration()
+					await menus.change_configuration(self)
 
 				configurations = self.project.active_configurations()
 				if not configurations:
@@ -284,7 +282,7 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 			@core.run
 			async def launch(configuration: dap.Configuration):
 				try:
-					adapter_configuration = AdaptersRegistry.get(configuration.type)
+					adapter_configuration = dap.AdapterConfiguration.get(configuration.type)
 					configuration_expanded = dap.ConfigurationExpanded(configuration, variables)
 
 					pre_debug_task = configuration_expanded.get('pre_debug_task')
@@ -716,187 +714,3 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 		self.project.configuration_or_compound = configuration
 		self.project.on_updated()
 		self.save_data()
-
-	async def change_configuration_input_items(self) -> list[ui.InputListItem]:
-		values: list[ui.InputListItem] = []
-		for c in self.project.compounds:
-			name = f'{c.name}\tcompound'
-			values.append(ui.InputListItemChecked(partial(self.set_configuration, c), c == self.project.configuration_or_compound, name))
-
-		for c in self.project.configurations:
-			name = f'{c.name}\t{c.type}'
-			values.append(ui.InputListItemChecked(partial(self.set_configuration, c), c == self.project.configuration_or_compound, name))
-
-		if values:
-			values.append(ui.InputListItem(lambda: ..., ""))
-
-		values.append(ui.InputListItem(lambda: self.add_configuration(), 'Add Configuration'))
-		values.append(ui.InputListItem(lambda: self.project.open_project_configurations_file(), 'Edit Configuration File'))
-		values.append(ui.InputListItem(lambda: self.install_adapters(), 'Install Adapters'))
-		return values
-
-	@core.run
-	async def on_settings(self) -> None:
-		def about():
-			webbrowser.open_new_tab('https://github.com/daveleroy/sublime_debugger#getting-started')
-
-		def report_issue():
-			webbrowser.open_new_tab('https://github.com/daveleroy/sublime_debugger/issues')
-
-		values = await self.change_configuration_input_items()
-
-		values.extend([
-			ui.InputListItem(lambda: ..., ''),
-			ui.InputListItem(report_issue, 'Report Issue', kind=(sublime.KIND_ID_AMBIGUOUS, '⧉', '')),
-			ui.InputListItem(about, 'About/Getting Started', kind=(sublime.KIND_ID_AMBIGUOUS, '⧉', '')),
-		])
-
-		await ui.InputList('Add or Select Configuration')[
-			values
-		]
-
-	@core.run
-	async def change_configuration(self):
-		await ui.InputList('Add or Select Configuration')[
-			await self.change_configuration_input_items()
-		]
-
-	@core.run
-	async def add_configuration(self):
-		items = self.add_configuration_snippet_adapters_list_items()
-		return await ui.InputList('Add Debug Configuration')[
-			items
-		]
-
-	@core.run
-	async def install_adapters(self):
-		self.console.open()
-		items = await self.install_adapters_list_items()
-		await ui.InputList('Install/Update Debug Adapters')[
-			items
-		]
-
-	@core.run
-	async def install_adapter(self, adapter: dap.AdapterConfiguration, version: str) -> None:
-		self.console.log('info', f'[Installing {adapter.type}]')
-		try:
-			await adapter.installer.perform_install(version, self.console)
-
-		except Exception as error:
-			self.console.error((str(error)))
-			self.console.error(f'[Unable to install {adapter.type}]')
-			raise error
-
-		AdaptersRegistry.recalculate_schema()
-		self.console.log('success', f'[Successfully installed {adapter.type}]')
-
-	async def install_adapters_list_items(self):
-		self.console.log('group-start', '[Checking For Updates]')
-
-		installed: list[Awaitable[ui.InputListItem]] = []
-		not_installed: list[Awaitable[ui.InputListItem]] = []
-
-		for adapter in AdaptersRegistry.all:
-			if not Settings.development and adapter.development:
-				continue
-
-			async def item(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
-				name = adapter.type
-				installed_version = adapter.installed_version
-
-				versions: list[str] = []
-				if installer := adapter.installer:
-					try:
-						versions = await installer.installable_versions(self.console)
-					except Exception as e:
-						core.error(f'Unable to fetch instaled version: {e}')
-
-				if adapter.development:
-					name += ' (dev)'
-
-				if installed_version:
-					if versions and versions[0] != installed_version:
-						name += f'\tUpdate Available {installed_version} → {versions[0]}'
-						self.console.log('warn', f'{adapter.type}: Update Available {installed_version} → {versions[0]}')
-					else:
-						name += f'\t{installed_version}'
-
-				def input_list():
-					items = [
-						ui.InputListItem(partial(self.install_adapter, adapter, version), version) 
-						for version in versions
-					]
-					if installer := adapter.installer:
-						if installed_version:
-							items.append(ui.InputListItem(lambda: installer.remove(), 'Remove'))
-
-					return ui.InputList('Choose version to install')[
-						items
-					]
-
-				return ui.InputListItemChecked(
-					lambda: self.install_adapter(adapter, versions[0] if versions else None),
-					installed_version != None,
-					name,
-					run_alt=input_list(),
-					details=f'<a href="{adapter.docs}">documentation</a>'
-				)
-
-			if adapter.installed_version:
-				installed.append(item(adapter))
-			else:
-				not_installed.append(item(adapter))
-
-		items = list(await core.gather(*(installed + not_installed)))
-		self.console.log('group-end', '[Finished]')
-		return items
-
-	def add_configuration_snippet_adapters_list_items(self):
-		def insert(snippet: Any):
-			insert = snippet.get('body', '{ error: no body field }')
-			core.run(AdaptersRegistry._insert_snippet(sublime.active_window(), insert))
-
-		installed: list[ui.InputListItem] = []
-		not_installed: list[ui.InputListItem] = []
-
-		for adapter in AdaptersRegistry.all:
-			if not Settings.development and adapter.development:
-				continue
-
-			def item(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
-				name = adapter.type
-				installed_version = adapter.installed_version
-
-				if installed_version:
-					snippet_input_items: list[ui.InputListItem] = []
-
-					for snippet in adapter.configuration_snippets or []:
-						type = snippet.get('body', {}).get('request', '??')
-						snippet_item = ui.InputListItem(partial(insert, snippet), snippet.get('label', 'label'), details=type)
-						snippet_item.preview = lambda snippet=snippet: sublime.Html(f'<code>{ui.html_escape_multi_line(AdaptersRegistry.format_snippet(snippet))}</code>')
-						snippet_input_items.append(snippet_item)
-
-					subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
-
-					return ui.InputListItemChecked(
-						ui.InputList('Choose a snippet to insert')[
-							snippet_input_items
-						],
-						installed_version != None,
-						name + '\t' + subtitle,
-						details= f'<a href="{adapter.docs}">documentation</a>'
-					)
-				else:
-					return ui.InputListItemChecked(
-						lambda: self.install_adapter(adapter, None),
-						installed_version != None,
-						name,
-						details=f'<a href="{adapter.docs}">documentation</a>'
-					)
-
-			if adapter.installed_version:
-				installed.append(item(adapter))
-			else:
-				not_installed.append(item(adapter))
-
-		return installed + not_installed

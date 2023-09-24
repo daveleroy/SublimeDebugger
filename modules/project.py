@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import Any, Iterable
 
+from ..import examples
 from .import core
-from . import dap
+from .import dap
 from .dap import Configuration, ConfigurationCompound, Task
 from .settings import Settings
 
@@ -131,12 +132,36 @@ class Project:
 			self.window.run_command('edit_settings', {
 				'base_file': '${packages}/Debugger/debugger.sublime-settings'
 			})
-			return
+			return None, None
 
 		view = await core.sublime_open_file_async(self.window, project_name)
-		region = view.find(r'debugger_configurations', 0)
+		region = view.find(r'''"\s*debugger_configurations\s*"\s*:\s*\[''', 0)
 		if region:
 			view.show_at_center(region)
+
+		return view, region
+
+	@core.run
+	async def insert_snippet(project: Project, snippet: str):
+		try:
+			view, region = await project.open_project_configurations_file()
+			if not region or not view:
+				raise core.Error('Unable to find debugger_configurations')
+
+			view.sel().clear()
+			view.sel().add(sublime.Region(region.b, region.b))
+			view.run_command('insert', {
+				'characters': '\n'
+			})
+			view.run_command('insert_snippet', {
+				'contents': snippet + ','
+			})
+
+		except core.Error:
+			core.exception()
+			sublime.set_clipboard(snippet)
+			core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
+
 
 	def reload(self, console: dap.Console):
 		core.info("ProjectConfiguration.reload")
@@ -156,45 +181,37 @@ class Project:
 		self.bring_window_to_front_on_pause = Settings.bring_window_to_front_on_pause
 
 	def _extract_from_project_data(self, project_data: Any, key: str) -> list[tuple[Any, dap.SourceLocation]]:
-
-		def extract_from_project_file(path: str, key: str) -> Iterable[tuple[Any, dap.SourceLocation]]:
-			if not os.path.isabs(path):
-				path = os.path.join(self.window.extract_variables()['project_path'], path)
-
-			project_path = os.path.dirname(path)
-			with open(path , 'r') as file:
-				contents = file.read()
-
-			project_json = sublime.decode_value(contents) or {}
-			json: list[Any] = project_json.get(key, [])
-			for configuration in json:
-				configuration['$'] = {
-					'project_path': project_path
-				}
-
-			source = dap.SourceLocation.from_path(path, line_regex=key)
-			return map(lambda i: (i, source), json)
-
-
+		debugger_include_examples = project_data.get('debugger_include_examples') == True
 		configurations: list[tuple[Any, dap.SourceLocation]] = []
 
 		if location := self.location:
 			source = dap.SourceLocation.from_path(location, line_regex=key)
 			for configuration_or_file in project_data.get(key, []):
-				# allow putting in string values here that point to other project files...
-				# this is for testing the /examples directory easily...
-				if isinstance(configuration_or_file, str):
-					configurations.extend(extract_from_project_file(configuration_or_file, key))
-				else:
-					configurations.append((configuration_or_file, source))
+				configurations.append((configuration_or_file, source))
 
 		if global_configurations := getattr(Settings, f'global_{key}'):
-			source = dap.SourceLocation.from_path('debugger.sublime-settings', line_regex=key)
+			source = dap.SourceLocation.from_path('Debugger.sublime-settings', line_regex=key)
 			configurations += map(lambda i: (i, source), global_configurations)
 
+		if debugger_include_examples:
+			for example_project in examples.projects:
+				if not os.path.isabs(example_project):
+					example_project = os.path.join(self.window.extract_variables()['project_path'], example_project)
+
+				with open(example_project , 'r') as file:
+					contents = file.read()
+
+				project_json = sublime.decode_value(contents) or {}
+				json: list[Any] = project_json.get(key, [])
+				for configuration in json:
+					configuration['$'] = {
+						'project_path': os.path.dirname(example_project)
+					}
+
+				source = dap.SourceLocation.from_path(example_project, line_regex=key)
+				configurations.extend(map(lambda i: (i, source), json))
+
 		return configurations
-
-
 
 	def _load_configurations(self, console: dap.Console):
 		data: dict[str, Any]|None = self.window.project_data()

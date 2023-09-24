@@ -6,8 +6,7 @@ from . import util
 
 
 class Elixir(dap.AdapterConfiguration):
-	type = 'elixir'
-	types = ['mix_task']
+	type = ['elixir', 'mix_task']
 
 	docs = 'https://github.com/elixir-lsp/elixir-ls#debugger-support'
 

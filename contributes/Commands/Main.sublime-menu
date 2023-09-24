@@ -49,6 +49,20 @@
                         }
                     },
                     {
+                        "caption": "Edit Configurations",
+                        "command": "debugger",
+                        "args": {
+                            "action": "edit_configurations"
+                        }
+                    },
+                    {
+                        "caption": "Example Projects",
+                        "command": "debugger",
+                        "args": {
+                            "action": "example_projects"
+                        }
+                    },
+                    {
                         "caption": "-"
                     },
                     {

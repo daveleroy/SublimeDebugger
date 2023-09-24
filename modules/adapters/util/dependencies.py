@@ -11,10 +11,10 @@ import sublime
 def version_tuple(v):
 	return tuple(v.split('.'))
 
-def get_node_path(adapter_type: str) -> str:
+def get_node_path(adapter_type: str|list[str]) -> str:
 	return Settings.node or shutil.which('node') or 'node'
 
-async def get_and_warn_require_node(adapter_type: str, log: core.Logger):
+async def get_and_warn_require_node(adapter_type: str|list[str], log: core.Logger):
 	node_path = get_node_path(adapter_type)
 	# max_version = 'v13.0.0'
 

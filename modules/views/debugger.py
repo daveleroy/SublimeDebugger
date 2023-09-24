@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Callable
 
 from ..import ui
 from ..import dap
+from ..import menus
 from . import css
 
 from .breakpoints import BreakpointsView
@@ -76,12 +77,12 @@ class DebuggerActionsTab(ui.span):
 		self.on_project_updated.dispose()
 
 	def render(self) -> ui.span.Children:
-		configuration_name = self.debugger.project.name
+		name = self.debugger.project.name
 
 		items: list[ui.span] = [
-			ui.icon(ui.Images.shared.settings, on_click=self.debugger.on_settings, title='Settings'),
+			ui.icon(ui.Images.shared.settings, on_click=lambda: menus.on_settings(self.debugger), title='Settings'),
 			ui.spacer(1),
-			ui.icon(ui.Images.shared.play, on_click=self.debugger.start, title=f'Start: {configuration_name}' if configuration_name else 'Add/Select Configuration'),
+			ui.icon(ui.Images.shared.play, on_click=self.debugger.start, title=f'Start: {name}' if name else 'Add/Select Configuration'),
 			ui.spacer(1),
 		]
 
@@ -91,7 +92,7 @@ class DebuggerActionsTab(ui.span):
 			items.append(ui.icon(ui.Images.shared.stop_disable, on_click=self.debugger.stop, title='Stop (Disabled)'))
 
 
-		name = self.debugger.project.name
+		
 		if len(name) > 11:
 			name = name[:10] +  '…'
 		else:
@@ -101,7 +102,7 @@ class DebuggerActionsTab(ui.span):
 
 		if not self.debugger.is_active:
 			items.append(
-				ui.span(css=css.button_drop, on_click=self.debugger.on_settings)[
+				ui.span(css=css.button_drop, on_click=lambda: menus.on_settings(self.debugger))[
 					ui.text(name, css=css.secondary),
 					ui.icon(ui.Images.shared.open, align_left=False)
 				]

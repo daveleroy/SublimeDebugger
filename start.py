@@ -31,7 +31,6 @@ from .modules.debugger import Debugger
 from .modules.views.variable import VariableView
 
 from .modules.adapters import * #import all the adapters so Adapters.initialize() will see them
-from .modules.adapters_registry import AdaptersRegistry
 from .modules.settings import SettingsRegistery, Settings
 
 was_opened_at_startup: Set[int] = set()
@@ -58,7 +57,6 @@ def plugin_loaded() -> None:
 
 	core.info('[startup]')
 	SettingsRegistery.initialize(on_updated=updated_settings)
-	AdaptersRegistry.initialize()
 
 	ui.Layout.debug = Settings.development
 	ui.startup()

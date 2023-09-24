@@ -33,15 +33,19 @@ from .dap import (
 	Source,
 	CompletionItem,
 )
+
 from .session import (
 	Session,
 	SessionListener,
 	Thread,
 )
-from .configuration import (
+
+from .adapter import (
 	AdapterInstaller,
 	AdapterConfiguration,
+)
 
+from .configuration import (
 	Configuration,
 	ConfigurationExpanded,
 	ConfigurationCompound,

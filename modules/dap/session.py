@@ -10,21 +10,11 @@ from ..watch import Watch
 from .debugger import Console, Debugger
 from .error import Error
 
-from ..breakpoints import (
-	Breakpoints,
-	SourceBreakpoint,
-	Breakpoint,
-)
+from ..breakpoints import Breakpoints, SourceBreakpoint, Breakpoint
+from .variable import Variable
 
-from .variable import (
-	Variable,
-	SourceLocation,
-)
-from .configuration import (
-	AdapterConfiguration,
-	ConfigurationExpanded,
-	TaskExpanded
-)
+from .adapter import AdapterConfiguration
+from .configuration import ConfigurationExpanded, TaskExpanded
 
 from .transport import Transport, TransportConnectionError, TransportListener
 

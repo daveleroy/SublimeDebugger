@@ -8,8 +8,11 @@ from ..import dap
 from .import util
 
 class JSAdapterConfiguration(dap.AdapterConfiguration):
-	type = 'js'
-	type_internal = 'js'
+	type = []
+
+	# This type is the one sent to the debug adapter
+	# It should be overriden in each subclass (see below)
+	configuration_type = 'js'
 
 	docs = 'https://github.com/microsoft/vscode-js-debug/blob/main/OPTIONS.md'
 
@@ -23,11 +26,11 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 	@property
 	def configuration_snippets(self):
-		return self.installer.configuration_snippets(self.type)
+		return self.installer.configuration_snippets('js')
 
 	@property
 	def configuration_schema(self):
-		return self.installer.configuration_schema(self.type)
+		return self.installer.configuration_schema('js')
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		__jsDebugChildServer = configuration.get('__jsDebugChildServer')
@@ -69,25 +72,22 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 			return {}
 
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
-		configuration['type'] = self.type_internal
+		configuration['type'] = self.configuration_type
 		configuration['__workspaceFolder'] = configuration.variables['folder']
 		return configuration
 
 
 class Chrome (JSAdapterConfiguration):
 	type = 'chrome'
-	type_internal = 'pwa-chrome'
+	configuration_type = 'pwa-chrome'
 	docs = 'https://github.com/Microsoft/vscode-chrome-debug#using-the-debugger'
-	development = False
 
 
 class Node (JSAdapterConfiguration):
 	type = 'node'
-	type_internal = 'pwa-node'
-	development = False
+	configuration_type = 'pwa-node'
 
 
 class Edge (JSAdapterConfiguration):
 	type = 'msedge'
-	type_internal = 'pwa-msedge'
-	development = False
+	configuration_type = 'pwa-msedge'

@@ -8,8 +8,7 @@ import shutil
 
 class Ruby(dap.AdapterConfiguration):
 
-	type = 'rdbg'
-	types = ['ruby', 'ruby-debug']
+	type = ['rdbg', 'ruby', 'ruby-debug']
 
 	docs = 'https://github.com/ruby/vscode-rdbg#how-to-use'
 
@@ -17,7 +16,6 @@ class Ruby(dap.AdapterConfiguration):
 		type='rdbg',
 		repo='ruby/vscode-rdbg',
 	)
-
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		rdbg = shutil.which('rdbg')
@@ -27,7 +25,7 @@ class Ruby(dap.AdapterConfiguration):
 		port = util.get_open_port()
 		command = [
 			rdbg,
-			"--open", "--host", "localhost", "--port", f'{port}', '-c', '--',
+			'--open', '--host', 'localhost', '--port', f'{port}', '-c', '--',
 		]
 
 		configuration['command'] = configuration.get('command') or 'ruby'
@@ -35,7 +33,7 @@ class Ruby(dap.AdapterConfiguration):
 		script = configuration['script']
 
 		if configuration.get('useBundler'):
-			command.extend(["bundle", "exec", configuration['command'], script])
+			command.extend(['bundle', 'exec', configuration['command'], script])
 		else:
 			command.extend([configuration['command'], script])
 

@@ -1,24 +1,24 @@
 from __future__ import annotations
 from typing import Any
 
-from .settings import SettingsRegistery
-from .import dap
-from .import core
+from ..settings import SettingsRegistery
+from .adapter import AdapterConfiguration
+from ..import core
 
 import json
-import os
 
 
-def save_schema(adapters: list[dap.AdapterConfiguration]):
+def generate_lsp_json_schema():
+	adapters = AdapterConfiguration.registered
 
 	allOf: list[Any] = []
 	installed_adapters: list[str] = []
 	all_adapters: list[str] = []
 	for adapter in adapters:
-		all_adapters.append(adapter.type)
-
-		if adapter.installed_version:
-			installed_adapters.append(adapter.type)
+		for type in adapter.types:
+			all_adapters.append(type)
+			if adapter.installed_version:
+				installed_adapters.append(type)
 
 	definitions = {}
 	debugger_snippets = []
@@ -63,6 +63,9 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 		snippets = adapter.configuration_snippets or []
 		installed = adapter.installed_version
 
+		types = adapter.types
+		key = adapter.types[0]
+
 		if not installed:
 			continue
 
@@ -73,10 +76,10 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 			core.info(f'Warning: {adapter.type}: snippets not provided')
 
 		requests: list[str] = []
-		for key, value in schema.items():
-			requests.append(key)
+		for request, value in schema.items():
+			requests.append(request)
 
-		definitions[adapter.type] = {
+		definitions[key] = {
 			'properties': {
 				'request': {
 					'type': 'string',
@@ -91,19 +94,18 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 			'required': ['type', 'name', 'request'],
 		}
 
-		allOf.append({
-			'if': {
-				'properties': {
-					'type': { 'const': adapter.type },
+		for type in types:
+			allOf.append({
+				'if': {
+					'properties': { 'type': { 'const': type }, },
+					'required': ['type'],
 				},
-				'required': ['type'],
-			},
-			'then': {
-				'$ref': F'sublime://settings/debugger#/definitions/{adapter.type}'
-			},
-		})
+				'then': {
+					'$ref': F'sublime://settings/debugger#/definitions/{key}'
+				},
+			})
 
-		for key, value in schema.items():
+		for request, value in schema.items():
 			# make sure all the default properties are defined here because we are setting additionalProperties to false
 			value.setdefault('properties', {})
 			value.setdefault('type', 'object')
@@ -117,34 +119,35 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 				'description': 'name of task to run after debugging ends',
 			}
 			value['properties']['osx'] = {
-				'$ref': F'sublime://settings/debugger#/definitions/{adapter.type}.{key}',
+				'$ref': F'sublime://settings/debugger#/definitions/{key}.{request}',
 				'description': 'MacOS specific configuration attributes',
 			}
 			value['properties']['windows'] = {
-				'$ref': F'sublime://settings/debugger#/definitions/{adapter.type}.{key}',
+				'$ref': F'sublime://settings/debugger#/definitions/{key}.{request}',
 				'description': 'Windows specific configuration attributes',
 			}
 			value['properties']['linux'] = {
-				'$ref': F'sublime://settings/debugger#/definitions/{adapter.type}.{key}',
+				'$ref': F'sublime://settings/debugger#/definitions/{key}.{request}',
 				'description': 'Linux specific configuration attributes',
 			}
 
-			definitions[f'{adapter.type}.{key}'] = value
+			definitions[f'{key}.{request}'] = value
 
-			allOf.append({
-				'if': {
-					'properties': {'type': { 'const': adapter.type }, 'request': { 'const': key }},
-					'required': ['name', 'type', 'request']
-				},
-				'then': {
-					'unevaluatedProperties': False,
-					'allOf': [
-						{ '$ref': F'sublime://settings/debugger#/definitions/type' },
-						{ '$ref': F'sublime://settings/debugger#/definitions/{adapter.type}.{key}'},
-						{ "$ref": F'sublime://settings/debugger#/definitions/{adapter.type}' }
-					]
-				},
-			})
+			for type in types:
+				allOf.append({
+					'if': {
+						'properties': {'type': { 'const': type }, 'request': { 'const': request }},
+						'required': ['name', 'type', 'request']
+					},
+					'then': {
+						'unevaluatedProperties': False,
+						'allOf': [
+							{ '$ref': F'sublime://settings/debugger#/definitions/type' },
+							{ '$ref': F'sublime://settings/debugger#/definitions/{key}' },
+							{ '$ref': F'sublime://settings/debugger#/definitions/{key}.{request}'},
+						]
+					},
+				})
 
 		for snippet in snippets:
 			debugger_snippets.append(snippet)
@@ -184,15 +187,13 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 		]
 	}
 
-
-
-
 	definitions_schma = {
 		'schema': {
 			'$id': 'sublime://settings/debugger',
 			'definitions': definitions,
 		}
 	}
+
 	schema_debug_configurations = {
 		'contributions': {
 			'settings': [
@@ -226,7 +227,6 @@ def save_schema(adapters: list[dap.AdapterConfiguration]):
 			]
 		}
 	}
-
 
 	with open(core.package_path('sublime-package.json'), 'w') as file:
 		file.write(json.dumps(schema_debug_configurations, indent='  '))
