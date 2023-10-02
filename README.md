@@ -78,7 +78,7 @@ This project comes with some pre-configured debuggers (They can be installed usi
 ## Tasks
 Tasks are based on sublime build_systems with more integration so they can be used more seamlessly while debugging. When errors occur while running a task they are reported in the debugger ui (problem detection is the same as sublime, you must add `file_regex` to your task)
 
-see https://www.sublimetext.com/docs/3/build_systems.html
+see https://www.sublimetext.com/docs/build_systems.html
 
 Tasks are basically the same as sublime builds but there are a few additional parameters.
 `name` which will show up in the debugger UI and be the name of the panel
@@ -101,14 +101,14 @@ Settings can either be set at the project level or globally.
 Project settings can be changed by appending `debug.` to the setting name.
 
 Within a `.sublime_settings` file
-- `open_at_startup` `true` Open the debugger automatically when a project that is set up for debugging has been opened
-- `ui_scale` `12` scales the entire debugger UI
+- `"open_at_startup": true` Open the debugger automatically when a project that is set up for debugging has been opened
+- `"ui_scale": 12` scales the entire debugger UI
 
 Within a `.sublime_project` file settings object
 - `debug.open_at_startup`
 - `debug.ui_scale`
 
-for a full list of settings see [debugger.sublime-settings](debugger.sublime-settings)
+for a full list of settings see [debugger.sublime-settings](Debugger.sublime-settings)
 
 ## Troubleshooting
 - Look in the debug console for errors (usually red)
