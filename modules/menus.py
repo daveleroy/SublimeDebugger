@@ -12,7 +12,6 @@ import sublime
 import os
 
 import json
-import subprocess
 import webbrowser
 
 from .import ui
@@ -31,13 +30,13 @@ async def example_projects():
 
 		types = set()
 
-		with open(file) as f: 
+		with open(file) as f:
 			data = sublime.decode_value(f.read())
 			for configuration in data['debugger_configurations']:
 				types.add(configuration['type'])
 
 		types = ', '.join(types)
-		return ui.InputListItem(lambda: subprocess.Popen(['subl', '--project', file]), f'{name} \t{types}')
+		return ui.InputListItem(lambda: sublime.active_window().run_command('open_project_or_workspace', { 'file': file }), f'{name} \t{types}')
 
 	await ui.InputList('Example Projects') [
 		list(map(item, examples.projects))
@@ -79,8 +78,8 @@ def snippets_list_items(debugger: Debugger):
 
 			request = snippet.get('body', {}).get('request', '??')
 			snippet_item = ui.InputListItem (
-				lambda: debugger.project.insert_snippet(content), 
-				snippet.get('label', 'label'), 
+				lambda: debugger.project.insert_snippet(content),
+				snippet.get('label', 'label'),
 				details=request,
 				preview=lambda: sublime.Html(f'<code>{ui.html_escape_multi_line(content)}</code>')
 			)
@@ -110,7 +109,7 @@ def snippets_list_items(debugger: Debugger):
 				name,
 				details=f'<a href="{adapter.docs}">documentation</a>'
 			)
-				
+
 
 		if adapter.installed_version:
 			installed.append(adapter_list_item_installed(adapter))
@@ -207,7 +206,6 @@ async def install_adapters_list_items(debugger: Debugger):
 				]
 
 			def error_item(error: str):
-				core.error(error)
 				return ui.InputListItemChecked(
 					lambda: ...,
 					installed_version != None,
