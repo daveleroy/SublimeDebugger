@@ -8,8 +8,6 @@ import sublime_plugin
 
 from dataclasses import dataclass
 
-core.on_view_drag_select_or_context_menu.add(lambda _: CommandPaletteInputCommand.on_view_drag_select_or_context_menu())
-
 class CommandPaletteInputCommand:
 	running_command: CommandPaletteInputCommand|None = None
 
@@ -53,13 +51,13 @@ class CommandPaletteInputCommand:
 		})
 
 	@staticmethod
-	def on_view_drag_select_or_context_menu():
+	def cancel_running_command():
 		if CommandPaletteInputCommand.running_command:
 			CommandPaletteInputCommand.running_command.hide_overlay()
 
 @dataclass
 class InputListItem:
-	run: Callable[[], Any] | InputList | InputText 
+	run: Callable[[], Any] | InputList | InputText
 	text: str
 	name: str | None = None # name of this input when nested
 	annotation: str = ''
@@ -121,7 +119,7 @@ class InputList(sublime_plugin.ListInputHandler):
 			items.append(sublime.ListInputItem(value.text, index, details=value.details, kind=value.kind, annotation=value.annotation)) #type: ignore
 
 		if (not items):
-			return ['Nothing Here\terror?']	
+			return ['Nothing Here\terror?']
 
 		return (items, self.index)
 
@@ -131,7 +129,7 @@ class InputList(sublime_plugin.ListInputHandler):
 
 		if is_alt:
 			run = self.values[value].run_alt
-			
+
 		else:
 			run = self.values[value].run
 

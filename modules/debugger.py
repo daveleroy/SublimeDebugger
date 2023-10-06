@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Awaitable
+from typing import Any, Iterable
 
 import sublime
 
@@ -27,8 +27,15 @@ from .source_navigation import SourceNavigationProvider
 
 class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
-	instances: dict[int, Debugger|None] = {}
-	creating: dict[int, bool] = {}
+	debuggers_for_window: dict[int, Debugger|None] = {}
+
+	@staticmethod
+	def ignore(view: sublime.View) -> bool:
+		return not bool(Debugger.debuggers_for_window)
+
+	@staticmethod
+	def debuggers() -> Iterable[Debugger]:
+		return filter(lambda i: i != None, Debugger.debuggers_for_window.values()) # type: ignore
 
 	@staticmethod
 	def create(window: sublime.Window, skip_project_check = False) -> Debugger:
@@ -38,35 +45,35 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
 	@staticmethod
 	def get(window_or_view: sublime.Window|sublime.View, create = False, skip_project_check = False) -> Debugger|None:
-		if isinstance(window_or_view, sublime.View):
-			window = window_or_view.window()
-		else:
-			window = window_or_view
-
+		window = window_or_view.window() if isinstance(window_or_view, sublime.View) else window_or_view
 		if window is None:
 			return None
 
 		id = window.id()
-		instance = Debugger.instances.get(id)
 
-		if not instance and create:
-			if Debugger.creating.get(id):
+		if id in Debugger.debuggers_for_window:
+			instance = Debugger.debuggers_for_window[id]
+			if not instance and create:
 				raise core.Error('We shouldn\'t be creating another debugger instance for this window...')
 
-			Debugger.creating[id] = True
-			try:
-				instance = Debugger(window, skip_project_check=skip_project_check)
-				Debugger.instances[id] = instance
+			if instance and create:
+				instance.open()
 
-			except core.Error:
-				core.exception()
+			return instance
 
-			Debugger.creating[id] = False
+		if not create:
+			return None
 
-		if instance and create:
-			instance.open()
+		Debugger.debuggers_for_window[id] = None
+		try:
+			instance = Debugger(window, skip_project_check=skip_project_check)
+			Debugger.debuggers_for_window[id] = instance
+			return instance
 
-		return instance
+		except Exception as e:
+			core.exception()
+			del Debugger.debuggers_for_window[id]
+
 
 	def __init__(self, window: sublime.Window, skip_project_check = False) -> None:
 		self.window = window
@@ -99,8 +106,6 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 		self.project = Project(window, skip_project_check)
 		self.breakpoints = Breakpoints()
 		self.watch = Watch()
-
-
 
 		self.source_provider = SourceNavigationProvider(self.project, self)
 

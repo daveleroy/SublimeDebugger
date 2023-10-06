@@ -144,7 +144,7 @@ class SourceBreakpointView:
 					<a href="">
 						<img src="{self.breakpoint.image.data()}" />
 					</a>
-					
+
 				</body>
 			'''
 			column_point = self.view.text_point(line - 1, column - 1)
@@ -162,12 +162,6 @@ class SourceBreakpoints:
 		self.breakpoints: list[SourceBreakpoint] = []
 		self.on_updated = core.Event[SourceBreakpoint]()
 		self.on_send = core.Event[SourceBreakpoint]()
-
-		self.disposeables = [
-			core.on_view_load.add(self.on_view_load),
-			core.on_view_activated.add(self.on_view_activated),
-			core.on_view_modified.add(self.view_modified)
-		]
 
 		self.sync_dirty_scheduled = False
 		self.dirty_views: dict[int, sublime.View] = {}
@@ -199,8 +193,6 @@ class SourceBreakpoints:
 			self.on_send(breakpoint)
 
 	def dispose(self):
-		for d in self.disposeables:
-			d.dispose()
 		for bp in self.breakpoints:
 			bp.clear_views()
 
@@ -257,7 +249,7 @@ class SourceBreakpoints:
 				'Remove'
 			),
 		]
-		
+
 
 
 	def toggle_file_line(self, file: str, line: int):
@@ -353,7 +345,7 @@ class SourceBreakpoints:
 		if view:
 			self.sync_from_breakpoints(view)
 
-	def view_modified(self, view: sublime.View):
+	def invalidate(self, view: sublime.View):
 		if view.file_name() is None:
 			return
 
@@ -362,12 +354,6 @@ class SourceBreakpoints:
 			self.sync_dirty_scheduled = True
 
 		self.dirty_views[view.id()] = view
-
-	def on_view_load(self, view: sublime.View):
-		self.sync_from_breakpoints(view)
-
-	def on_view_activated(self, view: sublime.View):
-		self.sync_from_breakpoints(view)
 
 	def sync_dirty(self):
 		self.sync_dirty_scheduled = False

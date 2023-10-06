@@ -83,9 +83,9 @@ class Python(dap.AdapterConfiguration):
 	# 	...
 
 	@property
-	def configuration_snippets(self) -> list[dict[str, Any]] | None:
+	def configuration_snippets(self) -> list[dict[str, Any]]:
 		return [
-			{	
+			{
 				'label': 'Python: Current File',
 				'body': {
 					'name': 'Python: Current File',
