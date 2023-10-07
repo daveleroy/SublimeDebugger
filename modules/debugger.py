@@ -162,7 +162,7 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
 		super().dispose()
 
-		del Debugger.instances[self.window.id()]
+		del Debugger.debuggers_for_window[self.window.id()]
 
 	def _refresh_none_debugger_output_panel(self, panel_name: str):
 		name = panel_name.replace('output.', '')

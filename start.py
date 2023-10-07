@@ -77,7 +77,7 @@ def plugin_unloaded() -> None:
 	except Exception as e:
 		core.info('Unable to uninstall Debugger33', e)
 
-	for debugger in Debugger.debuggers():
+	for debugger in list(Debugger.debuggers()):
 		core.info('Dispose Debugger')
 		debugger.dispose()
 
