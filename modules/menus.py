@@ -97,7 +97,7 @@ def snippets_list_items(debugger: Debugger):
 				],
 				True,
 				name + '\t' + subtitle,
-				details= f'<a href="{adapter.docs}">documentation</a>'
+				details= f'<tt>See adapter <a href="{adapter.docs}">documentation</a></tt>'
 			)
 
 
@@ -107,7 +107,7 @@ def snippets_list_items(debugger: Debugger):
 				lambda: dap.AdapterConfiguration.install_adapter(debugger.console, adapter, None),
 				False,
 				name,
-				details=f'<a href="{adapter.docs}">documentation</a>'
+				details=f'<tt>See adapter <a href="{adapter.docs}">documentation</a></tt>'
 			)
 
 
@@ -171,7 +171,7 @@ async def change_configuration(debugger: Debugger):
 async def install_adapters(debugger: Debugger):
 	debugger.console.open()
 	items = await install_adapters_list_items(debugger)
-	await ui.InputList('Install/Update Debug Adapters')[
+	await ui.InputList('Install Adapters - Command/Alt key to list versions')[
 		items
 	]
 
@@ -210,7 +210,7 @@ async def install_adapters_list_items(debugger: Debugger):
 					lambda: ...,
 					installed_version != None,
 					name,
-					details=error
+					details=f'<tt>{ui.html_escape(error)}</tt>'
 				)
 
 			try:
@@ -235,7 +235,7 @@ async def install_adapters_list_items(debugger: Debugger):
 				installed_version != None,
 				name,
 				run_alt=input_list(),
-				details=f'<a href="{adapter.docs}">documentation</a>'
+				details=f'<tt>See adapter <a href="{adapter.docs}">documentation</a></tt>'
 			)
 
 		if adapter.installed_version:

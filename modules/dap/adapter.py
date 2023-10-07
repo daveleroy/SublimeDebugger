@@ -44,13 +44,15 @@ class AdapterInstaller:
 	def installed_version(self) -> str|None:
 		return '1.0.0'
 
+	# note versions that include '(' are not installed unless explicity selected from the installable versions menu
+	# this supports tags like (prerelease) / (draft)
 	async def installable_versions(self, log: core.Logger) -> list[str]:
 		return []
 
-	def configuration_snippets(self, schema_type: str|None = None) -> list[dict[str, Any]]: 
+	def configuration_snippets(self, schema_type: str|None = None) -> list[dict[str, Any]]:
 		return []
 
-	def configuration_schema(self, schema_type: str|None = None) -> dict[str, Any]: 
+	def configuration_schema(self, schema_type: str|None = None) -> dict[str, Any]:
 		return {}
 
 
@@ -69,7 +71,7 @@ class AdapterConfigurationRegistery(type):
 	def register(adapter: AdapterConfiguration):
 		if not adapter.type:
 			return
-		
+
 		core.error('register', adapter.type)
 		AdapterConfiguration.registered.append(adapter)
 		for type in adapter.types:
@@ -85,22 +87,31 @@ class AdapterConfigurationRegistery(type):
 	@staticmethod
 	@core.run
 	async def install_adapter(console: dap.Console, adapter: dap.AdapterConfiguration, version: str|None) -> None:
-		console.log('info', f'[Installing {adapter.type}]')
+		console.log('group-start', f'[Installing Debug Adapter: {adapter.type}]')
 		try:
-			version = version or (await adapter.installer.installable_versions(console))[0]
+			if not version:
+				versions = await adapter.installer.installable_versions(console)
+				if versions:
+					versions_without_tags = filter(lambda v: '(' in v, versions)
+					version = next(versions_without_tags) or versions[0]
+
+			if not version:
+				raise core.Error('Unable to install adapter no versions to install')
+
 			await adapter.installer.perform_install(version, console)
 
 		except Exception as error:
 			console.error((str(error)))
-			console.error(f'[Unable to install {adapter.type}]')
+			console.error(f'[Failed]')
 			raise error
 
 
 		from .schema import generate_lsp_json_schema
 		generate_lsp_json_schema()
 
-		console.log('success', f'[Successfully installed {adapter.type}]')
+		console.log('group-end', f'[Finished]')
 
+		console.log('success', f'Checkout the documentation for this adapter {adapter.docs}')
 
 
 

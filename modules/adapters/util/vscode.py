@@ -14,28 +14,33 @@ import sublime
 
 _info_for_type: dict[str, AdapterInfo] = {}
 
-
+@dataclass
+class AdapterInfo:
+	version: str
+	schema_and_snippets: dict[str, Any]
 
 class AdapterInstaller(dap.AdapterInstaller):
 	type: str
 
 	_package_info: AdapterInfo|None = None
 
-	# def ensure_install_(self, url: str, name: str):
+	def remove(self):
+		super().remove()
+		self._package_info = None
 
 	async def install_from_asset(self, url: str, log: core.Logger, post_download_action: Callable[[], Awaitable[Any]]|None = None):
 		try:
 			del _info_for_type[self.type]
 		except KeyError:
 			...
-		
+
 		path = self.temporary_install_path()
 		await request.download_and_extract_zip(url, path, log)
 
 		if post_download_action:
 			await post_download_action()
 
-	
+
 	def configuration_snippets(self, schema_type: str|None = None):
 		if i := self.package_info():
 			if contributes := i.schema_and_snippets.get(schema_type or self.type):
@@ -56,7 +61,7 @@ class AdapterInstaller(dap.AdapterInstaller):
 	def package_info(self) -> AdapterInfo|None:
 		if self._package_info:
 			return self._package_info
-		
+
 
 		# check multiple places for the package.json
 		extension = f'{self.install_path()}'
@@ -67,7 +72,7 @@ class AdapterInstaller(dap.AdapterInstaller):
 			extension = f'{self.install_path()}'
 
 		if not os.path.exists(extension):
-			return 
+			return
 
 		version = '??'
 		contributes: dict[str, Any] = {}
@@ -84,7 +89,7 @@ class AdapterInstaller(dap.AdapterInstaller):
 
 		try:
 			with open(f'{extension}/package.json', encoding='utf8') as file:
-				package_json = replace_localized_placeholders(json.load(file), strings)
+				package_json = self._replace_localized_placeholders(json.load(file), strings)
 				version = package_json.get('version')
 				for debugger in package_json.get('contributes', {}).get('debuggers', []):
 					debugger_type = debugger.get('type') or self.type
@@ -105,48 +110,15 @@ class AdapterInstaller(dap.AdapterInstaller):
 		return self._package_info
 
 
-@dataclass
-class AdapterInfo:
-	version: str
-	schema_and_snippets: dict[str, Any]
+	def _replace_localized_placeholders(self, json: Any, strings: dict[str, str]) -> Any:
+		# print(type(json))
+		if type(json) is str:
+			return strings.get(json, json)
 
-def replace_localized_placeholders(json: Any, strings: dict[str, str]) -> Any:
-	# print(type(json))
-	if type(json) is str:
-		return strings.get(json, json)
+		if type(json) is list:
+			return [self._replace_localized_placeholders(value, strings) for value in json]
 
-	if type(json) is list:
-		return [replace_localized_placeholders(value, strings) for value in json]
+		if type(json) is dict:
+			return { key: self._replace_localized_placeholders(value, strings) for key, value in json.items() }
 
-	if type(json) is dict:
-		return { key: replace_localized_placeholders(value, strings) for key, value in json.items() }
-
-	return json
-
-
-def attach_copy_logger(stream: IO[bytes], log_info, total, length=128*1024):
-	copied = 0
-
-	read = stream.read
-	
-
-	# def read_replacement(length: int = -1):
-	# 	nonlocal copied
-	# 	data = read(length)
-	# 	copied += len(data)
-
-	# 	if length > length:
-	# 		copied = 0
-
-	# 		# handle the case where the total size isn't known
-	# 		if total:
-	# 			log_info('{:.2f} mb {}%'.format(copied/1024/1024, int(copied/total*100)))
-	# 		else:
-	# 			log_info('{:.2f} mb'.format(copied/1024/1024))
-
-	# 	return data
-	
-	# stream.read = read_replacement
-
-
-
+		return json

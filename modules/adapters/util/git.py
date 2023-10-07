@@ -12,16 +12,15 @@ class GitInstaller(vscode.AdapterInstaller):
 		self.repo = repo
 		self.is_valid_asset = is_valid_asset
 
-	async def install(self, version: str|None, log: core.Logger):
+	async def install(self, version: str, log: core.Logger):
 		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases')
 		for release in releases:
-			is_release = not release['draft'] and not release['prerelease']
-			release_version = removeprefix(release['tag_name'], 'v')
+			if version != version_from_release(release):
+				continue
 
 			for asset in release.get('assets', []):
 				if self.is_valid_asset(asset['name']):
-					if not version and is_release or version == release_version:
-						return await self.install_from_asset(asset['browser_download_url'], log) 
+					return await self.install_from_asset(asset['browser_download_url'], log)
 
 		raise core.Error(f'Unable to find a suitable release in {self.repo}')
 
@@ -32,14 +31,13 @@ class GitInstaller(vscode.AdapterInstaller):
 			versions: list[str] = []
 
 			for release in releases:
-				is_release = not release['draft'] and not release['prerelease']
-				if not is_release:
+				version = version_from_release(release)
+				if not version:
 					continue
 
 				for asset in release.get('assets', []):
 					if self.is_valid_asset(asset['name']):
-						release_version = removeprefix(release['tag_name'], 'v')
-						versions.append(release_version)
+						versions.append(version)
 						break
 
 			return versions
@@ -57,11 +55,8 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 	async def install(self, version: str|None, log: core.Logger):
 		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases')
 		for release in releases:
-			is_release = not release['draft'] and not release['prerelease']
-			release_version = removeprefix(release['tag_name'], 'v')
-
-			if not version and is_release or version == release_version:
-				return await self.install_from_asset(release['zipball_url'], log) 
+			if version == version_from_release(release):
+				return await self.install_from_asset(release['zipball_url'], log)
 
 		raise core.Error(f'Unable to find a suitable release in {self.repo}')
 
@@ -72,12 +67,8 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 			versions: list[str] = []
 
 			for release in releases:
-				is_release = not release['draft'] and not release['prerelease']
-				if not is_release:
-					continue
-
-				version = removeprefix(release['tag_name'], 'v')
-				versions.append(version)
+				if version := version_from_release(release):
+					versions.append(version)
 
 			return versions
 
@@ -87,3 +78,14 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 
 def removeprefix(text: str, prefix: str):
 	return text[text.startswith(prefix) and len(prefix):]
+
+def version_from_release(release: core.JSON):
+	version = removeprefix(release.tag_name, 'v')
+
+	if release.draft:
+		return f'{version} (draft)'
+
+	if release.prerelease:
+		return f'{version} (prerelease)'
+
+	return version
