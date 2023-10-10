@@ -12,3 +12,7 @@ windows = _platform == 'windows'
 linux = _platform == 'linux'
 
 is_64 = architecture.endswith('64')
+
+# The circles aren't the same size on windows so use the triangles instead
+unicode_unchecked_sigil = '◇' if windows else '◯'
+unicode_checked_sigil = '◆' if windows else '●'

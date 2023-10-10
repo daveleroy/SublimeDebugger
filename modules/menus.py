@@ -177,10 +177,11 @@ async def install_adapters(debugger: Debugger):
 
 
 async def install_adapters_list_items(debugger: Debugger):
-	debugger.console.log('group-start', '[Checking For Updates]')
+	debugger.console.log('group-start', f'{core.platform.unicode_unchecked_sigil} Fetching Adapters')
 
 	installed: list[Awaitable[ui.InputListItem]] = []
 	not_installed: list[Awaitable[ui.InputListItem]] = []
+	found_update = False
 
 	for adapter in dap.AdapterConfiguration.registered:
 		if not Settings.development and adapter.development:
@@ -190,7 +191,11 @@ async def install_adapters_list_items(debugger: Debugger):
 			continue
 
 		async def item(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
-			installed_version = adapter.installed_version
+			nonlocal found_update
+
+			installed_version = adapter.installed_version or ''
+			is_installed = bool(installed_version)
+
 			name = adapter.types[0] if not adapter.development else f'{adapter.types[0]} (dev)'
 
 			def input_list():
@@ -208,31 +213,38 @@ async def install_adapters_list_items(debugger: Debugger):
 			def error_item(error: str):
 				return ui.InputListItemChecked(
 					lambda: ...,
-					installed_version != None,
-					name,
+					is_installed,
+					f'{name}\t{installed_version}',
 					details=f'<tt>{ui.html_escape(error)}</tt>'
 				)
 
 			try:
-				versions: list[str] = await adapter.installer.installable_versions(debugger.console)
+				versions = await adapter.installer.installable_versions(debugger.console)
 			except Exception as e:
-				return error_item(f'Unable to fetch installable version: {e}')
+				return error_item(f'Unable to fetch installable versions')
 
-			none_beta_releases = list(filter(lambda r: not ('pre' in r or 'beta' in r or 'alpha' in r), versions))
-
-			if not versions or not none_beta_releases:
+			if versions:
+					versions_without_tags = filter(lambda v: not '(' in v, versions)
+					version = next(versions_without_tags) or versions[0]
+			else:
 				return error_item(f'No installable versions found')
 
+
+
 			if installed_version:
-				if versions and none_beta_releases[0] != installed_version:
-					name += f'\tUpdate Available {installed_version} → {none_beta_releases[0]}'
-					debugger.console.log('warn', f'{adapter.type}: Update Available {installed_version} → {none_beta_releases[0]}')
+				if version != installed_version:
+					name += f'\tUpdate Available {installed_version} → {version}'
+					debugger.console.log('warn', f'{adapter.type}: Update Available {installed_version} → {version}')
+					found_update = True
+
 				else:
 					name += f'\t{installed_version}'
+			else:
+				name += f'\t{version}'
 
 			return ui.InputListItemChecked(
-				lambda: dap.AdapterConfiguration.install_adapter(debugger.console, adapter, none_beta_releases[0]),
-				installed_version != None,
+				lambda: dap.AdapterConfiguration.install_adapter(debugger.console, adapter, version),
+				is_installed,
 				name,
 				run_alt=input_list(),
 				details=f'<tt>See adapter <a href="{adapter.docs}">documentation</a></tt>'
@@ -244,5 +256,9 @@ async def install_adapters_list_items(debugger: Debugger):
 			not_installed.append(item(adapter))
 
 	items = list(await core.gather(*(installed + not_installed)))
-	debugger.console.log('group-end', '[Finished]')
+
+	if not found_update:
+		debugger.console.log('success', 'All installed Adapters up to date')
+
+	debugger.console.log('group-end', f'{core.platform.unicode_checked_sigil} Finished')
 	return items

@@ -6,6 +6,8 @@ from ...import core
 from .import vscode
 from .import request
 
+import string
+
 class GitInstaller(vscode.AdapterInstaller):
 	def __init__(self, type: str, repo: str, is_valid_asset: Callable[[str], bool] = lambda asset: asset.endswith('.vsix')):
 		self.type = type
@@ -25,7 +27,6 @@ class GitInstaller(vscode.AdapterInstaller):
 		raise core.Error(f'Unable to find a suitable release in {self.repo}')
 
 	async def installable_versions(self, log: core.Logger) -> list[str]:
-		log.info(f'{self.type}: github {self.repo}')
 		try:
 			releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases')
 			versions: list[str] = []
@@ -61,7 +62,6 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 		raise core.Error(f'Unable to find a suitable release in {self.repo}')
 
 	async def installable_versions(self, log: core.Logger) -> list[str]:
-		log.info(f'{self.type}: github {self.repo}')
 		try:
 			releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases')
 			versions: list[str] = []
@@ -76,11 +76,11 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 			log.error(f'{self.type}: {e}')
 			raise e
 
-def removeprefix(text: str, prefix: str):
-	return text[text.startswith(prefix) and len(prefix):]
-
 def version_from_release(release: core.JSON):
-	version = removeprefix(release.tag_name, 'v')
+	# remove anything that isn't a number from the start of a tag
+	# lots of tags include a prefix like v
+	version: str = release.tag_name
+	version = version.lstrip(string.punctuation + string.ascii_letters)
 
 	if release.draft:
 		return f'{version} (draft)'

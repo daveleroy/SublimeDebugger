@@ -8,16 +8,26 @@ from gzip import GzipFile
 
 import sublime
 
-from ...core.json import JSON, json_decode_b
+from ...core.json import JSON, json_decode
 
 from ... import core
 
 @dataclass
-class Response:
+class URLRequest:
 	headers: dict[str, str]
 	data: BinaryIO
 
-	def __init__(self, response: Any) -> None:
+	def __init__(self, url: str, timeout: int|None = 30, headers: dict[str, str] = {}) -> None:
+		actual_headers = {
+			'user-agent': 'Sublime-Debugger',
+			'accept-encoding': 'gzip, deflate'
+		}
+
+		for header in headers:
+			actual_headers[header.lower()] = headers[header]
+
+		response = urlopen(Request(url, headers=actual_headers), timeout=timeout)
+
 		content_encoding = response.headers.get('Content-Encoding')
 		if content_encoding == 'gzip':
 			data_file: BinaryIO = GzipFile(fileobj=response) #type: ignore
@@ -32,43 +42,43 @@ class Response:
 		self.data= data_file
 
 _cached_etag: dict[str, str] = {}
-_cached_response: dict[str, JSON] = {}
+_cached_response: dict[str, bytes] = {}
+
+
+@core.run_in_executor
+def request(url: str, timeout: int|None = 30, headers: dict[str, str] = {}):
+	try:
+		return URLRequest(url, timeout, headers)
+	except Exception as error:
+		raise handle_request_error(url, error)
+
+
+@core.run_in_executor
+def json(url: str, headers: dict[str, str] = {}) -> JSON:
+	return json_decode(request_bytes(url, headers=headers))
+
+@core.run_in_executor
+def text(url: str, headers: dict[str, str] = {}) -> str:
+	return request_bytes(url, headers=headers).decode('utf-8')
 
 # we have 60 requests per hour for an anonymous user to the github api
 # conditional requests don't count against the 60 requests per hour limit so implement some very basic caching
 # see https://docs.github.com/en/rest/overview/resources-in-the-rest-api
-@core.run_in_executor
-def request(url: str, timeout: int|None = 30):
-	headers = {
-		'User-Agent': 'Sublime-Debugger',
-		'Accept-Encoding': 'gzip, deflate'
-	}
 
+def request_bytes(url: str, timeout: int|None = 30, headers: dict[str, str] = {}) -> bytes:
 	try:
-		return Response(urlopen(Request(url, headers=headers), timeout=timeout))
-	except Exception as error:
-		raise core.Error(f'{error}: Unable to download file ${url}')
-
-
-@core.run_in_executor
-def json(url: str, timeout: int|None = 30) -> JSON:
-	try:
-		headers = {
-			'User-Agent': 'Sublime-Debugger',
-			'Accept-Encoding': 'gzip, deflate'
-		}
 		if etag := _cached_etag.get(url):
 			headers['If-None-Match'] = etag
 
 		try:
-			response = Response(urlopen(Request(url, headers=headers), timeout=timeout))
+			response = URLRequest(url, headers=headers, timeout=timeout)
 
 		except HTTPError as error:
 			if error.code == 304 and _cached_response[url]:
 				return _cached_response[url]
 			raise error
 
-		result = json_decode_b(response.data)
+		result = response.data.read()
 		if etag := response.headers.get('Etag'):
 			_cached_etag[url] = etag
 			_cached_response[url] = result
@@ -76,8 +86,13 @@ def json(url: str, timeout: int|None = 30) -> JSON:
 		return result
 
 	except Exception as error:
-		raise core.Error(f'{error}: Unable to download file ${url}')
+		raise handle_request_error(url, error)
 
+def handle_request_error(url: str, error: Exception):
+	if isinstance(error, HTTPError):
+		return core.Error(f'Unable to perform request ({error.code}) ({url})')
+	else:
+		return core.Error(f'Unable to perform request ({error}) ({url})')
 
 async def download_and_extract_zip(url: str, path: str, log: core.Logger):
 	def log_info(value: str):

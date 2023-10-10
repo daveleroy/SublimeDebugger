@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, ClassVar, Dict
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from ..import core
 from ..import dap
@@ -87,32 +87,24 @@ class AdapterConfigurationRegistery(type):
 	@staticmethod
 	@core.run
 	async def install_adapter(console: dap.Console, adapter: dap.AdapterConfiguration, version: str|None) -> None:
-		console.log('group-start', f'[Installing Debug Adapter: {adapter.type}]')
-		try:
-			if not version:
-				versions = await adapter.installer.installable_versions(console)
-				if versions:
-					versions_without_tags = filter(lambda v: '(' in v, versions)
-					version = next(versions_without_tags) or versions[0]
+		console.log('group-start', f'{core.platform.unicode_unchecked_sigil} Installing {adapter.type}')
 
-			if not version:
-				raise core.Error('Unable to install adapter no versions to install')
+		try:
+			if version is None:
+				raise core.Error('No versions to install')
 
 			await adapter.installer.perform_install(version, console)
 
 		except Exception as error:
-			console.error((str(error)))
-			console.error(f'[Failed]')
+			console.log('group-end', None)
+			console.error(f'{core.platform.unicode_checked_sigil} Failed: {error}')
 			raise error
-
 
 		from .schema import generate_lsp_json_schema
 		generate_lsp_json_schema()
 
-		console.log('group-end', f'[Finished]')
-
-		console.log('success', f'Checkout the documentation for this adapter {adapter.docs}')
-
+		console.log('success', f'Successfully installed {adapter.type}. Checkout the documentation for this adapter {adapter.docs}')
+		console.log('group-end', f'{core.platform.unicode_checked_sigil} Finished')
 
 
 class AdapterConfiguration(metaclass=AdapterConfigurationRegistery):

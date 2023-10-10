@@ -221,11 +221,11 @@ class InputText(sublime_plugin.TextInputHandler):
 
 def InputListItemCheckedText(run: Callable[[str], Any] | InputList | InputText, name: str, description: str, value: str|None):
 	if value:
-		kind = (sublime.KIND_ID_AMBIGUOUS, '●', '')
+		kind = (sublime.KIND_ID_AMBIGUOUS, core.platform.unicode_checked_sigil, '')
 		input_name = name
 		annotation = value
 	else:
-		kind = (sublime.KIND_ID_AMBIGUOUS, '○', '')
+		kind = (sublime.KIND_ID_AMBIGUOUS, core.platform.unicode_unchecked_sigil, '')
 		input_name = name
 		annotation = description
 
@@ -249,10 +249,10 @@ def InputListItemOnOff(run: Callable[[], Any] | InputList | InputText, true: str
 
 def InputListItemChecked(run: Callable[[], Any] | InputList | InputText, value: bool, true: str, false: str|None = None, details: list[str]|str = '', run_alt: Callable[[], Any] | InputList | InputText|None = None):
 	if value:
-		kind = (sublime.KIND_ID_AMBIGUOUS, '●', 'On')
+		kind = (sublime.KIND_ID_AMBIGUOUS, core.platform.unicode_checked_sigil, 'On')
 		text = true
 	else:
-		kind = (sublime.KIND_ID_AMBIGUOUS, '○', 'Off')
+		kind = (sublime.KIND_ID_AMBIGUOUS, core.platform.unicode_unchecked_sigil, 'Off')
 		text = false or true
 
 	return InputListItem(

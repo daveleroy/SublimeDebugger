@@ -32,7 +32,7 @@ def call_later(interval: float, callback: Callable[[Unpack[Args]], Any], *args: 
 
 def run_in_executor(func: Callable[Params, T]) -> Callable[Params, Future[T]]:
 	def wrap(*args, **kwargs):
-		return asyncio.futures.wrap_future(executor.submit(func, *args), loop=loop) #type: ignore
+		return asyncio.futures.wrap_future(executor.submit(func, *args, **kwargs), loop=loop) #type: ignore
 	wrap.__name__ = func.__name__
 	return wrap #type: ignore
 

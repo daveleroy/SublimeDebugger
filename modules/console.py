@@ -474,11 +474,13 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			self.write(str(value).rstrip('\n'), 'red', ensure_new_line=True)
 			self.open()
 		elif type == 'group-start':
-			self.write(str(value), None, ensure_new_line=True)
+			if value is not None:
+				self.write(str(value), None, ensure_new_line=True)
 			self.start_indent(forced=True)
 		elif type == 'group-end':
 			self.end_indent(forced=True)
-			self.write(str(value), None, ensure_new_line=True)
+			if value is not None:
+				self.write(str(value), None, ensure_new_line=True)
 		elif type == 'stdout':
 			self.protocol.log('stdout', value)
 			self.write(str(value), None)
