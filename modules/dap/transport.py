@@ -11,6 +11,8 @@
 from __future__ import annotations
 from typing import Any, Awaitable, Protocol
 
+from .configuration import ConfigurationExpanded
+
 from ..import core
 from .error import Error
 
@@ -89,7 +91,7 @@ class TransportOutgoingDataLog(TransportDataLog):
 
 
 class Transport:
-	def start(self, listener: TransportListener, log: core.Logger):
+	async def start(self, listener: TransportListener, configuration: ConfigurationExpanded, log: core.Logger):
 		...
 	def dispose(self) -> None:
 		...
@@ -111,18 +113,25 @@ class TransportStream(Transport):
 	def read(self, n: int) -> bytes:
 		...
 
-	def start(self, listener: TransportListener, log: core.Logger):
+	async def setup(self):
+		...
+
+	async def start(self, listener: TransportListener, configuration: ConfigurationExpanded, log: core.Logger):
 		self.events = listener
+		self.configuration = configuration
 		self.log = log
 
 		self.pending_requests: dict[int, core.Future[core.JSON]] = {}
 		self.seq = 0
 
 		self.log.log('transport', f'-- begin transport protocol')
+
+		await self.setup()
+
 		self.thread = threading.Thread(target=self.read_transport, name='dap')
 		self.thread.start()
 
-	def dispose(self) -> None:
+	def dispose(self):
 		...
 
 	# Content-Length: 119\r\n

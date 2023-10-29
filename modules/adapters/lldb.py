@@ -77,7 +77,7 @@ class LLDB(dap.AdapterConfiguration):
 		if liblldb:
 			command.extend(['--liblldb', liblldb])
 
-		return await dap.SocketTransport.connect_with_process(log, command, port)
+		return dap.SocketTransport(command=command, port=port)
 
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'custom':

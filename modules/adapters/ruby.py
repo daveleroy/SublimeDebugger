@@ -37,8 +37,6 @@ class Ruby(dap.AdapterConfiguration):
 		else:
 			command.extend([configuration['command'], script])
 
-		transport = await dap.SocketTransport.connect_with_process(log, command, port, process_is_program_output=True)
-		assert transport.process
 
 		def stdout(data: str):
 			log.log('stdout',data)
@@ -50,8 +48,9 @@ class Ruby(dap.AdapterConfiguration):
 			else:
 				log.log('stderr',data)
 
-		transport.process.on_stdout(stdout)
-		transport.process.on_stderr(stderr)
-		return transport
-
-
+		return dap.SocketTransport(
+			port=port,
+			command=command,
+			stdout=stdout,
+			stderr=stderr
+		)

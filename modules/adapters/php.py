@@ -22,4 +22,4 @@ class PHP(dap.AdapterConfiguration):
 			node,
 			f'{install_path}/extension/out/phpDebug.js'
 		]
-		return dap.StdioTransport(log, command)
+		return dap.StdioTransport(command)

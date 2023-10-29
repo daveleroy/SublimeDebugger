@@ -27,7 +27,7 @@ class EmuliciousDebugger(dap.AdapterConfiguration):
 		if check_port_socket.connect_ex((configuration.get("host") or "localhost", configuration.get("port"))) != 0:
 			return self.startEmulicious(log, configuration)
 		check_port_socket.close()
-		return dap.SocketTransport(log, configuration.get("host") or "localhost", configuration.get("port"))
+		return dap.SocketTransport(configuration.get("host") or "localhost", configuration.get("port"))
 
 	def startEmulicious(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		if configuration.get("request") == 'attach':
@@ -70,7 +70,7 @@ class EmuliciousDebugger(dap.AdapterConfiguration):
 						raise Exception("Failed to launch Emulicious Debugger for the following reason:\n" +
 										"Could not start the jar file specified by emuliciousPath with Java specified by javaPath:\n\n" +
 										"emuliciousPath: " + emuliciousPath + "\n" +
-										"javaPath: " + javaPath + "\n\n" + 
+										"javaPath: " + javaPath + "\n\n" +
 										"Please check your configuration.\n" +
 										"javaPath should point to the executable of Java (e.g. java.exe).")
 					javaPath = os.path.join(os.path.dirname(emuliciousPath), "java", "bin", "java.exe")
@@ -98,7 +98,7 @@ class EmuliciousDebugger(dap.AdapterConfiguration):
 				check_port_socket.settimeout(0.1)
 				if check_port_socket.connect_ex((configuration.get("host") or "localhost", configuration.get("port"))) == 0:
 					check_port_socket.close()
-					return dap.SocketTransport(log, configuration.get("host") or "localhost", configuration.get("port"))
+					return dap.SocketTransport(configuration.get("host") or "localhost", configuration.get("port"))
 		raise Exception("Failed to connect to Emulicious after " + maxAttempts + " attempts.\n" +
 						"You can try if specifying the host to connect to, in your launch configuration.\n" +
 						"If neither of the above helps, please contact the author about this error.\n" +
@@ -108,7 +108,7 @@ class EmuliciousDebugger(dap.AdapterConfiguration):
 	def configuration_snippets(self):
 		snippets = self.installer.configuration_snippets()
 		if not snippets:
-			return 
+			return
 
 		for snippet in snippets:
 			body = snippet.get("body", {})

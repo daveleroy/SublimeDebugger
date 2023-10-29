@@ -205,7 +205,8 @@ class Project:
 				json: list[Any] = project_json.get(key, [])
 				for configuration in json:
 					configuration['$'] = {
-						'project_path': os.path.dirname(example_project)
+						'project_path': os.path.dirname(example_project),
+						'folder': os.path.dirname(example_project)
 					}
 
 				source = dap.SourceLocation.from_path(example_project, line_regex=key)

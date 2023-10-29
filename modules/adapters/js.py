@@ -37,8 +37,7 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 		if __jsDebugChildServer is not None:
 			server = int(__jsDebugChildServer)
-			transport = dap.SocketTransport(log, 'localhost', server)
-			return transport
+			return dap.SocketTransport('localhost', server)
 
 		node = await util.get_and_warn_require_node(self.type, log)
 		install_path = self.installer.install_path()
@@ -62,7 +61,7 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 				f'{port}',
 			]
 
-		return await dap.SocketTransport.connect_with_process(log, command, port)
+		return dap.SocketTransport(command=command, port=port)
 
 	async def on_custom_request(self, session: dap.Session, command: str, arguments: Any) -> Any:
 		if command == 'attachedChildSession':

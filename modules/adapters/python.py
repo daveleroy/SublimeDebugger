@@ -28,12 +28,12 @@ class Python(dap.AdapterConfiguration):
 			if connect:
 				host = connect.get('host', 'localhost')
 				port = connect.get('port')
-				return await dap.SocketTransport.connect_with_retry(log, host, port)
+				return dap.SocketTransport(host, port)
 
 			port = configuration.get('port')
 			if port:
 				host = configuration.get('host', 'localhost')
-				return await dap.SocketTransport.connect_with_retry(log, host, port)
+				return dap.SocketTransport(host, port)
 
 			if not configuration.get('listen') and not configuration.get('processId'):
 				sublime.error_message('Warning: Check your debugger configuration.\n\n"attach" requires "connect", "listen" or "processId".\n\nIf they contain a $variable that variable may not have existed.')
@@ -68,7 +68,7 @@ class Python(dap.AdapterConfiguration):
 			f'{install_path}/extension/pythonFiles/lib/python/debugpy/adapter',
 		]
 
-		return dap.StdioTransport(log, command)
+		return dap.StdioTransport(command)
 
 	async def on_custom_event(self, session: dap.Session, event: str, body: Any):
 		if event == 'debugpyAttach':

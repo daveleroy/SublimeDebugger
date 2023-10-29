@@ -94,7 +94,7 @@ class Sublime(dap.AdapterConfiguration):
 				f'{python}',
 				f'{self.installer.install_path()}/debugpy/src/debugpy/adapter',
 			]
-			return dap.StdioTransport(log, command)
+			return dap.StdioTransport(command)
 
 		log.info('Using python `{}`'.format(python))
 		return SublimeDebugTransport(configuration, log)

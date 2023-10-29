@@ -5,12 +5,12 @@ from .. import dap
 from .. import core
 
 class Firefox(dap.AdapterConfiguration):
-	
+
 	type = 'firefox'
 	docs = 'https://github.com/firefox-devtools/vscode-firefox-debug#getting-started'
-	
+
 	installer = util.GitInstaller(
-		type='firefox', 
+		type='firefox',
 		repo='daveleroy/vscode-firefox-debug'
 	)
 
@@ -21,4 +21,4 @@ class Firefox(dap.AdapterConfiguration):
 			node,
 			f'{install_path}/extension/dist/adapter.bundle.js'
 		]
-		return dap.StdioTransport(log, command)
+		return dap.StdioTransport(command)

@@ -35,14 +35,12 @@ class Go(dap.AdapterConfiguration):
 			dlv, 'dap', '--listen', f'localhost:{port}'
 		]
 
-		cwd = configuration.get('cwd') or configuration.variables.get('folder')
+		cwd = configuration.get('cwd')
 
 		env = {}
 		env.update(os.environ)
 		env.update(configuration.get('env') or {})
 
-		transport = await dap.SocketTransport.connect_with_process(log, command, port, process_is_program_output=True, cwd=cwd, env=env)
-		assert transport.process
 
 		def stdout(data: str):
 			# ignore this none program output line
@@ -54,6 +52,11 @@ class Go(dap.AdapterConfiguration):
 		def stderr(data: str):
 			log.log('stderr', data)
 
-		transport.process.on_stdout(stdout)
-		transport.process.on_stderr(stderr)
-		return transport
+		return dap.SocketTransport(
+			port=port,
+			command=command,
+			cwd=cwd,
+			env=env,
+			stderr=stderr,
+			stdout=stdout
+		)

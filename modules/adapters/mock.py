@@ -23,7 +23,7 @@ class MockInstaller(util.vscode.AdapterInstaller):
 			await dap.Process.check_output(['npm', 'run', 'compile'], cwd=extension_folder)
 
 		await self.install_from_asset(url, log, post_download_action)
-	
+
 	async def installable_versions(self, log: core.Logger):
 		return ['head']
 
@@ -41,6 +41,4 @@ class Mock(dap.AdapterConfiguration):
 			node,
 			f'{install_path}/extension/out/debugAdapter.js'
 		]
-		return dap.StdioTransport(log, command)
-
-
+		return dap.StdioTransport(command)

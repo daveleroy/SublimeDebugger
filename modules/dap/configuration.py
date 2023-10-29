@@ -26,8 +26,9 @@ class Configuration(Dict[str, Any]):
 
 class ConfigurationExpanded(Configuration):
 	def __init__(self, configuration: Configuration, variables: Any):
-		all = _expand_variables_and_platform(configuration, variables)
-		super().__init__(configuration.name, -1, configuration.type, configuration.request, all, configuration.source)
+		variables, json = _expand_variables_and_platform(configuration, variables)
+
+		super().__init__(configuration.name, -1, configuration.type, configuration.request, json, configuration.source)
 
 		self.variables = variables
 		self.pre_debug_task: TaskExpanded|None = None
@@ -59,16 +60,14 @@ class Task (Dict[str, Any]):
 
 class TaskExpanded(Task):
 	def __init__(self, task: Task, variables: dict[str, str]) -> None:
-		arguments = _expand_variables_and_platform(task, variables)
-		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
-		super().__init__(arguments, task.source)
+		variables, json = _expand_variables_and_platform(task, variables)
 
+		super().__init__(json, task.source)
 
+		cmd: str|list[str]|None = json.get('cmd')
 
-		cmd: str|list[str]|None = arguments.get('cmd')
-
-		if 'name' in arguments:
-			name = arguments['name']
+		if 'name' in json:
+			name = json['name']
 		elif isinstance(cmd, str):
 			name = cmd
 		elif isinstance(cmd, list) and cmd:
@@ -78,11 +77,12 @@ class TaskExpanded(Task):
 
 		self.variables = variables
 		self.name: str = name
-		self.background: bool = arguments.get('background', False)
-		self.start_file_regex: str|None = arguments.get('start_file_regex')
-		self.end_file_regex: str|None = arguments.get('end_file_regex')
+		self.background: bool = json.get('background', False)
+		self.start_file_regex: str|None = json.get('start_file_regex')
+		self.end_file_regex: str|None = json.get('end_file_regex')
 
-		for key in ['name', 'background', 'start_file_regex', 'end_file_regex', '$']:
+		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
+		for key in ['name', 'background', 'start_file_regex', 'end_file_regex']:
 			if key in self:
 				del self[key]
 
@@ -115,6 +115,15 @@ def _expand_variables(json: Any, variables: dict[str, str], supress_errors: bool
 def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, str]):
 	json = json.copy()
 
+	# This allows us to add a list of variables to each configuration which case be use throughout the configuration.
+	# Its mostly so we can redefine $project_path when specifying a project file in debugger_configurations so $project_path refers to the correct location
+	if extra_variables := json.get('$'):
+		del json['$']
+
+		variables = variables.copy()
+		for key in extra_variables:
+			variables[key] = extra_variables[key]
+
 	platform = None
 	if core.platform.osx:
 		platform = json.get('osx')
@@ -127,13 +136,7 @@ def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, st
 		for key, value in platform.items():
 			json[key] = value
 
-	# This allows us to add a list of variables to each configuration which case be use throughout the configuration.
-	# Its mostly so we can redefine $project_path when specifying a project file in debugger_configurations so $project_path refers to the correct location
-	if json_variables := json.get('$'):
-		json = _expand_variables(json, json_variables, supress_errors=True)
-		del json['$']
-
 	if variables := variables:
 		json = _expand_variables(json, variables)
 
-	return json
+	return variables, json

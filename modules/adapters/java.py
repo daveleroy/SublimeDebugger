@@ -46,7 +46,7 @@ class Java(dap.AdapterConfiguration):
 		# Start debugging session on the LSP side
 		port = await self.lsp_execute_command('vscode.java.startDebugSession')
 
-		return dap.SocketTransport(log, 'localhost', port)
+		return dap.SocketTransport('localhost', port)
 
 	async def on_navigate_to_source(self, source: dap.SourceLocation) -> tuple[str, str, list[tuple[str, Any]]]|None:
 		if not source.source.path or not source.source.path.startswith('jdt:'):

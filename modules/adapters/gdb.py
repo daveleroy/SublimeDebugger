@@ -5,7 +5,7 @@ from .. import dap
 from .. import core
 
 class GDB(dap.AdapterConfiguration):
-	
+
 	type = 'gdb'
 	docs = 'https://github.com/WebFreak001/code-debug#debug'
 
@@ -21,4 +21,4 @@ class GDB(dap.AdapterConfiguration):
 			node,
 			f'{install_path}/extension/out/src/gdb.js'
 		]
-		return dap.StdioTransport(log, command)
+		return dap.StdioTransport(command)

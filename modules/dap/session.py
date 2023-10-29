@@ -189,7 +189,7 @@ class Session(TransportListener):
 
 
 		self._transport = transport
-		self._transport.start(self, self.log)
+		await self._transport.start(self, self.configuration, self.log)
 
 		capabilities: dap.Capabilities = await self.request('initialize', {
 			'clientID': 'sublime',
