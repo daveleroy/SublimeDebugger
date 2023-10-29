@@ -1,19 +1,16 @@
 from __future__ import annotations
-from typing import Any, TextIO
+from typing import Any
 
 from .import util
 from .. import dap
 from .. import core
 
-from dataclasses import dataclass
-
 import sublime
 import os
 import shutil
-import socket
 
 initial_preferences = '''{
-	"theme": "Debugger.sublime-theme",
+	"theme": "Debugger.sublime-theme"
 }
 '''
 
@@ -32,17 +29,18 @@ theme = '''{{
 class SublimeInstaller(dap.AdapterInstaller):
 	type = 'sublime'
 
-	@property
-	def debug_app_name(self):
-		platform = sublime.platform()
-		if platform == 'osx':
-			return 'Sublime Text (Debug).app'
-		else:
-			return 'Sublime Text (Debug)' # no idea what this is supposed to be on Windows/Linux
+	async def installable_versions(self, log: core.Logger) -> list[str]:
+		version = await util.request.text('https://download.sublimetext.com/latest/dev')
+		return ['4143', version.strip(), sublime.version()]
 
 	def installed_version(self):
-		if os.path.exists(self.install_path()):
-			return sublime.version() # might be wrong version
+		try:
+			path = f'{self.install_path()}/package.json'
+			with open(path) as file:
+				return core.json_decode(file.read())['version']
+		except:
+			...
+
 		return None
 
 	async def install(self, version: str | None, log: core.Logger) -> None:
@@ -53,19 +51,30 @@ class SublimeInstaller(dap.AdapterInstaller):
 		path_app = f'{path}/{self.debug_app_name}'
 
 		if platform == 'osx':
-			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{sublime.version()}_mac.zip', path_app, log)
+			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_mac.zip', path_app, log)
 		elif platform == 'windows' and arch =='x64':
-			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{sublime.version()}_x64.zip', path_app, log)
+			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_x64.zip', path_app, log)
 		else:
 			raise core.Error('Install for this platform/arch is not currently supported')
 
+
+		# The windows version has a data folder already here here
 		core.remove_file_or_dir(f'{path_app}/Data')
 
-		await util.request.download_and_extract_zip('https://github.com/microsoft/debugpy/archive/refs/tags/v1.6.6.zip', f'{path}/debugpy', log)
+		await util.request.download_and_extract_zip('https://github.com/microsoft/debugpy/archive/refs/tags/v1.7.0.zip', f'{path}/debugpy', log)
 		await util.request.download_and_extract_zip('https://github.com/daveleroy/debugpy/archive/refs/tags/v1.5.1.zip', f'{path}/debugpy_for_3.3', log)
 
-	async def installable_versions(self, log: core.Logger) -> list[str]:
-		return [sublime.version()]
+		core.write(f'{path}/package.json', core.json_encode({
+			'version': version
+		}))
+
+	@property
+	def debug_app_name(self):
+		platform = sublime.platform()
+		if platform == 'osx':
+			return 'Sublime Text (Debug).app'
+		else:
+			return 'Sublime Text (Debug)'
 
 
 class Sublime(dap.AdapterConfiguration):
@@ -80,8 +89,6 @@ class Sublime(dap.AdapterConfiguration):
 		if not python:
 			raise core.Error('Unable to find `python3` or `python`')
 
-		log.info('Using python `{}`'.format(python))
-
 		if configuration.request == 'attach':
 			command = [
 				f'{python}',
@@ -89,6 +96,7 @@ class Sublime(dap.AdapterConfiguration):
 			]
 			return dap.StdioTransport(log, command)
 
+		log.info('Using python `{}`'.format(python))
 		return SublimeDebugTransport(configuration, log)
 
 	async def on_custom_event(self, session: dap.Session, event: str, body: Any):
@@ -96,6 +104,16 @@ class Sublime(dap.AdapterConfiguration):
 			configuration = dap.Configuration.from_json(body, -1)
 			configuration_expanded = dap.ConfigurationExpanded(configuration, session.configuration.variables)
 			await session.debugger.launch(session.breakpoints, self, configuration_expanded, parent=session)
+
+	def on_saved_source_file(self, session: dap.Session, file: str):
+		if entry := session.configuration.get('entry'):
+			print('reload', 'on_saved_source_file')
+			for child in session.children:
+				core.run(child.request('reload', {
+					'entry': entry,
+					'file': file,
+				}))
+
 	@property
 	def configuration_snippets(self):
 		keys = {
@@ -106,16 +124,21 @@ class Sublime(dap.AdapterConfiguration):
 		platform_key = keys[sublime.platform()]
 
 		return [{
-			'name': 'Sublime Plugin Debug',
-			'type': 'sublime',
-			'request': 'launch',
-			'args': [
-				'${project_path}'
-			],
-			'linked_packages': [
-				'Debugger',
-				f'User/Default ({platform_key}).sublime-keymap',
-			]
+			'label': 'Sublime Plugin Debug',
+			'body': {
+				'name': 'Sublime Plugin Debug',
+				'type': 'sublime',
+				'request': 'launch',
+				'entry': '${1:Package}.plugin',
+				'args': [
+					'${project_path}'
+				],
+				'linked_packages': [
+					'${1:Package}',
+					'User/Preferences.sublime-settings',
+					f'User/Default ({platform_key}).sublime-keymap',
+				]
+			}
 		}]
 
 	@property
@@ -126,6 +149,10 @@ class Sublime(dap.AdapterConfiguration):
 					'linked_packages'
 				],
 				'properties': {
+					'entry': {
+						'type': 'string',
+						'description': 'Module entry point used for reloading the package using `sublime_plugin.reload` when a save occurs.',
+					},
 					'args': {
 						'type': 'array',
 						'description': 'Command line arguments passed to the sublime_text executable',
@@ -164,7 +191,6 @@ class SublimeDebugTransport(dap.Transport):
 		packages_directory = f'{install_path}/Data/Packages'
 		origin_packages_directory = sublime.packages_path()
 
-
 		python = configuration.get('pythonPath') or configuration.get('python') or shutil.which('python3') or shutil.which('python')
 		if not python:
 			raise core.Error('Unable to find `python3` or `python`')
@@ -195,18 +221,18 @@ class SublimeDebugTransport(dap.Transport):
 
 		# Add sublime_debug_runtime library for both runtimes
 		adapters_path =  os.path.dirname(os.path.realpath(__file__))
-		core.symlink(f'{adapters_path}/sublime_debug_runtime.py', f'{data_directory}/Lib/Python33/sublime_debug_runtime.py')
-		core.symlink(f'{adapters_path}/sublime_debug_runtime.py', f'{data_directory}/Lib/Python38/sublime_debug_runtime.py')
+		core.symlink(f'{adapters_path}/sublime_adapter_runtime.py', f'{data_directory}/Lib/Python33/sublime_adapter_runtime.py')
+		core.symlink(f'{adapters_path}/sublime_adapter_runtime.py', f'{data_directory}/Lib/Python38/sublime_adapter_runtime.py')
 
 
 		# Add plugin that initializes the sublime_debug_runtime module before any other packages so it can attach debugpy before any other user packages get loaded
-		core.make_directory(f'{data_directory}/Packages/0_sublime_debug_runtime_38')
-		core.write(f'{packages_directory}/0_sublime_debug_runtime_38/__init__.py', 'import sublime_debug_runtime', overwrite_existing=True)
-		core.write(f'{packages_directory}/0_sublime_debug_runtime_38/.python-version', '3.8', overwrite_existing=True)
+		core.make_directory(f'{data_directory}/Packages/0_sublime_adapter_runtime_38')
+		core.write(f'{packages_directory}/0_sublime_adapter_runtime_38/__init__.py', 'import sublime_adapter_runtime', overwrite_existing=True)
+		core.write(f'{packages_directory}/0_sublime_adapter_runtime_38/.python-version', '3.8', overwrite_existing=True)
 
-		core.make_directory(f'{data_directory}/Packages/0_sublime_debug_runtime_33')
-		core.write(f'{packages_directory}/0_sublime_debug_runtime_33/__init__.py', 'import sublime_debug_runtime', overwrite_existing=True)
-		core.write(f'{packages_directory}/0_sublime_debug_runtime_33/.python-version', '3.3', overwrite_existing=True)
+		core.make_directory(f'{data_directory}/Packages/0_sublime_adapter_runtime_33')
+		core.write(f'{packages_directory}/0_sublime_adapter_runtime_33/__init__.py', 'import sublime_adapter_runtime', overwrite_existing=True)
+		core.write(f'{packages_directory}/0_sublime_adapter_runtime_33/.python-version', '3.3', overwrite_existing=True)
 
 
 		linked_packages = configuration.get('linked_packages', [])
@@ -232,8 +258,8 @@ class SublimeDebugTransport(dap.Transport):
 			core.symlink(package, f'{packages_directory}/{name}')
 
 			path_mappings.append({
-				'localRoot': package,
 				'remoteRoot': f'{packages_directory}/{name}',
+				'localRoot': package,
 			})
 
 
@@ -257,12 +283,20 @@ class SublimeDebugTransport(dap.Transport):
 
 		log.info('Starting `Sublime Text (Debug)`')
 		self.process = dap.Process(commands, env=env)
+		self.process.on_stdout(self.read, lambda: self.close())
 
-	def start(self, listener: dap.TransportProtocolListener, log: core.Logger):
+	def read(self, output: str):
+		self.log.info(output)
+
+	def close(self):
+		self.process.dispose()
+		self.events.on_event('terminated', core.JSON())
+
+	async def start(self, listener: dap.TransportListener, configuration: dap.ConfigurationExpanded, log: core.Logger):
 		self.events = listener
 		self.log = log
 
-		self.events.on_event('attach', {
+		self.events.on_event('attach', core.JSON({
 			'type': 'sublime',
 			'request': 'attach',
 			'name': 'plugin_host_38',
@@ -273,10 +307,10 @@ class SublimeDebugTransport(dap.Transport):
 			'justMyCode': False,
 			'redirectOutput': True,
 			'pathMappings': self.path_mappings,
-		})
+		}))
 
 
-		self.events.on_event('attach', {
+		self.events.on_event('attach', core.JSON({
 			'type': 'sublime',
 			'request': 'attach',
 			'name': 'plugin_host_33',
@@ -287,16 +321,13 @@ class SublimeDebugTransport(dap.Transport):
 			'justMyCode': False,
 			'redirectOutput': True,
 			'pathMappings': self.path_mappings,
-		})
-
-
-
+		}))
 
 	async def initialized(self):
 		self.events.on_event('initialized', core.JSON({}))
 
 	# TODO: Respond to more requests so this actually implements the protocol correctly
-	async def send_request(self, command: str, args: dict[str, Any]|None) -> dict[str, Any]:
+	async def send_request(self, command: str, args: core.JSON|None) -> core.JSON:
 		if command == 'initialize':
 			# send the initialized event
 			core.run(self.initialized())
@@ -311,10 +342,14 @@ class SublimeDebugTransport(dap.Transport):
 			})
 
 		if command == 'disconnect':
-			self.dispose()
-			return {}
+			if not self.process.closed:
+				self.log.warn('Consider ending the debug session by quitting `Sublime Text (Debug)`')
+				self.log.warn('Disconnecting via the stop button is not recommended since the Sublime session may not be saved thus any changes to the window size etc will be lost')
 
-		return {}
+			self.dispose()
+			return core.JSON()
+
+		return core.JSON()
 
 	def dispose(self):
 		self.process.dispose()

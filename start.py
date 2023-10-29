@@ -144,6 +144,12 @@ class EventListener (sublime_plugin.EventListener):
 		for debugger in Debugger.debuggers():
 			debugger.save_data()
 
+	def on_post_save(self, view: sublime.View):
+		if debugger := Debugger.get(view):
+			if file := debugger.project.source_file(view):
+				for session in debugger.sessions:
+					session.adapter_configuration.on_saved_source_file(session, file)
+
 	def on_load_project(self, window: sublime.Window):
 		if debugger := Debugger.get(window):
 			debugger.project.reload(debugger.console)

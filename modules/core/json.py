@@ -40,7 +40,11 @@ class JSONEncoder(json.JSONEncoder):
 			return dataclasses.asdict(o)
 		return super().default(o)
 
-JSON: TypeAlias = DottedDict[str, 'JSON_VALUE']
+# Not using a type alias because it casues issues when using json.encode
+# JSON: TypeAlias = DottedDict[str, 'JSON_VALUE']
+class JSON(DottedDict[str, 'JSON_VALUE']):
+	...
+
 JSON_VALUE: TypeAlias = 'DottedDict[str, "JSON_VALUE"] | list[JSON_VALUE] | str | int | float | bool | None'
 
 VERSION_NUMBER = 0
