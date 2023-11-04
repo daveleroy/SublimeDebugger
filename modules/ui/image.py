@@ -43,7 +43,7 @@ class Image:
 
 
 	def data(self, layout: Layout|None = None) -> str:
-		if layout and layout.luminocity() < 0.5:
+		if layout and layout.luminocity < 0.5:
 			file = self.file_light
 		else:
 			file = self.file_dark
@@ -88,7 +88,7 @@ class Images:
 		self.thread = Image.named_light_dark('thread_stopped.png')
 		self.loading = Image.named_light_dark('loading_disabled.png')
 		self.check_mark = Image.named_light_dark('check_mark_disabled.png')
-		
+
 		self.thread_running = Image.named_light_dark('thread_running.png')
 
 		self.open = Image.named_light_dark('open_disabled.png')

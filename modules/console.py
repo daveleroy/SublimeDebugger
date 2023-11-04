@@ -191,7 +191,9 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			component = VariableView(self.debugger, variable, children_only=True)
 			component.set_expanded()
 			popup = ui.Popup(self.view, at)[
-				component
+				ui.div(width=100)[
+					component
+				]
 			]
 
 		def edit(edit: sublime.Edit):

@@ -54,8 +54,7 @@ class OutputPanelBar(ui.div):
 		self.top = panel.show_tabs_top
 
 	def render(self):
-		width = self.layout.width() - 5
-		return ui.div(width=width) [
+		return ui.div(width=self.layout.width - 5) [
 			ui.div(height=css.header_height)[
 				self.actions,
 				ui.spacer_dip(10),

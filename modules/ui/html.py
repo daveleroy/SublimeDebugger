@@ -28,10 +28,10 @@ class element:
 		self.layout: Layout = None #type: ignore
 		self.children: list[element] = []
 		self.requires_render = True
-		self._available_block_width: float|None = None
+
+		self.is_inline = is_inline
 		self.height = height
 		self.width = width
-		self.is_inline = is_inline
 
 		if css:
 			self.css_id = css.id
@@ -43,20 +43,14 @@ class element:
 			self.css_padding_width = 0
 
 
-	def html_height(self) -> float: ...
+	def html_height(self, available_width: float, available_height: float) -> float: ...
 
 	def dirty(self):
 		if self.layout:
 			self.layout.dirty()
 		self.requires_render = True
 
-	def _html_inner_child(self, child: element):
-		return child.html()
-
-	def html_inner(self) -> HtmlResponse:
-		return map(self._html_inner_child, self.children)
-
-	def html(self) -> HtmlResponse:
+	def html(self, available_width: float, available_height: float) -> HtmlResponse:
 		...
 
 	def added(self) -> None: ...
@@ -85,7 +79,7 @@ class span (element):
 		return self
 
 	# height of a span is always just fixed it doesn't really since it does not change the layout
-	def html_height(self) -> float:
+	def html_height(self, available_width: float, available_height: float) -> float:
 		if self.height is not None:
 			return self.height + self.css_padding_height
 
@@ -105,8 +99,13 @@ class span (element):
 
 		return (tag, attributes)
 
-	def html(self) -> HtmlResponse:
-		inner = self.html_inner()
+
+
+	def html_inner(self, available_width: float, available_height: float) -> HtmlResponse:
+		return map(lambda child: child.html(available_width, available_height), self.children)
+
+	def html(self, available_width: float, available_height: float) -> HtmlResponse:
+		inner = self.html_inner(available_width, available_height)
 		tag, attributes = self.html_tag_and_attrbutes()
 		return [
 			f'<{tag} {attributes}>',
@@ -130,51 +129,54 @@ class div (element):
 		return self
 
 	# height of a div matches the height of all its children combined unless explicitly given
-	def html_height(self) -> float:
+	def html_height(self, available_width: float, available_height: float) -> float:
 		if self.height is not None:
 			return self.height + self.css_padding_height
 
-		height = 0.0
+		height = self.css_padding_height
 		for item in self.children:
-			height += item.html_height()
+			height += item.html_height(available_width, available_height)
 
-		return height + self.css_padding_height
+		return min(available_height, height)
 
 	# width of a div matches the width of its parent div unless explicitly given
-	def html_width(self) -> float:
+	def html_width(self, available_width: float, available_height: float) -> float:
 		if self.width is not None:
 			return self.width + self.css_padding_width
 
-		return max(self._available_block_width or 0, self.css_padding_width)
+		return max(available_width, self.css_padding_width)
 
 	def html_tag_and_attrbutes(self):
 		attributes = f'id="{self.css_id}"' if self.css_id else ''
 		tag = 'd'
 		return (tag, attributes)
 
-	def html(self) -> HtmlResponse:
-		html = ''
-		children_inline = False
-		for item in self.children:
-			children_inline = children_inline or item.is_inline
+	def html_inner(self, available_width: float, available_height: float) -> HtmlResponse:
+		for child in self.children:
+			html = child.html(available_width, available_height)
+			available_height -= child.html_height(available_width, available_height)
+			if available_height >= 0:
+				yield html
+
+	def html(self, available_width: float, available_height: float) -> HtmlResponse:
+		children_inline = self.children and self.children[0].is_inline
+
+		height = self.html_height(available_width, available_height) - self.css_padding_height
+		width = self.html_width(available_width, available_height) - self.css_padding_width
+
+		tag, attributes = self.html_tag_and_attrbutes()
 
 		if children_inline:
 			from .align import aligned_html_inner
-			html = aligned_html_inner(self)
-		else:
-			html = self.html_inner()
+			html = aligned_html_inner(self, width, height)
 
-		h = self.html_height() - self.css_padding_height
-		w = self.html_width() - self.css_padding_width
-		offset= h / 2 - 0.5
-
-		tag, attributes = self.html_tag_and_attrbutes()
-		if children_inline:
 			# this makes it so that divs with an img in them and divs without an img in them all align the same
 			# and everything inside the div aligns vertically
-			return f'<{tag} {attributes} style="height:{h:}rem; width:{w}rem; padding:{-offset}rem 0 {offset}rem 0"><img style="height:{h}rem">', html, f'</{tag}>'
+			offset = height / 2 - 0.5
+			return f'<{tag} {attributes} style="height:{height:}rem; width:{width}rem; padding:{-offset}rem 0 {offset}rem 0"><img style="height:{height}rem">', html, f'</{tag}>'
 		else:
-			return f'<{tag} {attributes} style="height:{h}rem;width:{w}rem;">', html, f'</{tag}>'
+			html = self.html_inner(width, height)
+			return f'<{tag} {attributes} style="height:{height}rem;width:{width}rem;">', html, f'</{tag}>'
 
 def html_escape(text: str) -> str:
 	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '\u00A0')
@@ -192,7 +194,7 @@ class icon (span):
 		self.width = width
 		self.height = height
 
-	def html(self) -> HtmlResponse:
+	def html(self, available_width: float, available_height: float) -> HtmlResponse:
 		width = self.width - self.padding
 		required_padding = self.padding
 		tag, attributes = self.html_tag_and_attrbutes()
@@ -208,6 +210,7 @@ class text (span, alignable):
 		super().__init__(css, **kwargs)
 		self._text = text.replace("\u0000", "\\u0000")
 		self._text_html = None
+		self._text_clipped = ''
 
 		self.align_required: int =  0
 		self.align_desired: int = len(self._text)
@@ -224,7 +227,7 @@ class text (span, alignable):
 
 		return len(self._text_clipped)
 
-	def html_inner(self):
+	def html_inner(self, available_width: float, available_height: float):
 		if self._text_html is None:
 			self._text_html = html_escape(self._text_clipped)
 		return self._text_html
@@ -241,9 +244,6 @@ class code(span, alignable):
 		self.align_required: int = 0
 		self.align_desired: int = len(self.text)
 
-	def width(self) -> float:
-		return len(self.text) + self.css_padding_width
-
 	def align(self, width: float):
 		self.text_html = None
 
@@ -257,7 +257,7 @@ class code(span, alignable):
 
 		return self.align_character_count
 
-	def html(self) -> HtmlResponse:
+	def html(self, available_width: float, available_height: float) -> HtmlResponse:
 		if self.text_html:
 			return self.text_html
 

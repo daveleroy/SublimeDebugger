@@ -56,8 +56,9 @@ class Layout:
 	def render_debug_info():
 		status = ''
 		for r in Layout.layouts:
-			status += '         '
-			status += f'{r.stats.name}: {len(r.html)/1024:.1f}kb {r.stats.render_time:.1f}ms {r.stats.render_count}x'
+			if r.view.window() == sublime.active_window():
+				status += '         '
+				status += f'{r.stats.name}: {len(r.html)/1024:.1f}kb {r.stats.render_time:.1f}ms {r.stats.render_count}x'
 
 		sublime.active_window().status_message(status)
 
@@ -94,36 +95,48 @@ class Layout:
 	def __init__(self, view: sublime.View) -> None:
 		self.stats = LayoutStats(name=view.name())
 
-		self.on_click_handlers: dict[int, Callable[[], None]] = {}
-		self.on_click_handlers_id = 0
+
 		self.requires_render = True
 		self.html_list: list[str] = []
 		self.html = ""
 
 		self.view = view
-		self._width = 0.0
-		self._height = 0.0
-		self._lightness = 0.0
+
+		self.luminocity = 0.0
+		self.viewport_position_y = 0
+
+		self.width = 0.0
+		self.height = 0.0
+
+		self.layout_width = 1.0
+		self.layout_height = 1.0
+
+		self.internal_font_scale = 1.0
+		self.font_size = 1.0
+		self.em_width = 1.0
 
 		self._all = ()
 		self._vertical_offset = 0.0
-		self._last_check_was_differnt = False
+		self._last_check_was_differnt = 0
+		self.scrolling = False
+
+		self._on_click_handlers: dict[int, Callable[[], None]] = {}
+		self._on_click_handlers_id = 0
 
 		self.item = div()
-		self._add_element(self.item)
+		self.item.layout = self
 
 		self.update()
 		Layout.layouts_to_add.append(self)
 
+
 	def dispose(self) -> None:
-		self._remove_element(self.item)
 		Layout.layouts_to_remove.append(self)
 
 	def __getitem__(self, values: div.Children):
 		self.item [
 			values
 		]
-		self._add_element(self.item)
 		self.dirty()
 		return self
 
@@ -141,43 +154,31 @@ class Layout:
 	def from_dip(self, dip: float) -> float:
 		return dip / self.em_width
 
+	def invalidate(self) -> None:
+		self.item.dirty()
+		self.requires_render = True
+		Layout._schedule_render_layouts()
+
 	def dirty(self) -> None:
 		self.requires_render = True
 		Layout._schedule_render_layouts()
 
 	def _add_element_children(self, parent: element) -> None:
-		if parent.is_inline:
-			for child in parent.children:
-				self._add_element(child)
-		else:
-			if parent.width is not None:
-				available_block_width = parent.width
-			else:
-				available_block_width = parent._available_block_width and parent._available_block_width - parent.css_padding_width
+		for child in parent.children:
+			assert not child.layout, 'This item already has a layout?'
+			child.layout = self
+			child.added()
 
-			for child in parent.children:
-				child._available_block_width = available_block_width
-				self._add_element(child)
+	def _remove_element_children(self, parent: element) -> None:
+		for child in parent.children:
+			self._remove_element_children(child)
+			child.removed()
+			child.layout = None #type: ignore
 
-	def _add_element(self, item: element) -> None:
-		assert not item.layout, 'This item already has a layout?'
-		item.layout = self
-		item.added()
-
-	def _remove_element(self, item: element) -> None:
-		self._remove_element_children(item)
-		item.removed()
-		item.layout = None #type: ignore
-
-	def _remove_element_children(self, item: element) -> None:
-		for child in item.children:
-			self._remove_element(child)
-
-		item.children = []
+		parent.children.clear()
 
 	def render_element_tree(self, item: element, requires_render: bool = False) -> None:
 		if not requires_render and not item.requires_render:
-
 			# check the children elements
 			for child in item.children:
 				self.render_element_tree(child)
@@ -187,7 +188,6 @@ class Layout:
 
 		# remove old and add new
 		self._remove_element_children(item)
-		item.children.clear()
 		flatten_element_children(item.render(), item.children)
 		self._add_element_children(item)
 
@@ -199,17 +199,17 @@ class Layout:
 		if not self.requires_render:
 			return False
 
-		self.on_click_handlers.clear()
+		self._on_click_handlers.clear()
 		self.requires_render = False
 		self.render_element_tree(self.item)
 
 		css_string = css.generate(self)
 		html = [
+			'<style>',
+				css_string,
+			'</style>',
 			f'<body id="debugger" style="padding-top: {self.vertical_offset}px;">',
-				'<style>',
-					css_string,
-				'</style>',
-				self.item.html(),
+				self.item.html(25, 10000),
 			'</body>'
 		]
 
@@ -220,25 +220,14 @@ class Layout:
 
 	def on_navigate(self, path: str) -> None:
 		id = int(path)
-		if id in self.on_click_handlers:
-			self.on_click_handlers[id]()
+		if id in self._on_click_handlers:
+			self._on_click_handlers[id]()
 
 	def register_on_click_handler(self, callback: Callable[[], None]) -> str:
-		self.on_click_handlers_id += 1
-		id = self.on_click_handlers_id
-		self.on_click_handlers[id] = callback
+		self._on_click_handlers_id += 1
+		id = self._on_click_handlers_id
+		self._on_click_handlers[id] = callback
 		return str(id)
-
-	# width/height of the viewport in character width units
-	# for instance 6.5 is equal to 6 and 1/2 characters
-	def width(self) -> float:
-		return self._width
-
-	def height(self) -> float:
-		return self._height
-
-	def luminocity(self) -> float:
-		return self._lightness
 
 	def update(self) -> None:
 		style = self.view.style()
@@ -247,31 +236,56 @@ class Layout:
 		settings = self.view.settings()
 		font_size = settings.get('font_size') or 1
 		internal_font_scale = settings.get('internal_font_scale') or 1
-		width, height = self.view.viewport_extent()
+
+		viewport_width, viewport_height = self.view.viewport_extent()
+		layout_width, layout_height = self.view.layout_extent()
+
+		viewport_position_x, viewport_position_y = self.view.viewport_position()
 		em_width = self.view.em_width() or 1
 
+		scolling = abs(viewport_position_y / em_width - self.viewport_position_y) > 0.05
+		if scolling and not self.scrolling:
+			self.scrolling = True
+			self.invalidate()
+
 		# check if anything has changed so we can avoid invalidating the layout
-		all = (background, font_size, internal_font_scale, em_width, width, height)
+		all = (
+			background,
+			font_size,
+			internal_font_scale,
+			em_width,
+			viewport_width,
+			viewport_height,
+			viewport_position_x, viewport_position_y,
+			layout_height,
+			layout_width
+		)
+
 		if self._all == all:
-
 			# only invalidate the layout after the user has stopped changing the layout to avoid redrawing while they are changing stuff
-			if self._last_check_was_differnt:
-				self._last_check_was_differnt = False
-				self.item.dirty()
+			if self._last_check_was_differnt == 0:
+				self.invalidate()
 
+			if self._last_check_was_differnt == -2 and self.scrolling and not scolling:
+				self.scrolling = False
+				self.invalidate()
+
+			self._last_check_was_differnt -= 1
 			return
 
 		self._all = all
+		self.layout_width = layout_width / em_width
+		self.layout_height = layout_height / em_width
+		self.viewport_position_y = viewport_position_y / em_width
 
 		self.internal_font_scale = internal_font_scale
 		self.font_size = font_size
-		self._width = width / em_width
-		self._height = height / em_width
-		self._lightness = lightness_from_color(background)
+		self.width = viewport_width / em_width
+		self.height = viewport_height / em_width
+		self.luminocity = lightness_from_color(background)
 		self.em_width = em_width
 
-		self._last_check_was_differnt = True
-
+		self._last_check_was_differnt = 5
 
 def lightness_from_color(color: str|None) -> float:
 	if not color:

@@ -28,7 +28,7 @@ class spacer (span):
 		self.width = width
 		return leftover
 
-	def html(self) -> str:
+	def html(self, available_width: float, available_height: float) -> str:
 		if self.width is None:
 			core.error('flex width spacer was not aligned')
 
@@ -47,12 +47,12 @@ class spacer_dip (span):
 	def required(self):
 		return self.width/self.layout.em_width
 
-	def html(self) -> str:
+	def html(self, available_width: float, available_height: float) -> str:
 		return f'<img style="width:{self.width}px">'
 
 
-def aligned_html_inner(item: div):
-	width = int(item.html_width())
+def aligned_html_inner(item: div, available_width: float, available_height: float):
+	width = int(available_width)
 
 	# how much space was leftover that we can use to fill out any spacers
 	leftover = width
@@ -93,7 +93,7 @@ def aligned_html_inner(item: div):
 			else:
 				w = item.width + item.css_padding_width
 				leftover -= w
-				required += w				
+				required += w
 
 	for i in item.children:
 		calculate(i)
@@ -118,4 +118,4 @@ def aligned_html_inner(item: div):
 		width_for_resizeables -= element.align(w)
 		resizeables_left -= 1
 
-	return item.html_inner()
+	return item.html_inner(available_width, available_height)
