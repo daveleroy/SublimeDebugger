@@ -91,12 +91,12 @@ padding_left = ui.css(
 # these work around minor alignment issues where inline phantoms and bottom phantoms do not align the same
 console_tabs_bottom = ui.css(
 	raw='''
-		padding-left: 2px;
+		padding-top: 3px;
 	'''
 )
 console_tabs_top = ui.css(
 	raw='''
-		padding-left: -3px;
+		padding-left: -2.5px;
 	'''
 )
 
@@ -118,12 +118,14 @@ seperator_cutout = ui.css(
 )
 
 panel = ui.css(
+	radius=0.5,
+	background_color='var(--tinted)',
+)
+
+panel_content = ui.css(
 	padding_top=0.5,
 	padding_left=1,
 	padding_right=1,
-	background_color='var(--tinted)',
-	raw='''
-	'''
 )
 
 controls_panel = ui.css(

@@ -57,7 +57,7 @@ class OutputPanelBar(ui.div):
 		return ui.div(width=self.layout.width - 5) [
 			ui.div(height=css.header_height)[
 				self.actions,
-				ui.spacer_dip(10),
+				ui.spacer_dip(9),
 				self.tabs,
 			],
 			ui.div(height=0.25, css=css.seperator) if self.top else None,

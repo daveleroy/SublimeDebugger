@@ -80,11 +80,15 @@ class TabbedViewContainer(ui.div):
 		self.dirty()
 
 	def render(self) -> ui.div.Children:
-		assert self.layout
 		if not self.items:
 			return []
 
 		self.patch_selected()
+
+		if self.layout.scrolling:
+			height = 500
+		else:
+			height = self.layout.height +self.layout.viewport_position_y
 
 		if self._width:
 			width = self._width
@@ -103,11 +107,14 @@ class TabbedViewContainer(ui.div):
 				item.header(index == self.selected_index)
 			])
 
-		return [
+		return ui.div(width=width, height=500, css=css.panel)[
+			# this inner panel controls how much content is actually displayed
+			# while scrolling the tab bar disappears revealing all the content
+			# while not scrolling this panel clips the content
+			ui.div(height=height-css.panel_content.padding_height - css.header_height, css=css.panel_content)[
+				self.items[self.selected_index]
+			],
 			ui.div(width=width, height=4)[
 				tabs
-			],
-			ui.div(width=width - css.panel.padding_width, height=500, css=css.panel)[
-				self.items[self.selected_index]
 			],
 		]
