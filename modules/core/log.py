@@ -51,15 +51,20 @@ def debug(*args: Any) -> None:
 
 
 class Logger(Protocol):
-	def error(self, text: str):
-		self.log('error', text)
-	def warn(self, text: str):
-		self.log('warn', text)
-	def info(self, text: str):
-		self.log('info', text)
 	def log(self, type: str, value: Any):
 		print(f'Debugger: {type}: {value}')
 
+	def __call__(self, type: str, value: Any):
+		self.log(type, value)
+
+	def error(self, text: str):
+		self.log('error', text)
+
+	def warn(self, text: str):
+		self.log('warn', text)
+
+	def info(self, text: str):
+		self.log('info', text)
 
 class StdioLogger(Logger):
 	def log(self, type: str, value: Any):

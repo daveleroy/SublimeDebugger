@@ -47,10 +47,10 @@ class Go(dap.AdapterConfiguration):
 			if data.startswith('DAP server listening at:'):
 				return
 
-			log.log('stdout', data)
+			log('stdout', data)
 
 		def stderr(data: str):
-			log.log('stderr', data)
+			log('stderr', data)
 
 		return dap.SocketTransport(
 			port=port,

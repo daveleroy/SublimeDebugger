@@ -262,11 +262,11 @@ class Session(TransportListener):
 			return True
 
 		except core.CancelledError:
-			self.log.log('error-no-open', f'{name}: cancelled')
+			self.log('error-no-open', f'{name}: cancelled')
 			return False
 
 		except core.Error as e:
-			self.log.log('error-no-open', f'{name}: {e}')
+			self.log('error-no-open', f'{name}: {e}')
 			return False
 
 	def _refresh_state(self) -> None:

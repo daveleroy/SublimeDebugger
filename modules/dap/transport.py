@@ -124,7 +124,7 @@ class TransportStream(Transport):
 		self.pending_requests: dict[int, core.Future[core.JSON]] = {}
 		self.seq = 0
 
-		self.log.log('transport', f'-- begin transport protocol')
+		self.log('transport', f'-- begin transport protocol')
 
 		await self.setup()
 
@@ -194,7 +194,7 @@ class TransportStream(Transport):
 
 		self.pending_requests[self.seq] = future
 
-		self.log.log('transport', TransportOutgoingDataLog(request))
+		self.log('transport', TransportOutgoingDataLog(request))
 		self.send(request)
 		return future
 
@@ -209,7 +209,7 @@ class TransportStream(Transport):
 			'body': body,
 		}
 
-		self.log.log('transport', TransportOutgoingDataLog(data))
+		self.log('transport', TransportOutgoingDataLog(data))
 		self.send(data)
 
 	def send_response(self, request: core.JSON, body: core.JSON, error: str|None = None) -> None:
@@ -230,7 +230,7 @@ class TransportStream(Transport):
 			'message': error,
 		}
 
-		self.log.log('transport', TransportOutgoingDataLog(data))
+		self.log('transport', TransportOutgoingDataLog(data))
 		self.send(data)
 
 	def on_request(self, request: core.JSON):
@@ -252,13 +252,13 @@ class TransportStream(Transport):
 		core.call_soon(self.events.on_event, event, body)
 
 	def on_closed(self, msg: str) -> None:
-		self.log.log('transport', msg)
+		self.log('transport', msg)
 
 		# use call_soon so that events and respones are handled in the same order as the server sent them
 		core.call_soon(self.events.on_transport_closed)
 
 	def on_message(self, data: core.JSON) -> None:
-		self.log.log('transport', TransportIncomingDataLog(data))
+		self.log('transport', TransportIncomingDataLog(data))
 
 		t = data['type']
 		if t == 'response':

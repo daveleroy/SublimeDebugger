@@ -39,14 +39,14 @@ class Ruby(dap.AdapterConfiguration):
 
 
 		def stdout(data: str):
-			log.log('stdout',data)
+			log('stdout',data)
 
 		def stderr(data: str):
 			hidden = data.startswith('DEBUGGER: ')
 			if hidden:
-				log.log('transport', dap.TransportStderrOutputLog(data))
+				log('transport', dap.TransportStderrOutputLog(data))
 			else:
-				log.log('stderr',data)
+				log('stderr',data)
 
 		return dap.SocketTransport(
 			port=port,

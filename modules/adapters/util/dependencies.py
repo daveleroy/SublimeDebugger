@@ -20,7 +20,7 @@ async def get_and_warn_require_node(adapter_type: str|list[str], log: core.Logge
 
 	try:
 		version = (await dap.Process.check_output([node_path, '-v'])).strip().decode('utf-8')
-		log.log('transport', f'-- node: version={version}')
+		log('transport', f'-- node: version={version}')
 		# if version and version_tuple(version) >= version_tuple(max_version):
 		# 	log.error(f'This adapter may not run on your version of node. It may require a version less than {max_version}. The version of node found is {version}.')
 
