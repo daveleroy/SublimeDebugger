@@ -89,7 +89,7 @@ class TaskExpanded(Task):
 
 def _expand_variables(json: Any, variables: dict[str, str], supress_errors: bool = False):
 	if type(json) is str:
-		regex = re.compile('(\${(.*)})')
+		regex = re.compile(r'(\${([^}]*)})')
 		for match, key in regex.findall(json):
 			if value := variables.get(key):
 				json = json.replace(match, value)
