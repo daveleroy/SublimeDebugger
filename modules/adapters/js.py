@@ -26,11 +26,11 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 	@property
 	def configuration_snippets(self):
-		return self.installer.configuration_snippets('js')
+		return self.installer.configuration_snippets(self.configuration_type)
 
 	@property
 	def configuration_schema(self):
-		return self.installer.configuration_schema('js')
+		return self.installer.configuration_schema(self.configuration_type)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		__jsDebugChildServer = configuration.get('__jsDebugChildServer')
