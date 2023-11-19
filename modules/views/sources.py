@@ -41,11 +41,7 @@ class SourcesTabbedView(TabbedView):
 		self.on_click(dap.SourceLocation(source, None, None))
 
 	def render(self):
-		items: list[ui.div] = []
 		for session in self.debugger.sessions:
 			for source in session.sources.values():
-				items.append(ui.div(height=css.row_height)[
+				with ui.div(height=css.row_height):
 					ui.text(source.path or source.name or "<no source name>", css=css.secondary, on_click=partial(self.on_clicked_source, source))
-				])
-
-		return items

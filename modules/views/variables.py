@@ -19,11 +19,9 @@ class VariablesTabbedView (TabbedView):
 		self.watch_view = WatchView(debugger)
 		self.variables_view = VariablesView(debugger)
 
-	def render(self) -> ui.div.Children:
-		return [
-			self.watch_view,
-			self.variables_view,
-		]
+	def render(self):
+		self.watch_view.append_stack()
+		self.variables_view.append_stack()
 
 
 class VariablesView (ui.div):
@@ -41,11 +39,12 @@ class VariablesView (ui.div):
 		if not session:
 			return
 
-		variables = [VariableView(self.debugger, variable) for variable in session.variables]
-		if variables:
-			variables[0].set_expanded()
-
-		return variables
+		expand = True
+		for variable in session.variables:
+			view = VariableView(self.debugger, variable)
+			if expand:
+				view.set_expanded()
+				expand = False
 
 
 class WatchView(ui.div):
@@ -64,33 +63,26 @@ class WatchView(ui.div):
 		self.open = not self.open
 		self.dirty()
 
-	def render_children(self):
-		if not self.debugger.watch.expressions:
-			return ui.div(height=css.row_height)[
-				ui.spacer(3),
-				ui.text('zero items …', css=css.secondary)
-			]
-
-		return [WatchExpressionView(self.debugger, expresion, on_edit_not_available=self.debugger.watch.edit_run) for expresion in self.debugger.watch.expressions]
-
-	def render(self) -> ui.div.Children:
-
-		header = ui.div(height=css.row_height)[
-			ui.icon(ui.Images.shared.open if self.open else ui.Images.shared.close, on_click=self.toggle_expand),
-			ui.text('Watch', css=css.secondary),
-			ui.spacer(),
+	def render(self):
+		with ui.div(height=css.row_height):
+			ui.icon(ui.Images.shared.open if self.open else ui.Images.shared.close, on_click=self.toggle_expand)
+			ui.text('Watch', css=css.secondary)
+			ui.spacer()
 			ui.text('add', css=css.secondary, on_click=self.debugger.add_watch_expression)
-		]
 
 		if not self.open:
-			return header
+			return
 
-		return [
-			header,
-			ui.div(css=css.table_inset)[
-				self.render_children()
-			]
-		]
+		with ui.div(css=css.table_inset):
+			if not self.debugger.watch.expressions:
+				with ui.div(height=css.row_height):
+					ui.spacer(3)
+					ui.text('zero items …', css=css.secondary)
+
+			for expresion in self.debugger.watch.expressions:
+				WatchExpressionView(self.debugger, expresion, on_edit_not_available=self.debugger.watch.edit_run)
+
+
 
 class WatchExpressionView(ui.div):
 	def __init__(self, debugger: Debugger, expression: Watch.Expression, on_edit_not_available: Callable[[Watch.Expression], None]):
@@ -107,14 +99,12 @@ class WatchExpressionView(ui.div):
 
 	def render(self):
 		if self.expression.evaluate_response:
-			component = VariableView(self.debugger, self.expression.evaluate_response)
-			return [component]
+			VariableView(self.debugger, self.expression.evaluate_response)
+			return
 
-		return ui.div(height=css.row_height)[
-			ui.spacer(3),
-			ui.span(on_click=lambda: self.on_edit_not_available(self.expression)) [
-				ui.text(self.expression.value, css=css.secondary),
-				ui.spacer(1),
-				ui.text("not available", css=css.label),
-			]
-		]
+		with ui.div(height=css.row_height):
+			ui.spacer(3)
+			with ui.span(on_click=lambda: self.on_edit_not_available(self.expression)):
+				ui.text(self.expression.value, css=css.secondary)
+				ui.spacer(1)
+				ui.text("not available", css=css.label)

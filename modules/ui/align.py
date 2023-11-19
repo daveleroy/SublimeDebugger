@@ -3,6 +3,7 @@ from __future__ import annotations
 from . import core
 from . html import element, div, span, alignable
 
+import math
 
 class spacer (span):
 	def __init__(self, width: float|None = None, min: float = 1):
@@ -88,14 +89,14 @@ def aligned_html_inner(item: div, available_width: float, available_height: floa
 			if item.width is None:
 				required += item.css_padding_width
 				leftover -= item.css_padding_width
-				for i in item.children:
+				for i in item.children_rendered:
 					calculate(i)
 			else:
 				w = item.width + item.css_padding_width
 				leftover -= w
 				required += w
 
-	for i in item.children:
+	for i in item.children_rendered:
 		calculate(i)
 
 	width_for_spacers = max(leftover, 0)
@@ -118,4 +119,5 @@ def aligned_html_inner(item: div, available_width: float, available_height: floa
 		width_for_resizeables -= element.align(w)
 		resizeables_left -= 1
 
-	return item.html_inner(available_width, available_height)
+	# Inline elements can be as tall as they want since they don't change the layout
+	return item.html_inner(available_width, math.inf)

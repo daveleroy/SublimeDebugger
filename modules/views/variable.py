@@ -180,62 +180,53 @@ class VariableView (ui.div):
 
 
 	def render_header(self, name: str, value: str, is_expandable:bool, is_expanded: bool):
-		if name:
-			value_item = [
-				ui.text(name, css=css.secondary, on_click=self.edit_variable),
-				ui.spacer(1),
-				ui.code(value),
-			]
-		else:
-			value_item = ui.span(on_click=self.edit_variable)[
-				ui.code(value),
-			]
+		with ui.div(height=css.row_height):
+			if is_expandable:
+				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=self.toggle_expand)
+			else:
+				ui.spacer(3)
 
-		if is_expandable:
-			return ui.div(height=css.row_height)[
-				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=self.toggle_expand),
-				value_item,
-			]
-		else:
-			return ui.div(height=css.row_height)[
-				ui.spacer(3),
-				value_item,
-			]
+			if name:
+				ui.text(name, css=css.secondary, on_click=self.edit_variable)
+				ui.spacer(1)
+				ui.code(value, on_click=self.edit_variable)
+
+			else:
+				ui.code(value, on_click=self.edit_variable)
 
 	def render_children(self):
 		if self.error:
-			return ui.div(height=css.row_height)[
+			with ui.div(height=css.row_height):
 				ui.text(str(self.error), css=css.redish_secondary)
-			]
+
+			return
 
 		if self.variable_children is None:
-			return ui.div(height=css.row_height)[
-				ui.spacer(3),
+			with ui.div(height=css.row_height):
+				ui.spacer(3)
 				ui.text('…', css=css.secondary)
-			]
+
+			return
+
 
 		if not self.variable_children:
-			return ui.div(height=css.row_height)[
-				ui.spacer(3),
+			with ui.div(height=css.row_height):
+				ui.spacer(3)
 				ui.text('zero items …', css=css.secondary)
-			]
 
-		children: list[ui.div] = []
+			return
+
 
 		count = self.state.number_expanded(self.variable)
 		for variable in self.variable_children[:count]:
-			children.append(VariableView(self.debugger, variable, state=self.state))
+			VariableView(self.debugger, variable, state=self.state)
 
 		more_count = len(self.variable_children) - count
 		if more_count > 0:
-			children.append(
-				ui.div(height=css.row_height)[
-					ui.spacer(3),
-					ui.text('{} more items …'.format(more_count), css=css.secondary, on_click=self.show_more)
-				]
-			)
+			with ui.div(height=css.row_height):
+				ui.spacer(3)
+				ui.text('{} more items …'.format(more_count), css=css.secondary, on_click=self.show_more)
 
-		return children
 
 	def render(self):
 		name =  self.variable.name
@@ -244,17 +235,14 @@ class VariableView (ui.div):
 		is_expandable = self.variable.has_children
 		is_expanded = self.state.is_expanded(self.variable)
 
-		header = self.render_header(name, value, is_expandable, is_expanded)
+		self.render_header(name, value, is_expandable, is_expanded)
 
 		if not is_expandable or not is_expanded:
-			return header
+			return
 
 		if self.children_only:
-			return self.render_children()
+			self.render_children()
+			return
 
-		return [
-			header,
-			ui.div(css=css.table_inset)[
-				self.render_children()
-			]
-		]
+		with ui.div(css=css.table_inset):
+			self.render_children()

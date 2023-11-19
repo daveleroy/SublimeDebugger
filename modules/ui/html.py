@@ -20,13 +20,45 @@ class alignable:
 HtmlResponse = Union[str, Iterable['HtmlResponse']]
 
 
-class element:
+stack: list[list[element]] = []
+stack_lock = 0
+
+def enter_render_frame():
+	stack.append([])
+
+def render(element: element):
+	stack[-1].append(element)
+
+def exit_render_frame():
+	return stack.pop()
+
+
+class StackMeta(type):
+	def __call__(cls, *args, **kwargs):
+		global stack_lock
+
+		# when creating objects we need to lock the stack so that any elements created in the __init__ method don't get added to the render stack
+		# without this you cannot create and store elements and append them to the stack manually
+		stack_lock += 1
+		instance = super().__call__(*args, **kwargs)
+		stack_lock -= 1
+
+		if stack and stack_lock == 0:
+			instance.append_stack()
+
+		return instance
+
+
+class element(metaclass=StackMeta):
 	Children = Union[Sequence['element'], 'element', None]
 
 	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
 		super().__init__()
 		self.layout: Layout = None #type: ignore
+
 		self.children: list[element] = []
+		self.children_rendered: list[element] = []
+
 		self.requires_render = True
 
 		self.is_inline = is_inline
@@ -42,6 +74,32 @@ class element:
 			self.css_padding_height = 0
 			self.css_padding_width = 0
 
+	def append_stack(self):
+		stack[-1].append(self)
+
+	def __enter__(self):
+		enter_render_frame()
+		return self
+
+	def __exit__(self, *args):
+		self.assign_children(exit_render_frame())
+
+	def assign_children(self, values: list[element]):
+		self.children = values
+		self.modified_children()
+
+	def modified_children(self):
+		...
+
+	def perform_render(self):
+		enter_render_frame()
+		self.render()
+		items = exit_render_frame()
+
+		self.children_rendered = items
+
+	def render(self) -> None:
+		stack[-1].extend(self.children)
 
 	def html_height(self, available_width: float, available_height: float) -> float: ...
 
@@ -55,63 +113,6 @@ class element:
 
 	def added(self) -> None: ...
 	def removed(self) -> None: ...
-	def render(self) -> element.Children: ...
-
-
-class SpanParams(TypedDict, total=False):
-	on_click: Callable[[], Any]|None
-	title: str|None
-
-
-class span (element):
-	Children = Union[Sequence['Children'], 'span', None]
-
-	def __init__(self, css: css|None = None, **kwargs: Unpack[SpanParams]) -> None:
-		super().__init__(True, None, None, css)
-		self.kwargs = kwargs
-		self._items: span.Children = None
-
-	def render(self) -> Children: #type: ignore
-		return self._items
-
-	def __getitem__(self, values: Children):
-		self._items = values
-		return self
-
-	# height of a span is always just fixed it doesn't really since it does not change the layout
-	def html_height(self, available_width: float, available_height: float) -> float:
-		if self.height is not None:
-			return self.height + self.css_padding_height
-
-		return self.css_padding_height
-
-	def html_tag_and_attrbutes(self):
-		attributes = f'id="{self.css_id}"' if self.css_id else ''
-		tag = 's'
-
-		if on_click := self.kwargs.get('on_click'):
-			tag = 'a'
-			id = self.layout.register_on_click_handler(on_click)
-			attributes += f' href="{id}"'
-
-		if title := self.kwargs.get('title'):
-			attributes += f' title="{title}"'
-
-		return (tag, attributes)
-
-
-
-	def html_inner(self, available_width: float, available_height: float) -> HtmlResponse:
-		return map(lambda child: child.html(available_width, available_height), self.children)
-
-	def html(self, available_width: float, available_height: float) -> HtmlResponse:
-		inner = self.html_inner(available_width, available_height)
-		tag, attributes = self.html_tag_and_attrbutes()
-		return [
-			f'<{tag} {attributes}>',
-				inner,
-			f'</{tag}>',
-		]
 
 
 class div (element):
@@ -119,22 +120,24 @@ class div (element):
 
 	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(False, width, height, css)
-		self._items: div.Children = None
+		self.children_inline = False
 
-	def render(self) -> div.Children: #type: ignore
-		return self._items
-
-	def __getitem__(self, values: div.Children):
-		self._items = values
-		return self
+	def modified_children(self):
+		if self.children:
+			self.children_inline = self.children[0].is_inline
+		else:
+			self.children_inline = False
 
 	# height of a div matches the height of all its children combined unless explicitly given
 	def html_height(self, available_width: float, available_height: float) -> float:
 		if self.height is not None:
 			return self.height + self.css_padding_height
 
+		if self.children_inline:
+			return 3
+
 		height = self.css_padding_height
-		for item in self.children:
+		for item in self.children_rendered:
 			height += item.html_height(available_width, available_height)
 
 		return min(available_height, height)
@@ -152,31 +155,77 @@ class div (element):
 		return (tag, attributes)
 
 	def html_inner(self, available_width: float, available_height: float) -> HtmlResponse:
-		for child in self.children:
+		for child in self.children_rendered:
 			html = child.html(available_width, available_height)
 			available_height -= child.html_height(available_width, available_height)
 			if available_height >= 0:
 				yield html
 
 	def html(self, available_width: float, available_height: float) -> HtmlResponse:
-		children_inline = self.children and self.children[0].is_inline
-
 		height = self.html_height(available_width, available_height) - self.css_padding_height
 		width = self.html_width(available_width, available_height) - self.css_padding_width
 
 		tag, attributes = self.html_tag_and_attrbutes()
 
-		if children_inline:
+		if self.children_inline:
 			from .align import aligned_html_inner
 			html = aligned_html_inner(self, width, height)
 
 			# this makes it so that divs with an img in them and divs without an img in them all align the same
 			# and everything inside the div aligns vertically
 			offset = height / 2 - 0.5
-			return f'<{tag} {attributes} style="height:{height:}rem; width:{width}rem; padding:{-offset}rem 0 {offset}rem 0"><img style="height:{height}rem">', html, f'</{tag}>'
+			return f'<{tag} {attributes} style="height:{height}rem; width:{width}rem; padding:{-offset}rem 0 {offset}rem 0"><img style="height:{height}rem">', html, f'</{tag}>'
 		else:
 			html = self.html_inner(width, height)
 			return f'<{tag} {attributes} style="height:{height}rem;width:{width}rem;">', html, f'</{tag}>'
+
+
+class SpanParams(TypedDict, total=False):
+	on_click: Callable[[], Any]|None
+	title: str|None
+
+
+class span (element):
+	Children = Union[Sequence['Children'], 'span', None]
+
+	def __init__(self, css: css|None = None, **kwargs: Unpack[SpanParams]) -> None:
+		super().__init__(True, None, None, css)
+		self.kwargs = kwargs
+
+	# height of a span is always just fixed it doesn't really since it does not change the layout
+	def html_height(self, available_width: float, available_height: float) -> float:
+		return 3
+		# if self.height is not None:
+		# 	return self.height + self.css_padding_height
+
+		# return self.css_padding_height
+
+	def html_tag_and_attrbutes(self):
+		attributes = f'id="{self.css_id}"' if self.css_id else ''
+		tag = 's'
+
+		if on_click := self.kwargs.get('on_click'):
+			tag = 'a'
+			id = self.layout.register_on_click_handler(on_click)
+			attributes += f' href="{id}"'
+
+		if title := self.kwargs.get('title'):
+			attributes += f' title="{title}"'
+
+		return (tag, attributes)
+
+	def html_inner(self, available_width: float, available_height: float) -> HtmlResponse:
+		return map(lambda child: child.html(available_width, available_height), self.children_rendered)
+
+	def html(self, available_width: float, available_height: float) -> HtmlResponse:
+		inner = self.html_inner(available_width, available_height)
+		tag, attributes = self.html_tag_and_attrbutes()
+		return [
+			f'<{tag} {attributes}>',
+				inner,
+			f'</{tag}>',
+		]
+
 
 def html_escape(text: str) -> str:
 	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '\u00A0')
@@ -208,6 +257,8 @@ class icon (span):
 class text (span, alignable):
 	def __init__(self, text: str, css: css|None = None, **kwargs: Unpack[SpanParams]) -> None:
 		super().__init__(css, **kwargs)
+		text = text if isinstance(text, str) else str(text)
+
 		self._text = text.replace("\u0000", "\\u0000")
 		self._text_html = None
 		self._text_clipped = ''

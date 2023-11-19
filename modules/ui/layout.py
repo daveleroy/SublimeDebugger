@@ -4,19 +4,9 @@ from typing import Callable, ClassVar
 
 from ..import core
 from .css import css
-from .html import HtmlResponse, div, element
-from collections.abc import Iterable
+from .html import HtmlResponse, div, element, enter_render_frame, exit_render_frame
+
 import sublime
-
-def flatten_element_children(items: element.Children, list: list[element]):
-	if items is None:
-		pass
-	elif isinstance(items, Iterable):
-		for item in items:
-			flatten_element_children(item, list)
-	else:
-		list.append(items)
-
 
 def flatten_html_response(items: HtmlResponse, list: list[str]):
 	if type(items) is str:
@@ -41,6 +31,8 @@ class Layout:
 	layouts_to_remove: ClassVar[list[Layout]] = []
 	layouts: ClassVar[list[Layout]] = []
 	_render_scheduled = False
+
+	on_layout_invalidated: Callable[[], None]|None = None
 
 	debug: bool = False
 
@@ -92,6 +84,7 @@ class Layout:
 		Layout._render_scheduled = True
 		core.call_soon(Layout.render_layouts)
 
+
 	def __init__(self, view: sublime.View) -> None:
 		self.stats = LayoutStats(name=view.name())
 
@@ -133,12 +126,14 @@ class Layout:
 	def dispose(self) -> None:
 		Layout.layouts_to_remove.append(self)
 
-	def __getitem__(self, values: div.Children):
-		self.item [
-			values
-		]
-		self.dirty()
+	def __enter__(self):
+		enter_render_frame()
 		return self
+
+	def __exit__(self, *args):
+		items = exit_render_frame()
+		self.item.assign_children(items)
+		self.dirty()
 
 	@property
 	def vertical_offset(self):
@@ -159,28 +154,30 @@ class Layout:
 		self.requires_render = True
 		Layout._schedule_render_layouts()
 
+		if self.on_layout_invalidated:
+			self.on_layout_invalidated()
+
 	def dirty(self) -> None:
 		self.requires_render = True
 		Layout._schedule_render_layouts()
 
 	def _add_element_children(self, parent: element) -> None:
-		for child in parent.children:
+		for child in parent.children_rendered:
 			assert not child.layout, 'This item already has a layout?'
 			child.layout = self
 			child.added()
 
 	def _remove_element_children(self, parent: element) -> None:
-		for child in parent.children:
+		for child in parent.children_rendered:
 			self._remove_element_children(child)
 			child.removed()
 			child.layout = None #type: ignore
 
-		parent.children.clear()
 
 	def render_element_tree(self, item: element, requires_render: bool = False) -> None:
 		if not requires_render and not item.requires_render:
 			# check the children elements
-			for child in item.children:
+			for child in item.children_rendered:
 				self.render_element_tree(child)
 			return
 
@@ -188,11 +185,11 @@ class Layout:
 
 		# remove old and add new
 		self._remove_element_children(item)
-		flatten_element_children(item.render(), item.children)
+		item.perform_render()
 		self._add_element_children(item)
 
 		# all the children must be rendered since the parent required rendering
-		for child in item.children:
+		for child in item.children_rendered:
 			self.render_element_tree(child, True)
 
 	def render(self) -> bool:
@@ -201,6 +198,7 @@ class Layout:
 
 		self._on_click_handlers.clear()
 		self.requires_render = False
+
 		self.render_element_tree(self.item)
 
 		css_string = css.generate(self)

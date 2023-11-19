@@ -31,34 +31,30 @@ class DebuggerTabbedView(TabbedView):
 
 
 	def header(self, is_selected):
-		return self.actions_tab
+		self.actions_tab.append_stack()
 
 	def on_selected_session(self, session: dap.Session):
 		self.last_adapter_configuration = session.adapter_configuration
 		self.dirty()
 
-	def render(self) -> ui.div.Children:
+	def render(self):
 		# looks like
 		# current status
 		# breakpoints ...
-
-		panel_items: list[ui.div] = []
 
 		if session := self.debugger.session:
 			self.last_adapter_configuration = session.adapter_configuration
 
 			if status := session.state.status:
-				panel_items.append(ui.div(height=css.row_height)[
+				with ui.div(height=css.row_height):
 					ui.text(status, css=css.secondary)
-				])
+
 
 		if self.last_adapter_configuration:
-			if item := self.last_adapter_configuration.ui(self.debugger):
-				panel_items.append(item)
+			self.last_adapter_configuration.ui(self.debugger)
 
-		panel_items.append(self.breakpoints)
+		self.breakpoints.append_stack()
 
-		return panel_items
 
 
 class DebuggerActionsTab(ui.span):
@@ -76,63 +72,53 @@ class DebuggerActionsTab(ui.span):
 		self.on_session_state_updated.dispose()
 		self.on_project_updated.dispose()
 
-	def render(self) -> ui.span.Children:
+	def render(self):
 		name = self.debugger.project.name
 
-		items: list[ui.span] = [
-			ui.icon(ui.Images.shared.settings, on_click=lambda: menus.on_settings(self.debugger), title='Settings'),
-			ui.spacer(1),
-			ui.icon(ui.Images.shared.play, on_click=self.debugger.start, title=f'Start: {name}' if name else 'Add/Select Configuration'),
-			ui.spacer(1),
-		]
+		ui.icon(ui.Images.shared.settings, on_click=lambda: menus.on_settings(self.debugger), title='Settings')
+		ui.spacer(1)
+		ui.icon(ui.Images.shared.play, on_click=self.debugger.start, title=f'Start: {name}' if name else 'Add/Select Configuration')
+		ui.spacer(1)
 
 		if self.debugger.is_stoppable():
-			items.append(ui.icon(ui.Images.shared.stop, on_click=self.debugger.stop, title='Stop'))
+			ui.icon(ui.Images.shared.stop, on_click=self.debugger.stop, title='Stop')
 		else:
-			items.append(ui.icon(ui.Images.shared.stop_disable, on_click=self.debugger.stop, title='Stop (Disabled)'))
+			ui.icon(ui.Images.shared.stop_disable, on_click=self.debugger.stop, title='Stop (Disabled)')
 
-
-		
 		if len(name) > 11:
 			name = name[:10] +  '…'
 		else:
 			name = name.ljust(11, ' ')
 
-		items.append(ui.spacer(1))
+		ui.spacer(1)
 
 		if not self.debugger.is_active:
-			items.append(
-				ui.span(css=css.button_drop, on_click=lambda: menus.on_settings(self.debugger))[
-					ui.text(name, css=css.secondary),
-					ui.icon(ui.Images.shared.open, align_left=False)
-				]
-			)
+			with ui.span(css=css.button_drop, on_click=lambda: menus.on_settings(self.debugger)):
+				ui.text(name, css=css.secondary)
+				ui.icon(ui.Images.shared.open, align_left=False)
+
 		else:
 
 			if self.debugger.is_running():
-				items.append(ui.icon(ui.Images.shared.pause, on_click=self.debugger.pause, title='Pause'))
+				ui.icon(ui.Images.shared.pause, on_click=self.debugger.pause, title='Pause')
 			elif self.debugger.is_paused():
-				items.append(ui.icon(ui.Images.shared.resume, on_click=self.debugger.resume, title='Continue'))
+				ui.icon(ui.Images.shared.resume, on_click=self.debugger.resume, title='Continue')
 			else:
-				items.append(ui.icon(ui.Images.shared.pause_disable, on_click=self.debugger.pause, title='Pause (Disabled)'))
+				ui.icon(ui.Images.shared.pause_disable, on_click=self.debugger.pause, title='Pause (Disabled)')
 
-			items.append(ui.spacer(1))
+			ui.spacer(1)
 
 			if self.debugger.is_paused():
-				items.extend([
-					ui.icon(ui.Images.shared.down, on_click=self.debugger.step_over, title='Step Over'),
-					ui.spacer(1),
-					ui.icon(ui.Images.shared.left, on_click=self.debugger.step_out, title='Step Out'),
-					ui.spacer(1),
-					ui.icon(ui.Images.shared.right, on_click=self.debugger.step_in, title='Step In'),
-				])
+				ui.icon(ui.Images.shared.down, on_click=self.debugger.step_over, title='Step Over')
+				ui.spacer(1)
+				ui.icon(ui.Images.shared.left, on_click=self.debugger.step_out, title='Step Out')
+				ui.spacer(1)
+				ui.icon(ui.Images.shared.right, on_click=self.debugger.step_in, title='Step In')
 			else:
-				items.extend([
-					ui.icon(ui.Images.shared.down_disable, on_click=self.debugger.step_over, title='Step Over (Disabled)'),
-					ui.spacer(1),
-					ui.icon(ui.Images.shared.left_disable, on_click=self.debugger.step_out, title='Step Out (Disabled)'),
-					ui.spacer(1),
-					ui.icon(ui.Images.shared.right_disable, on_click=self.debugger.step_in, title='Step In (Disabled)'),
-				])
-			items.append(ui.spacer(1))
-		return items
+				ui.icon(ui.Images.shared.down_disable, on_click=self.debugger.step_over, title='Step Over (Disabled)')
+				ui.spacer(1)
+				ui.icon(ui.Images.shared.left_disable, on_click=self.debugger.step_out, title='Step Out (Disabled)')
+				ui.spacer(1)
+				ui.icon(ui.Images.shared.right_disable, on_click=self.debugger.step_in, title='Step In (Disabled)')
+
+			ui.spacer(1)

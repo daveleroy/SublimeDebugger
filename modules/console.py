@@ -190,11 +190,10 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		def on_navigate(path: str):
 			component = VariableView(self.debugger, variable, children_only=True)
 			component.set_expanded()
-			popup = ui.Popup(self.view, at)[
-				ui.div(width=100)[
-					component
-				]
-			]
+			popup = ui.Popup(self.view, at)
+			with popup:
+				with ui.div(width=100):
+					component.append_stack()
 
 		def edit(edit: sublime.Edit):
 			# remove trailing \n if it exists since we already inserted a newline to place this variable in

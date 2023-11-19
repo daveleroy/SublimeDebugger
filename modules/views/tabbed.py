@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence, cast
 
 from ..import ui
 from .import css
@@ -16,10 +16,11 @@ class TabbedView(ui.div):
 		self.name = name
 		self.parent = None
 
-	def header(self, is_selected: bool) -> ui.span.Children:
-		return ui.span(css=css.tab_selected if is_selected else css.tab) [
-			ui.text(self.name, css=css.label if is_selected else css.secondary),
-		]
+	def header(self, is_selected: bool):
+		with ui.span(css=css.tab_selected if is_selected else css.tab):
+			ui.text(self.name, css=css.label if is_selected else css.secondary)
+
+		ui.spacer_dip(10)
 
 	def visible(self) -> bool:
 		return True
@@ -41,8 +42,8 @@ class TabbedViewContainer(ui.div):
 
 		self.items: Sequence[TabbedView] = []
 
-	def __getitem__(self, values: TabbedView|Sequence[TabbedView]): #type: ignore
-		self.items = values if isinstance(values, Iterable) else [values]
+	def modified_children(self):
+		self.items = cast('list[TabbedView]', self.children)
 
 		for item in self.items:
 			item.parent = self
@@ -51,8 +52,6 @@ class TabbedViewContainer(ui.div):
 			self.selected_index = 0
 
 		self.dirty()
-
-		return self
 
 	def select(self, panel: Any):
 		for index, item in enumerate(self.items):
@@ -79,9 +78,9 @@ class TabbedViewContainer(ui.div):
 		self.selected_index = index
 		self.dirty()
 
-	def render(self) -> ui.div.Children:
+	def render(self):
 		if not self.items:
-			return []
+			return
 
 		self.patch_selected()
 
@@ -97,24 +96,17 @@ class TabbedViewContainer(ui.div):
 			layout_width = self.layout.width + self._width_additional + self.layout.from_dip(self._width_additional_dip)
 			width = layout_width * self._width_scale if self._width_scale else layout_width
 
-		tabs: list[ui.span] = []
-
-		for index, item in enumerate(self.items):
-			if not item.visible():
-				continue
-
-			tabs.append(ui.span(on_click=partial(self.show, index))[
-				item.header(index == self.selected_index)
-			])
-
-		return ui.div(width=width, height=500, css=css.panel)[
+		with ui.div(width=width, height=500, css=css.panel):
 			# this inner panel controls how much content is actually displayed
 			# while scrolling the tab bar disappears revealing all the content
 			# while not scrolling this panel clips the content
-			ui.div(height=height-css.panel_content.padding_height - css.header_height, css=css.panel_content)[
-				self.items[self.selected_index]
-			],
-			ui.div(width=width, height=4)[
-				tabs
-			],
-		]
+			with ui.div(height=height-css.panel_content.padding_height - css.header_height, css=css.panel_content):
+				self.items[self.selected_index].append_stack()
+
+			with ui.div(width=width, height=4):
+				for index, item in enumerate(self.items):
+					if not item.visible():
+						continue
+
+					with ui.span(on_click=partial(self.show, index)):
+						item.header(index == self.selected_index)

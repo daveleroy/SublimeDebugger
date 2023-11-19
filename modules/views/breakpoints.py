@@ -68,20 +68,12 @@ class BreakpointsView(ui.div):
 
 		assert False, "unreachable"
 
-	def render(self) -> ui.div.Children:
-		items: list[ui.div] = []
-
+	def render(self):
 		for breakpoints in (self.breakpoints.filters, self.breakpoints.function, self.breakpoints.data, self.breakpoints.source):
 			for breakpoint in breakpoints:
-				items.append(
-					ui.div(height=css.row_height)[
-						ui.icon(breakpoint.image, on_click=partial(self._on_toggle, breakpoint)),
-						ui.text(breakpoint.name, css=css.secondary, on_click=partial(self._on_edit, breakpoint)),
-						[
-							ui.spacer(),
-							ui.text(breakpoint.tag, css=css.button, on_click=partial(self._on_navigate, breakpoint)),
-						]
-						if breakpoint.tag else None
-					])
-
-		return items
+				with ui.div():
+					ui.icon(breakpoint.image, on_click=partial(self._on_toggle, breakpoint))
+					ui.text(breakpoint.name, css=css.secondary, on_click=partial(self._on_edit, breakpoint))
+					if breakpoint.tag:
+						ui.spacer()
+						ui.text(breakpoint.tag, css=css.button, on_click=partial(self._on_navigate, breakpoint))

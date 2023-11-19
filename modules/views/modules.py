@@ -51,51 +51,38 @@ class ModulesTabbedView(TabbedView):
 		self.dirty()
 
 	def render(self):
-		items: list[ui.div] = []
 		for session in self.debugger.sessions:
-			items.append(ui.div(height=css.row_height)[
+			with ui.div(height=css.row_height):
 				ui.text(session.name)
-			])
 
 			for module in session.modules.values():
 				is_expanded = self.is_expanded(module)
 				image_toggle = ui.Images.shared.open if is_expanded else ui.Images.shared.close
-				item = ui.div(height=css.row_height) [
-					ui.icon(image_toggle, on_click=lambda module=module: self.toggle_expanded(module)),
+				with ui.div(height=css.row_height):
+					ui.icon(image_toggle, on_click=lambda module=module: self.toggle_expanded(module))
 					ui.text(module.name)
-				]
-				items.append(item)
+
 				if is_expanded:
-					body: list[ui.div] = []
-					def add_item(label: str, value: Any):
-						if value is None:
-							return
+					with ui.div(css=css.table_inset):
+						def add_item(label: str, value: Any):
+							if value is None:
+								return
 
-						def copy():
-							ui.InputList(value)[
-								ui.InputListItem(lambda: sublime.set_clipboard(value), "Copy")
-							].run()
+							def copy():
+								ui.InputList(value)[
+									ui.InputListItem(lambda: sublime.set_clipboard(value), "Copy")
+								].run()
 
-						value_str = str(value)
-						body.append(
-							ui.div(height=3)[
-								ui.span(on_click=copy)[
-									ui.text(label, css=css.secondary),
-									ui.spacer(1),
-									ui.text(value_str, css=css.label),
-								]
-							]
-						)
+							value_str = str(value)
+							with ui.div(height=3):
+								with ui.span(on_click=copy):
+									ui.text(label, css=css.secondary)
+									ui.spacer(1)
+									ui.text(value_str, css=css.label)
 
-					add_item('version', module.version)
-					add_item('optimized', module.isOptimized)
-					add_item('path', module.path)
-					add_item('symbols', module.symbolStatus)
-					add_item('symbol file path', module.symbolFilePath)
-					add_item('load address', module.addressRange)
-
-					items.append(ui.div(css=css.table_inset)[
-						body
-					])
-
-		return items
+						add_item('version', module.version)
+						add_item('optimized', module.isOptimized)
+						add_item('path', module.path)
+						add_item('symbols', module.symbolStatus)
+						add_item('symbol file path', module.symbolFilePath)
+						add_item('load address', module.addressRange)

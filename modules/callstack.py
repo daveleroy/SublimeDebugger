@@ -45,26 +45,26 @@ class CallstackOutputPanel(OutputPanel, core.Dispose):
 
 		self.debugger = debugger
 		self.callstack = CallStackTabbedView(self.debugger, self)
+		with ui.Phantom(self.view, 0, name='Breakpoints') as phantom:
+			self.dispose_add(phantom)
 
-		self.dispose_add([
-			ui.Phantom(self.view, 0, name='Breakpoints')[
-				TabbedViewContainer(width=30) [
-					DebuggerTabbedView(self.debugger, debugger._on_navigate_to_source)
-				]
-			],
-			ui.Phantom(self.view, 1, name='Callstack')[
-				TabbedViewContainer(width_scale=0.65, width_additional=-30, width_additional_dip=-30)[
-					self.callstack
-				]
-			],
-			ui.Phantom(self.view, 2, name='Variables')[
-				TabbedViewContainer(width_scale=0.35, width_additional=-30, width_additional_dip=-30) [
-					VariablesTabbedView(self.debugger),
-					ModulesTabbedView(self.debugger),
-					SourcesTabbedView(self.debugger, debugger._on_navigate_to_source)
-				]
-			],
-		])
+			with TabbedViewContainer(width=30):
+				DebuggerTabbedView(self.debugger, debugger._on_navigate_to_source)
+
+		with ui.Phantom(self.view, 1, name='Callstack') as phantom:
+			self.dispose_add(phantom)
+
+			with TabbedViewContainer(width_scale=0.5, width_additional=-30, width_additional_dip=-30):
+				self.callstack.append_stack()
+
+		with ui.Phantom(self.view, 2, name='Variables') as phantom:
+			self.dispose_add(phantom)
+
+			with TabbedViewContainer(width_scale=0.5, width_additional=-30, width_additional_dip=-30):
+				VariablesTabbedView(self.debugger)
+				ModulesTabbedView(self.debugger)
+				SourcesTabbedView(self.debugger, debugger._on_navigate_to_source)
+
 
 	def updated_status(self):
 		self.callstack.tabs.dirty()

@@ -26,23 +26,21 @@ class OutputPanelTabs(ui.span):
 		return super().__repr__() + self.output_name + str(self.children)
 
 	def render(self):
-		items: list[ui.span] = []
-
 		for panel in self.debugger.output_panels:
 			is_selected = panel.output_panel_name == self.output_name
 
-			items.append(
-				ui.span(css=css.tab_selected if is_selected else css.tab, on_click=lambda panel=panel: panel.open())[
-					ui.spacer(1),
-					ui.text(panel.name, css=css.label if is_selected else css.secondary),
-					ui.spacer(1),
-					ui.icon(panel.status, on_click=lambda panel=panel: panel.open_status()) if panel.status else None
-				]
-			)
+			for tab in panel.tabs:
+				tab_selected = is_selected and tab == panel.tab
+				with ui.span(css=css.tab_selected if tab_selected else css.tab, on_click=lambda panel=panel, tab=tab: panel.open(tab)):
+					ui.spacer(1)
+					ui.text(tab, css=css.label if tab_selected else css.secondary)
+					ui.spacer(1)
+					if panel.status:
+						ui.icon(panel.status, on_click=lambda panel=panel: panel.open_status())
 
-			items.append(ui.spacer_dip(10))
+				ui.spacer_dip(10)
 
-		return items
+
 
 
 class OutputPanelBar(ui.div):
@@ -54,17 +52,16 @@ class OutputPanelBar(ui.div):
 		self.top = panel.show_tabs_top
 
 	def render(self):
-		return ui.div(width=self.layout.width - 5) [
-			ui.div(height=css.header_height)[
-				self.actions,
-				ui.spacer_dip(9),
-				self.tabs,
-			],
-			ui.div(height=0.25, css=css.seperator) if self.top else None,
-			# ui.div(height=1, width=1, css=css.seperator_cutout) if self.top else None,
-		]
+		with ui.div(width=self.layout.width - 5):
+			with ui.div(height=css.header_height):
+				self.actions.append_stack()
+				ui.spacer_dip(9)
+				self.tabs.append_stack()
 
-class OutputPanel:
+			if self.top:
+				ui.div(height=0.25, css=css.seperator)
+
+class OutputPanel(core.Dispose):
 	on_opened: Callable[[], Any] | None = None
 	on_opened_status: Callable[[], Any] | None = None
 
@@ -77,6 +74,9 @@ class OutputPanel:
 		self.panel_name = self._get_free_output_panel_name(debugger.window, panel_name) if create else panel_name
 		self.output_panel_name = f'output.{self.panel_name}'
 		self.name = name or panel_name
+
+		self.tab = self.name
+		self.tabs = [self.name]
 
 		self.window = debugger.window
 		self.create = create
@@ -94,6 +94,7 @@ class OutputPanel:
 		self.view = self.window.find_output_panel(self.panel_name) or self.window.create_output_panel(self.panel_name)
 		self.view.set_name(self.name)
 		self.controls_and_tabs_phantom = None
+		self.text_change_listener = None
 
 		OutputPanel.panels[self.view.id()] = self
 
@@ -118,19 +119,28 @@ class OutputPanel:
 		self.update_settings()
 
 		if show_tabs and show_tabs_top:
+			# 3 seems to be an inline for the content before and the content after is left aligned below the phantom which lets us put a phantom at the top of the ui if you use Region(0)
+			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0), 3)
+			with self.controls_and_tabs_phantom:
+				self.controls_and_tabs = OutputPanelBar(debugger, self)
 
-			self.text_change_listener = OutputPanelTopTextChangeListener(self.view)
-			self.controls_and_tabs = OutputPanelBar(debugger, self)
-			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0, 0), sublime.LAYOUT_INLINE) [
-				self.controls_and_tabs
-			]
+			self.dispose_add([
+				self.controls_and_tabs_phantom,
+			])
 
 		elif show_tabs:
+
+			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(-1), sublime.LAYOUT_BLOCK)
+			with self.controls_and_tabs_phantom:
+				self.controls_and_tabs = OutputPanelBar(debugger, self)
+
 			self.text_change_listener = OutputPanelBottomTextChangeListener(self)
-			self.controls_and_tabs = OutputPanelBar(debugger, self)
-			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(-1), sublime.LAYOUT_BLOCK) [
-				self.controls_and_tabs
-			]
+			self.controls_and_tabs_phantom.on_layout_invalidated = self.text_change_listener.invalidated
+
+			self.dispose_add([
+				self.text_change_listener,
+				self.controls_and_tabs_phantom,
+			])
 
 		else:
 			self.text_change_listener = None
@@ -176,10 +186,9 @@ class OutputPanel:
 			controls_and_tabs.dirty()
 
 	def dispose(self):
-		self.debugger.remove_output_panel(self)
+		super().dispose()
 
-		if self.text_change_listener:
-			self.text_change_listener.dispose()
+		self.debugger.remove_output_panel(self)
 
 		if self.create:
 			self.window.destroy_output_panel(self.panel_name)
@@ -192,9 +201,7 @@ class OutputPanel:
 
 		self.on_post_show_panel.dispose()
 		self.on_pre_hide_panel.dispose()
-		if self.controls_and_tabs_phantom:
-			self.controls_and_tabs_phantom.dispose()
-		del OutputPanel.panels[self.view.id()]
+		del OutputPanel._panels[self.view.id()]
 
 	def _get_free_output_panel_name(self, window: sublime.Window, name: str) -> str:
 		id = 1
@@ -205,7 +212,8 @@ class OutputPanel:
 			name = f'{name}({id})'
 			id += 1
 
-	def open(self):
+	def open(self, tab: str|None = None):
+		self.tab = tab or self.tab
 		self.window.bring_to_front()
 		self.window.run_command('show_panel', {
 			'panel': self.output_panel_name
@@ -314,35 +322,6 @@ class DebuggerConsoleListener (sublime_plugin.EventListener):
 		if panel := OutputPanel.panels.get(view.id()):
 			return panel.on_query_completions(prefix, locations)
 
-class OutputPanelTopTextChangeListener(sublime_plugin.TextChangeListener):
-	def __init__(self, view: sublime.View) -> None:
-		super().__init__()
-		self.view = view
-		self.inside_on_text_changed = False
-
-		self.attach(view.buffer())
-
-	def dispose(self):
-		if self.is_attached():
-			self.detach()
-
-	def on_text_changed(self, changes: Any):
-		if self.inside_on_text_changed:
-			return
-
-		self.inside_on_text_changed  = True
-		core.edit(self.view, self._on_text_changed)
-		self.inside_on_text_changed  = False
-
-	def _on_text_changed(self, edit: sublime.Edit):
-		is_readonly = self.view.is_read_only()
-		self.view.set_read_only(False)
-
-		if self.view.substr(0) != '\n':
-			self.view.insert(edit, 0, '\n')
-
-		self.view.set_read_only(is_readonly)
-
 class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 	def __init__(self, panel: OutputPanel) -> None:
 		super().__init__()
@@ -351,11 +330,33 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 		self.inside_on_text_changed = False
 		self.attach(self.view.buffer())
 
+	def invalidated(self, scroll=False):
+		controls_and_tabs_phantom = self.panel.controls_and_tabs_phantom
+		if not controls_and_tabs_phantom:
+			return
+
+		size = self.view.size()
+
+		# if the size is 0 the phantom does not exist yet. We want render it before we make any calculations
+		# otherwise we will be off by the height of the phantom
+		if not size:
+			controls_and_tabs_phantom.dirty()
+			controls_and_tabs_phantom.render()
+
+
+		height = self.view.layout_extent()[1]
+		desired_height = self.view.viewport_extent()[1]
+
+
+		controls_and_tabs_phantom.vertical_offset = max((desired_height-height) + controls_and_tabs_phantom.vertical_offset, 0)
+		controls_and_tabs_phantom.render_if_out_of_position()
+
 	def dispose(self):
 		if self.is_attached():
 			self.detach()
 
 	def on_text_changed(self, changes: list[sublime.TextChange]):
+
 		if self.inside_on_text_changed:
 			return
 
@@ -383,25 +384,9 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 			self.panel.removed_newline = at
 			self.removed_newline_change_id = self.view.change_id()
 
-		if controls_and_tabs_phantom := self.panel.controls_and_tabs_phantom:
-			size = self.view.size()
-
-			# if the size is 0 the phantom does not exist yet. We want render it before we make any calculations
-			# otherwise we will be off by the height of the phantom
-			if not size:
-				controls_and_tabs_phantom.dirty()
-				controls_and_tabs_phantom.render()
-
-
-			height = self.view.layout_extent()[1]
-			desired_height = self.view.viewport_extent()[1]
-
-
-			controls_and_tabs_phantom.vertical_offset = max((desired_height-height) + controls_and_tabs_phantom.vertical_offset, 0)
-
-			controls_and_tabs_phantom.render_if_out_of_position()
-
-			# Figure out a better way that doesn't always scroll to the bottom when new content comes in
-			sublime.set_timeout(lambda: self.view.set_viewport_position((0, self.view.layout_extent()[1]), False), 0)
-
 		self.view.set_read_only(is_readonly)
+
+		self.invalidated()
+
+		# Figure out a better way that doesn't always scroll to the bottom when new content comes in
+		sublime.set_timeout(lambda: self.view.set_viewport_position((0, self.view.layout_extent()[1]), False), 0)
