@@ -46,14 +46,14 @@ class Breakpoints:
 		self.function.clear_breakpoint_result(session)
 		self.source.clear_breakpoint_result(session)
 
-	def load_from_json(self, json: dap.Json) -> None:
+	def load_from_json(self, json: core.JSON) -> None:
 		self.source.load_json(json.get('source', []))
 		self.function.load_json(json.get('function', []))
 		self.filters.load_json(json.get('filters', []))
 
-	def into_json(self) -> dap.Json:
-		return {
+	def into_json(self) -> core.JSON:
+		return core.JSON({
 			'source': self.source.into_json(),
 			'function': self.function.into_json(),
 			'filters': self.filters.into_json(),
-		}
+		})

@@ -32,15 +32,15 @@ class ExceptionBreakpointsFilter:
 	def description(self) -> str|None:
 		return self.dap.description
 
-	def into_json(self) -> dap.Json:
-		return {
+	def into_json(self) -> core.JSON:
+		return core.JSON({
 			'dap': self.dap,
 			'enabled': self.enabled,
 			'condition': self.condition
-		}
+		})
 
 	@staticmethod
-	def from_json(json: dap.Json) -> 'ExceptionBreakpointsFilter':
+	def from_json(json: core.JSON) -> 'ExceptionBreakpointsFilter':
 		return ExceptionBreakpointsFilter(
 			json['dap'],
 			json['enabled'],

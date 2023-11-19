@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Awaitable, Protocol
+from typing import Any, Awaitable, Protocol, cast
 
 from ..import core
 from .import dap
@@ -733,10 +733,10 @@ class Session(TransportListener):
 	async def on_transport_closed(self):
 		await self.stop_forced(reason=None)
 
-	async def on_reverse_request(self, command: str, arguments: Any) -> dict[str, Any]:
+	async def on_reverse_request(self, command: str, arguments: core.JSON) -> core.JSON:
 		if command == 'runInTerminal':
-			response = await self.on_run_in_terminal(arguments)
-			return response #type: ignore
+			response = await self.on_run_in_terminal(cast(dap.RunInTerminalRequestArguments, arguments))
+			return cast(core.JSON, response)
 
 		assert self.adapter_configuration
 		response = await self.adapter_configuration.on_custom_request(self, command, arguments)
@@ -744,7 +744,7 @@ class Session(TransportListener):
 		if response is None:
 			raise core.Error(f'reverse request not implemented {command}')
 
-		return response
+		return cast(core.JSON, response)
 
 	async def on_run_in_terminal(self, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		try:

@@ -14,12 +14,12 @@ class Watch:
 			self.evaluate_response: dap.Variable|None = None
 			self.on_updated = core.Event[None]()
 
-		def into_json(self) -> dap.Json:
-			return {
+		def into_json(self) -> core.JSON:
+			return core.JSON({
 				'value': self.value,
-			}
+			})
 		@staticmethod
-		def from_json(json: dap.Json) -> Watch.Expression:
+		def from_json(json: core.JSON) -> Watch.Expression:
 			return Watch.Expression(
 				json['value'],
 			)
@@ -29,11 +29,11 @@ class Watch:
 		self.on_updated = core.Event[None]()
 		self.on_added = core.Event[Watch.Expression]()
 
-	def load_json(self, json: list[dap.Json]):
+	def load_json(self, json: list[core.JSON]):
 		self.expressions = list(map(lambda j: Watch.Expression.from_json(j), json))
 		self.on_updated()
 
-	def into_json(self) -> list[dap.Json]:
+	def into_json(self) -> list[core.JSON]:
 		return list(map(lambda e: e.into_json(), self.expressions))
 
 	def add(self, value: str) -> None:
@@ -90,4 +90,3 @@ class Watch:
 
 	def edit_run(self, expression: Watch.Expression):
 		self.edit(expression).run()
-

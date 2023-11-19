@@ -11,7 +11,7 @@ import sublime_plugin
 if sublime.version() < '4000':
 	raise Exception('Debugger only supports Sublime Text 4')
 
-# remove old modules for this package so that they are reloaded when Debugger.start is reloaded
+# remove old modules for this package so that they are reloaded when this module is reloaded
 for module in list(filter(lambda module: module.startswith(__package__ + '.') and module != __name__, sys.modules.keys())):
 	del sys.modules[module]
 

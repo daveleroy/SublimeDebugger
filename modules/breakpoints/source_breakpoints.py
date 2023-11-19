@@ -53,8 +53,8 @@ class SourceBreakpoint(Breakpoint):
 			return self._result.column
 		return self.dap.column
 
-	def into_json(self) -> dap.Json:
-		return {
+	def into_json(self) -> core.JSON:
+		return core.JSON({
 			'file': self.file,
 			'line': self.dap.line,
 			'column': self.dap.column,
@@ -62,10 +62,10 @@ class SourceBreakpoint(Breakpoint):
 			'condition': self.dap.condition,
 			'logMessage': self.dap.logMessage,
 			'hitCondition': self.dap.hitCondition
-		}
+		})
 
 	@staticmethod
-	def from_json(breakoints: SourceBreakpoints, json: dap.Json):
+	def from_json(breakoints: SourceBreakpoints, json: core.JSON):
 		file = json['file']
 		line = json['line']
 		column = json.get('column')

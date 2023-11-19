@@ -123,15 +123,15 @@ class InputList(sublime_plugin.ListInputHandler):
 
 		return (items, self.index)
 
-	def confirm(self, value: int, event: dict):
+	def confirm(self, arg: int, event:Any=None):
 		modifier_keys = event.get('modifier_keys', {})
 		is_alt = modifier_keys.get('super') or modifier_keys.get('alt')
 
 		if is_alt:
-			run = self.values[value].run_alt
+			run = self.values[arg].run_alt
 
 		else:
-			run = self.values[value].run
+			run = self.values[arg].run
 
 		if callable(run):
 			run()
@@ -196,9 +196,9 @@ class InputText(sublime_plugin.TextInputHandler):
 	def initial_text(self): #type: ignore
 		return self._initial
 
-	def confirm(self, value: str):
+	def confirm(self, arg: str, event: Any = None):
 		if callable(self._run):
-			self._run(value)
+			self._run(arg)
 		else:
 			self._next_input = self._run
 

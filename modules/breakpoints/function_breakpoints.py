@@ -14,14 +14,14 @@ class FunctionBreakpoint(Breakpoint):
 		self.enabled = enabled
 		self.dap = breakpoint
 
-	def into_json(self) -> dap.Json:
-		return {
+	def into_json(self) -> core.JSON:
+		return core.JSON({
 			'dap': self.dap,
 			'enabled': self.enabled
-		}
+		})
 
 	@staticmethod
-	def from_json(json: dap.Json):
+	def from_json(json: core.JSON):
 		return FunctionBreakpoint(
 			json['dap'],
 			json['enabled']

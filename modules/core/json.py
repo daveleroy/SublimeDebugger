@@ -27,7 +27,7 @@ def json_encode(obj: Any, pretty=False):
 
 class DottedDict(dict, Mapping[K, T]):
 	__getitem__ = dict.get
-	__getattr__:Callable[[self, str], Any] = dict.get #type: ignore
+	__getattr__:Callable[[str], Any] = dict.get #type: ignore
 	__setattr__ = dict.__setitem__ #type: ignore
 	__delattr__ = dict.__delitem__ #type: ignore
 

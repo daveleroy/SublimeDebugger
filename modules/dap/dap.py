@@ -223,7 +223,7 @@ class LaunchRequestArguments:
 	"""
 	noDebug: Optional[bool]
 	"""If noDebug is true the launch request should launch the program without enabling debugging."""
-	__restart: Optional[Any]
+	__restart: Optional[Any] #type: ignore
 	"""Optional data from the previous, restarted session.\nThe data is sent as the 'restart' attribute of the 'terminated' event.\nThe client should leave the data intact."""
 
 @dataclass
@@ -235,7 +235,7 @@ class AttachRequestArguments:
 	"""
 	Arguments for 'attach' request. Additional attributes are implementation specific.
 	"""
-	__restart: Optional[Any]
+	__restart: Optional[Any] #type: ignore
 	"""Optional data from the previous, restarted session.\nThe data is sent as the 'restart' attribute of the 'terminated' event.\nThe client should leave the data intact."""
 
 @dataclass

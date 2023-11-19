@@ -44,14 +44,15 @@ class Variable:
 		self.containerVariablesReference = containerVariablesReference
 		self.memoryReference = memoryReference
 		self.fetched: core.Future[list[Variable]]|None = None
-		
+
 
 	@staticmethod
 	def from_variable(session: Session, containerVariablesReference: int, variable: dap.Variable):
+
 		return Variable(
 			session,
 			variable.name,
-			variable.value,			
+			variable.value,
 			variable.variablesReference,
 			containerVariablesReference,
 			variable.evaluateName,
@@ -63,7 +64,7 @@ class Variable:
 		return Variable(
 			session,
 			scope.name,
-			None,			
+			None,
 			scope.variablesReference,
 		)
 
@@ -72,7 +73,7 @@ class Variable:
 		return Variable(
 			session,
 			name,
-			evaluate.result,			
+			evaluate.result,
 			evaluate.variablesReference,
 		)
 
@@ -93,4 +94,3 @@ class Variable:
 	@property
 	def has_children(self) -> bool:
 		return bool(self.variablesReference)
-
