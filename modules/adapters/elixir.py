@@ -11,7 +11,7 @@ class Elixir(dap.AdapterConfiguration):
 	docs = 'https://github.com/elixir-lsp/elixir-ls#debugger-support'
 
 	installer = util.GitInstaller(
-		type='elixir', 
+		type='elixir',
 		repo='daveleroy/vscode-elixir-ls'
 	)
 
@@ -22,4 +22,4 @@ class Elixir(dap.AdapterConfiguration):
 		command = [
 			f'{install_path}/extension/elixir-ls-release/debugger.{extension}'
 		]
-		return dap.StdioTransport(log, command, stderr=log.error)
+		return dap.StdioTransport(command, stderr=log.error)
