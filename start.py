@@ -297,8 +297,6 @@ class EventListener (sublime_plugin.EventListener):
 		if not key.startswith('debugger'):
 			return None
 
-		debugger = debugger_for_view(view)
-
 		def apply_operator(value: Any):
 			if operator == sublime.OP_EQUAL:
 				return value == operand
@@ -306,13 +304,23 @@ class EventListener (sublime_plugin.EventListener):
 				return value != operand
 
 		if key == 'debugger':
+			debugger = debugger_for_view(view)
 			return apply_operator(bool(debugger))
 
 		if key == 'debugger.visible':
+			debugger = debugger_for_view(view)
 			return apply_operator(debugger.is_open()) if debugger else apply_operator(False)
 
 		if key == 'debugger.active':
+			debugger = debugger_for_view(view)
 			return apply_operator(debugger.is_active) if debugger else apply_operator(False)
+
+		if key.startswith('debugger.'):
+			settings_key = key[len('debugger.'):]
+			if SettingsRegistery.settings.has(settings_key):
+				return apply_operator(SettingsRegistery.settings.get(settings_key))
+			else:
+				return apply_operator(view.settings().get(key))
 
 		return None
 
