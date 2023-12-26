@@ -55,6 +55,8 @@ def plugin_loaded() -> None:
 		with open(os.path.join(debugger33_path, "bridge33.py"), "w") as f:
 			data = sublime.load_resource("Packages/Debugger/modules/adapters/util/bridge33.py")
 			f.write(data)
+		with open(os.path.join(debugger33_path, ".hidden-sublime-package"), "w"):
+			pass
 
 	core.info('[startup]')
 	SettingsRegistery.initialize(on_updated=updated_settings)
