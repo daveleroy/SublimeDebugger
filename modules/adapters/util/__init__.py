@@ -7,6 +7,6 @@ from .import git
 from .import openvsx
 from .import vscode
 from .import bridge
-from .import process
+# from .import process
 from .import request
 from .import lsp
