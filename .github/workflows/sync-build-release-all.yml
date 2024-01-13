@@ -69,7 +69,6 @@ jobs:
         sudo apt-get install erlang-dev
         sudo apt-get install elixir
         npm install
-        (cd elixir-ls && mix local.hex --force)
         (cd elixir-ls && mix deps.get)
         MIX_ENV=prod mix compile
         npx vsce package -o extension.vsix
