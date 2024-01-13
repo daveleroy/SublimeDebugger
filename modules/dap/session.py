@@ -105,7 +105,7 @@ class Session(TransportListener):
 		self.stop_requested = False
 		self.launch_request = True
 		self.stepping = False
-		self.stepping_stopped = False
+		self.stepping_hit_stopped_event = False
 		self.stopped_reason = 0
 		self.stopped_unexpectedly = False
 		self.terminated_event = None
@@ -529,29 +529,29 @@ class Session(TransportListener):
 			'threadId': self.command_thread.id
 		})
 
-	async def step_over(self, granularity: str|None = None):
-		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
+	async def step(self, command: str, granularity: str|None = None):
+		# this is used to so the ui can better handle stepping
+		# Ideally the ui does not switch panels when stepping
+		# If the user selects the console and steps the program it ideally doesn't switch to the callstack panel
+		self.stepping = True
+		self.stepping_hit_stopped_event = False
 
-		await self.request('next', {
-			'threadId': self.command_thread.id,
+		thread = self.command_thread
+
+		await self.request(command, {
+			'threadId': thread.id,
 			'granularity': granularity,
 		})
+		self.on_continued_event(dap.ContinuedEvent(thread.id, False))
+
+	async def step_over(self, granularity: str|None = None):
+		await self.step('next', granularity)
 
 	async def step_in(self, granularity: str|None = None):
-		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
-
-		await self.request('stepIn', {
-			'threadId': self.command_thread.id,
-			'granularity': granularity,
-		})
+		await self.step('stepIn', granularity)
 
 	async def step_out(self, granularity: str|None = None):
-		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, False), stepping=True)
-
-		await self.request('stepOut', {
-			'threadId': self.command_thread.id,
-			'granularity': granularity,
-		})
+		await self.step('stepOut', granularity)
 
 	async def exception_info(self, thread_id: int) -> dap.ExceptionInfoResponseBody:
 		return await self.request('exceptionInfo', {
@@ -799,7 +799,7 @@ class Session(TransportListener):
 		self.refresh_threads()
 
 	def on_stopped_event(self, stopped: dap.StoppedEvent):
-		self.stepping_stopped = True
+		self.stepping_hit_stopped_event = True
 
 		if stopped.allThreadsStopped or False:
 			self.all_threads_stopped = True
@@ -845,13 +845,9 @@ class Session(TransportListener):
 			self.listener.session_updated_threads(self)
 			self._refresh_state()
 
-	def on_continued_event(self, continued: dap.ContinuedEvent, stepping = False):
-
+	def on_continued_event(self, continued: dap.ContinuedEvent):
 		# if we hit a stopped event while stepping then the next continue event that is not a stepping event sets stepping to false
-		if stepping:
-			self.stepping = True
-			self.stepping_stopped = False
-		elif self.stepping_stopped:
+		if self.stepping_hit_stopped_event:
 			self.stepping = False
 
 		if continued.allThreadsContinued:
