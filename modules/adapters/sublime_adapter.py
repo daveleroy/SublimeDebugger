@@ -85,16 +85,20 @@ class Sublime(dap.AdapterConfiguration):
 	development = True
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
-		python = configuration.get('pythonPath') or configuration.get('python') or shutil.which('python3') or shutil.which('python')
-		if not python:
-			raise core.Error('Unable to find `python3` or `python`')
-
 		if configuration.request == 'attach':
 			command = [
-				f'{python}',
+				configuration['python'],
 				f'{self.installer.install_path()}/debugpy/src/debugpy/adapter',
 			]
 			return dap.StdioTransport(command)
+
+		python = configuration.get('python') or shutil.which('python3') or shutil.which('python')
+		if not python:
+			raise core.Error('Unable to find `python3` or `python`')
+
+		configuration['python'] = python
+		configuration['port_33'] =  configuration.get('port_33') or util.get_open_port()
+		configuration['port_38'] =  configuration.get('port_33') or util.get_open_port()
 
 		log.info('Using python `{}`'.format(python))
 		return SublimeDebugTransport(configuration, log)
@@ -182,19 +186,10 @@ class SublimeDebugTransport(dap.Transport):
 	def __init__(self, configuration: dap.ConfigurationExpanded, log: core.Logger) -> None:
 		super().__init__()
 
-		# grab open ports for debugpy
-		self.port_33 = util.get_open_port()
-		self.port_38 = util.get_open_port()
-
 		install_path = Sublime.installer.install_path()
 		data_directory = f'{install_path}/Data'
 		packages_directory = f'{install_path}/Data/Packages'
 		origin_packages_directory = sublime.packages_path()
-
-		python = configuration.get('pythonPath') or configuration.get('python') or shutil.which('python3') or shutil.which('python')
-		if not python:
-			raise core.Error('Unable to find `python3` or `python`')
-
 
 		if sublime.platform() == 'osx':
 			sublime_text_directory = f'{install_path}/{Sublime.installer.debug_app_name}/Contents/MacOS'
@@ -275,9 +270,7 @@ class SublimeDebugTransport(dap.Transport):
 		self.path_mappings = path_mappings
 
 		env = {
-			'sublime_debug_port_33': f'{self.port_33}',
-			'sublime_debug_port_38': f'{self.port_38}',
-			'sublime_debug_python': python,
+			'sublime_debug_configuration': core.json_encode(configuration)
 		}
 		env.update(os.environ)
 
@@ -302,8 +295,9 @@ class SublimeDebugTransport(dap.Transport):
 			'name': 'plugin_host_38',
 			'listen': {
 				'host': 'localhost',
-				'port': self.port_38,
+				'port': configuration['port_38'],
 			},
+			'python': configuration['python'],
 			'justMyCode': False,
 			'redirectOutput': True,
 			'pathMappings': self.path_mappings,
@@ -316,8 +310,9 @@ class SublimeDebugTransport(dap.Transport):
 			'name': 'plugin_host_33',
 			'listen': {
 				'host': 'localhost',
-				'port': self.port_33,
+				'port': configuration['port_33'],
 			},
+			'python': configuration['python'],
 			'justMyCode': False,
 			'redirectOutput': True,
 			'pathMappings': self.path_mappings,

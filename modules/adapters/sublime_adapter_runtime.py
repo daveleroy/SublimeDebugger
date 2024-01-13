@@ -1,3 +1,4 @@
+import json
 import sublime
 import sublime_plugin
 
@@ -13,12 +14,15 @@ from debugpy._vendored.pydevd import pydevd
 
 os.environ['PYDEVD_DISABLE_FILE_VALIDATION'] = '1'
 
+
+configuration = sublime.decode_value(os.environ['sublime_debug_configuration'])
+
 if sys.version_info >= (3, 8):
 	host_name = 'plugin_host_38'
-	port = int(os.environ['sublime_debug_port_38'])
+	port = configuration['port_38']
 else:
 	host_name = 'plugin_host_33'
-	port = int(os.environ['sublime_debug_port_33'])
+	port = configuration['port_33']
 
 
 class SublimeDebugRuntimeClient(pydevd.IDAPMessagesListener):
