@@ -92,3 +92,17 @@ jobs:
 
     secrets:
       token: ${{ secrets.PUSH_TOKEN }}
+
+  cortex-debug:
+    uses: ./.github/workflows/sync-build-release.yml
+
+    with:
+      upstream: Marus/cortex-debug
+      repository: cortex-debug
+
+      build: |
+        npm install
+        npx vsce package -o extension.vsix
+
+    secrets:
+      token: ${{ secrets.PUSH_TOKEN }}
