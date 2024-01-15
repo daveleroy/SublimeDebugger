@@ -125,6 +125,7 @@ class StdioTransport(TransportStream):
 	command: list[str]
 	cwd: str|None = None
 	stderr: Callable[[str], None] | None = None
+	process: Process|None = None
 
 	async def setup(self):
 		self.log('transport', f'-- stdio transport: {self.command}')
@@ -137,21 +138,25 @@ class StdioTransport(TransportStream):
 			stderr(data)
 
 	def write(self, message: bytes) -> None:
+		assert self.process
 		self.process.stdin.write(message)
 		self.process.stdin.flush()
 
 	def readline(self) -> bytes:
+		assert self.process
 		if l := self.process.stdout.readline():
 			return l
 		raise EOFError
 
 	def read(self, n: int) -> bytes:
+		assert self.process
 		if l := self.process.stdout.read(n):
 			return l
 		raise EOFError
 
 	def dispose(self) -> None:
-		self.process.dispose()
+		if self.process:
+			self.process.dispose()
 
 
 @dataclass
