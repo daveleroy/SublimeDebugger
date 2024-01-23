@@ -106,3 +106,17 @@ jobs:
 
     secrets:
       token: ${{ secrets.PUSH_TOKEN }}
+
+  platformio-vscode-ide:
+    uses: ./.github/workflows/sync-build-release.yml
+
+    with:
+      upstream: platformio/platformio-vscode-ide
+      repository: platformio-vscode-ide
+
+      build: |
+        npm install
+        npm run vscode:package -- -o extension.vsix
+
+    secrets:
+      token: ${{ secrets.PUSH_TOKEN }}
