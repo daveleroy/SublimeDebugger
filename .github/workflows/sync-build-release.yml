@@ -119,7 +119,7 @@ jobs:
       - 
         shell: bash
         run: |
-          echo "# ${{ inputs.repository }}\nAutomated releases of [${{ inputs.upstream }}](https://github.com/${{ inputs.upstream }}) for [Sublime Debugger](https://github.com/daveleroy/SublimeDebugger)" > README.md
+          echo -e "# ${{ inputs.repository }}\nAutomated releases of [${{ inputs.upstream }}](https://github.com/${{ inputs.upstream }}) for [Sublime Debugger](https://github.com/daveleroy/SublimeDebugger)" > README.md
           git add README.md
           git commit -o "README.md" -m "${{ steps.tags.outputs.tag }}" --allow-empty
           git push
