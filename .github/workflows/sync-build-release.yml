@@ -115,8 +115,9 @@ jobs:
           asset_name: ${{ inputs.repository }}.vsix
           asset_content_type: application/zip
 
-      # Update r
+      # Update readme
       - 
+        if:  ${{ steps.tags.outputs.tag != steps.releases.outputs.tag }}
         shell: bash
         run: |
           echo -e "# ${{ inputs.repository }}\nAutomated releases of [${{ inputs.upstream }}](https://github.com/${{ inputs.upstream }}) for [Sublime Debugger](https://github.com/daveleroy/SublimeDebugger)" > README.md
