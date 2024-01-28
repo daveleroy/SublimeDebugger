@@ -33,16 +33,11 @@ class TransportListener (Protocol):
 
 
 @dataclass
-class TransportStdoutOutputLog:
+class TransportOutputLog:
+	type: str
 	output: str
 	def __str__(self) -> str:
-		return '-> stdout :: ' + self.output
-
-@dataclass
-class TransportStderrOutputLog:
-	output: str
-	def __str__(self) -> str:
-		return '-> stderr !! ' + self.output
+		return f'-> {type} :: {self.output}'
 
 @dataclass
 class TransportDataLog:

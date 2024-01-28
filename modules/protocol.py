@@ -1,19 +1,62 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import sublime
 
 from .import core
-from .output_panel import OutputPanel
+from .import dap
 
-if TYPE_CHECKING:
-	from .debugger import Debugger
+class ProtocolWindow:
+	def __init__(self) -> None:
+		window = None
 
-class ProtocolPanel(core.Logger):
-	def __init__(self, debugger: Debugger):
-		self.debugger = debugger
-		self.output: OutputPanel|None = None
-		self.pending: list[Any] = []
+		for w in sublime.windows():
+			if w.settings().has('debugger.window.protocol'):
+				window = w
+
+		self.window = window
+		self.views: dict[dap.Session|None, sublime.View] = {}
+		self.logs = []
+
+	def open(self):
+		if self.window and self.window.is_valid():
+			self.window.bring_to_front()
+		else:
+			sublime.run_command('new_window')
+			self.window = sublime.active_window()
+			settings = self.window.settings()
+			settings.set('debugger', True)
+			settings.set('debugger.window', True)
+			settings.set('debugger.window.protocol', True)
+
+		self.window.run_command('show_panel', {'panel': 'console'})
+
+	def clear(self):
+		for view in self.views.values():
+			view.close()
+
+		self.views.clear()
+		self.logs.clear()
+
+	def dispose(self):
+		self.clear()
+
+	def view_for_session(self, session: dap.Session|None):
+		if view := self.views.get(session):
+			return view
+
+		assert self.window
+		view = self.window.new_file(flags=sublime.ADD_TO_SELECTION)
+		view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerProtocol.sublime-syntax'))
+		view.set_scratch(True)
+
+		settings = view.settings()
+		settings.set('word_wrap', False)
+		settings.set('scroll_past_end', False)
+
+		self.views[session] = view
+		view.set_name(session and session.name or 'General')
+		return view
 
 	def platform_info(self):
 		settings = sublime.load_settings("Preferences.sublime-settings")
@@ -27,53 +70,14 @@ class ProtocolPanel(core.Logger):
 		output += '\n'
 		return output
 
-	def write_pending(self):
-		if not self.output:
-			self.output = OutputPanel(self.debugger, 'Debugger Protocol', 'Protocol')
-			self.output.on_opened = lambda: self.write_pending_if_needed()
-			self.output.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerProtocol.sublime-syntax'))
-			settings = self.output.view.settings()
-			settings.set('word_wrap', False)
-			settings.set('scroll_past_end', False)
+	def log(self, type: str, value: Any, session: dap.Session|None = None):
+		if not self.window:
+			return
 
-			self.output.view.run_command('append', {
-				'characters': self.platform_info(),
-				'force': True,
-				'scroll_to_end': True,
-			})
+		self.logs.append(value)
 
-
-		text = ''
-		for pending in self.pending:
-			text += f'{pending}\n'
-
-		self.pending.clear()
-
-		self.output.view.run_command('append', {
-			'characters': text,
+		self.view_for_session(session).run_command('append', {
+			'characters': f'{value}\n',
 			'force': True,
 			'scroll_to_end': True,
 		})
-
-	def write_pending_if_needed(self):
-		if self.output and self.output.is_open():
-			self.write_pending()
-
-	def log(self, type: str, value: Any):
-		self.pending.append(value)
-		self.write_pending_if_needed()
-
-	def open(self):
-		self.write_pending()
-		if self.output:
-			self.output.open()
-
-	def clear(self):
-		self.pending.clear()
-		if self.output:
-			self.output.dispose()
-			self.output = None
-
-	def dispose(self):
-		if self.output:
-			self.output.dispose()

@@ -7,7 +7,7 @@ from ..import core
 from .import dap
 
 from ..watch import Watch
-from .debugger import Console, Debugger
+from .debugger import Console, ConsoleSessionBound, Debugger
 from .error import Error
 
 from ..breakpoints import Breakpoints, SourceBreakpoint, Breakpoint
@@ -67,7 +67,7 @@ class Session(TransportListener):
 		breakpoints: Breakpoints,
 		watch: Watch,
 		listener: SessionListener,
-		log: Console,
+		console: Console,
 		debugger: Debugger,
 		parent: Session|None = None
 		) -> None:
@@ -85,7 +85,7 @@ class Session(TransportListener):
 		if parent:
 			parent.children.append(self)
 
-		self.log = log
+		self.log = ConsoleSessionBound(self, console)
 		self.state_changed = core.Event[int]()
 
 		self.breakpoints = breakpoints
@@ -179,7 +179,7 @@ class Session(TransportListener):
 
 		self._change_state_status('Starting')
 		try:
-			self.log.log('transport', f'-- adapter: type={self.adapter_configuration.type} version={installed_version}')
+			self.log('transport', f'-- adapter: type={self.adapter_configuration.type} version={installed_version}')
 			transport = await self.adapter_configuration.start(log=self.log, configuration=self.configuration)
 		except TransportConnectionError as e:
 			self.stopped_unexpectedly = True

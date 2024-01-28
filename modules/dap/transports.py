@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import IO, Any, Callable
 
 from ..import core
-from .transport import Transport, TransportListener, TransportStderrOutputLog, TransportStdoutOutputLog, TransportConnectionError, TransportStream
+from .transport import Transport, TransportListener, TransportOutputLog, TransportConnectionError, TransportStream
 
 import socket
 import os
@@ -133,7 +133,7 @@ class StdioTransport(TransportStream):
 		self.process.on_stderr(self._log_stderr)
 
 	def _log_stderr(self, data: str):
-		self.log('transport', TransportStderrOutputLog(data))
+		self.log('transport', TransportOutputLog('stderr', data))
 		if stderr := self.stderr:
 			stderr(data)
 
@@ -205,8 +205,8 @@ class SocketTransport(TransportStream):
 
 
 		if self.process:
-			self.process.on_stdout(self.stdout or (lambda data: self.log('transport', TransportStdoutOutputLog(data))))
-			self.process.on_stderr(self.stderr or (lambda data: self.log('transport', TransportStderrOutputLog(data))))
+			self.process.on_stdout(self.stdout or (lambda data: self.log('transport', TransportOutputLog('stdout', data))))
+			self.process.on_stderr(self.stderr or (lambda data: self.log('transport', TransportOutputLog('stderr', data))))
 
 		self.socket_stdin = self.socket.makefile('wb')
 		self.socket_stdout = self.socket.makefile('rb')

@@ -13,7 +13,7 @@ from .views.variable import VariableView
 
 from .ansi import ansi_colorize
 
-from .protocol import ProtocolPanel
+from .protocol import ProtocolWindow
 from .output_panel import OutputPanel
 
 
@@ -25,7 +25,8 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.on_navigate = core.Event[dap.SourceLocation]()
 		self.debugger = debugger
 
-		self.protocol = ProtocolPanel(debugger)
+		self.protocol = ProtocolWindow()
+		self.dispose_add(self.protocol)
 
 		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
 		self.color: str|None = None
@@ -466,9 +467,9 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 
 
-	def log(self, type: str, value: Any, source: dap.SourceLocation|None = None):
+	def log(self, type: str, value: Any, source: dap.SourceLocation|None = None, session: dap.Session|None = None):
 		if type == 'transport':
-			self.protocol.log('transport', value)
+			self.protocol.log('transport', value, session)
 		elif type == 'error-no-open':
 			self.write(str(value).rstrip('\n'), 'red', ensure_new_line=True)
 		elif type == 'error':
@@ -483,10 +484,10 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			if value is not None:
 				self.write(str(value), None, ensure_new_line=True)
 		elif type == 'stdout':
-			self.protocol.log('stdout', value)
+			self.protocol.log('stdout', value, session)
 			self.write(str(value), None)
 		elif type == 'stderr':
-			self.protocol.log('stderr', value)
+			self.protocol.log('stderr', value, session)
 			self.write(str(value), 'red')
 		elif type == 'stdout':
 			self.write(str(value), None)

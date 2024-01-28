@@ -44,7 +44,7 @@ class Ruby(dap.AdapterConfiguration):
 		def stderr(data: str):
 			hidden = data.startswith('DEBUGGER: ')
 			if hidden:
-				log('transport', dap.TransportStderrOutputLog(data))
+				log('transport', dap.TransportOutputLog('stderr', data))
 			else:
 				log('stderr',data)
 

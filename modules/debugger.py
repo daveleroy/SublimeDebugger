@@ -326,7 +326,7 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 			listener=self,
 			debugger=self,
 			parent=parent,
-			log=self.console,
+			console=self.console,
 		)
 
 		self.add_session(session)
@@ -410,15 +410,22 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
 
 		if session.stopped_unexpectedly:
-			for data in self.console.protocol.pending:
-				if isinstance(data, dap.TransportStderrOutputLog):
+			found_error = False
+			for data in self.console.protocol.logs:
+				if isinstance(data, dap.TransportOutputLog):
+					found_error = True
 					self.console.error(data.output)
 
-			self.console.error('Debugging session ended unexpectedly')
+			# color the end prompt as an error if there were no errors found
+			if not found_error:
+				self.console.error('Debugging ended unexpectedly')
+			else:
+				self.console.info('Debugging ended unexpectedly')
 
-		if not self.sessions:
+		elif not self.sessions:
 			self.console.info('Debugging ended')
 
+		if not self.sessions:
 			# if the debugger panel is open switch to the console.
 			# note: We could be on a pre debug step panel which we want to remain on so only do this if we are on the callstack panel
 			if self.callstack.is_open():
