@@ -50,6 +50,14 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		settings.set('auto_complete_selector', 'debugger.console')
 		settings.set('debugger.console', True)
 
+		# adjust the line padding so line_padding_top is always 3 but the space between lines is the same as what the user already has set
+		# If < 3 there is space at the bottom
+		# if > 3 it gets clipped at the bottom
+		line_padding_bottom = settings.get('line_padding_bottom', 0)
+		line_padding_top = settings.get('line_padding_top', 0)
+		settings.set('line_padding_top', 3)
+		settings.set('line_padding_bottom', line_padding_bottom + line_padding_top - 3)
+
 		self.clear()
 
 	def edit(self, fn: Callable[[sublime.Edit], Any]):
