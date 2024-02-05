@@ -39,4 +39,18 @@ class Console(core.Logger, Protocol):
 	def info(self, text: str, source: SourceLocation|None = None):
 		self.log('comment', text, source)
 
-	def log(self, type: str, value: Any, source: SourceLocation|None = None): ...
+	def log(self, type: str, value: Any, source: SourceLocation|None = None, session: Session|None = None): ...
+
+class ConsoleSessionBound(core.Logger):
+	def __init__(self, session: Session, console: Console) -> None:
+		self.session = session
+		self.console = console
+
+	def error(self, text: str, source: SourceLocation|None = None):
+		self.log('error', text, source)
+
+	def info(self, text: str, source: SourceLocation|None = None):
+		self.log('comment', text, source)
+
+	def log(self, type: str, value: Any, source: SourceLocation|None = None):
+		self.console.log(type, value, source=source, session=self.session)

@@ -68,6 +68,5 @@ from .transports import (
 	StdioTransport,
 	SocketTransport,
 
-	TransportStderrOutputLog,
-	TransportStdoutOutputLog,
+	TransportOutputLog,
 )
