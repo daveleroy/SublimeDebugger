@@ -7,7 +7,7 @@ from .import util
 from .. import dap
 from .. import core
 
-
+DEFAULT_VERSION = '3.0.0-1018'
 ARCHIVES = {
 	"windows": {
 		"x64": "netcoredbg-win64.zip"
@@ -35,6 +35,8 @@ class GithubReleaseInstaller(util.vscode.AdapterInstaller):
 	type = 'netcoredbg'
 
 	async def install(self, version: str|None, log: core.Logger):
+		if version is None:
+			version = DEFAULT_VERSION
 		archive = _archive()
 		url = f'https://github.com/Samsung/netcoredbg/releases/download/{version}/{archive}'
 
@@ -47,6 +49,17 @@ class GithubReleaseInstaller(util.vscode.AdapterInstaller):
 	async def installable_versions(self, log: core.Logger):
 		return ['3.0.0-1018']
 
+	def package_info(self) -> util.vscode.AdapterInfo | None:
+		if self._package_info is not None:
+			return self._package_info
+
+		info = util.vscode.AdapterInfo(
+			version=DEFAULT_VERSION,
+			schema_and_snippets=dict(),
+		)
+		self._package_info = info
+		return self._package_info
+
 
 class Netcoredbg(dap.AdapterConfiguration):
 	type = 'netcoredbg'
@@ -56,9 +69,11 @@ class Netcoredbg(dap.AdapterConfiguration):
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = self.installer.install_path()
-		print(install_path)
 		command = [
 			f'{install_path}/netcoredbg/netcoredbg',
-			'--interpreter=vscode'
+			'--interpreter=vscode',
+			'--',
+			configuration.get("program")
 		]
+		print(' '.join(command))
 		return dap.StdioTransport(log, command)
