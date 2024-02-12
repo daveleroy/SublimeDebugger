@@ -1,6 +1,8 @@
 from .lldb import LLDB
 from .gdb import GDB
 
+from .netcoredbg import Netcoredbg
+
 from .js import Node
 
 from .python import Python
