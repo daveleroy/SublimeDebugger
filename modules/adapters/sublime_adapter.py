@@ -98,7 +98,7 @@ class Sublime(dap.AdapterConfiguration):
 
 		configuration['python'] = python
 		configuration['port_33'] =  configuration.get('port_33') or util.get_open_port()
-		configuration['port_38'] =  configuration.get('port_33') or util.get_open_port()
+		configuration['port_38'] =  configuration.get('port_38') or util.get_open_port()
 
 		log.info('Using python `{}`'.format(python))
 		return SublimeDebugTransport(configuration, log)
