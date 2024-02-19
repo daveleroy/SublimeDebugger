@@ -110,8 +110,7 @@ class FunctionBreakpoints:
 			self.edit(breakpoint, index=3).run()
 
 		def remove():
-			self.breakpoints.remove(breakpoint)
-			self.updated()
+			self.remove(breakpoint)
 
 		return ui.InputList('Edit Breakpoint on function {}'.format(breakpoint.name), index=index)[
 			ui.InputListItemCheckedText(
@@ -154,6 +153,10 @@ class FunctionBreakpoints:
 				enabled=True
 			)
 		)
+		self.updated()
+
+	def remove(self, breakpoint: FunctionBreakpoint):
+		self.breakpoints.remove(breakpoint)
 		self.updated()
 
 	def remove_all(self):

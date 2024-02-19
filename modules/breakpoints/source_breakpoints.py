@@ -350,24 +350,23 @@ class SourceBreakpoints:
 			return
 
 		if not self.sync_dirty_scheduled:
-			core.timer(self.sync_dirty, 1, False)
+			core.timer(self.sync_invalidated_views, 1, False)
 			self.sync_dirty_scheduled = True
 
 		self.dirty_views[view.id()] = view
 
-	def sync_dirty(self):
+	def sync_invalidated_views(self):
 		self.sync_dirty_scheduled = False
 		for view in self.dirty_views.values():
-			self.sync(view)
+			self.sync_from_view(view)
 
 	# changes the data model to match up with the view regions
 	# adds any breakpoints found in the data model that are not found on the view
-	def sync(self, view: sublime.View):
+	def sync_from_view(self, view: sublime.View):
 		file = view.file_name()
 		if not file:
 			return
 
-		dirty = False
 		for b in self.breakpoints:
 			if b.file != file:
 				continue
@@ -375,12 +374,9 @@ class SourceBreakpoints:
 			regions = view.get_regions(identifier)
 			if len(regions) == 0:
 				b.add_to_view(view)
-				dirty = True
 			else:
-				dirty = True
 				line = view.rowcol(regions[0].a)[0] + 1
 				if line != b.line:
-					dirty = True
 					b.dap.line = line
 					self.updated(b, send=False)
 

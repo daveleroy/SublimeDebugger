@@ -129,6 +129,10 @@ class DataBreakpoints:
 		)
 		self.updated()
 
+	def remove(self, breakpoint: DataBreakpoint):
+		self.breakpoints.remove(breakpoint)
+		self.updated()
+
 	def remove_unpersistable(self):
 		self.breakpoints = list(filter(lambda b: b.info.canPersist, self.breakpoints))
 		self.updated()

@@ -41,6 +41,11 @@ class Breakpoints:
 		else:
 			raise core.Error('Unsupprted Breakpoint type)')
 
+	def remove_all(self):
+		self.source.remove_all()
+		self.data.remove_all()
+		self.function.remove_all()
+
 	def clear_breakpoint_result(self, session: dap.Session) -> None:
 		self.data.clear_breakpoint_result(session)
 		self.function.clear_breakpoint_result(session)
