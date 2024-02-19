@@ -132,7 +132,6 @@ class Debugger (core.Dispose, dap.Debugger):
 		self.project.on_updated.add(self._on_project_or_settings_updated)
 
 		self.callstack = CallstackOutputPanel(self)
-		self.callstack.on_closed = lambda: self.console.open()
 
 		self.dispose_add([
 			self.project,
@@ -597,7 +596,7 @@ class Debugger (core.Dispose, dap.Debugger):
 
 	def on_input_command(self) -> None:
 		self.console.open()
-		self.console.set_input_mode()
+		self.console.enter()
 
 	def _on_project_or_settings_updated(self):
 		for panel in self.output_panels:

@@ -180,19 +180,18 @@ class div (element):
 			return f'<{tag} {attributes} style="height:{height}rem;width:{width}rem;">', html, f'</{tag}>'
 
 
-class SpanParams(TypedDict, total=False):
-	on_click: Callable[[], Any]|None
-	title: str|None
-
-
 class span (element):
 	Children = Union[Sequence['Children'], 'span', None]
 
-	def __init__(self, css: css|None = None, **kwargs: Unpack[SpanParams]) -> None:
+	class Params(TypedDict, total=False):
+		on_click: Callable[[], Any]|None
+		title: str|None
+
+	def __init__(self, css: css|None = None, **kwargs: Unpack[Params]) -> None:
 		super().__init__(True, None, None, css)
 		self.kwargs = kwargs
 
-	# height of a span is always just fixed it doesn't really since it does not change the layout
+	# height of a span is always just fixed since it doesn't change the layout
 	def html_height(self, available_width: float, available_height: float) -> float:
 		return 3
 		# if self.height is not None:
@@ -226,15 +225,14 @@ class span (element):
 			f'</{tag}>',
 		]
 
-
 def html_escape(text: str) -> str:
-	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '\u00A0')
+	return text.replace(' ', '\u00A0').replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '\u00A0')
 
 def html_escape_multi_line(text: str) -> str:
-	return text.replace(" ", "\u00A0").replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '<br>').replace('\t', '\u00A0\u00A0\u00A0')
+	return text.replace(' ', '\u00A0').replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace('\n', '<br>').replace('\t', '\u00A0\u00A0\u00A0')
 
 class icon (span):
-	def __init__(self, image: Image, width: float = 3, height: float = 3, padding: float = 0.5, align_left: bool = True, **kwargs: Unpack[SpanParams]) -> None:
+	def __init__(self, image: Image, width: float = 3, height: float = 3, padding: float = 0.5, align_left: bool = True, **kwargs: Unpack[span.Params]) -> None:
 		super().__init__(None, **kwargs)
 		self.padding = padding
 		self.image = image
@@ -255,13 +253,13 @@ class icon (span):
 
 
 class text (span, alignable):
-	def __init__(self, text: str, css: css|None = None, **kwargs: Unpack[SpanParams]) -> None:
+	def __init__(self, text: str, css: css|None = None, **kwargs: Unpack[span.Params]) -> None:
 		super().__init__(css, **kwargs)
 		text = text if isinstance(text, str) else str(text)
 
-		self._text = text.replace("\u0000", "\\u0000")
+		self._text = text.replace('\u0000', '\\u0000')
 		self._text_html = None
-		self._text_clipped = ''
+		self._text_clipped = None
 
 		self.align_required: int =  0
 		self.align_desired: int = len(self._text)
@@ -279,6 +277,11 @@ class text (span, alignable):
 		return len(self._text_clipped)
 
 	def html_inner(self, available_width: float, available_height: float):
+		# this shouldn't happen if text has been aligned which it generally should be?
+		if self._text_clipped is None:
+			self._text_html = html_escape(self._text)
+			return self._text_html
+
 		if self._text_html is None:
 			self._text_html = html_escape(self._text_clipped)
 		return self._text_html
@@ -287,7 +290,7 @@ class text (span, alignable):
 tokenize_re = re.compile('(0x[0-9A-Fa-f]+)|([-.0-9]+)|(\'[^\']*\')|("[^"]*")|(undefined|null)|(.*?)')
 
 class code(span, alignable):
-	def __init__(self, text: str, **kwargs: Unpack[SpanParams]) -> None:
+	def __init__(self, text: str, **kwargs: Unpack[span.Params]) -> None:
 		super().__init__(**kwargs)
 		self.text = text.replace('\n', '\\n')
 		self.text_html: str|None = None

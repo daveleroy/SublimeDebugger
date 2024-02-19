@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import dataclass
 from typing import Any, Callable
 
 from .. import core
@@ -62,21 +63,28 @@ class Phantom(Layout):
 		if self.pid: self.view.erase_phantom_by_id(self.pid)
 
 
+@dataclass
+class Html:
+	html: str
+	on_navigate: Callable[[str], Any]|None = None
+
+def region_from_region_or_position(region: sublime.Region|int):
+	return region if isinstance(region, sublime.Region) else sublime.Region(region)
+
 class RawPhantom:
-	def __init__(self, view: sublime.View, region: sublime.Region, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[str], Any]|None = None) -> None:
-		self.region = region
+	def __init__(self, view: sublime.View, region: sublime.Region|int, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[str], Any]|None = None) -> None:
 		self.view = view
-		self.pid = self.view.add_phantom(f'debugger', region, html, layout, on_navigate)
+		self.pid = self.view.add_phantom(f'debugger', region_from_region_or_position(region), html, layout, on_navigate)
 
 	def dispose(self) -> None:
 		self.view.erase_phantom_by_id(self.pid)
 
 
 class RawAnnotation:
-	def __init__(self, view: sublime.View, region: sublime.Region, html: str):
+	def __init__(self, view: sublime.View, region: sublime.Region|int, html: str):
 		self.view = view
 		self.id = str(id(self))
-		view.add_regions(self.id, [region], annotation_color="#fff0", annotations=[html])
+		view.add_regions(self.id, [region_from_region_or_position(region)], annotation_color="#fff0", annotations=[html])
 
 	def dispose(self):
 		self.view.erase_regions(self.id)

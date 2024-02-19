@@ -2,6 +2,9 @@
 	// Open the debugger automatically when a project that is set up for debugging
 	"open_at_startup": true,
 
+	// Always keep the debugger panel visible
+	"always_keep_visible": false,
+
 	// Sets the entire scale of the UI, defaults to font_size
 	"ui_scale": null,
 

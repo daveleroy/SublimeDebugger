@@ -32,6 +32,12 @@ class Settings:
 		description='Open the debugger automatically when a project that is set up for debugging'
 	)
 
+	always_keep_visible = Setting[bool] (
+		key='always_keep_visible',
+		default=False,
+		description='Always keep the debugger panel visible'
+	)
+
 	ui_scale = Setting['float|None'] (
 		key='ui_scale',
 		default=None,

@@ -23,18 +23,18 @@ class DisassembleView(core.Dispose):
 		self.view.set_scratch(True)
 		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/Disassembly.sublime-syntax'))
 
-
-		self.debugger = debugger
-		self._session: dap.Session|None = None
-
 		settings = self.view.settings()
 		settings.set('debugger', True)
-		settings.set('debugger.disassemble_view', True)
 		settings.set('debugger.view', True)
+		settings.set('debugger.view.disassemble', True)
 
-		settings.set('word_wrap', False)
 		settings.set('gutter', False)
+		settings.set('rulers', [])
+		settings.set('word_wrap', False)
 
+		self.debugger = debugger
+
+		self._session: dap.Session|None = None
 		self._selection = None
 		self._selection_index = 0
 		self._regions: list[sublime.Region] = []

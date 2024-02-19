@@ -30,6 +30,7 @@ from .modules import dap
 
 from .modules.debugger import Debugger
 from .modules.views.variable import VariableView
+from .modules.output_panel import OutputPanel
 
 from .modules.adapters import * #import all the adapters so Adapters.initialize() will see them
 from .modules.settings import SettingsRegistery, Settings
@@ -257,13 +258,20 @@ class EventListener (sublime_plugin.EventListener):
 			if not debugger: return
 			debugger._refresh_none_debugger_output_panel(args['panel'])
 
-		if cmd == 'hide_panel':
-			if core.on_pre_hide_panel(window, window.active_panel() or ''):
-				return ("null", {})
 
 	def on_post_window_command(self, window: sublime.Window, cmd: str, args: Any):
 		if cmd == 'show_panel':
-			core.on_post_show_panel(window)
+			if panel := OutputPanel.for_output_panel_name(window.active_panel() or ''):
+				panel.on_show_panel()
+
+			debugger = Debugger.get(window)
+			if debugger and Settings.always_keep_visible and window.active_panel() is None:
+				debugger.open()
+
+		if cmd == 'hide_panel':
+			debugger = Debugger.get(window)
+			if debugger and Settings.always_keep_visible and window.active_panel() is None:
+				debugger.open()
 
 	def on_view_gutter_clicked(self, view: sublime.View, line: int, button: int) -> bool:
 		line += 1 # convert to 1 based lines

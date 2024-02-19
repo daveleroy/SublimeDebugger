@@ -7,6 +7,7 @@ import sublime_plugin
 from .asyncio import Future
 from .event import Event
 
+
 async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None, group: int=-1) -> sublime.View:
 	if line:
 		file += f':{line}'
@@ -29,22 +30,19 @@ async def wait_for_view_to_load(view: sublime.View):
 		await future_view
 		handle.dispose()
 
-def edit(view: sublime.View, run: Callable[[sublime.Edit], Any]):
-	previous = DebuggerAsyncTextCommand._run
-	DebuggerAsyncTextCommand._run = run
-	view.run_command('debugger_async_text')
-	DebuggerAsyncTextCommand._run = previous
 
+def edit(view: sublime.View, run: Callable[[sublime.Edit], Any]):
+	previous = DebuggerEditCommand._run
+	DebuggerEditCommand._run = run
+	view.run_command('debugger_edit')
+	DebuggerEditCommand._run = previous
 
 on_view_load: Event[sublime.View] = Event()
 
-on_pre_hide_panel: Event[sublime.Window, str] = Event()
-on_post_show_panel: Event[sublime.Window] = Event()
-
-class DebuggerAsyncTextCommand(sublime_plugin.TextCommand):
+class DebuggerEditCommand(sublime_plugin.TextCommand):
 	_run: Callable[[sublime.Edit], None] | None = None
 
-	def run(self, edit: sublime.Edit): #type: ignore
-		run = DebuggerAsyncTextCommand._run
-		DebuggerAsyncTextCommand._run = None
-		if run: run(edit)
+	def run(self, edit: sublime.Edit):
+		if run := DebuggerEditCommand._run:
+			DebuggerEditCommand._run = None
+			run(edit)

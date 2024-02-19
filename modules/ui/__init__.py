@@ -1,7 +1,7 @@
 from __future__ import annotations
 from .. import core
 
-from .phantom import Phantom, RawPhantom, RawAnnotation, Popup
+from .phantom import Phantom, Html, RawPhantom, RawAnnotation, Popup
 
 from .html import div, span, text, icon, code, html_escape, html_escape_multi_line
 from .align import alignable, spacer, spacer_dip

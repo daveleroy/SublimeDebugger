@@ -22,13 +22,25 @@ class Dispose:
 		for _dispose in self._dispose:
 			_dispose.dispose()
 
+		self._dispose.clear()
+
 	def dispose_remove(self, item: Disposeable):
 		if not self._dispose: return
 
 		self._dispose.remove(item)
 		item.dispose()
 
-	def dispose_add(self, item: Disposeable|list[Disposeable]):
+	def dispose_add(self, *items: Disposeable|list[Disposeable]):
+		if not self._dispose:
+			self._dispose = []
+
+		for item in items:
+			if isinstance(item, list):
+				for i in item:
+					self._dispose.append(i)
+			else:
+				self._dispose.append(item)
+
 		if not self._dispose:
 			self._dispose = []
 

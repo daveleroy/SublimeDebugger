@@ -29,7 +29,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.dispose_add(self.protocol)
 
 		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
-		self.color: str|None = None
+		self.color: str | None = None
 		self.phantoms = []
 		self.input_size = 0
 
@@ -41,14 +41,12 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 		self._annotation_id = 0
 
-		self._last_output_event: dap.OutputEvent|None = None
+		self._last_output_event: dap.OutputEvent | None = None
 		self._last_output_event_annotation_id = 0
 		self._last_output_event_count = 0
 
 		settings = self.view.settings()
-		settings.set('context_menu', 'DebuggerWidget.sublime-menu')
 		settings.set('auto_complete_selector', 'debugger.console')
-		settings.set('debugger.console', True)
 
 		# adjust the line padding so line_padding_top is always 3 but the space between lines is the same as what the user already has set
 		# If < 3 there is space at the bottom
@@ -78,7 +76,15 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		if event.source:
 			source = dap.SourceLocation(event.source, event.line)
 
-		color_for_type: dict[str|None, str|None] = {
+		if self.is_output_identical_to_previous(event):
+			self._last_output_event_count += 1
+			self._last_output_event_annotation_id = self.add_annotation(self.at() - 1, source, self._last_output_event_count, self._last_output_event_annotation_id)
+			return
+		else:
+			self._last_output_event = event
+			self._last_output_event_count = 1
+
+		color_for_type: dict[str | None, str | None] = {
 			'stderr': 'red',
 			'stdout': 'foreground',
 			'important': 'magenta',
@@ -92,13 +98,14 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		if event.variablesReference:
 			self.write(f'\u200b\n', color, ensure_new_line=True, ignore_indent=False)
 			placeholder = self.add_annotation(self.at() - 1, source)
+			self._last_output_event_annotation_id = placeholder
 
 			async def appendVariabble(variablesReference: int) -> None:
 				try:
 					variables = await session.get_variables(variablesReference, without_names=True)
 					for variable in variables:
 						at = self.annotation_region(placeholder).a
-						self.write_variable(variable, at, variable==variables[-1])
+						self.write_variable(variable, at, variable == variables[-1])
 
 				# if a request is cancelled it is because the debugger session ended
 				# In some cases the variable cannot be fetched since the debugger session was terminated because of the exception
@@ -111,13 +118,6 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			core.run(appendVariabble(event.variablesReference))
 
 		elif event.output:
-			if self.is_output_identical_to_previous(event):
-				self._last_output_event_count += 1
-				self._last_output_event_annotation_id = self.add_annotation(self.at() - 1, source, self._last_output_event_count, self._last_output_event_annotation_id)
-			else:
-				self._last_output_event = event
-				self._last_output_event_count = 1
-
 				self.write(event.output, color, ignore_indent=False)
 				if event.source:
 					self._last_output_event_annotation_id = self.add_annotation(self.at() - 1, source)
@@ -128,7 +128,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			self.start_indent()
 
 	def is_output_identical_to_previous(self, event: dap.OutputEvent):
-		if not self._last_output_event:
+		if not self._last_output_event or not event.output:
 			return False
 
 		if event.group:
@@ -151,23 +151,24 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		else:
 			self.indent = self.indent[:-1]
 
-	def scroll_to_end(self):
-		super().scroll_to_end()
-		self.window.focus_view(self.view)
-
 	def at(self):
 		# there is always a single invisible character at the end of the content otherwise every single write causes the phantom to be out of position and require re-rendering
-		if input := self.input():
+		if input := self.input_region():
 			return max(input.a - 1, 0)
 		return max(self.view.size() - 1, 0)
 
-	def write(self, text: str, color: str|None, ensure_new_line=False, ignore_indent: bool = True):
+	def write(self, text: str, color: str | None, ensure_new_line=False, ignore_indent: bool = True):
+
+		indent = ''
 
 		if not ignore_indent and self.indent:
-			text = self.indent + text
-
+			indent += self.indent
 		if self.forced_indent:
-			text = self.forced_indent + text
+			indent += self.forced_indent
+
+		if indent:
+			text = indent + text
+			text = text.replace('\n', '\n' + indent, text.count('\n') - 1)
 
 		# if we are changing color we want it on its own line
 		if ensure_new_line or self.color != color:
@@ -197,6 +198,9 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		# phantom_at = at + len(indent)
 
 		def on_navigate(path: str):
+			if window := self.view.window():
+				window.focus_view(self.view)
+
 			component = VariableView(self.debugger, variable, children_only=True)
 			component.set_expanded()
 			popup = ui.Popup(self.view, at)
@@ -217,14 +221,13 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		phantom = ui.RawPhantom(self.view, sublime.Region(at, at), html, on_navigate=on_navigate)
 		self.phantoms.append(phantom)
 
-	def add_annotation(self, at: int, source: dap.SourceLocation|None = None, count: int|None = None, annotation_id: int|None = None):
+	def add_annotation(self, at: int, source: dap.SourceLocation | None = None, count: int | None = None, annotation_id: int | None = None):
 
 		if not annotation_id:
 			self._annotation_id += 1
 			annotation_id = self._annotation_id
 
 		if source or count and count > 1:
-
 			if source:
 				on_navigate = lambda _: self.on_navigate(source)
 				source_html = f'<a href="">{source.name}</a>'
@@ -279,40 +282,47 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.view.set_read_only(True)
 
 	def on_selection_modified(self):
-		input = self.input()
+		input = self.input_region()
 		if not input:
 			self.view.set_read_only(True)
 			return
 
-		at = input.a - 1
-		for region in self.view.sel():
-			if region.a <= at:
+		sel = self.view.sel()
+		end_of_input = input.b
+
+		for region in sel:
+			if region.a < end_of_input:
 				self.view.set_read_only(True)
 				return
 
-		self.view.set_read_only(False)
+			self.view.set_read_only(False)
 
-	def on_query_context(self, key: str, operator: int, operand: Any, match_all: bool) -> bool|None:
-		self.set_input_mode()
+	# if you type outside of the input region we want it to scroll_to_end so you are tying into the input region
+	def on_query_context(self, key: str, operator: int, operand: Any, match_all: bool) -> bool | None:
+		if input := self.input_region():
+			sel = self.view.sel()
+			end_of_input = input.b
+
+			for region in sel:
+				if region.a < end_of_input:
+					self.scroll_to_end()
+					return
+
+			return
 		return None
 
 	def on_post_text_command(self, command_name: str, args: Any):
 		if command_name == 'copy':
 			sublime.set_clipboard(sublime.get_clipboard().replace('\u200c', '').replace('\u200b', ''))
 
-	def on_text_command(self, command_name: str, args: Any): #type: ignore
-		if command_name == 'insert' and args['characters'] == '\n' and self.enter():
-			return ('noop')
-
-		# I have no idea why left_delete breaks layout_extent when getting the height of the content + phantom but it does...
-		# this causes every left_delete to make the spacer at the bottom larger and larger
-		# performing our own left_delete seems to fix this
+		# left_delete seems to cause issues with the layout not being updated so manually call on_text_changed
 		if command_name == 'left_delete':
-			core.edit(self.view, lambda edit: self.view.erase(edit, sublime.Region(self.view.size() -1 ,self.view.size())))
-			return ('noop')
+			if self.text_change_listener:
+				self.text_change_listener.on_text_changed([])
 
-		if not self.view.is_auto_complete_visible() and command_name == 'move' and args['by'] =='lines':
-			self.set_input_mode()
+	def on_text_command(self, command_name: str, args: Any): #type: ignore
+		if not self.view.is_auto_complete_visible() and command_name == 'move' and args['by'] == 'lines':
+			self.enable_input_mode()
 			if args['forward']:
 				self.autofill(-1)
 			else:
@@ -320,8 +330,9 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			return ('noop')
 
 	def on_query_completions(self, prefix: str, locations: list[int]) -> Any:
-		input = self.input()
-		if not input: return
+		input = self.input_region()
+		if not input:
+			return
 
 		text = self.view.substr(sublime.Region(input.b, self.view.size()))
 		col = (locations[0] - input.b)
@@ -335,10 +346,10 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 					annotation='',
 					kind=sublime.KIND_SNIPPET,
 					command='insert',
-					args= {
+					args={
 						'characters': fill
 					}
-				))
+			))
 
 		@core.run
 		async def fetch():
@@ -347,26 +358,39 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 					raise core.CancelledError
 
 				for completion in await self.debugger.active.completions(text, col):
-					if completion.type == 'method' : kind = sublime.KIND_FUNCTION
-					elif completion.type == 'function': kind = sublime.KIND_FUNCTION
-					elif completion.type == 'constructor': kind = sublime.KIND_FUNCTION
-					elif completion.type == 'field': kind = sublime.KIND_VARIABLE
-					elif completion.type == 'variable': kind = sublime.KIND_VARIABLE
-					elif completion.type == 'class': kind = sublime.KIND_TYPE
-					elif completion.type == 'interface': kind = sublime.KIND_TYPE
-					elif completion.type == 'module': kind = sublime.KIND_NAMESPACE
-					elif completion.type == 'property': kind = sublime.KIND_VARIABLE
-					elif completion.type == 'enum': kind = sublime.KIND_TYPE
-					elif completion.type == 'keyword': kind = sublime.KIND_KEYWORD
-					elif completion.type == 'snippet': kind = sublime.KIND_SNIPPET
-					else: kind = sublime.KIND_VARIABLE
+					if completion.type == 'method':
+						kind = sublime.KIND_FUNCTION
+					elif completion.type == 'function':
+						kind = sublime.KIND_FUNCTION
+					elif completion.type == 'constructor':
+						kind = sublime.KIND_FUNCTION
+					elif completion.type == 'field':
+						kind = sublime.KIND_VARIABLE
+					elif completion.type == 'variable':
+						kind = sublime.KIND_VARIABLE
+					elif completion.type == 'class':
+						kind = sublime.KIND_TYPE
+					elif completion.type == 'interface':
+						kind = sublime.KIND_TYPE
+					elif completion.type == 'module':
+						kind = sublime.KIND_NAMESPACE
+					elif completion.type == 'property':
+						kind = sublime.KIND_VARIABLE
+					elif completion.type == 'enum':
+						kind = sublime.KIND_TYPE
+					elif completion.type == 'keyword':
+						kind = sublime.KIND_KEYWORD
+					elif completion.type == 'snippet':
+						kind = sublime.KIND_SNIPPET
+					else:
+						kind = sublime.KIND_VARIABLE
 
 					item = sublime.CompletionItem.command_completion(
 						trigger=completion.text or completion.label,
 						annotation=completion.detail or '',
 						kind=kind,
 						command='insert',
-						args= {
+						args={
 							'characters': completion.text or completion.label
 						}
 					)
@@ -379,15 +403,18 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			except core.CancelledError:
 				...
 
-			completions.set_completions(items, sublime.INHIBIT_EXPLICIT_COMPLETIONS|sublime.INHIBIT_REORDER|sublime.INHIBIT_WORD_COMPLETIONS)
+			completions.set_completions(items, sublime.INHIBIT_EXPLICIT_COMPLETIONS | sublime.INHIBIT_REORDER | sublime.INHIBIT_WORD_COMPLETIONS)
 
 		fetch()
 		return completions
 
 	def on_deactivated(self):
-		self.clear_input_mode()
+		if input := self.input_region():
+			text_region = sublime.Region(input.b, self.view.size())
+			if text_region.size() == 0:
+				self.disable_input_mode()
 
-	def input(self):
+	def input_region(self):
 		regions = self.view.get_regions('input')
 		if not regions:
 			return None
@@ -400,44 +427,38 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 		return region
 
-	def clear_input_mode(self):
-		if input := self.input():
+	def disable_input_mode(self):
+		if input := self.input_region():
 			self.view.erase_regions('input')
 			self.edit(lambda edit: self.view.erase(edit, sublime.Region(input.a, self.view.size())))
 
-	def set_input_mode(self):
-		if input := self.input():
-			sel = self.view.sel()
-			end_of_input = input.b
-
-			for region in sel:
-				if region.a < end_of_input:
-					self.view.set_read_only(False)
-					self.scroll_to_end()
-					return
-
+	def enable_input_mode(self):
+		if self.input_region():
 			return
 
-		a = self.view.size()
+		size = self.view.size()
 
 		def edit(edit):
-			marker = '\n\u200c:' if a > 1 else '\u200c:'
-			size = self.view.insert(edit, a, marker)
-			self.input_size = size
-			self.view.add_regions('input', [sublime.Region(a, a+size)])
+			marker = '\n\u200c:' if size > 1 else '\u200c:'
+			input_size = self.view.insert(edit, size, marker)
+			self.input_size = input_size
+			self.view.add_regions('input', [sublime.Region(size, size + input_size)])
 
 		self.edit(edit)
 		self.view.set_read_only(False)
 		self.scroll_to_end()
 
 	def enter(self):
-		self.set_input_mode()
-		input = self.input()
-		if not input: return False
+		input = self.input_region()
+		if not input:
+			self.enable_input_mode()
+			return False
 
 		text_region = sublime.Region(input.b, self.view.size())
 		text = self.view.substr(text_region)
-		if not text: return True
+		if not text:
+			self.disable_input_mode()
+			return True
 
 		self.edit(lambda edit: (
 			self.view.erase(edit, text_region),
@@ -449,15 +470,19 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.write(':' + text, 'comment', True)
 		self._history_offset = 0
 		self._history.append(text)
-		return True
 
+		# reset the input mode since line 0 is handled differntly in enable_input_mode and we just added a newline
+		self.disable_input_mode()
+		self.enable_input_mode()
+		return True
 
 	def autofill(self, offset: int):
 		self._history_offset += offset
 		self._history_offset = min(max(0, self._history_offset), len(self._history))
-		self.set_input_mode()
-		input = self.input()
-		if not input: return False
+		self.enable_input_mode()
+		input = self.input_region()
+		if not input:
+			return False
 
 		text_region = sublime.Region(input.b, self.view.size())
 		if self._history_offset:
@@ -473,9 +498,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 				self.view.sel().add(self.view.size())
 			))
 
-
-
-	def log(self, type: str, value: Any, source: dap.SourceLocation|None = None, session: dap.Session|None = None):
+	def log(self, type: str, value: Any, source: dap.SourceLocation | None = None, session: dap.Session | None = None, phantom: ui.Html | None = None):
 		if type == 'transport':
 			self.protocol.log('transport', value, session)
 		elif type == 'error-no-open':
@@ -508,6 +531,9 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 		if source:
 			self.add_annotation(self.at() - 1, source)
+
+		if phantom:
+			self.phantoms.append(ui.RawPhantom(self.view, self.at() - 1, html=phantom.html, on_navigate=phantom.on_navigate))
 
 	def dispose_phantoms(self):
 		for phantom in self.phantoms:
