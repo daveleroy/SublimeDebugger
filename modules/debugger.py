@@ -25,7 +25,7 @@ from .terminal_integrated import TerminusIntegratedTerminal
 
 from .source_navigation import SourceNavigationProvider
 
-class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
+class Debugger (core.Dispose, dap.Debugger):
 
 	debuggers_for_window: dict[int, Debugger|None] = {}
 
@@ -38,8 +38,8 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 		return filter(lambda i: i != None, Debugger.debuggers_for_window.values()) # type: ignore
 
 	@staticmethod
-	def create(window: sublime.Window, skip_project_check = False) -> Debugger:
-		debugger = Debugger.get(window, create=True, skip_project_check=skip_project_check)
+	def create(window_or_view: sublime.Window|sublime.View, skip_project_check = False) -> Debugger:
+		debugger = Debugger.get(window_or_view, create=True, skip_project_check=skip_project_check)
 		assert debugger
 		return debugger
 
@@ -70,7 +70,7 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 			Debugger.debuggers_for_window[id] = instance
 			return instance
 
-		except Exception as e:
+		except Exception:
 			core.exception()
 			del Debugger.debuggers_for_window[id]
 
@@ -86,9 +86,13 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 		self.on_session_sources_updated = core.Event[dap.Session]()
 		self.on_session_variables_updated = core.Event[dap.Session]()
 		self.on_session_threads_updated = core.Event[dap.Session]()
-		self.on_session_state_updated = core.Event[[dap.Session, dap.Session.State]]()
+		self.on_session_updated = core.Event[dap.Session]()
 		self.on_session_output = core.Event[dap.Session, dap.OutputEvent]()
 		self.on_output_panels_updated = core.Event[None]()
+
+		self.on_session_updated.add(self._on_session_updated)
+		self.on_session_output.add(self._on_session_output)
+		self.on_session_active.add(self._on_session_active)
 
 		self.session: dap.Session|None = None
 		self.sessions: list[dap.Session] = []
@@ -117,15 +121,13 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
 		self.project.reload(self.console)
 
-
-		location = self.project.location
-		if location:
+		if location := self.project.location:
 			json = core.json.load_json_from_package_data(location)
 			self.project.load_from_json(json.get('project', {}))
 			self.breakpoints.load_from_json(json.get('breakpoints', {}))
 			self.watch.load_json(json.get('watch', []))
 		else:
-			core.info('Not loading data, project is not associated a location')
+			core.info('Not loading data, project is not associated with a location')
 
 		self.project.on_updated.add(self._on_project_or_settings_updated)
 
@@ -140,8 +142,6 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 			self.console,
 			self.callstack,
 		])
-
-		self.on_session_active.add(self._on_session_active)
 
 		if not self.project.location:
 			self.console.log('warn', 'Debugger not associated with a sublime-project so breakpoints and other data will not be saved')
@@ -166,12 +166,10 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
 	def _refresh_none_debugger_output_panel(self, panel_name: str):
 		name = panel_name.replace('output.', '')
-
-		panels = Settings.integrated_output_panels
-		if not name in panels:
+		panel = Settings.integrated_output_panels.get(name)
+		if not panel:
 			return
 
-		panel = panels[name]
 		view = self.window.find_output_panel(name)
 		if not view:
 			return
@@ -323,18 +321,51 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 			no_debug=no_debug,
 			breakpoints=breakpoints,
 			watch=self.watch,
-			listener=self,
 			debugger=self,
 			parent=parent,
 			console=self.console,
 		)
 
-		self.add_session(session)
+		session.on_updated_modules = self.on_session_modules_updated
+		session.on_updated_sources = self.on_session_sources_updated
+		session.on_updated_threads = self.on_session_threads_updated
+		session.on_updated_variables = self.on_session_variables_updated
+		session.on_updated_networking_requests = self.on_session_networking_requests_updated
+		session.on_updated = self.on_session_updated
+		session.on_output = self.on_session_output
+		session.on_selected_frame = lambda session, _: self.session_active(session)
+		session.on_finished = lambda session: self.remove_session(session)
+		session.on_terminal_request = self.session_terminal_request
+		session.on_task_request = self.session_task_request
+
+		self.sessions.append(session)
+		# if a session is added select it
+		self.session = session
+
+		self.on_session_added(session)
+		self.on_session_active(session)
+
 		await session.launch()
 		return session
 
-	def session_finished(self, session: dap.Session):
-		self.remove_session(session)
+	@property
+	def is_active(self):
+		return self.session != None
+
+	@property
+	def active(self):
+		if not self.session:
+			raise dap.NoActiveSessionError()
+		return self.session
+
+	def session_active(self, session: dap.Session):
+		self.active = session
+
+	@active.setter
+	def active(self, session: dap.Session):
+		self.session = session
+		self.on_session_updated(session)
+		self.on_session_active(session)
 
 	async def session_task_request(self, session: dap.Session, task: dap.TaskExpanded):
 		return await self.tasks.run(self, task)
@@ -344,51 +375,25 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 		if not response: raise core.Error('No terminal session response')
 		return await response
 
-	def session_state_changed(self, session: dap.Session, state: dap.Session.State):
-		self.on_session_state_updated(session, state)
+	def _on_session_updated(self, session: dap.Session):
 
 		if self.is_active and self.active != session:
 			return
 
-		if state == dap.Session.State.PAUSED:
+		if session.state == dap.Session.State.PAUSED:
 			if not session.stepping:
 				self.callstack.open()
 
-		if state.previous == dap.Session.State.PAUSED and state == dap.Session.State.RUNNING:
+		if session.state.previous == dap.Session.State.PAUSED and session.state == dap.Session.State.RUNNING:
 			if not session.stepping:
 				if terminals := self.integrated_terminals.get(session):
 					terminals[0].open()
 				else:
 					self.console.open()
 
-	def session_selected_frame(self, session: dap.Session, frame: dap.StackFrame|None):
-		self.session = session
-		self.on_session_active(session)
+	def _on_session_output(self, session: dap.Session, event: dap.OutputEvent):
 
-	def session_output_event(self, session: dap.Session, event: dap.OutputEvent):
-		self.on_session_output(session, event)
 		self.console.program_output(session, event)
-
-	def session_updated_modules(self, session: dap.Session):
-		self.on_session_modules_updated(session)
-
-	def session_updated_sources(self, session: dap.Session):
-		self.on_session_sources_updated(session)
-
-	def session_updated_variables(self, session: dap.Session):
-		self.on_session_variables_updated(session)
-
-	def session_updated_threads(self, session: dap.Session):
-		self.on_session_threads_updated(session)
-
-	def add_session(self, session: dap.Session):
-		self.sessions.append(session)
-
-		# if a session is added select it
-		self.session = session
-
-		self.on_session_added(session)
-		self.on_session_active(session)
 
 	def remove_session(self, session: dap.Session):
 		session.dispose()
@@ -491,21 +496,6 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 		except dap.NoActiveSessionError: ...
 		except core.Error as e: self.console.error(f'Unable to stop: {e}')
 
-	@property
-	def is_active(self):
-		return self.session != None
-
-	@property
-	def active(self):
-		if not self.session:
-			raise dap.NoActiveSessionError()
-		return self.session
-
-	@active.setter
-	def active(self, session: dap.Session):
-		self.session = session
-		self.on_session_state_updated(session, session.state)
-		self.on_session_active(session)
 
 	def clear_all_breakpoints(self):
 		self.breakpoints.data.remove_all()
@@ -705,7 +695,6 @@ class Debugger (core.Dispose, dap.Debugger, dap.SessionListener):
 
 		view = self.disassembly_view.view
 		window = view.window()
-
 
 		# view is currently visible so toggle the view off
 		if toggle and window and view.sheet() in window.selected_sheets():

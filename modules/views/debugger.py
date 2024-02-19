@@ -1,9 +1,10 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 
-from ..import ui
-from ..import dap
-from ..import menus
+from .. import core
+from .. import ui
+from .. import dap
+from .. import menus
 from . import css
 
 from .breakpoints import BreakpointsView
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 	from ..debugger import Debugger
 
 
-class DebuggerTabbedView(TabbedView):
+class DebuggerTabbedView(TabbedView, core.Dispose):
 	def __init__(self, debugger: Debugger, on_navigate_to_source: Callable[[dap.SourceLocation], None]) -> None:
 		super().__init__('Debugger')
 
@@ -21,14 +22,21 @@ class DebuggerTabbedView(TabbedView):
 
 		self.breakpoints = BreakpointsView(debugger.breakpoints, on_navigate_to_source)
 
-		self.debugger.on_session_state_updated.add(lambda session, state: self.dirty())
-		self.debugger.on_session_active.add(self.on_selected_session)
-		self.debugger.on_session_added.add(self.on_selected_session)
-
-		self.debugger.project.on_updated.add(self.dirty)
-		self.last_adapter_configuration: dap.AdapterConfiguration|None = None
+		self.last_adapter_configuration: dap.AdapterConfiguration | None = None
 		self.actions_tab = DebuggerActionsTab(debugger)
 
+		# self.process = ProcessView(debugger)
+
+	def added(self) -> None:
+		self.dispose_add(
+			self.debugger.on_session_updated.add(lambda session: self.dirty()),
+			self.debugger.on_session_active.add(self.on_selected_session),
+			self.debugger.on_session_added.add(self.on_selected_session),
+			self.debugger.project.on_updated.add(self.dirty),
+		)
+
+	def removed(self) -> None:
+		self.dispose()
 
 	def header(self, is_selected):
 		self.actions_tab.append_stack()
@@ -49,28 +57,26 @@ class DebuggerTabbedView(TabbedView):
 				with ui.div(height=css.row_height):
 					ui.text(status, css=css.secondary)
 
-
 		if self.last_adapter_configuration:
 			self.last_adapter_configuration.ui(self.debugger)
 
 		self.breakpoints.append_stack()
 
 
-
-class DebuggerActionsTab(ui.span):
-	def __init__(self, debugger: Debugger, css: ui.css|None = css.controls_panel) -> None:
+class DebuggerActionsTab(ui.span, core.Dispose):
+	def __init__(self, debugger: Debugger, css: ui.css | None = css.controls_panel) -> None:
 		super().__init__(css=css)
 		self.debugger = debugger
 
 	def added(self) -> None:
-		self.on_session_state_updated = self.debugger.on_session_state_updated.add(lambda session, state: self.dirty())
-		self.on_session_removed = self.debugger.on_session_removed.add(lambda _: self.dirty())
-		self.on_project_updated = self.debugger.project.on_updated.add(lambda: self.dirty())
+		self.dispose_add(
+			self.debugger.on_session_updated.add(lambda session: self.dirty()),
+			self.debugger.on_session_removed.add(lambda _: self.dirty()),
+			self.debugger.project.on_updated.add(lambda: self.dirty()),
+		)
 
 	def removed(self) -> None:
-		self.on_session_removed.dispose()
-		self.on_session_state_updated.dispose()
-		self.on_project_updated.dispose()
+		self.dispose()
 
 	def render(self):
 		name = self.debugger.project.name
@@ -86,7 +92,7 @@ class DebuggerActionsTab(ui.span):
 			ui.icon(ui.Images.shared.stop_disable, on_click=self.debugger.stop, title='Stop (Disabled)')
 
 		if len(name) > 11:
-			name = name[:10] +  '…'
+			name = name[:10] + '…'
 		else:
 			name = name.ljust(11, ' ')
 
@@ -98,7 +104,6 @@ class DebuggerActionsTab(ui.span):
 				ui.icon(ui.Images.shared.open, align_left=False)
 
 		else:
-
 			if self.debugger.is_running():
 				ui.icon(ui.Images.shared.pause, on_click=self.debugger.pause, title='Pause')
 			elif self.debugger.is_paused():

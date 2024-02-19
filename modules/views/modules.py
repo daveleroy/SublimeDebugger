@@ -3,25 +3,32 @@ from typing import TYPE_CHECKING, Any
 
 import sublime
 
-from ..import ui
-from ..import dap
+from .. import core
+from .. import ui
+from .. import dap
 
-from .import css
+from . import css
 from .tabbed import TabbedView
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
 
 
-class ModulesTabbedView(TabbedView):
+class ModulesTabbedView(TabbedView, core.Dispose):
 	def __init__(self, debugger: Debugger):
 		super().__init__('Modules')
 		self.debugger = debugger
 		self.expanded: dict[Any, bool] = {}
 		self._visible = False
 
-		self.debugger.on_session_modules_updated.add(self.updated)
-		self.debugger.on_session_removed.add(self.updated)
+	def added(self) -> None:
+		self.dispose_add(
+			self.debugger.on_session_modules_updated.add(self.updated),
+			self.debugger.on_session_removed.add(self.updated),
+		)
+
+	def removed(self) -> None:
+		self.dispose()
 
 	def visible(self) -> bool:
 		return self._visible
@@ -64,14 +71,13 @@ class ModulesTabbedView(TabbedView):
 
 				if is_expanded:
 					with ui.div(css=css.table_inset):
+
 						def add_item(label: str, value: Any):
 							if value is None:
 								return
 
 							def copy():
-								ui.InputList(value)[
-									ui.InputListItem(lambda: sublime.set_clipboard(value), "Copy")
-								].run()
+								ui.InputList(value)[ui.InputListItem(lambda: sublime.set_clipboard(value), 'Copy')].run()
 
 							value_str = str(value)
 							with ui.div(height=3):

@@ -18,12 +18,13 @@ class Debugger(Protocol):
 	on_session_removed: core.Event[Session]
 	on_session_active: core.Event[Session]
 
+	on_session_output: core.Event[Session, OutputEvent]
+
+	on_session_updated: core.Event[Session]
 	on_session_modules_updated: core.Event[Session]
 	on_session_sources_updated: core.Event[Session]
 	on_session_variables_updated: core.Event[Session]
 	on_session_threads_updated: core.Event[Session]
-	on_session_state_updated: core.Event[Session, Session.State]
-	on_session_output: core.Event[Session, OutputEvent]
 
 	sessions: list[Session]
 	session: Session|None

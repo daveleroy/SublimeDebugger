@@ -23,6 +23,18 @@ from dataclasses import dataclass
 class TransportConnectionError(core.Error):
 	...
 
+class Transport:
+	async def start(self, listener: TransportListener, configuration: ConfigurationExpanded, log: core.Logger):
+		...
+	def dispose(self) -> None:
+		...
+	def send_request(self, command: str, args: core.JSON|None) -> Awaitable[core.JSON]:
+		...
+	def send_event(self, event: str, body: core.JSON) -> None:
+		...
+	def send_response(self, request: core.JSON, body: core.JSON, error: str|None = None) -> None:
+		...
+
 class TransportListener (Protocol):
 	def on_event(self, event: str, body: core.JSON):
 		...
@@ -83,22 +95,6 @@ class TransportOutgoingDataLog(TransportDataLog):
 
 	def __str__(self) -> str:
 		return '<- ' + super().__str__()
-
-
-class Transport:
-	async def start(self, listener: TransportListener, configuration: ConfigurationExpanded, log: core.Logger):
-		...
-	def dispose(self) -> None:
-		...
-	def send_request(self, command: str, args: core.JSON|None) -> Awaitable[core.JSON]:
-		...
-	def send_event(self, event: str, body: core.JSON) -> None:
-		...
-	def send_response(self, request: core.JSON, body: core.JSON, error: str|None = None) -> None:
-		...
-
-
-
 
 class TransportStream(Transport):
 	def write(self, message: bytes):

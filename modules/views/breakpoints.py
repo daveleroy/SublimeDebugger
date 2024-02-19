@@ -3,6 +3,7 @@ from typing import Any, Callable
 
 from ..import ui
 from ..import dap
+from ..import core
 
 from ..breakpoints import (
 	Breakpoints,
@@ -15,19 +16,23 @@ from ..breakpoints import (
 
 from .import css
 
-from functools import partial
 
-class BreakpointsView(ui.div):
+class BreakpointsView(ui.div, core.Dispose):
 	def __init__(self, breakpoints: Breakpoints, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
-		self.selected = None
 		self.on_navigate = on_navigate
-		# FIXME put in on activate/deactivate
-		breakpoints.source.on_updated.add(self._updated)
-		breakpoints.filters.on_updated.add(self._updated)
-		breakpoints.data.on_updated.add(self._updated)
-		breakpoints.function.on_updated.add(self._updated)
+
+	def added(self) -> None:
+		self.dispose_add(
+			self.breakpoints.source.on_updated.add(self._updated),
+			self.breakpoints.filters.on_updated.add(self._updated),
+			self.breakpoints.data.on_updated.add(self._updated),
+			self.breakpoints.function.on_updated.add(self._updated),
+		)
+
+	def removed(self) -> None:
+		self.dispose()
 
 	def _updated(self, data: Any) -> None:
 		self.dirty()

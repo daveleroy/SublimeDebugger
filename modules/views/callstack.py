@@ -32,7 +32,7 @@ class CallStackState:
 
 
 
-class CallstackView(ui.div):
+class CallstackView(ui.div, core.Dispose):
 
 	def __init__(self, debugger: Debugger):
 		super().__init__()
@@ -40,16 +40,15 @@ class CallstackView(ui.div):
 		self.state = CallStackState()
 
 	def added(self):
-		self.on_updated = self.debugger.on_session_threads_updated.add(self.dirty_session)
-		self.on_selected = self.debugger.on_session_active.add(self.dirty_session)
-		self.on_added_session = self.debugger.on_session_added.add(self.dirty_session)
-		self.on_removed_session = self.debugger.on_session_removed.add(self.dirty_session)
+		self.dispose_add([
+			self.debugger.on_session_threads_updated.add(self.dirty_session),
+			self.debugger.on_session_active.add(self.dirty_session),
+			self.debugger.on_session_added.add(self.dirty_session),
+			self.debugger.on_session_removed.add(self.dirty_session),
+		])
 
 	def removed(self):
-		self.on_updated.dispose()
-		self.on_selected.dispose()
-		self.on_added_session.dispose()
-		self.on_removed_session.dispose()
+		self.dispose()
 
 	def dirty_session(self, session: dap.Session):
 		self.dirty()
