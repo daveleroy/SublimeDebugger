@@ -17,8 +17,8 @@ for module in list(filter(lambda module: module.startswith(__package__ + '.') an
 
 
 # import all the commands so that sublime sees them
-from .modules.core.sublime import DebuggerAsyncTextCommand
 from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
+from .modules.core.sublime import DebuggerEditCommand
 from .modules.adapters.util.bridge import DebuggerBridgeCommand
 from .modules.output_panel import DebuggerConsoleListener
 from .modules.terminal_integrated import DebuggerTerminusPostViewHooks

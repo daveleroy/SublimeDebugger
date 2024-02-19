@@ -36,7 +36,6 @@ from .dap import (
 
 from .session import (
 	Session,
-	SessionListener,
 	Thread,
 )
 
