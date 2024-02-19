@@ -28,12 +28,12 @@ def replace_contents(view: sublime.View, characters: str):
 
 def show_line(view: sublime.View, line: int, column: int, move_cursor: bool):
 	def run(edit: sublime.Edit):
-		a = view.text_point(line, column)
-		region = sublime.Region(a, a)
-		view.show_at_center(region)
+		point = view.text_point(line, column)
+		view.show(point)
+		view.sel().clear()
+
 		if move_cursor:
-			view.sel().clear()
-			view.sel().add(region)
+			view.sel().add(point)
 
 	core.edit(view, run)
 
