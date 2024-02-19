@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any, Awaitable
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
-	from .project import Project
 
 from functools import partial
 
@@ -86,7 +85,7 @@ def snippets_list_items(debugger: Debugger):
 			return snippet_item
 
 		def adapter_list_item_installed(adapter: dap.AdapterConfiguration):
-			name = adapter.types[0]
+			name = adapter.name
 
 			snippet_input_items = list(map(snippet_item, adapter.configuration_snippets))
 			subtitle = f'{len(snippet_input_items)} Snippets' if len(snippet_input_items) != 1 else '1 Snippet'
@@ -102,7 +101,7 @@ def snippets_list_items(debugger: Debugger):
 
 
 		def adapter_list_item_not_installed(adapter: dap.AdapterConfiguration) -> ui.InputListItem:
-			name = adapter.types[0]
+			name = adapter.name
 			return ui.InputListItemChecked(
 				lambda: dap.AdapterConfiguration.install_adapter(debugger.console, adapter, None),
 				False,
@@ -196,7 +195,7 @@ async def install_adapters_list_items(debugger: Debugger):
 			installed_version = adapter.installed_version or ''
 			is_installed = bool(installed_version)
 
-			name = adapter.types[0] if not adapter.development else f'{adapter.types[0]} (dev)'
+			name = adapter.name if not adapter.development else f'{adapter.name} (dev)'
 
 			def input_list():
 				items = [
@@ -219,22 +218,16 @@ async def install_adapters_list_items(debugger: Debugger):
 				)
 
 			try:
-				versions = await adapter.installer.installable_versions(debugger.console)
+				version, versions = await adapter.installer.installable_versions_with_default(debugger.console)
 			except Exception as e:
+				debugger.console.error(f'{name}: {e}')
 				return error_item(f'Unable to fetch installable versions')
-
-			if versions:
-					versions_without_tags = filter(lambda v: not '(' in v, versions)
-					version = next(versions_without_tags) or versions[0]
-			else:
-				return error_item(f'No installable versions found')
-
 
 
 			if installed_version:
 				if version != installed_version:
 					name += f'\tUpdate Available {installed_version} → {version}'
-					debugger.console.log('warn', f'{adapter.type}: Update Available {installed_version} → {version}')
+					debugger.console.log('warn', f'{adapter.name}: Update Available {installed_version} → {version}')
 					found_update = True
 
 				else:
