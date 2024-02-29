@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, cast
 
 from ..import core
 
@@ -81,8 +81,11 @@ class TaskExpanded(Task):
 		self.start_file_regex: str|None = json.get('start_file_regex')
 		self.end_file_regex: str|None = json.get('end_file_regex')
 
+		self.depends_on = json.get('depends_on')
+		self.depends_on_order = json.get('depends_on_sequence')
+
 		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
-		for key in ['name', 'background', 'start_file_regex', 'end_file_regex']:
+		for key in ['name', 'background', 'start_file_regex', 'end_file_regex', 'depends_on', 'depends_on_order']:
 			if key in self:
 				del self[key]
 
@@ -137,6 +140,6 @@ def _expand_variables_and_platform(json: dict[str, Any], variables: dict[str, st
 			json[key] = value
 
 	if variables := variables:
-		json = _expand_variables(json, variables)
+		json = cast('dict[str, Any]', _expand_variables(json, variables))
 
 	return variables, json

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Awaitable, Protocol
 
 import sublime
 import re
@@ -23,7 +23,7 @@ class TaskRunner(Protocol):
 	def cancel(self): ...
 
 
-class Tasks:
+class Tasks(core.Dispose):
 	def __init__(self) -> None:
 		self.added = core.Event[TaskRunner]()
 		self.removed = core.Event[TaskRunner]()
@@ -47,6 +47,37 @@ class Tasks:
 				if not t.task.background:
 					await t.wait()
 				return
+
+
+		depends_on = task.depends_on
+		sequence = task.depends_on_order == 'sequence'
+
+		if isinstance(depends_on, str):
+			depends_on = [depends_on]
+		elif isinstance(depends_on, list):
+			depends_on = depends_on
+		else:
+			depends_on = []
+
+		try:
+			if sequence:
+				for depends_on_name in depends_on:
+					depends_on_task = debugger.project.get_task(depends_on_name)
+					depends_on_task_expanded = dap.TaskExpanded(depends_on_task, task.variables)
+					await self.run(debugger, depends_on_task_expanded)
+
+			else:
+				depends_on_tasks_expanded: list[Awaitable[None]] = []
+				for depends_on_name in depends_on:
+					depends_on_task = debugger.project.get_task(depends_on_name)
+					depends_on_task_expanded = dap.TaskExpanded(depends_on_task, task.variables)
+					depends_on_tasks_expanded.append(self.run(debugger, depends_on_task_expanded))
+
+				await core.gather(*depends_on_tasks_expanded)
+
+
+		except core.Error as error:
+			raise core.Error(f'Unable to resolve depends_on: {error}')
 
 
 		terminal = TerminusTask(debugger, task)
@@ -179,6 +210,4 @@ class TerminusTask(OutputPanel):
 
 	def dispose(self):
 		super().dispose()
-
-
 		self.view.run_command('terminus_close')
