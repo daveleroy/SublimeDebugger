@@ -19,14 +19,8 @@
 	// Controls the minimum height of the debugger output panels in lines
 	"minimum_console_height": 10,
 
-	// Some new features are locked behind this flag
+	// Additional console logs and some new features are locked behind this flag
 	"development": false,
-
-	"log_info": false,
-
-	"log_exceptions": true,
-
-	"log_errors": true,
 
 	// Sets a specific path for node if not set adapters that require node to run will use whatever is in your path
 	"node": null,

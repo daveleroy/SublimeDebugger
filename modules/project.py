@@ -170,12 +170,6 @@ class Project:
 		self.on_updated()
 
 	def _load_settings(self):
-		core.log_configure(
-			log_info= Settings.log_info,
-			log_errors= Settings.log_errors,
-			log_exceptions= Settings.log_exceptions,
-		)
-
 		self.external_terminal_kind = Settings.external_terminal
 		self.ui_scale = Settings.ui_scale
 		self.bring_window_to_front_on_pause = Settings.bring_window_to_front_on_pause

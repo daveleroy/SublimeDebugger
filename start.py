@@ -37,16 +37,19 @@ from .modules.settings import SettingsRegistery, Settings
 
 was_opened_at_startup: Set[int] = set()
 
-debugger33_path = os.path.join(sublime.packages_path(), "Debugger33")
+debugger33_path = os.path.join(sublime.packages_path(), 'Debugger33')
 
 def plugin_loaded() -> None:
-	# rename lowercase settings to uppercase this was changed to match other plugins which use uppercase
-	# there is some weird bug where if you have a lowercase settings file it behaves oddly when using sublime.save_settings
-	# sublime.load_settings won't find it but sublime.save_settings will not rename it to uppercase
-	try:
-		os.rename(f'{sublime.packages_path()}/User/debugger.sublime-settings', f'{sublime.packages_path()}/User/Debugger.sublime-settings')
-	except:
-		...
+
+	# do this first since we need to configure logging right away
+	SettingsRegistery.initialize(on_updated=updated_settings)
+	core.log_configure(
+		log_info= Settings.development,
+		log_errors= True,
+		log_exceptions= True,
+	)
+
+	core.info('[startup]')
 
 	# move any files that are meant for the python 3.3 runtime into Debugger33 package
 	if not os.path.exists(debugger33_path):
@@ -59,8 +62,6 @@ def plugin_loaded() -> None:
 		with open(os.path.join(debugger33_path, ".hidden-sublime-package"), "w"):
 			pass
 
-	core.info('[startup]')
-	SettingsRegistery.initialize(on_updated=updated_settings)
 
 	ui.Layout.debug = Settings.development
 	ui.startup()
@@ -70,21 +71,28 @@ def plugin_loaded() -> None:
 
 	core.info('[finished]')
 
-def plugin_unloaded() -> None:
 
+def plugin_unloaded() -> None:
 	core.info('[shutdown]')
 
 	try:
 		core.info("Uninstalling Debugger33")
 		shutil.rmtree(debugger33_path)
-	except Exception as e:
-		core.info('Unable to uninstall Debugger33', e)
+	except Exception:
+		core.exception()
 
 	for debugger in list(Debugger.debuggers()):
-		core.info('Dispose Debugger')
-		debugger.dispose()
+		core.info("Disposing Debugger")
+		try:
+			debugger.dispose()
+		except Exception:
+			core.exception()
 
-	ui.shutdown()
+	try:
+		ui.shutdown()
+	except Exception:
+		core.exception()
+
 
 	core.info('[finished]')
 
@@ -116,25 +124,26 @@ def open_debugger_in_window_or_view(window_or_view: sublime.View|sublime.Window)
 # if there is a debugger running in the window then that is the most relevant one
 # otherwise all debuggers are relevant
 def most_relevant_debuggers_for_view(view: sublime.View) -> Iterable[Debugger]:
-	if debugger := debugger_for_view(view):
+	if debugger := Debugger.get(view):
 		return [debugger]
 
 	return list(Debugger.debuggers())
 
-def debugger_for_view(view: sublime.View) -> Debugger|None:
-	if window := view.window():
-		if debugger := Debugger.get(window):
-			return debugger
-	return None
-
 
 def updated_settings():
+	core.log_configure(
+		log_info= Settings.development,
+		log_errors= True,
+		log_exceptions= True,
+	)
+
+	ui.update_and_render()
+
 	for debugger in Debugger.debuggers():
-		debugger.project.reload(debugger.console)
+		debugger.updated_settings()
 
 
 class EventListener (sublime_plugin.EventListener):
-
 	def on_new_window(self, window: sublime.Window):
 		open_debugger_in_window_or_view(window)
 
@@ -165,7 +174,7 @@ class EventListener (sublime_plugin.EventListener):
 	async def on_hover(self, view: sublime.View, point: int, hover_zone: int):
 		if Debugger.ignore(view): return
 
-		debugger = debugger_for_view(view)
+		debugger = Debugger.get(view)
 		if not debugger:
 			return
 
@@ -185,8 +194,6 @@ class EventListener (sublime_plugin.EventListener):
 		word_string, region = r
 
 		try:
-
-
 			response = await session.evaluate_expression(word_string, 'hover')
 			component = VariableView(debugger, dap.Variable.from_evaluate(session, '', response))
 			component.toggle_expand()
@@ -275,7 +282,6 @@ class EventListener (sublime_plugin.EventListener):
 
 	def on_view_gutter_clicked(self, view: sublime.View, line: int, button: int) -> bool:
 		line += 1 # convert to 1 based lines
-
 		debuggers = most_relevant_debuggers_for_view(view)
 		if not debuggers:
 			return False
@@ -312,15 +318,15 @@ class EventListener (sublime_plugin.EventListener):
 				return value != operand
 
 		if key == 'debugger':
-			debugger = debugger_for_view(view)
+			debugger = Debugger.get(view)
 			return apply_operator(bool(debugger))
 
 		if key == 'debugger.visible':
-			debugger = debugger_for_view(view)
+			debugger = Debugger.get(view)
 			return apply_operator(debugger.is_open()) if debugger else apply_operator(False)
 
 		if key == 'debugger.active':
-			debugger = debugger_for_view(view)
+			debugger = Debugger.get(view)
 			return apply_operator(debugger.is_active) if debugger else apply_operator(False)
 
 		if key.startswith('debugger.'):

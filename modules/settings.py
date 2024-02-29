@@ -73,25 +73,7 @@ class Settings:
 	development = Setting[bool] (
 		key='development',
 		default=False,
-		description='Some new features are locked behind this flag'
-	)
-
-	log_info = Setting[bool] (
-		key='log_info',
-		default=False,
-		description=''
-	)
-
-	log_exceptions = Setting[bool] (
-		key='log_exceptions',
-		default=True,
-		description=''
-	)
-
-	log_errors = Setting[bool] (
-		key='log_errors',
-		default=True,
-		description=''
+		description='Additional console logs and some new features are locked behind this flag'
 	)
 
 	node = Setting['str|None'] (
