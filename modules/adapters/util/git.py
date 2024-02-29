@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Callable
+from ...settings import Setting
 
 from ...import core
 
@@ -8,6 +9,19 @@ from .import request
 
 import string
 
+
+github_personal_access_token = Setting['str|None'](
+	key='github_personal_access_token',
+	default=None,
+	description='Personal access token used for github api requests. If you are testing installing adapters you may need to set this to have higher api limits if you are getting 429 errors.'
+)
+
+def headers():
+	return {
+		'Authorization': f'Bearer {github_personal_access_token.value}'
+	}\
+	if github_personal_access_token.value else {}
+
 class GitInstaller(vscode.AdapterInstaller):
 	def __init__(self, type: str, repo: str, is_valid_asset: Callable[[str], bool] = lambda asset: asset.endswith('.vsix')):
 		self.type = type
@@ -15,7 +29,7 @@ class GitInstaller(vscode.AdapterInstaller):
 		self.is_valid_asset = is_valid_asset
 
 	async def install(self, version: str, log: core.Logger):
-		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases')
+		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 		for release in releases:
 			if version != version_from_release(release):
 				continue
@@ -28,7 +42,7 @@ class GitInstaller(vscode.AdapterInstaller):
 
 	async def installable_versions(self, log: core.Logger) -> list[str]:
 		try:
-			releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases')
+			releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 			versions: list[str] = []
 
 			for release in releases:
@@ -54,7 +68,7 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 		self.repo = repo
 
 	async def install(self, version: str|None, log: core.Logger):
-		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases')
+		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 		for release in releases:
 			if version == version_from_release(release):
 				return await self.install_from_asset(release['zipball_url'], log)
@@ -63,7 +77,7 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 
 	async def installable_versions(self, log: core.Logger) -> list[str]:
 		try:
-			releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases')
+			releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 			versions: list[str] = []
 
 			for release in releases:

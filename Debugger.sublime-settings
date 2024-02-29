@@ -51,6 +51,9 @@
 	// Global debugger compounds that are accessible from every project
 	"global_debugger_compounds": [],
 
+	// Personal access token used for github api requests. If you are testing installing adapters you may need to set this to have higher api limits if you are getting 429 errors.
+	"github_personal_access_token": null,
+
 	// Which lldb library to use
 	"lldb_library": null,
 
