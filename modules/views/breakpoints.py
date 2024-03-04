@@ -51,12 +51,11 @@ class BreakpointView(ui.div):
 		self.on_navigate = on_navigate
 
 	def render(self):
-		with ui.div():
-			ui.icon(self.breakpoint.image, on_click=self._on_toggle)
-			ui.text(self.breakpoint.name, css=css.secondary, on_click=self._on_navigate)
-			if self.breakpoint.tag:
-				ui.spacer()
-				ui.text(self.breakpoint.tag, css=css.button, on_click=self._on_navigate)
+		ui.icon(self.breakpoint.image, on_click=self._on_toggle)
+		ui.text(self.breakpoint.name, css=css.secondary, on_click=self._on_navigate)
+		if self.breakpoint.tag:
+			ui.spacer()
+			ui.text(self.breakpoint.tag, css=css.button, on_click=self._on_navigate)
 
 	def _on_navigate(self) -> None:
 		if isinstance(self.breakpoint, SourceBreakpoint):

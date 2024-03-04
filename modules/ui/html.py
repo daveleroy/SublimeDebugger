@@ -58,7 +58,7 @@ class element(metaclass=StackMeta):
 
 		self.children: list[element] = []
 		self.children_rendered: list[element] = []
-
+		self.children_rendered_inline = False
 		self.requires_render = True
 
 		self.is_inline = is_inline
@@ -88,6 +88,10 @@ class element(metaclass=StackMeta):
 		self.children = values
 		self.modified_children()
 
+	def assign_rendered_children(self, values: list[element]):
+		self.children_rendered = values
+		self.children_rendered_inline = self.children_rendered and self.children_rendered[0].is_inline
+
 	def modified_children(self):
 		...
 
@@ -95,8 +99,7 @@ class element(metaclass=StackMeta):
 		enter_render_frame()
 		self.render()
 		items = exit_render_frame()
-
-		self.children_rendered = items
+		self.assign_rendered_children(items)
 
 	def render(self) -> None:
 		stack[-1].extend(self.children)
@@ -120,20 +123,13 @@ class div (element):
 
 	def __init__(self, width: float|None = None, height: float|None = None, css: css|None = None) -> None:
 		super().__init__(False, width, height, css)
-		self.children_inline = False
-
-	def modified_children(self):
-		if self.children:
-			self.children_inline = self.children[0].is_inline
-		else:
-			self.children_inline = False
 
 	# height of a div matches the height of all its children combined unless explicitly given
 	def html_height(self, available_width: float, available_height: float) -> float:
 		if self.height is not None:
 			return self.height + self.css_padding_height
 
-		if self.children_inline:
+		if self.children_rendered_inline:
 			return 3
 
 		height = self.css_padding_height
@@ -167,7 +163,7 @@ class div (element):
 
 		tag, attributes = self.html_tag_and_attrbutes()
 
-		if self.children_inline:
+		if self.children_rendered_inline:
 			from .align import aligned_html_inner
 			html = aligned_html_inner(self, width, height)
 

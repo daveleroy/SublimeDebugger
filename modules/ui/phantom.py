@@ -52,7 +52,7 @@ class Phantom(Layout):
 
 		region = self.render_region()
 		at: list[sublime.Region] = self.view.query_phantoms([self.pid]) #type: ignore (the typing is wrong its a list of regions)
-		if at[0] == region:
+		if at and at[0] == region:
 			return
 
 		core.info('rendering phantom it is out of position or deleted')
