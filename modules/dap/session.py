@@ -182,9 +182,8 @@ class Session(TransportListener, core.Dispose):
 
 
 		self._transport = transport
-		self._transport_started = True
-
 		await self._transport.start(self, self.configuration, self.log)
+		self._transport_started = True
 
 		capabilities: dap.Capabilities = await self.request('initialize', {
 			'clientID': 'sublime',

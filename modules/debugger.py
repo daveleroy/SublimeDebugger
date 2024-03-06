@@ -329,7 +329,6 @@ class Debugger (core.Dispose, dap.Debugger):
 		session.on_updated_sources = self.on_session_sources_updated
 		session.on_updated_threads = self.on_session_threads_updated
 		session.on_updated_variables = self.on_session_variables_updated
-		session.on_updated_networking_requests = self.on_session_networking_requests_updated
 		session.on_updated = self.on_session_updated
 		session.on_output = self.on_session_output
 		session.on_selected_frame = lambda session, _: self.session_active(session)

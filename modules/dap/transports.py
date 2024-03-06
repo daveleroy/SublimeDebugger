@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from io import BufferedReader, BufferedWriter
 from typing import IO, Any, Callable
 
 from ..import core
@@ -62,9 +63,10 @@ class Process:
 
 		Process.add_subprocess(self.process)
 
-		stdin = self.process.stdin; assert stdin
-		stderr = self.process.stderr; assert stderr
-		stdout = self.process.stdout; assert stdout
+		stdin = self.process.stdin
+		stderr = self.process.stderr
+		stdout = self.process.stdout
+		assert stdin and stderr and stdout
 
 		self.stdin = stdin
 		self.stderr = stderr
@@ -75,7 +77,7 @@ class Process:
 		self.on_closed: Callable[[], None]|None = None
 
 	def on_stdout(self, callback: Callable[[str], None], closed: Callable[[], None]|None = None):
-		thread = threading.Thread(target=self._read_all, args=(self.process.stdout, callback, closed), name=f'stdout')
+		thread = threading.Thread(target=self._read_all, args=(self.process.stdout, callback, closed), name='stdout')
 		thread.start()
 
 	def on_stderr(self, callback: Callable[[str], None], closed: Callable[[], None]|None = None):
@@ -175,6 +177,9 @@ class SocketTransport(TransportStream):
 
 	process: Process|None = None
 
+	socket_stdin: BufferedWriter|None = None
+	socket_stdout: BufferedReader|None = None
+
 	async def setup(self):
 		if self.command:
 			self.log('transport', f'-- socket transport process: {self.command}')
@@ -213,15 +218,18 @@ class SocketTransport(TransportStream):
 
 
 	def write(self, message: bytes) -> None:
+		assert self.socket_stdin
 		self.socket_stdin.write(message)
 		self.socket_stdin.flush()
 
 	def readline(self) -> bytes:
+		assert self.socket_stdout
 		if l := self.socket_stdout.readline():
 			return l
 		raise EOFError
 
 	def read(self, n: int) -> bytes:
+		assert self.socket_stdout
 		if l := self.socket_stdout.read(n):
 			return l
 		raise EOFError
