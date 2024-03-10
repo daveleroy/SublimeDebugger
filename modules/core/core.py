@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, Iterable, Protocol, TypeVar, overload
-from .typing_extensions import TypeVarTuple, Unpack, ParamSpec
+from typing import Any, Callable, Protocol, TypeVar
+
+from .log import error
 
 import sublime
-import concurrent
 
 
 D = TypeVar("D", bound="Disposeable")
@@ -40,15 +40,6 @@ class Dispose:
 					self._dispose.append(i)
 			else:
 				self._dispose.append(item)
-
-		if not self._dispose:
-			self._dispose = []
-
-		if isinstance(item, list):
-			for i in item:
-				self._dispose.append(i)
-		else:
-			self._dispose.append(item)
 
 
 

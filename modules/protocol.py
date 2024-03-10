@@ -40,6 +40,7 @@ class ProtocolWindow:
 
 	def dispose(self):
 		self.clear()
+		self.window = None
 
 	def view_for_session(self, session: dap.Session|None):
 		if view := self.views.get(session):

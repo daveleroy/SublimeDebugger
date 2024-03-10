@@ -47,6 +47,53 @@ class VariableView (ui.div):
 			self.set_expanded()
 
 	@core.run
+	async def copy_value(self):
+		value = self.variable.value or ''
+		session = self.variable.session
+		evaluateName = self.variable.evaluateName
+
+		if evaluateName:
+			try:
+				# Attempt to match vscode behavior
+				# If the adapter supports clipboard use it otherwise send the none standard 'variables' context
+				context = 'clipboard' if session.capabilities.supportsClipboardContext else 'variables'
+				v = await self.variable.session.evaluate_expression(evaluateName, context)
+				sublime.set_clipboard(v.result)
+				return
+
+			except dap.Error as e:
+				core.exception()
+
+		sublime.set_clipboard(value)
+
+	def copy_expr(self):
+		expression = self.variable.name
+		sublime.set_clipboard(expression)
+
+	def add_watch(self):
+		expression = self.variable.name
+		self.variable.session.watch.add(expression)
+
+	@core.run
+	async def on_edit_variable(self, value: str):
+		try:
+			if not self.variable.containerVariablesReference:
+				raise core.Error('Not able to set value of this item')
+
+			session = self.variable.session
+			containerVariablesReference = self.variable.containerVariablesReference
+			name = self.variable.name
+
+			response = await session.set_variable(containerVariablesReference, name, value)
+			self.variable.value = response.value
+			self.variable.variablesReference = response.variablesReference
+			self.variable.fetched = None
+			self.dirty()
+		except core.Error as e:
+			core.exception()
+			core.display(e)
+
+	@core.run
 	async def edit_variable(self) -> None:
 		if not self.variable.containerVariablesReference:
 			raise core.Error('Not able to set value of this item')
@@ -55,74 +102,35 @@ class VariableView (ui.div):
 		session = self.variable.session
 		info = None
 		name = self.variable.name
-		expression = self.variable.name
 		value = self.variable.value or ''
-		evaluateName = self.variable.evaluateName
 
 		if session.capabilities.supportsDataBreakpoints:
 			info = await session.data_breakpoint_info(containerVariablesReference, name)
 
-		async def on_edit_variable_async(value: str):
-			try:
-				response = await session.set_variable(containerVariablesReference, name, value)
-				self.variable.value = response.value
-				self.variable.variablesReference = response.variablesReference
-				self.variable.fetched = None
-				self.dirty()
-			except core.Error as e:
-				core.exception()
-				core.display(e)
-
-		def on_edit_variable(value: str):
-			core.run(on_edit_variable_async(value))
-
-		@core.run
-		async def copy_value():
-			session = self.variable.session
-			if evaluateName:
-				try:
-					# Attempt to match vscode behavior
-					# If the adapter supports clipboard use it otherwise send the none standard 'variables' context
-					context = 'clipboard' if session.capabilities.supportsClipboardContext else 'variables'
-					v = await self.variable.session.evaluate_expression(evaluateName, context)
-					sublime.set_clipboard(v.result)
-					return
-
-				except dap.Error as e:
-					core.exception()
-
-			sublime.set_clipboard(value)
-
-		def copy_expr():
-			sublime.set_clipboard(expression)
-
-		def add_watch():
-			session.watch.add(expression)
-
 		items = [
 			ui.InputListItem(
 				ui.InputText(
-					on_edit_variable,
+					self.on_edit_variable,
 					'editing a variable',
 				),
-				'Edit Variable',
+				'Set Value',
 			),
 			ui.InputListItem(
-				copy_expr,
-				'Copy Expression',
-			),
-			ui.InputListItem(
-				copy_value,
+				self.copy_value,
 				'Copy Value\t Click again to select',
 			),
 			ui.InputListItem(
-				add_watch,
-				'Add Variable To Watch',
+				self.copy_expr,
+				'Copy as Expression',
+			),
+			ui.InputListItem(
+				self.add_watch,
+				'Add To Watch',
 			),
 		]
 
 		if self.edit_variable_menu:
-			copy_value()
+			self.copy_value()
 			self.edit_variable_menu.cancel()
 			return
 

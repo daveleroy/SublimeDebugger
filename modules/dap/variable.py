@@ -48,7 +48,6 @@ class Variable:
 
 	@staticmethod
 	def from_variable(session: Session, containerVariablesReference: int, variable: dap.Variable):
-
 		return Variable(
 			session,
 			variable.name,

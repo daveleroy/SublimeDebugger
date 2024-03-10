@@ -178,20 +178,20 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.color = color
 
 	def write_variable(self, variable: dap.Variable, at: int, last: bool = True):
-		html = f'''
+		html = '''
 			<style>
-			html {{
+			html {
 				background-color: var(--background);
-			}}
-			a {{
+			}
+			a {
 				color: color(var(--foreground) alpha(0.25));
 				text-decoration: none;
 				padding-left: 0.0rem;
 				padding-right: 0.0rem;
-			}}
+			}
 			</style>
 			<body id="debugger">
-				<a href="">{ui.html_escape(f'❯')}</a>
+				<a href="">❯</a>
 			</body>
 		'''
 

@@ -1,7 +1,8 @@
 from typing import Any, TypeVar, Generic
 
 try:
-	from typing_extensions import Unpack, TypeVarTuple, ParamSpec, TypeAlias
+	from typing_extensions import Unpack, TypeVarTuple, ParamSpec, TypeAlias, Concatenate
+
 except ImportError as e:
 
 	class _GetAttr(type):
@@ -16,5 +17,6 @@ except ImportError as e:
 	globals()['ParamSpec'] = TypeVar
 	globals()['TypeAlias'] = TypeVar
 
+	globals()['Concatenate'] = _Generic
 	globals()['Unpack'] = _Generic
 	globals()['Generic'] = _Generic

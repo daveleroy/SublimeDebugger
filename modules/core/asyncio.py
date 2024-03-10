@@ -97,7 +97,7 @@ class Handle:
 		self.callback = None
 		self.args = None
 
-class SublimeEventLoop (asyncio.AbstractEventLoop):
+class SublimeEventLoop (asyncio.BaseEventLoop):
 	def is_running(self):
 		return True
 
@@ -120,6 +120,8 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 	# Method scheduling a coroutine object: create a task.
 	def create_task(self, coro): #type: ignore
 		task = asyncio.tasks.Task(coro, loop=self)
+		task._log_destroy_pending = False #type: ignore
+
 		if task._source_traceback: #type: ignore
 			del task._source_traceback[-1] #type: ignore
 		return task
@@ -129,19 +131,6 @@ class SublimeEventLoop (asyncio.AbstractEventLoop):
 		handle = Handle(callback, args)
 		sublime.set_timeout(handle, 0)
 		return handle
-
-	def call_exception_handler(self, context):
-		from .log import exception
-		from .error import Error
-
-		try:
-			if 'exception' in context:
-				raise context['exception']
-			else:
-				raise Error(context['message'])
-
-		except Exception as e:
-			exception()
 
 	# Debug flag management.
 	def get_debug(self):

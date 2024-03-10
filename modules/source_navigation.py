@@ -108,8 +108,8 @@ class SourceNavigationProvider:
 
 	async def navigate_to_source(self, source: dap.SourceLocation, move_cursor: bool = False) -> sublime.View:
 		# Check if adapter want to provide content
-		if self.debugger.session:
-			adapter_content = await self.debugger.session.adapter_configuration.on_navigate_to_source(source)
+		if session := self.debugger.session:
+			adapter_content = await session.adapter_configuration.on_navigate_to_source(source)
 		else:
 			adapter_content = None
 

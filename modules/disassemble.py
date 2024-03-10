@@ -24,13 +24,15 @@ class DisassembleView(core.Dispose):
 		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/Disassembly.sublime-syntax'))
 
 		settings = self.view.settings()
-		settings.set('debugger', True)
-		settings.set('debugger.view', True)
-		settings.set('debugger.view.disassemble', True)
+		settings.update({
+			'debugger': True,
+			'debugger.view': True,
+			'debugger.view.disassemble': True,
 
-		settings.set('gutter', False)
-		settings.set('rulers', [])
-		settings.set('word_wrap', False)
+			'gutter': False,
+			'rulers': [],
+			'word_wrap': False,
+		})
 
 		self.debugger = debugger
 

@@ -169,7 +169,7 @@ class InputEnable (Protocol):
 class InputText(sublime_plugin.TextInputHandler):
 	id = 0
 
-	def __init__(self, run: Callable[[str], None] | InputList | InputText, placeholder: str|None = None, initial: str|None = None, enable_when_active: InputEnable|None = None):
+	def __init__(self, run: Callable[[str], Any] | InputList | InputText, placeholder: str|None = None, initial: str|None = None, enable_when_active: InputEnable|None = None):
 		super().__init__()
 		self._placeholder = placeholder
 		self._initial = initial
