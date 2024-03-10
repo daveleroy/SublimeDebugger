@@ -2,10 +2,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, BinaryIO
 
+from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
+from urllib.parse import urlparse
 from gzip import GzipFile
 
+import shutil
 import sublime
 
 from ...core.json import JSON, json_decode
@@ -93,6 +96,35 @@ def handle_request_error(url: str, error: Exception):
 		return core.Error(f'Unable to perform request ({error.code}) ({url})')
 	else:
 		return core.Error(f'Unable to perform request ({error}) ({url})')
+		
+async def download_and_extract_archive(url: str, path: str, log: core.Logger):
+	def log_info(value: str):
+		sublime.status_message(f'Debugger: {value}')
+		# core.call_soon_threadsafe(log.info, value)
+
+	url_parts = urlparse(url)
+	suffix = ''.join(Path(url_parts.path).suffixes)
+
+	archive_name = f'{path}{suffix}'
+	response = await request(url)
+
+	@core.run_in_executor
+	def blocking():
+
+		with open(archive_name, 'wb') as out_file:
+			_copyfileobj(response.data, out_file, log_info, int(response.headers.get('Content-Length', '0')))
+
+		log_info('...downloaded')
+		log_info('extracting...')
+		shutil.unpack_archive(archive_name, path)
+
+		log_info('...extracted')
+
+
+	log.info('Downloading {}'.format(url))
+
+	await blocking()
+	core.remove_file_or_dir(archive_name)
 
 async def download_and_extract_zip(url: str, path: str, log: core.Logger):
 	def log_info(value: str):

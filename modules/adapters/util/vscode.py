@@ -35,7 +35,10 @@ class AdapterInstaller(dap.AdapterInstaller):
 			...
 
 		path = self.temporary_install_path()
-		await request.download_and_extract_zip(url, path, log)
+		if url.endswith('.zip'):
+			await request.download_and_extract_zip(url, path, log)
+		else:
+			await request.download_and_extract_archive(url, path, log)
 
 		if post_download_action:
 			await post_download_action()

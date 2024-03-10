@@ -17,6 +17,9 @@ This project attempts to match Visual Studio Code's Debugger fairly closely so t
 ## Debuggers
 This project comes with some pre-configured debuggers (They can be installed using ```Debugger: Install adapter```)
 
+##### .NET core
+- See https://github.com/Samsung/netcoredbg
+
 ##### LLDB
 - See https://github.com/vadimcn/vscode-lldb
 
