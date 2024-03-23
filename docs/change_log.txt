@@ -2,6 +2,18 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.11.0 - March 23, 2024
+- Added `Debugger: Example Projects` for opening example projects for each adapter
+- Added `internal_font_scale` setting for users who have issues with the font overlapping the ui (#223)
+- Added `always_keep_visible` setting which attempts to always keep the debugger panel open when there is no other output panel
+- The callstack panel now shows the tabs at the bottom like the console
+- Improved the messaging around installing adapters
+- Hide Debugger33 package from PackageControl listings (@narenkarthicktp)
+- Fixes an issue where stepping was targeting the wrong thread
+
+- sublime: initial support for debugging sublime plugins
+
+
 Version 0.10.1 - April 3, 2023
 - Fixes an issue with new versions of vscode-js-debug
 
