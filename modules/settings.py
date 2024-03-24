@@ -13,6 +13,14 @@ class Setting(Generic[T], object):
 		self.visible = visible
 		self.schema = schema
 
+	@property
+	def value(self)  -> T:
+		return SettingsRegistery.settings.get(self.key, self.default)
+
+	@value.setter
+	def value(self, value: T):
+		return SettingsRegistery.settings.set(self.key, value)
+
 	def __get__(self, obj, objtype=None) -> T:
 		return SettingsRegistery.settings.get(self.key, self.default)
 
