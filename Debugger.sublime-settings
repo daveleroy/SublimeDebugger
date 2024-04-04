@@ -27,14 +27,14 @@
 
 	// Output panels outside of the debugger can be integrated into the tabbed debugger interface (note: In some cases output panels may cause issues and not work correctly depending on who owns them)
 	// An example for interating the Diagnostics panel of LSP and a Terminus output panel.
-	//
+	// 
 	// "integrated_output_panels": {
 	// 	"diagnostics": {
 	// 		"name": "Diagnostics",
 	// 	},
 	// 	"Terminus": {
 	// 		"name": "Terminal",
-	// 		"position": "bottom"
+	// 		"position": "bottom",
 	// 	}
 	// }
 	"integrated_output_panels": {},
