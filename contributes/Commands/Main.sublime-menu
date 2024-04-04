@@ -94,6 +94,13 @@
                         }
                     },
                     {
+                        "caption": "Reverse Continue",
+                        "command": "debugger",
+                        "args": {
+                            "action": "reverse_continue"
+                        }
+                    },
+                    {
                         "caption": "Pause",
                         "command": "debugger",
                         "args": {
@@ -119,6 +126,13 @@
                         "command": "debugger",
                         "args": {
                             "action": "step_out"
+                        }
+                    },
+                    {
+                        "caption": "Step Back",
+                        "command": "debugger",
+                        "args": {
+                            "action": "step_back"
                         }
                     },
                     {
@@ -202,6 +216,27 @@
                         "command": "debugger",
                         "args": {
                             "action": "lldb_toggle_dereference"
+                        }
+                    },
+                    {
+                        "caption": "GDB Start recording for reverse debugging",
+                        "command": "debugger",
+                        "args": {
+                            "action": "gdb_record"
+                        }
+                    },
+                    {
+                        "caption": "GDB Step Back Over",
+                        "command": "debugger",
+                        "args": {
+                            "action": "gdb_reverse_next"
+                        }
+                    },
+                    {
+                        "caption": "GDB Step Back Out",
+                        "command": "debugger",
+                        "args": {
+                            "action": "gdb_reverse_finish"
                         }
                     }
                 ]

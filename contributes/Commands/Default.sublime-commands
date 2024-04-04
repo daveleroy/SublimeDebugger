@@ -98,6 +98,13 @@
         }
     },
     {
+        "caption": "Debugger: Reverse Continue",
+        "command": "debugger",
+        "args": {
+            "action": "reverse_continue"
+        }
+    },
+    {
         "caption": "Debugger: Pause",
         "command": "debugger",
         "args": {
@@ -123,6 +130,13 @@
         "command": "debugger",
         "args": {
             "action": "step_out"
+        }
+    },
+    {
+        "caption": "Debugger: Step Back",
+        "command": "debugger",
+        "args": {
+            "action": "step_back"
         }
     },
     {
@@ -200,6 +214,27 @@
         "command": "debugger",
         "args": {
             "action": "lldb_toggle_dereference"
+        }
+    },
+    {
+        "caption": "Debugger: GDB Start recording for reverse debugging",
+        "command": "debugger",
+        "args": {
+            "action": "gdb_record"
+        }
+    },
+    {
+        "caption": "Debugger: GDB Step Back Over",
+        "command": "debugger",
+        "args": {
+            "action": "gdb_reverse_next"
+        }
+    },
+    {
+        "caption": "Debugger: GDB Step Back Out",
+        "command": "debugger",
+        "args": {
+            "action": "gdb_reverse_finish"
         }
     },
     {
