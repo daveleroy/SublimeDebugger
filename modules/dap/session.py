@@ -517,6 +517,21 @@ class Session(TransportListener, core.Dispose):
 
 		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, allThreadsContinued))
 
+	async def reverse_continue(self):
+		if self.capabilities.supportsStepBack:
+			body = await self.request('reverseContinue', {
+				'threadId': self.command_thread.id
+			})
+
+			# some adapters aren't giving a response here
+			if body:
+				allThreadsContinued = body.get('allThreadsContinued', True)
+			else:
+				allThreadsContinued = True
+
+			self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, allThreadsContinued))
+		else:
+			self.log.error('This debugger does not support stepping backwards')
 
 	async def pause(self):
 		await self.request('pause', {
@@ -546,6 +561,12 @@ class Session(TransportListener, core.Dispose):
 
 	async def step_out(self, granularity: str|None = None):
 		await self.step('stepOut', granularity)
+
+	async def step_back(self, granularity: str|None = None):
+		if self.capabilities.supportsStepBack:
+			await self.step('stepBack', granularity)
+		else:
+			self.log.error('This debugger does not support stepping backwards')
 
 	async def exception_info(self, thread_id: int) -> dap.ExceptionInfoResponseBody:
 		return await self.request('exceptionInfo', {

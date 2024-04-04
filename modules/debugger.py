@@ -454,6 +454,11 @@ class Debugger (core.Dispose, dap.Debugger):
 		except core.Error as e: self.console.error(f'Unable to continue: {e}')
 
 	@core.run
+	async def reverse_continue(self) -> None:
+		try: await self.active.reverse_continue()
+		except core.Error as e: self.console.error(f'Unable to reverse continue: {e}')
+
+	@core.run
 	async def pause(self) -> None:
 		try: await self.active.pause()
 		except core.Error as e: self.console.error(f'Unable to pause: {e}')
@@ -472,6 +477,11 @@ class Debugger (core.Dispose, dap.Debugger):
 	async def step_out(self) -> None:
 		try: await self.active.step_out(granularity=self.stepping_granularity())
 		except core.Error as e: self.console.error(f'Unable to step out: {e}')
+
+	@core.run
+	async def step_back(self) -> None:
+		try: await self.active.step_back(granularity=self.stepping_granularity())
+		except core.Error as e: self.console.error(f'Unable to step backwards: {e}')
 
 	@core.run
 	async def stop(self, session: dap.Session|None = None) -> None:
