@@ -2,6 +2,10 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.11.2 - March 24, 2024
+- Updated to handle LSP using the 3.8 plugin host (some adapters require LSP)
+
+
 Version 0.11.1 - March 24, 2024
 - Fixes issue with installing adapters
 
