@@ -19,7 +19,6 @@ for module in list(filter(lambda module: module.startswith(__package__ + '.') an
 # import all the commands so that sublime sees them
 from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
 from .modules.core.sublime import DebuggerEditCommand
-from .modules.adapters.util.bridge import DebuggerBridgeCommand
 from .modules.output_panel import DebuggerConsoleListener
 from .modules.terminal_integrated import DebuggerTerminusPostViewHooks
 
@@ -51,18 +50,6 @@ def plugin_loaded() -> None:
 
 	core.info('[startup]')
 
-	# move any files that are meant for the python 3.3 runtime into Debugger33 package
-	if not os.path.exists(debugger33_path):
-		core.info("Installing Debugger33")
-		os.mkdir(debugger33_path)
-
-		with open(os.path.join(debugger33_path, "bridge33.py"), "w") as f:
-			data = sublime.load_resource("Packages/Debugger/modules/adapters/util/bridge33.py")
-			f.write(data)
-		with open(os.path.join(debugger33_path, ".hidden-sublime-package"), "w"):
-			pass
-
-
 	ui.Layout.debug = Settings.development
 	ui.startup()
 
@@ -74,12 +61,6 @@ def plugin_loaded() -> None:
 
 def plugin_unloaded() -> None:
 	core.info('[shutdown]')
-
-	try:
-		core.info("Uninstalling Debugger33")
-		shutil.rmtree(debugger33_path)
-	except Exception:
-		core.exception()
 
 	for debugger in list(Debugger.debuggers()):
 		core.info("Disposing Debugger")
