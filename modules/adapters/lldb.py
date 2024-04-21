@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from ..import core
 from ..import ui
-
-from ..debugger import dap
+from .. import dap
 
 from ..import commands
 from ..import settings
@@ -56,13 +55,18 @@ class LLDB(dap.AdapterConfiguration):
 		commands.Command(
 			name='LLDB Display Options',
 			key='lldb_display',
-			action=lambda debugger: self.display_menu(debugger).run()
+			action=lambda debugger: self.display_menu(debugger).run(),
+			enabled=self.lldb_commmands_enabled
 		)
 		commands.Command(
 			name='LLDB Toggle Dereference',
 			key='lldb_toggle_dereference',
-			action=lambda debugger: self.toggle_deref(debugger)
+			action=lambda debugger: self.toggle_deref(debugger),
+			enabled=self.lldb_commmands_enabled
 		)
+
+	def lldb_commmands_enabled(self, debugger: dap.Debugger):
+		return bool(debugger.session and debugger.session.is_paused and debugger.session.adapter_configuration is self)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = self.installer.install_path()

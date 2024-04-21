@@ -331,7 +331,7 @@ class Debugger (core.Dispose, dap.Debugger):
 		session.on_updated_variables = self.on_session_variables_updated
 		session.on_updated = self.on_session_updated
 		session.on_output = self.on_session_output
-		session.on_selected_frame = lambda session, _: self.session_active(session)
+		session.on_selected_frame = lambda session, _: self.set_current_session(session)
 		session.on_finished = lambda session: self.remove_session(session)
 		session.on_terminal_request = self.session_terminal_request
 		session.on_task_request = self.session_task_request
@@ -347,20 +347,16 @@ class Debugger (core.Dispose, dap.Debugger):
 		return session
 
 	@property
-	def is_active(self):
-		return self.session != None
-
-	@property
-	def active(self):
+	def current_session(self):
 		if not self.session:
 			raise dap.NoActiveSessionError()
 		return self.session
 
-	def session_active(self, session: dap.Session):
-		self.active = session
+	def set_current_session(self, session: dap.Session):
+		self.current_session = session
 
-	@active.setter
-	def active(self, session: dap.Session):
+	@current_session.setter
+	def current_session(self, session: dap.Session):
 		self.session = session
 		self.on_session_updated(session)
 		self.on_session_active(session)
@@ -375,7 +371,7 @@ class Debugger (core.Dispose, dap.Debugger):
 
 	def _on_session_updated(self, session: dap.Session):
 
-		if self.is_active and self.active != session:
+		if self.session and self.session != session:
 			return
 
 		if session.state == dap.Session.State.PAUSED:
@@ -450,45 +446,59 @@ class Debugger (core.Dispose, dap.Debugger):
 
 	@core.run
 	async def resume(self) -> None:
-		try: await self.active.resume()
-		except core.Error as e: self.console.error(f'Unable to continue: {e}')
+		try:
+			await self.current_session.resume()
+		except core.Error as e:
+			self.console.error(f'Unable to continue: {e}')
 
 	@core.run
 	async def reverse_continue(self) -> None:
-		try: await self.active.reverse_continue()
-		except core.Error as e: self.console.error(f'Unable to reverse continue: {e}')
+		try:
+			await self.current_session.reverse_continue()
+		except core.Error as e:
+			self.console.error(f'Unable to reverse continue: {e}')
 
 	@core.run
 	async def pause(self) -> None:
-		try: await self.active.pause()
-		except core.Error as e: self.console.error(f'Unable to pause: {e}')
+		try:
+			await self.current_session.pause()
+		except core.Error as e:
+			self.console.error(f'Unable to pause: {e}')
 
 	@core.run
 	async def step_over(self) -> None:
-		try: await self.active.step_over(granularity=self.stepping_granularity())
-		except core.Error as e: self.console.error(f'Unable to step over: {e}')
+		try:
+			await self.current_session.step_over(granularity=self.stepping_granularity())
+		except core.Error as e:
+			self.console.error(f'Unable to step over: {e}')
 
 	@core.run
 	async def step_in(self) -> None:
-		try: await self.active.step_in(granularity=self.stepping_granularity())
-		except core.Error as e: self.console.error(f'Unable to step in: {e}')
+		try:
+			await self.current_session.step_in(granularity=self.stepping_granularity())
+		except core.Error as e:
+			self.console.error(f'Unable to step in: {e}')
 
 	@core.run
 	async def step_out(self) -> None:
-		try: await self.active.step_out(granularity=self.stepping_granularity())
-		except core.Error as e: self.console.error(f'Unable to step out: {e}')
+		try:
+			await self.current_session.step_out(granularity=self.stepping_granularity())
+		except core.Error as e:
+			self.console.error(f'Unable to step out: {e}')
 
 	@core.run
 	async def step_back(self) -> None:
-		try: await self.active.step_back(granularity=self.stepping_granularity())
-		except core.Error as e: self.console.error(f'Unable to step backwards: {e}')
+		try:
+			await self.current_session.step_back(granularity=self.stepping_granularity())
+		except core.Error as e:
+			self.console.error(f'Unable to step backwards: {e}')
 
 	@core.run
 	async def stop(self, session: dap.Session|None = None) -> None:
 		# the stop command stops all sessions in a hierachy
 		try:
 			if not session:
-				root = self.active
+				root = self.current_session
 				while root.parent:
 					root = root.parent
 
@@ -511,13 +521,16 @@ class Debugger (core.Dispose, dap.Debugger):
 		self.breakpoints.function.remove_all()
 
 	def is_paused(self):
-		return self.is_active and self.active.state == dap.Session.State.PAUSED
+		return bool(self.session and self.session.is_paused)
+
+	def is_paused_and_reversable(self):
+		return self.is_paused() and bool(self.current_session.capabilities.supportsStepBack)
 
 	def is_running(self):
-		return self.is_active and self.active.state == dap.Session.State.RUNNING
+		return bool(self.session and self.session.is_running)
 
 	def is_stoppable(self):
-		return self.is_active and self.active.state != dap.Session.State.STOPPED
+		return bool(self.session and self.session.is_stoppable)
 
 	def run_to_current_line(self) -> None:
 		if self.run_to_current_line_breakpoint:
@@ -570,10 +583,10 @@ class Debugger (core.Dispose, dap.Debugger):
 	@core.run
 	async def on_run_command(self, command: str) -> None:
 		try:
-			result = await self.active.evaluate_expression(command, context='repl')
+			result = await self.current_session.evaluate_expression(command, context='repl')
 			if result.variablesReference:
 				self.console.write(f'', 'blue', ensure_new_line=True)
-				self.console.write_variable(dap.Variable.from_evaluate(self.active, '', result), self.console.at())
+				self.console.write_variable(dap.Variable.from_evaluate(self.current_session, '', result), self.console.at())
 			elif result.result:
 				self.console.write(result.result, 'blue', ensure_new_line=True)
 			else:
@@ -612,11 +625,11 @@ class Debugger (core.Dispose, dap.Debugger):
 			panel.update_settings()
 
 	def _on_session_active(self, session: dap.Session):
-		if not self.is_active:
+		if not self.session:
 			self.source_provider.clear()
 			return
 
-		active_session = self.active
+		active_session = self.current_session
 		thread = active_session.selected_thread
 		frame = active_session.selected_frame
 
@@ -690,7 +703,7 @@ class Debugger (core.Dispose, dap.Debugger):
 		return False
 
 	def open(self) -> None:
-		if not self.is_active:
+		if not self.session:
 			self.console.open()
 		else:
 			self.callstack.open()

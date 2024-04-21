@@ -28,6 +28,8 @@ class Debugger(Protocol):
 
 	sessions: list[Session]
 	session: Session|None
+	current_session: Session # same as session but throws if there is no session
+
 	console: Console
 
 	async def launch(self, breakpoints: Breakpoints, adapter: AdapterConfiguration, configuration: ConfigurationExpanded, restart: Any|None = None, no_debug: bool = False, parent: Session|None = None) -> Session: ...
