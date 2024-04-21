@@ -354,10 +354,10 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		@core.run
 		async def fetch():
 			try:
-				if not self.debugger.is_active or not self.debugger.active.capabilities.supportsCompletionsRequest:
+				if not self.debugger.session or not self.debugger.session.capabilities.supportsCompletionsRequest:
 					raise core.CancelledError
 
-				for completion in await self.debugger.active.completions(text, col):
+				for completion in await self.debugger.session.completions(text, col):
 					if completion.type == 'method':
 						kind = sublime.KIND_FUNCTION
 					elif completion.type == 'function':

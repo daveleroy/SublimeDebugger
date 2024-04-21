@@ -98,7 +98,7 @@ class DebuggerActionsTab(ui.span, core.Dispose):
 
 		ui.spacer(1)
 
-		if not self.debugger.is_active:
+		if not self.debugger.session:
 			with ui.span(css=css.button_drop, on_click=lambda: menus.on_settings(self.debugger)):
 				ui.text(name, css=css.secondary)
 				ui.icon(ui.Images.shared.open, align_left=False)

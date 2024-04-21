@@ -64,7 +64,7 @@ class Commands:
 		key='add_configuration',
 		action=lambda debugger: menus.add_configuration(debugger)
 	)
-	
+
 	add_configuration = Command (
 		name='Edit Configurations',
 		key='edit_configurations',
@@ -108,12 +108,6 @@ class Commands:
 		action=lambda debugger: debugger.resume(),
 		enabled=Debugger.is_paused
 	)
-	reverse_continue = Command (
-		name='Reverse Continue',
-		key='reverse_continue',
-		action=lambda debugger: debugger.reverse_continue(),
-		enabled=Debugger.is_paused
-	)
 	pause = Command (
 		name='Pause',
 		key='pause',
@@ -138,11 +132,20 @@ class Commands:
 		action=lambda debugger: debugger.step_out(),
 		enabled=Debugger.is_paused
 	)
+
+	Command('-')
+
+	reverse_continue = Command (
+		name='Reverse Continue',
+		key='reverse_continue',
+		action=lambda debugger: debugger.reverse_continue(),
+		enabled=Debugger.is_paused_and_reversable
+	)
 	step_back = Command (
 		name='Step Back',
 		key='step_back',
 		action=lambda debugger: debugger.step_back(),
-		enabled=Debugger.is_paused
+		enabled=Debugger.is_paused_and_reversable
 	)
 
 	Command('-')

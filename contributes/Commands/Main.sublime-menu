@@ -94,13 +94,6 @@
                         }
                     },
                     {
-                        "caption": "Reverse Continue",
-                        "command": "debugger",
-                        "args": {
-                            "action": "reverse_continue"
-                        }
-                    },
-                    {
                         "caption": "Pause",
                         "command": "debugger",
                         "args": {
@@ -126,6 +119,16 @@
                         "command": "debugger",
                         "args": {
                             "action": "step_out"
+                        }
+                    },
+                    {
+                        "caption": "-"
+                    },
+                    {
+                        "caption": "Reverse Continue",
+                        "command": "debugger",
+                        "args": {
+                            "action": "reverse_continue"
                         }
                     },
                     {
@@ -219,21 +222,21 @@
                         }
                     },
                     {
-                        "caption": "GDB Start recording for reverse debugging",
+                        "caption": "GDB: Start recording for reverse debugging",
                         "command": "debugger",
                         "args": {
                             "action": "gdb_record"
                         }
                     },
                     {
-                        "caption": "GDB Step Back Over",
+                        "caption": "GDB: Step Back Over",
                         "command": "debugger",
                         "args": {
                             "action": "gdb_reverse_next"
                         }
                     },
                     {
-                        "caption": "GDB Step Back Out",
+                        "caption": "GDB: Step Back Out",
                         "command": "debugger",
                         "args": {
                             "action": "gdb_reverse_finish"

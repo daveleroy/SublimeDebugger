@@ -54,7 +54,7 @@ class CallstackView(ui.div, core.Dispose):
 		self.dirty()
 
 	def selected_session(self, session: dap.Session):
-		self.debugger.active = session
+		self.debugger.current_session = session
 
 	def render(self):
 		if not self.debugger.sessions:
@@ -100,7 +100,7 @@ class SessionView (ui.div):
 		self.is_selected = session == debugger.session
 
 	def selected_session(self):
-		self.debugger.active = self.session
+		self.debugger.current_session = self.session
 
 	def render(self):
 		# if this session has no threads and a single child session then only render the child session and prefix the name with the parent session

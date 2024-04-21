@@ -127,6 +127,18 @@ class Session(TransportListener, core.Dispose):
 	def state(self) -> State:
 		return self._state
 
+	@property
+	def is_paused(self):
+		return self.state == Session.State.PAUSED
+
+	@property
+	def is_running(self):
+		return self.state == Session.State.RUNNING
+
+	@property
+	def is_stoppable(self):
+		return self.state != Session.State.STOPPED
+
 	def _change_state(self, state: State) -> None:
 		if self._state == state: return
 
@@ -518,20 +530,21 @@ class Session(TransportListener, core.Dispose):
 		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, allThreadsContinued))
 
 	async def reverse_continue(self):
-		if self.capabilities.supportsStepBack:
-			body = await self.request('reverseContinue', {
-				'threadId': self.command_thread.id
-			})
-
-			# some adapters aren't giving a response here
-			if body:
-				allThreadsContinued = body.get('allThreadsContinued', True)
-			else:
-				allThreadsContinued = True
-
-			self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, allThreadsContinued))
-		else:
+		if not self.capabilities.supportsStepBack:
 			self.log.error('This debugger does not support stepping backwards')
+			return
+
+		body = await self.request('reverseContinue', {
+			'threadId': self.command_thread.id
+		})
+
+		# some adapters aren't giving a response here
+		if body:
+			allThreadsContinued = body.get('allThreadsContinued', True)
+		else:
+			allThreadsContinued = True
+
+		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, allThreadsContinued))
 
 	async def pause(self):
 		await self.request('pause', {
@@ -563,10 +576,11 @@ class Session(TransportListener, core.Dispose):
 		await self.step('stepOut', granularity)
 
 	async def step_back(self, granularity: str|None = None):
-		if self.capabilities.supportsStepBack:
-			await self.step('stepBack', granularity)
-		else:
+		if not self.capabilities.supportsStepBack:
 			self.log.error('This debugger does not support stepping backwards')
+			return
+
+		await self.step('stepBack', granularity)
 
 	async def exception_info(self, thread_id: int) -> dap.ExceptionInfoResponseBody:
 		return await self.request('exceptionInfo', {
