@@ -34,7 +34,7 @@ jobs:
 
       build: |
         npm install
-        ./node_modules/.bin/gulp checkDependencies
+        bash scripts/onCreateCommand.sh
         npm run package
         mv ms-python-insiders.vsix extension.vsix
 
