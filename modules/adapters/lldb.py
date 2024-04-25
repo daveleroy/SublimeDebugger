@@ -72,7 +72,7 @@ class LLDB(dap.AdapterConfiguration):
 		install_path = self.installer.install_path()
 		port = util.get_open_port()
 		command = [
-			f'{install_path}/extension/adapter/codelldb',
+			f'{install_path}/adapter/codelldb',
 			f'--port',
 			f'{port}',
 		]

@@ -51,9 +51,9 @@ class SublimeInstaller(dap.AdapterInstaller):
 		path_app = f'{path}/{self.debug_app_name}'
 
 		if platform == 'osx':
-			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_mac.zip', path_app, log)
+			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_mac.zip', path_app, log=log)
 		elif platform == 'windows' and arch =='x64':
-			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_x64.zip', path_app, log)
+			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_x64.zip', path_app, log=log)
 		else:
 			raise core.Error('Install for this platform/arch is not currently supported')
 
@@ -61,8 +61,8 @@ class SublimeInstaller(dap.AdapterInstaller):
 		# The windows version has a data folder already here here
 		core.remove_file_or_dir(f'{path_app}/Data')
 
-		await util.request.download_and_extract_zip('https://github.com/microsoft/debugpy/archive/refs/tags/v1.7.0.zip', f'{path}/debugpy', log)
-		await util.request.download_and_extract_zip('https://github.com/daveleroy/debugpy/archive/refs/tags/v1.5.1.zip', f'{path}/debugpy_for_3.3', log)
+		await util.request.download_and_extract_zip('https://github.com/microsoft/debugpy/archive/refs/tags/v1.7.0.zip', f'{path}/debugpy', log=log)
+		await util.request.download_and_extract_zip('https://github.com/daveleroy/debugpy/archive/refs/tags/v1.5.1.zip', f'{path}/debugpy_for_3.3', log=log)
 
 		core.write(f'{path}/package.json', core.json_encode({
 			'version': version

@@ -12,7 +12,7 @@ class OpenVsxInstaller(vscode.AdapterInstaller):
 		version = version or 'latest'
 		response = await request.json(f'https://open-vsx.org/api/{self.repo}/{version}')
 		url = response['files']['download']
-		await self.install_from_asset(url, log)
+		await self.install_vsix(url, log=log)
 
 	async def installable_versions(self, log: core.Logger) -> list[str]:
 		try:

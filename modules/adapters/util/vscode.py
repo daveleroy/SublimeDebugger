@@ -28,18 +28,24 @@ class AdapterInstaller(dap.AdapterInstaller):
 		super().remove()
 		self._package_info = None
 
-	async def install_from_asset(self, url: str, log: core.Logger, post_download_action: Callable[[], Awaitable[Any]]|None = None):
+	async def install_vsix(self, url: str, *, log: core.Logger):
 		try:
 			del _info_for_type[self.type]
 		except KeyError:
 			...
 
 		path = self.temporary_install_path()
-		await request.download_and_extract_zip(url, path, log)
+		await request.download_and_extract_zip(url, path, 'extension', log=log)
 
-		if post_download_action:
-			await post_download_action()
 
+	async def install_source(self, url: str, *, log: core.Logger):
+		try:
+			del _info_for_type[self.type]
+		except KeyError:
+			...
+
+		path = self.temporary_install_path()
+		await request.download_and_extract_zip(url, path, log=log)
 
 	def configuration_snippets(self, schema_type: str|None = None):
 		if i := self.package_info():
@@ -62,16 +68,7 @@ class AdapterInstaller(dap.AdapterInstaller):
 		if self._package_info:
 			return self._package_info
 
-
-		# check multiple places for the package.json
-		extension = f'{self.install_path()}'
-
-		if os.path.exists(f'{self.install_path()}/extension/package.json'):
-			extension = f'{self.install_path()}/extension'
-		else:
-			extension = f'{self.install_path()}'
-
-		if not os.path.exists(extension):
+		if not os.path.exists(f'{self.install_path()}/package.json'):
 			return
 
 		version = '??'
@@ -79,7 +76,7 @@ class AdapterInstaller(dap.AdapterInstaller):
 		strings: dict[str, str] = {}
 
 		try:
-			with open(f'{extension}/package.nls.json', encoding='utf8') as file:
+			with open(f'{self.install_path()}/package.nls.json', encoding='utf8') as file:
 				# add % so that we can just match string values directly in the package.json since we are only matching entire strings
 				# strings_json = core.json_decode_readable(file)
 				strings_json = json.load(file)
@@ -88,7 +85,7 @@ class AdapterInstaller(dap.AdapterInstaller):
 			...
 
 		try:
-			with open(f'{extension}/package.json', encoding='utf8') as file:
+			with open(f'{self.install_path()}/package.json', encoding='utf8') as file:
 				package_json = self._replace_localized_placeholders(json.load(file), strings)
 				version = package_json.get('version')
 				for debugger in package_json.get('contributes', {}).get('debuggers', []):

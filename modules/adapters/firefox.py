@@ -19,6 +19,6 @@ class Firefox(dap.AdapterConfiguration):
 		install_path = self.installer.install_path()
 		command = [
 			node,
-			f'{install_path}/extension/dist/adapter.bundle.js'
+			f'{install_path}/dist/adapter.bundle.js'
 		]
 		return dap.StdioTransport(command)

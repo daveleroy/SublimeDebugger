@@ -45,7 +45,7 @@ class GDB(dap.AdapterConfiguration):
 		install_path = self.installer.install_path()
 		command = [
 			node,
-			f'{install_path}/extension/out/src/gdb.js'
+			f'{install_path}/out/src/gdb.js'
 		]
 		return dap.StdioTransport(command)
 

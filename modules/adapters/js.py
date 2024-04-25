@@ -57,7 +57,7 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 		else:
 			command = [
 				node,
-				f'{install_path}/extension/src/vsDebugServer.bundle.js',
+				f'{install_path}/src/vsDebugServer.bundle.js',
 				f'{port}',
 			]
 

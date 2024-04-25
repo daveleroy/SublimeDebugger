@@ -94,7 +94,7 @@ def handle_request_error(url: str, error: Exception):
 	else:
 		return core.Error(f'Unable to perform request ({error}) ({url})')
 
-async def download_and_extract_zip(url: str, path: str, log: core.Logger):
+async def download_and_extract_zip(url: str, path: str, extract_folder: str|None = None, *, log: core.Logger = core.stdio):
 	def log_info(value: str):
 		sublime.status_message(f'Debugger: {value}')
 		# core.call_soon_threadsafe(log.info, value)
@@ -114,10 +114,14 @@ async def download_and_extract_zip(url: str, path: str, log: core.Logger):
 			top = {item.split('/')[0] for item in zf.namelist()}
 			zipinfos = zf.infolist()
 
-
+			if extract_folder:
+				for zipinfo in zipinfos:
+					if zipinfo.filename.startswith(extract_folder):
+						zipinfo.filename= zipinfo.filename.lstrip(extract_folder)
+						zf.extract(zipinfo, path)
 
 			# if the zip is a single item extract rename it so its not multiple levels deep
-			if len(top) == 1:
+			elif len(top) == 1:
 				folder = top.pop()
 				for zipinfo in zipinfos:
 					zipinfo.filename = zipinfo.filename.lstrip(folder)

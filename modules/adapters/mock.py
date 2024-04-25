@@ -11,18 +11,16 @@ class MockInstaller(util.vscode.AdapterInstaller):
 
 	async def install(self, version: str|None, log: core.Logger):
 		url = 'https://codeload.github.com/microsoft/vscode-mock-debug/zip/refs/heads/main'
+		await self.install_source(url, log=log)
 
-		async def post_download_action():
-			install_path = self.install_path()
-			extension_folder = os.path.join(install_path, 'extension')
+	async def post_install(self, version: str|None, log: core.Logger):
+		install_path = self.temporary_install_path()
 
-			log.info('building mock debug adapter')
-			log.info('npm install')
-			await dap.Process.check_output(['npm', 'install'], cwd=extension_folder)
-			log.info('npm run compile')
-			await dap.Process.check_output(['npm', 'run', 'compile'], cwd=extension_folder)
-
-		await self.install_from_asset(url, log, post_download_action)
+		log.info('building mock debug adapter')
+		log.info('npm install')
+		await dap.Process.check_output(['npm', 'install'], cwd=install_path)
+		log.info('npm run compile')
+		await dap.Process.check_output(['npm', 'run', 'compile'], cwd=install_path)
 
 	async def installable_versions(self, log: core.Logger):
 		return ['head']
@@ -39,6 +37,6 @@ class Mock(dap.AdapterConfiguration):
 		install_path = self.installer.install_path()
 		command = [
 			node,
-			f'{install_path}/extension/out/debugAdapter.js'
+			f'{install_path}/out/debugAdapter.js'
 		]
 		return dap.StdioTransport(command)

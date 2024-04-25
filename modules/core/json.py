@@ -20,6 +20,10 @@ def json_decode(contents: str|bytes) -> JSON:
 def json_decode_b(contents: BinaryIO|TextIO) -> JSON:
 	return json.load(contents, object_hook=object_hook)
 
+def json_decode_file(path: str) -> JSON:
+	with open(path, encoding='utf8') as file:
+		return json_decode_b(file)
+
 def json_encode(obj: Any, pretty=False):
 	if pretty:
 		return json.dumps(obj, cls=JSONEncoder, indent='\t')

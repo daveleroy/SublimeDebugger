@@ -20,6 +20,6 @@ class Elixir(dap.AdapterConfiguration):
 		install_path = self.installer.install_path()
 		extension = 'bat' if core.platform.windows else 'sh'
 		command = [
-			f'{install_path}/extension/elixir-ls-release/debugger.{extension}'
+			f'{install_path}/elixir-ls-release/debugger.{extension}'
 		]
 		return dap.StdioTransport(command, stderr=log.error)

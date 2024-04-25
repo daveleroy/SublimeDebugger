@@ -25,10 +25,14 @@ class AdapterInstaller:
 		core.make_directory(self.temporary_install_path())
 
 		await self.install(version, log)
+		await self.post_install(version, log)
 
 		os.rename(self.temporary_install_path(), self.install_path())
 
 	async def install(self, version: str, log: core.Logger) -> None:
+		...
+
+	async def post_install(self, version: str, log: core.Logger) -> None:
 		...
 
 	def remove(self) -> None:

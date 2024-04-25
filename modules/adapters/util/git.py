@@ -36,7 +36,8 @@ class GitInstaller(vscode.AdapterInstaller):
 
 			for asset in release.get('assets', []):
 				if self.is_valid_asset(asset['name']):
-					return await self.install_from_asset(asset['browser_download_url'], log)
+					await self.install_vsix(asset['browser_download_url'], log=log)
+					return
 
 		raise core.Error(f'Unable to find a suitable release in {self.repo}')
 
@@ -71,7 +72,8 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 		for release in releases:
 			if version == version_from_release(release):
-				return await self.install_from_asset(release['zipball_url'], log)
+				await self.install_source(release['zipball_url'], log=log)
+				return
 
 		raise core.Error(f'Unable to find a suitable release in {self.repo}')
 

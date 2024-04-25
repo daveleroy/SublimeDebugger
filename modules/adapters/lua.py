@@ -21,11 +21,11 @@ class Lua(dap.AdapterConfiguration):
 		install_path = self.installer.install_path()
 		command = [
 			node,
-			f'{install_path}/extension/extension/debugAdapter.js'
+			f'{install_path}/extension/debugAdapter.js'
 		]
 		return dap.StdioTransport(command)
 
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
 		install_path = self.installer.install_path()
-		configuration['extensionPath'] = f'{install_path}/extension'
+		configuration['extensionPath'] = f'{install_path}'
 		return configuration

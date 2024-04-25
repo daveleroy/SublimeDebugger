@@ -12,14 +12,22 @@ import subprocess
 import shlex
 from pathlib import Path
 
+class PythonInstaller(util.GitSourceInstaller):
+	async def post_install(self, version: str, log: core.Logger):
+		path = self.temporary_install_path()
+		debugpy_info = core.json_decode_file(f'{path}/debugpy_info.json')
+		await util.request.download_and_extract_zip(debugpy_info['any']['url'], f'{path}/debugpy', log=log)
+
+
+
 class Python(dap.AdapterConfiguration):
 
 	type = 'python'
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
 
-	installer = util.GitInstaller(
-		type='python',
-		repo='daveleroy/vscode-python'
+	installer = PythonInstaller(
+		type = 'python',
+		repo ='microsoft/vscode-python-debugger'
 	)
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
@@ -63,12 +71,10 @@ class Python(dap.AdapterConfiguration):
 
 		log.info('Using python `{}`'.format(python))
 
-		command = [
+		return dap.StdioTransport([
 			f'{python}',
-			f'{install_path}/extension/pythonFiles/lib/python/debugpy/adapter',
-		]
-
-		return dap.StdioTransport(command)
+			f'{install_path}/debugpy/debugpy/adapter',
+		])
 
 	async def on_custom_event(self, session: dap.Session, event: str, body: Any):
 		if event == 'debugpyAttach':

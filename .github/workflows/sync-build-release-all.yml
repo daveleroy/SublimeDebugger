@@ -23,22 +23,6 @@ jobs:
     secrets:
       token: ${{ secrets.PUSH_TOKEN }}
 
-  vscode-python:
-    uses: ./.github/workflows/sync-build-release.yml
-
-    with:
-      upstream: microsoft/vscode-python
-      repository: vscode-python
-
-      build: |
-        npm install
-        ./node_modules/.bin/gulp installPythonLibs
-        npm run package
-        mv ms-python-insiders.vsix extension.vsix
-
-    secrets:
-      token: ${{ secrets.PUSH_TOKEN }}
-
   firefox-js-debug:
     uses: ./.github/workflows/sync-build-release.yml
 
