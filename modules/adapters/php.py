@@ -20,6 +20,6 @@ class PHP(dap.AdapterConfiguration):
 		install_path = self.installer.install_path()
 		command = [
 			node,
-			f'{install_path}/extension/out/phpDebug.js'
+			f'{install_path}/out/phpDebug.js'
 		]
 		return dap.StdioTransport(command)
