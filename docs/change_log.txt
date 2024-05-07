@@ -2,7 +2,15 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
-Version 0.11.2 - March 24, 2024
+Version 0.11.3 - May 6, 2024
+- Support for reverse debugging for adapters that support it (@Phaiax)
+- Fixes a compatiblity issue with LSP 4070-2.0.1
+
+- gdb: Added a few extra commands for improved reverse debugging support (@Phaiax)
+- python: Changed type to `debugpy` to match vscode and updated to use vscode-python-debugger
+
+
+Version 0.11.2 - April 19, 2024
 - Updated to handle LSP using the 3.8 plugin host (some adapters require LSP)
 
 
