@@ -1,18 +1,16 @@
-from typing import Any, TypeVar, Generic
+from typing import TYPE_CHECKING, Any, TypeVar, Generic
 
-try:
+if TYPE_CHECKING:
 	from typing_extensions import Unpack, TypeVarTuple, ParamSpec, TypeAlias, Concatenate
 
-except ImportError as e:
-
+else:
 	class _GetAttr(type):
-		def __getitem__(self, x: Any):
-			return self
-
+			def __getitem__(self, x: Any):
+				return self
 	class _Generic(metaclass=_GetAttr):
 		pass
 
-	# just add these in so things compile if needed
+	# Add these in so things work at runtime
 	globals()['TypeVarTuple'] = TypeVar
 	globals()['ParamSpec'] = TypeVar
 	globals()['TypeAlias'] = TypeVar
