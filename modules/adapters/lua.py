@@ -21,7 +21,7 @@ class Lua(dap.AdapterConfiguration):
 		install_path = self.installer.install_path()
 		command = [
 			node,
-			f'{install_path}/extension/debugAdapter.js'
+			f'{install_path}/debugAdapter.js'
 		]
 		return dap.StdioTransport(command)
 
