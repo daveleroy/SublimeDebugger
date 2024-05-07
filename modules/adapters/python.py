@@ -22,11 +22,11 @@ class PythonInstaller(util.GitSourceInstaller):
 
 class Python(dap.AdapterConfiguration):
 
-	type = 'python'
+	type = ['debugpy', 'python']
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
 
 	installer = PythonInstaller(
-		type = 'python',
+		type = 'debugpy',
 		repo ='microsoft/vscode-python-debugger'
 	)
 
