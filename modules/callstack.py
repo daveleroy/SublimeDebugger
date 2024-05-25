@@ -30,7 +30,7 @@ class CallstackOutputPanel(OutputPanel, core.Dispose):
 		# otherwise they will get reordered when one of them gets redrawn
 		# we use zero width characters so we don't have extra around phantoms
 		self.view.run_command('insert', {
-			'characters': '\u200c\u200c'
+			'characters': '\u200c\u200c\u200c\u200c\u200c\u200c'
 		})
 		self.view.set_read_only(True)
 
@@ -45,22 +45,28 @@ class CallstackOutputPanel(OutputPanel, core.Dispose):
 
 		self.debugger = debugger
 		self.callstack = CallStackTabbedView(self.debugger, self)
+		# the -30 dip is to account for the space between phantoms
+		width_additional_dip = -30
+
+		# this is to account for the size of the breakpoints
+		width_additional = -30
+
 		with ui.Phantom(self.view, 0, name='Breakpoints') as phantom:
 			self.dispose_add(phantom)
 
-			with TabbedViewContainer(width=30):
+			with TabbedViewContainer(width=30) as tab:
 				DebuggerTabbedView(self.debugger, debugger._on_navigate_to_source)
 
-		with ui.Phantom(self.view, 1, name='Callstack') as phantom:
+		with ui.Phantom(self.view, 3, name='Callstack') as phantom:
 			self.dispose_add(phantom)
 
-			with TabbedViewContainer(width_scale=0.5, width_additional=-30, width_additional_dip=-30):
+			with TabbedViewContainer(width_scale=0.5, width_additional=width_additional, width_additional_dip=width_additional_dip):
 				self.callstack.append_stack()
 
-		with ui.Phantom(self.view, 2, name='Variables') as phantom:
+		with ui.Phantom(self.view, 5, name='Variables') as phantom:
 			self.dispose_add(phantom)
 
-			with TabbedViewContainer(width_scale=0.5, width_additional=-30, width_additional_dip=-30):
+			with TabbedViewContainer(width_scale=0.5, width_additional=width_additional, width_additional_dip=width_additional_dip) as tab:
 				VariablesTabbedView(self.debugger)
 				ModulesTabbedView(self.debugger)
 				SourcesTabbedView(self.debugger, debugger._on_navigate_to_source)

@@ -15,7 +15,7 @@ See [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/
 This project attempts to match Visual Studio Code's Debugger fairly closely so their documentation can be pretty helpful. See [https://code.visualstudio.com/docs/editor/debugging](https://code.visualstudio.com/docs/editor/debugging)
 
 ## Debuggers
-This project comes with some pre-configured debuggers (They can be installed using ```Debugger: Install adapter```)
+This project comes with some pre-configured debuggers (They can be installed using ```Debugger: Install adapters```)
 
 ##### LLDB
 - See https://github.com/vadimcn/vscode-lldb
@@ -97,20 +97,12 @@ Tasks are basically the same as sublime builds but there are a few additional pa
 
 
 ## Settings
-Settings can either be set at the project level or globally.
-Project settings can be changed by appending `debug.` to the setting name.
-
-Within a `.sublime_settings` file
-- `"open_at_startup": true` Open the debugger automatically when a project that is set up for debugging has been opened
-- `"ui_scale": 12` scales the entire debugger UI
-
-Within a `.sublime_project` file settings object
-- `debug.open_at_startup`
-- `debug.ui_scale`
+Settings can be adjusted with `Preferences: Debugger Settings`
 
 for a full list of settings see [debugger.sublime-settings](Debugger.sublime-settings)
 
 ## Troubleshooting
+- To fix issues with things aligning correctly or the last panel not being visible try adjusting the `internal_font_scale` and `internal_width_modifier` in the settings
 - Look in the debug console for errors (usually red)
 - Look in the sublime console for errors
 - Try the same configuration/adapter in Visual Studio Code (There is a good chance your issue is with the adapter so check out the outstanding issues for it)

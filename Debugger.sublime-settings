@@ -5,11 +5,14 @@
 	// Always keep the debugger panel visible
 	"always_keep_visible": false,
 
-	// Sets the entire scale of the UI, defaults to font_size
-	"ui_scale": null,
+	// Change the font size of the debugger ui. Defaults to the font size in your preferences.
+	"font_size": null,
 
-	// Only change this if your font size does not match the panel size (overlapping text, panels not lining up, etc)
+	// Expected values of around 0.95 to 1.05. Only change this if the text/images/content are not aligning correctly within the panels (could cause the last panel to be clipped).
 	"internal_font_scale": 1,
+
+	// Expected values of around 0 to -5. Only change this if the size of the panels is too large and the last panel is cropped off (adjust internal_font_scale first if text/images/content are not aligned correctly). Negative values make the panels smaller. Postive make them bigger.
+	"internal_width_modifier": 0,
 
 	// Which external terminal should be used when an adapter requests an external terminal
 	// "platform" (default) uses Terminal on MacOS, CMD (Not tested) on Windows, (Unimplemented) on Linux

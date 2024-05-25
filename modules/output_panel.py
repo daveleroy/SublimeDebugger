@@ -134,7 +134,7 @@ class OutputPanel(core.Dispose):
 
 		# this is just a hack to get the output panel to have a bigger height
 		self.update_settings()
-		scaled_font = settings.get('font_size') * (Settings.minimum_console_height + 1.75) / 5
+		scaled_font = settings.get('font_size', 12) * (Settings.minimum_console_height + 1.75) / 5
 		settings.set('font_size', scaled_font) # this will be removed in update_settings()
 		self.open()
 
@@ -183,8 +183,10 @@ class OutputPanel(core.Dispose):
 		# these settings control the size of the ui calculated in ui/layout
 		settings = self.view.settings()
 		settings['internal_font_scale'] = Settings.internal_font_scale
-		if Settings.ui_scale:
-			settings['font_size'] = Settings.ui_scale
+		settings['internal_width_modifier'] = Settings.internal_width_modifier
+
+		if Settings.font_size:
+			settings['font_size'] = Settings.font_size
 		else:
 			settings.erase('font_size')
 

@@ -92,8 +92,7 @@ class TabbedViewContainer(ui.div):
 		if self._width:
 			width = self._width
 		else:
-			# each phantom takes up 10 extra dip 5 on each side it looks like
-			layout_width = self.layout.width + self._width_additional + self.layout.from_dip(self._width_additional_dip)
+			layout_width = self.layout.width + self._width_additional + self.layout.from_dip(self._width_additional_dip) + self.layout.internal_width_modifier
 			width = layout_width * self._width_scale if self._width_scale else layout_width
 
 		with ui.div(width=width, height=500, css=css.panel):

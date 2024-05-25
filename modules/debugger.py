@@ -180,6 +180,9 @@ class Debugger (core.Dispose, dap.Debugger):
 		output_panel = OutputPanel(self, name, name=panel.get('name'), show_panel=False, show_tabs=True, show_tabs_top=panel.get('position') != 'bottom', create=False)
 		self.dispose_add(output_panel)
 
+	def updated_settings(self):
+		self.project.reload(self.console)
+
 	def _refresh_none_debugger_output_panels(self):
 		for panel_name in self.window.panels():
 			self._refresh_none_debugger_output_panel(panel_name)

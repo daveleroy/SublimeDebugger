@@ -36,7 +36,6 @@ class Project:
 		self.configuration_or_compound: Configuration|ConfigurationCompound|None = None
 
 		self.external_terminal_kind = 'platform'
-		self.ui_scale = 12
 		self.bring_window_to_front_on_pause = False
 
 	def dispose(self):
@@ -171,7 +170,6 @@ class Project:
 
 	def _load_settings(self):
 		self.external_terminal_kind = Settings.external_terminal
-		self.ui_scale = Settings.ui_scale
 		self.bring_window_to_front_on_pause = Settings.bring_window_to_front_on_pause
 
 	def _extract_from_project_data(self, project_data: Any, key: str) -> list[tuple[Any, dap.SourceLocation]]:

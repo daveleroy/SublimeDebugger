@@ -105,6 +105,8 @@ class Layout:
 		self.layout_height = 1.0
 
 		self.internal_font_scale = 1.0
+		self.internal_width_modifier = 0.0
+
 		self.font_size = 1.0
 		self.em_width = 1.0
 
@@ -232,8 +234,10 @@ class Layout:
 		background = style.get('background') if style else None
 
 		settings = self.view.settings()
-		font_size = settings.get('font_size') or 1
-		internal_font_scale = settings.get('internal_font_scale') or 1
+		font_size = settings.get('font_size', 12)
+
+		internal_font_scale = settings.get('internal_font_scale', 1)
+		internal_width_modifier = settings.get('internal_width_modifier', 0)
 
 		viewport_width, viewport_height = self.view.viewport_extent()
 		layout_width, layout_height = self.view.layout_extent()
@@ -251,6 +255,7 @@ class Layout:
 			background,
 			font_size,
 			internal_font_scale,
+			internal_width_modifier,
 			em_width,
 			viewport_width,
 			viewport_height,
@@ -277,6 +282,8 @@ class Layout:
 		self.viewport_position_y = viewport_position_y / em_width
 
 		self.internal_font_scale = internal_font_scale
+		self.internal_width_modifier = internal_width_modifier
+
 		self.font_size = font_size
 		self.width = viewport_width / em_width
 		self.height = viewport_height / em_width

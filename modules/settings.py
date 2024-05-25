@@ -46,16 +46,22 @@ class Settings:
 		description='Always keep the debugger panel visible'
 	)
 
-	ui_scale = Setting['float|None'] (
-		key='ui_scale',
+	font_size = Setting['float|None'] (
+		key='font_size',
 		default=None,
-		description='Sets the entire scale of the UI, defaults to font_size'
+		description='Change the font size of the debugger ui. Defaults to the font size in your preferences.'
 	)
 
 	internal_font_scale = Setting[float] (
 		key='internal_font_scale',
 		default=1,
-		description='Only change this if your font size does not match the panel size (overlapping text, panels not lining up, etc)'
+		description='Expected values of around 0.95 to 1.05. Only change this if the text/images/content are not aligning correctly within the panels (could cause the last panel to be clipped).'
+	)
+
+	internal_width_modifier = Setting[float] (
+		key='internal_width_modifier',
+		default=0,
+		description='Expected values of around 0 to -5. Only change this if the size of the panels is too large and the last panel is cropped off (adjust internal_font_scale first if text/images/content are not aligned correctly). Negative values make the panels smaller. Postive make them bigger.'
 	)
 
 	external_terminal = Setting[str] (
