@@ -2,9 +2,14 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.11.5 - May 25, 2024
+- Renamed `ui_scale` to `font_size` to better reflect what it does
+- Added `internal_width_modifier` to allow adjusting the width of the content if the variables panel is being clipped
+
+
 Version 0.11.3 - May 6, 2024
 - Support for reverse debugging for adapters that support it (@Phaiax)
-- Fixes a compatiblity issue with LSP 4070-2.0.1
+- Fixes a compatibility issue with LSP 4070-2.0.1
 
 - gdb: Added a few extra commands for improved reverse debugging support (@Phaiax)
 - python: Changed type to `debugpy` to match vscode and updated to use vscode-python-debugger
