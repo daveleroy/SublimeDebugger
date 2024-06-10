@@ -81,6 +81,16 @@ class LLDB(dap.AdapterConfiguration):
 		if liblldb:
 			command.extend(['--liblldb', liblldb])
 
+		if 'sourceLanguages' in configuration:
+			import json
+
+			command.extend([
+				'--settings',
+				json.dumps({ 'sourceLanguages': configuration['sourceLanguages']}),
+			])
+
+			del configuration['sourceLanguages']
+
 		return dap.SocketTransport(command=command, port=port)
 
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
