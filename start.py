@@ -308,7 +308,7 @@ class EventListener (sublime_plugin.EventListener):
 
 		if key == 'debugger.active':
 			debugger = Debugger.get(view)
-			return apply_operator(debugger.session) if debugger else apply_operator(False)
+			return apply_operator(bool(debugger.session)) if debugger else apply_operator(False)
 
 		if key.startswith('debugger.'):
 			settings_key = key[len('debugger.'):]
