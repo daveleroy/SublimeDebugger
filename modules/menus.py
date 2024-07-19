@@ -53,8 +53,12 @@ async def add_configuration(debugger: Debugger):
 
 def format_snippet(snippet: dict[str, Any]):
 	body = snippet.get('body', {})
-	for (key, value) in snippet.items():
-		if isinstance(value, str) and value.startswith('^"') and value.endswith('"'):
+
+
+	for (key, value) in body.items():
+		# ^ seems to say the value is a json string already
+		# https://github.com/microsoft/vscode-json-languageservice/blob/386ce45491130c49e5e59e79ef209cd5de7a2057/src/services/jsonCompletion.ts#L788
+		if isinstance(value, str) and value.startswith('^'):
 			body[key] = value[2:-1]
 
 	content = json.dumps(body, indent="\t")
