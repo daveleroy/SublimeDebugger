@@ -16,8 +16,12 @@ class PythonInstaller(util.GitSourceInstaller):
 	async def post_install(self, version: str, log: core.Logger):
 		path = self.temporary_install_path()
 		debugpy_info = core.json_decode_file(f'{path}/debugpy_info.json')
-		await util.request.download_and_extract_zip(debugpy_info['any']['url'], f'{path}/debugpy', log=log)
+		try:
+			url = debugpy_info['any'][0]['url']
+		except Exception:
+			url = debugpy_info['any']['url']
 
+		await util.request.download_and_extract_zip(url, f'{path}/debugpy', log=log)
 
 
 class Python(dap.AdapterConfiguration):
@@ -160,13 +164,9 @@ class Python(dap.AdapterConfiguration):
 					).strip())
 					return post_processing(python_path) if post_processing else python_path
 				except FileNotFoundError:
-					log.info('WARN: {} detected but {} not found'.format(config_file, command[0]))
+					log.warn(f'{config_file} detected but {command[0]} not found')
 				except subprocess.CalledProcessError:
-					log.info(
-						'WARN: {} detected but {} exited with non-zero exit status'.format(
-							config_file, ' '.join(map(shlex.quote, command))
-						)
-					)
+					log.warn(f'{config_file} detected but {" ".join(map(shlex.quote, command))} exited with non-zero exit status')
 
 		# virtual environment as subfolder in project
 		for file in folder.iterdir():
