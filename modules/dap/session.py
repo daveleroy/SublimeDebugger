@@ -398,7 +398,10 @@ class Session(TransportListener, core.Dispose):
 
 			if breakpoint.enabled:
 				enabled_breakpoints.append(breakpoint)
-				dap_breakpoints.append(breakpoint.dap)
+				bp = breakpoint.dap
+				if not bp.condition:
+					bp.condition = ''
+				dap_breakpoints.append(bp)
 				lines.append(breakpoint.dap.line)
 
 		try:
@@ -458,6 +461,7 @@ class Session(TransportListener, core.Dispose):
 				await self.request('terminate', {
 					'restart': False
 				})
+				await self.stop_session()
 				return
 			except Error as e:
 				core.exception()
