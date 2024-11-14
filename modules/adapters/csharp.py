@@ -51,10 +51,7 @@ class CSharpInstaller(util.GitSourceInstaller):
 			return await request.download_and_extract_zip(url, path, log=core.stdio)
 
 	def platform_check(self, platforms, archs):
-		if self.HOSTS_PLATFORMS[sublime.platform()] in platforms and self.HOST_ARCHS[sublime.arch()] in archs:
-			return True
-		else:
-			return False
+		return self.HOSTS_PLATFORMS[sublime.platform()] in platforms and self.HOST_ARCHS[sublime.arch()] in archs
 
 
 class CSharp(dap.AdapterConfiguration):
