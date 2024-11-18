@@ -398,10 +398,7 @@ class Session(TransportListener, core.Dispose):
 
 			if breakpoint.enabled:
 				enabled_breakpoints.append(breakpoint)
-				bp = breakpoint.dap
-				if not bp.condition:
-					bp.condition = ''
-				dap_breakpoints.append(bp)
+				dap_breakpoints.append(breakpoint.dap)
 				lines.append(breakpoint.dap.line)
 
 		try:
