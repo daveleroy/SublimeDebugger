@@ -41,11 +41,12 @@ def object_hook(object: dict[Any, Any]):
 class JSONEncoder(json.JSONEncoder):
 	def default(self, o: Any):
 		if dataclasses.is_dataclass(o):
-			return dataclasses.asdict(o)
+			# note: this removes None values from dataclasses when converting them to json.
+			# In cases where we want to keep null values we will need to figure something else out
+			return dataclasses.asdict(o, dict_factory=lambda x: {k: v for (k, v) in x if v is not None})
+
 		return super().default(o)
 
-# Not using a type alias because it casues issues when using json.encode
-# JSON: TypeAlias = DottedDict[str, 'JSON_VALUE']
 class JSON(DottedDict[str, 'JSON_VALUE']):
 	...
 
