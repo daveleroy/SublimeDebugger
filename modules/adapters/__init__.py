@@ -11,6 +11,7 @@ from .java import Java
 from .ruby import Ruby
 from .elixir import Elixir
 from .lua import Lua
+from .csharp import CSharp
 
 from .js import Chrome
 from .js import Edge

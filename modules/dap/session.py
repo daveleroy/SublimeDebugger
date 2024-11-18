@@ -458,6 +458,7 @@ class Session(TransportListener, core.Dispose):
 				await self.request('terminate', {
 					'restart': False
 				})
+				await self.stop_session()
 				return
 			except Error as e:
 				core.exception()

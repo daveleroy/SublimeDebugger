@@ -5,6 +5,7 @@ from typing import Any, BinaryIO
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from gzip import GzipFile
+import tarfile
 
 import sublime
 
@@ -137,6 +138,31 @@ async def download_and_extract_zip(url: str, path: str, extract_folder: str|None
 	await blocking()
 	core.remove_file_or_dir(archive_name)
 
+async def download_and_extract_targz(url: str, path: str, extract_folder: str|None = None, *, log: core.Logger = core.stdio):
+	def log_info(value: str):
+		sublime.status_message(f'Debugger: {value}')
+		# core.call_soon_threadsafe(log.info, value)
+
+	archive_name = f'{path}.tar.gz'
+	response = await request(url)
+
+	@core.run_in_executor
+	def blocking():
+
+		with open(archive_name, 'wb') as out_file:
+			_copyfileobj(response.data, out_file, log_info, int(response.headers.get('Content-Length', '0')))
+
+		log_info('...downloaded')
+		log_info('extracting...')
+		with tarfile.open(archive_name, 'r:gz') as tz:
+			tz.extractall(path)
+
+		log_info('...extracted')
+
+	log.info('Downloading {}'.format(url))
+
+	await blocking()
+	core.remove_file_or_dir(archive_name)
 
 # https://stackoverflow.com/questions/29967487/get-progress-back-from-shutil-file-copy-thread
 def _copyfileobj(fsrc, fdst, log_info, total, length=128*1024):
