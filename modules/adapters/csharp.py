@@ -45,7 +45,7 @@ class CSharpInstaller(util.GitSourceInstaller):
 
 	async def download_and_unarchive(self, url: str, path: str, log: core.Logger):
 		log.info('Downloading {}'.format(url))
-		if (url.find('.tar.gz')):
+		if (url.find('.tar.gz') >= 0):
 			return await request.download_and_extract_targz(url, path, log=core.stdio)
 		else:
 			return await request.download_and_extract_zip(url, path, log=core.stdio)
@@ -63,10 +63,10 @@ class CSharp(dap.AdapterConfiguration):
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = self.installer.install_path()
-		executable_name = 'netcoredbg.exe' if sublime.platform() == 'windows' else 'netcoredbg'
+		executable_path = 'netcoredbg.exe' if sublime.platform() == 'windows' else 'netcoredbg/netcoredbg'
 
 		command = [
-			os.path.join(install_path, 'runtimeDependencies', 'netcoredbg', executable_name),
+			os.path.join(install_path, 'runtimeDependencies', executable_path),
 			'--interpreter=vscode'
 		]
 		return dap.StdioTransport(command, stderr=log.error)
