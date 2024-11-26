@@ -41,7 +41,7 @@ def debugger_storage_path(ensure_exists: bool = False):
 	"""
 	package_storage_path = os.path.abspath(os.path.join(sublime.cache_path(), '..', 'Package Storage'))
 
-	package_path = f'{package_storage_path}/Debugger'
+	package_path = os.path.join(package_storage_path, 'Debugger')
 	if ensure_exists:
 		make_directory(package_storage_path)
 		make_directory(package_path)
