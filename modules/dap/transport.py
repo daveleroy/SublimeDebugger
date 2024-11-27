@@ -165,7 +165,6 @@ class TransportStream(Transport):
 
 				content_str = bytearray(content).decode(encoding='utf-8', errors='replace')
 				content = content_str.encode('utf-8')
-				core.info("read_transport", content)
 				
 				self.on_message(core.json_decode(content))
 
