@@ -163,7 +163,6 @@ class TransportStream(Transport):
 					bytes_left = size - len(content)
 					content += self.read(bytes_left)
 
-				# 以防非 utf-8 编码字符
 				content_str = bytearray(content).decode(encoding='utf-8', errors='replace')
 				content = content_str.encode('utf-8')
 				core.info("read_transport", content)
