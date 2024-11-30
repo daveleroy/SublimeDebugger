@@ -40,10 +40,10 @@ class AdapterInstaller:
 		core.remove_file_or_dir(self.install_path())
 
 	def temporary_install_path(self) -> str:
-		return f'{core.debugger_storage_path()}/{self.type}.tmp'
+		return os.path.join(core.debugger_storage_path(), f'{self.type}.tmp')
 
 	def install_path(self) -> str:
-		return f'{core.debugger_storage_path()}/{self.type}'
+		return os.path.join(core.debugger_storage_path(), f'{self.type}')
 
 	def installed_version(self) -> str | None:
 		return '1.0.0'
