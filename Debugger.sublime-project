@@ -28,5 +28,86 @@
 				"User/Preferences.sublime-settings",
 			]
 		},
-	]
+		// python config file template for Windows.
+		{
+            "name": "Python Debugger: Attach remote debug.",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "justMyCode" : false,
+        },
+        {
+            "name": "Python Debugger: WSL2 Attach remote debug.",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                // My WSL2 IP Adress
+                "host": "",
+                "port": 5678
+            },
+            "justMyCode" : false,
+        },
+        {
+            "name" : "Python Debugger: Attach using process Id",
+            "type" : "python",
+            "request" : "attach",
+            "selector": "source.python | text.html.python",
+            "debugServer": 5678,
+            // At startup, check.
+            "processId": "",
+            "pathMappings": [{
+                "localRoot": "${workspaceFolder}",
+                "remoteRoot": "."
+            }],
+            "justMyCode" : false,
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "sublime",
+            "platform": "windows",
+            "request": "launch",
+            "selector": "source.python | text.html.python",
+            "program": "\\${file}",
+            "console": "integratedTerminal",
+            "justMyCode" : false,
+        },
+	],
+	// new Build System
+    "debugger_tasks" : [
+    {
+        "name" : "Python Debugger run task",
+        "type" : "python",
+        "settings": {
+            "enabled": true,
+            "command":
+            [
+            	// python path, sample.py.
+                "", "$file"
+            ],
+            "selector": "source.python | text.html.python",
+        },
+    	"platform": "windows",
+    	"file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)",
+    	"PYTHONIOENCODING": "utf-8",
+    },
+    {
+        "name": "Python Debug Symbols",
+        "type" : "python",
+        "settings": {
+            "enabled": true,
+            "command":
+            [
+            	// python path, options, sample.py.
+                "", "-D", "$file"
+            ],
+            "selector": "source.python | text.html.python",
+        },
+        "platform": "windows",
+        "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)",
+        "PYTHONIOENCODING": "utf-8",
+    },
+  ]
 }
