@@ -4,15 +4,18 @@
 			"path": ".",
 		}
 	],
-	"build_systems": [
+	"debugger_tasks": [
 		{
-			"name": "build",
+			"name": "Build",
 			"cmd": ["dotnet", "build"],
+			"working_dir": "${folder}",
 		}
 	],
 	"debugger_configurations": [
 		{
-			"name": ".NET Core Launch (console)",
+			"pre_debug_task": "Build",
+
+			"name": "CSharp: NET Core Launch (console)",
 			"type": "coreclr",
 			"request": "launch",
 			"program": "${folder}/bin/Debug/net8.0/csharp.dll",

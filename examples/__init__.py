@@ -2,6 +2,7 @@ projects = [
 	'examples/sublime_debug/sublime.sublime-project',
 	'examples/cpp/cpp.sublime-project',
 	'examples/go/go.sublime-project',
+	'examples/csharp/csharp.sublime-project',
 	'examples/mock/mock.sublime-project',
 	'examples/php/php.sublime-project',
 	'examples/python/python.sublime-project',

@@ -14,7 +14,7 @@ class CSharpInstaller(util.GitSourceInstaller):
 	HOSTS_PLATFORMS = {
 		'windows': 'win32',
 		'linux': 'linux',
-		'osx': 'osx',
+		'osx': 'darwin',
 	}
 
 	HOST_ARCHS = {
