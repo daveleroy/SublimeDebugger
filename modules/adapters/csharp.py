@@ -45,7 +45,7 @@ class CSharpInstaller(util.GitSourceInstaller):
 
 	async def download_and_unarchive(self, url: str, path: str, log: core.Logger):
 		log.info('Downloading {}'.format(url))
-		if (url.find('.tar.gz')):
+		if (url.find('.tar.gz') >= 0):
 			return await request.download_and_extract_targz(url, path, log=core.stdio)
 		else:
 			return await request.download_and_extract_zip(url, path, log=core.stdio)
@@ -63,10 +63,35 @@ class CSharp(dap.AdapterConfiguration):
 
 	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		install_path = self.installer.install_path()
-		executable_name = 'netcoredbg.exe' if sublime.platform() == 'windows' else 'netcoredbg'
+		executable_path = 'netcoredbg.exe' if sublime.platform() == 'windows' else 'netcoredbg/netcoredbg'
 
-		command = [
-			os.path.join(install_path, 'runtimeDependencies', 'netcoredbg', executable_name),
-			'--interpreter=vscode'
-		]
+		args = []
+		if 'pipeTransport' in configuration:
+			pipe_transport = configuration.get('pipeTransport')
+			if isinstance(pipe_transport, dict):
+				if 'debuggerArgs' in pipe_transport:
+					debugger_args = pipe_transport.get('debuggerArgs')
+					if isinstance(debugger_args, list):
+						args.extend(debugger_args)
+					else:
+						raise TypeError("debuggerArgs should be a list")
+				else:
+					args.extend(['--interpreter=vscode', '--'])
+
+				if 'pipeProgram' in pipe_transport:
+					args.append(pipe_transport.get('pipeProgram'))
+				if 'pipeArgs' in pipe_transport:
+					pipe_args = pipe_transport.get('pipeArgs')
+					if isinstance(pipe_args, list):
+						args.extend(pipe_args)
+					else:
+						raise TypeError("pipeArgs should be a list")
+			else:
+				raise TypeError("pipeTransport should be a dict")
+		else:
+			args = ['--interpreter=vscode']
+
+		command = [os.path.join(install_path, 'runtimeDependencies', executable_path), ]
+		command.extend(args)
+
 		return dap.StdioTransport(command, stderr=log.error)
