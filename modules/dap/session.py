@@ -678,21 +678,46 @@ class Session(TransportListener, core.Dispose):
 		})
 		return body['content'], body.get('mimeType')
 
-	async def get_variables(self, variablesReference: int, without_names: bool = False) -> list[Variable]:
-		response = await self.request('variables', {
-			'variablesReference': variablesReference
-		})
+	async def get_variables(self, variablesReference: int, without_names: bool = False, indexedVariables: int|None = None, namedVariables: int|None = None) -> list[Variable]:
+		named_list = []
+		if namedVariables != None and namedVariables > 0:
+			response = await self.request('variables', {
+				'variablesReference': variablesReference,
+				'filter': 'named',
+			})
 
-		variables: list[dap.Variable] = response['variables']
+			variables: list[dap.Variable] = response['variables']
 
-		# vscode seems to remove the names from variables in output events
-		if without_names:
-			for v in variables:
-				v.name = ''
-				v.value = v.value.split('\n')[0]
+			# vscode seems to remove the names from variables in output events
+			if without_names:
+				for v in variables:
+					v.name = ''
+					v.value = v.value.split('\n')[0]
+
+			named_list = [Variable.from_variable(self, variablesReference, v) for v in variables]
+
+		indexed_list = []
+		if indexedVariables != None and indexedVariables > 0:
+			response = await self.request('variables', {
+				'variablesReference': variablesReference,
+				'filter': 'indexed',
+				'start': 0,
+				'count': indexedVariables,
+			})
+
+			variables: list[dap.Variable] = response['variables']
+
+			# vscode seems to remove the names from variables in output events
+			if without_names:
+				for v in variables:
+					v.name = ''
+					v.value = v.value.split('\n')[0]
+
+			indexed_list = [Variable.from_variable(self, variablesReference, v) for v in variables]
+
+		return named_list + indexed_list
 
 
-		return [Variable.from_variable(self, variablesReference, v) for v in variables]
 
 	def on_breakpoint_event(self, event: dap.BreakpointEvent):
 		assert event.breakpoint.id

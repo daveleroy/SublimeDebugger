@@ -35,7 +35,8 @@ class SourceLocation:
 
 
 class Variable:
-	def __init__(self, session: Session, name: str, value: str|None, variablesReference: int|None, containerVariablesReference: int|None = None, evaluateName: str|None = None, memoryReference: str|None = None) -> None:
+	def __init__(self, session: Session, name: str, value: str|None, variablesReference: int|None, containerVariablesReference: int|None = None, evaluateName: str|None = None, memoryReference: str|None = None,
+						indexedVariables: int|None = None, namedVariables: int|None = None) -> None:
 		self.session = session
 		self.name = name
 		self.evaluateName = evaluateName
@@ -44,6 +45,8 @@ class Variable:
 		self.containerVariablesReference = containerVariablesReference
 		self.memoryReference = memoryReference
 		self.fetched: core.Future[list[Variable]]|None = None
+		self.indexedVariables = indexedVariables
+		self.namedVariables = namedVariables
 
 
 	@staticmethod
@@ -56,6 +59,8 @@ class Variable:
 			containerVariablesReference,
 			variable.evaluateName,
 			variable.memoryReference,
+			indexedVariables = variable.indexedVariables,
+			namedVariables = variable.namedVariables,
 		)
 
 	@staticmethod
@@ -74,11 +79,13 @@ class Variable:
 			name,
 			evaluate.result,
 			evaluate.variablesReference,
+			indexedVariables = evaluate.indexedVariables,
+			namedVariables = evaluate.namedVariables,
 		)
 
 	async def fetch(self):
 		assert self.variablesReference
-		return await self.session.get_variables(self.variablesReference)
+		return await self.session.get_variables(self.variablesReference, indexedVariables = self.indexedVariables, namedVariables = self.namedVariables)
 
 	async def children(self) -> list[Variable]:
 		if not self.has_children:
