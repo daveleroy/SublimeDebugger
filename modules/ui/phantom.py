@@ -47,6 +47,12 @@ class Phantom(Layout):
 			self.view.erase_phantom_by_id(self.pid)
 		self.pid = pid
 
+	def inside_region(self, position_x: float):
+		at: list[sublime.Region] = self.view.query_phantoms([self.pid])  # type: ignore (the typing is wrong its a list of regions)
+		start = self.view.text_to_layout(at[0].a - 1)
+		end = self.view.text_to_layout(at[0].a + 1)
+		return start[0] < position_x and end[0] > position_x
+
 	def render_if_out_of_position(self):
 		# if this phantom must be rendered just render it
 		# otherwise we can just render the phantom without generating new html and stuff if its out of position

@@ -1,244 +1,258 @@
 [
-    {
-        "caption": "Debugger: Generate Commands/Settings/Schema",
-        "command": "debugger",
-        "args": {
-            "action": "generate_commands"
-        }
-    },
-    {
-        "caption": "Debugger: Open",
-        "command": "debugger",
-        "args": {
-            "action": "open"
-        }
-    },
-    {
-        "caption": "Debugger: Quit",
-        "command": "debugger",
-        "args": {
-            "action": "quit"
-        }
-    },
-    {
-        "caption": "Preferences: Debugger Settings",
-        "command": "debugger",
-        "args": {
-            "action": "settings"
-        }
-    },
-    {
-        "caption": "Debugger: Browse Package storage",
-        "command": "debugger",
-        "args": {
-            "action": "browse_storage"
-        }
-    },
-    {
-        "caption": "Debugger: Install Adapters",
-        "command": "debugger",
-        "args": {
-            "action": "install_adapters"
-        }
-    },
-    {
-        "caption": "Debugger: Add or Select Configuration",
-        "command": "debugger",
-        "args": {
-            "action": "change_configuration"
-        }
-    },
-    {
-        "caption": "Debugger: Add Configuration",
-        "command": "debugger",
-        "args": {
-            "action": "add_configuration"
-        }
-    },
-    {
-        "caption": "Debugger: Edit Configurations",
-        "command": "debugger",
-        "args": {
-            "action": "edit_configurations"
-        }
-    },
-    {
-        "caption": "Debugger: Example Projects",
-        "command": "debugger",
-        "args": {
-            "action": "example_projects"
-        }
-    },
-    {
-        "caption": "Debugger: Start",
-        "command": "debugger",
-        "args": {
-            "action": "start"
-        }
-    },
-    {
-        "caption": "Debugger: Start (no debug)",
-        "command": "debugger",
-        "args": {
-            "action": "start_no_debug"
-        }
-    },
-    {
-        "caption": "Debugger: Stop",
-        "command": "debugger",
-        "args": {
-            "action": "stop"
-        }
-    },
-    {
-        "caption": "Debugger: Continue",
-        "command": "debugger",
-        "args": {
-            "action": "continue"
-        }
-    },
-    {
-        "caption": "Debugger: Pause",
-        "command": "debugger",
-        "args": {
-            "action": "pause"
-        }
-    },
-    {
-        "caption": "Debugger: Step Over",
-        "command": "debugger",
-        "args": {
-            "action": "step_over"
-        }
-    },
-    {
-        "caption": "Debugger: Step In",
-        "command": "debugger",
-        "args": {
-            "action": "step_in"
-        }
-    },
-    {
-        "caption": "Debugger: Step Out",
-        "command": "debugger",
-        "args": {
-            "action": "step_out"
-        }
-    },
-    {
-        "caption": "Debugger: Reverse Continue",
-        "command": "debugger",
-        "args": {
-            "action": "reverse_continue"
-        }
-    },
-    {
-        "caption": "Debugger: Step Back",
-        "command": "debugger",
-        "args": {
-            "action": "step_back"
-        }
-    },
-    {
-        "caption": "Debugger: Input Command",
-        "command": "debugger",
-        "args": {
-            "action": "input_command"
-        }
-    },
-    {
-        "caption": "Debugger: Run Task",
-        "command": "debugger",
-        "args": {
-            "action": "run_task"
-        }
-    },
-    {
-        "caption": "Debugger: Add Function Breakpoint",
-        "command": "debugger",
-        "args": {
-            "action": "add_function_breakpoint"
-        }
-    },
-    {
-        "caption": "Debugger: Clear Breakpoints",
-        "command": "debugger",
-        "args": {
-            "action": "clear_breakpoints"
-        }
-    },
-    {
-        "caption": "Debugger: Clear Console",
-        "command": "debugger",
-        "args": {
-            "action": "clear_console"
-        }
-    },
-    {
-        "caption": "Debugger: Show Protocol",
-        "command": "debugger",
-        "args": {
-            "action": "show_protocol"
-        }
-    },
-    {
-        "caption": "Debugger: Add Watch Expression",
-        "command": "debugger",
-        "args": {
-            "action": "add_watch_expression"
-        }
-    },
-    {
-        "caption": "Debugger: Force Save",
-        "command": "debugger",
-        "args": {
-            "action": "save_data"
-        }
-    },
-    {
-        "caption": "Debugger: Toggle Disassembly",
-        "command": "debugger",
-        "args": {
-            "action": "toggle_disassembly"
-        }
-    },
-    {
-        "caption": "Debugger: LLDB Display Options",
-        "command": "debugger",
-        "args": {
-            "action": "lldb_display"
-        }
-    },
-    {
-        "caption": "Debugger: LLDB Toggle Dereference",
-        "command": "debugger",
-        "args": {
-            "action": "lldb_toggle_dereference"
-        }
-    },
-    {
-        "caption": "Debugger: GDB: Start recording for reverse debugging",
-        "command": "debugger",
-        "args": {
-            "action": "gdb_record"
-        }
-    },
-    {
-        "caption": "Debugger: GDB: Step Back Over",
-        "command": "debugger",
-        "args": {
-            "action": "gdb_reverse_next"
-        }
-    },
-    {
-        "caption": "Debugger: GDB: Step Back Out",
-        "command": "debugger",
-        "args": {
-            "action": "gdb_reverse_finish"
-        }
-    },
-    {
-        "caption": "Debugger",
-        "command": "debugger_input"
-    }
+	{
+		"caption": "Debugger: Generate Commands/Settings/Schema",
+		"command": "debugger",
+		"args": {
+			"action": "generate_commands"
+		}
+	},
+	{
+		"caption": "Debugger: Open",
+		"command": "debugger",
+		"args": {
+			"action": "open"
+		}
+	},
+	{
+		"caption": "Debugger: Quit",
+		"command": "debugger",
+		"args": {
+			"action": "quit"
+		}
+	},
+	{
+		"caption": "Preferences: Debugger Settings",
+		"command": "debugger",
+		"args": {
+			"action": "settings_preferences"
+		}
+	},
+	{
+		"caption": "Debugger: Browse Package storage",
+		"command": "debugger",
+		"args": {
+			"action": "browse_storage"
+		}
+	},
+	{
+		"caption": "Debugger: Install Adapters",
+		"command": "debugger",
+		"args": {
+			"action": "install_adapters"
+		}
+	},
+	{
+		"caption": "Debugger: Add or Select Configuration",
+		"command": "debugger",
+		"args": {
+			"action": "change_configuration"
+		}
+	},
+	{
+		"caption": "Debugger: Add Configuration",
+		"command": "debugger",
+		"args": {
+			"action": "add_configuration"
+		}
+	},
+	{
+		"caption": "Debugger: Edit Configurations",
+		"command": "debugger",
+		"args": {
+			"action": "edit_configurations"
+		}
+	},
+	{
+		"caption": "Debugger: Example Projects",
+		"command": "debugger",
+		"args": {
+			"action": "example_projects"
+		}
+	},
+	{
+		"caption": "Debugger: Start",
+		"command": "debugger",
+		"args": {
+			"action": "start"
+		}
+	},
+	{
+		"caption": "Debugger: Start (no debug)",
+		"command": "debugger",
+		"args": {
+			"action": "start_no_debug"
+		}
+	},
+	{
+		"caption": "Debugger: Stop",
+		"command": "debugger",
+		"args": {
+			"action": "stop"
+		}
+	},
+	{
+		"caption": "Debugger: Continue",
+		"command": "debugger",
+		"args": {
+			"action": "continue"
+		}
+	},
+	{
+		"caption": "Debugger: Pause",
+		"command": "debugger",
+		"args": {
+			"action": "pause"
+		}
+	},
+	{
+		"caption": "Debugger: Step Over",
+		"command": "debugger",
+		"args": {
+			"action": "step_over"
+		}
+	},
+	{
+		"caption": "Debugger: Step In",
+		"command": "debugger",
+		"args": {
+			"action": "step_in"
+		}
+	},
+	{
+		"caption": "Debugger: Step Out",
+		"command": "debugger",
+		"args": {
+			"action": "step_out"
+		}
+	},
+	{
+		"caption": "Debugger: Reverse Continue",
+		"command": "debugger",
+		"args": {
+			"action": "reverse_continue"
+		}
+	},
+	{
+		"caption": "Debugger: Step Back",
+		"command": "debugger",
+		"args": {
+			"action": "step_back"
+		}
+	},
+	{
+		"caption": "Debugger: Input Command",
+		"command": "debugger",
+		"args": {
+			"action": "input_command"
+		}
+	},
+	{
+		"caption": "Debugger: Run Task",
+		"command": "debugger",
+		"args": {
+			"action": "run_task"
+		}
+	},
+	{
+		"caption": "Debugger: Select & Run Task",
+		"command": "debugger",
+		"args": {
+			"action": "select_and_run_task"
+		}
+	},
+	{
+		"caption": "Debugger: Add Function Breakpoint",
+		"command": "debugger",
+		"args": {
+			"action": "add_function_breakpoint"
+		}
+	},
+	{
+		"caption": "Debugger: Add Watch Expression",
+		"command": "debugger",
+		"args": {
+			"action": "add_watch_expression"
+		}
+	},
+	{
+		"caption": "Debugger: Force Save",
+		"command": "debugger",
+		"args": {
+			"action": "save_data"
+		}
+	},
+	{
+		"caption": "Debugger: Toggle Breakpoint",
+		"command": "debugger",
+		"args": {
+			"action": "toggle_breakpoint"
+		}
+	},
+	{
+		"caption": "Debugger: Toggle Column Breakpoint",
+		"command": "debugger",
+		"args": {
+			"action": "toggle_column_breakpoint"
+		}
+	},
+	{
+		"caption": "Debugger: Run To Selected Line",
+		"command": "debugger",
+		"args": {
+			"action": "run_to_current_line"
+		}
+	},
+	{
+		"caption": "Debugger: Toggle Disassembly",
+		"command": "debugger",
+		"args": {
+			"action": "toggle_disassembly"
+		}
+	},
+	{
+		"caption": "Debugger: Show Protocol",
+		"command": "debugger",
+		"args": {
+			"action": "show_protocol"
+		}
+	},
+	{
+		"caption": "Debugger: LLDB: Display Options",
+		"command": "debugger",
+		"args": {
+			"action": "lldb_display"
+		}
+	},
+	{
+		"caption": "Debugger: LLDB: Toggle Dereference",
+		"command": "debugger",
+		"args": {
+			"action": "lldb_toggle_dereference"
+		}
+	},
+	{
+		"caption": "Debugger: GDB: Start recording for reverse debugging",
+		"command": "debugger",
+		"args": {
+			"action": "gdb_record"
+		}
+	},
+	{
+		"caption": "Debugger: GDB: Step Back Over",
+		"command": "debugger",
+		"args": {
+			"action": "gdb_reverse_next"
+		}
+	},
+	{
+		"caption": "Debugger: GDB: Step Back Out",
+		"command": "debugger",
+		"args": {
+			"action": "gdb_reverse_finish"
+		}
+	},
+	{
+		"caption": "Debugger",
+		"command": "debugger_input"
+	}
 ]

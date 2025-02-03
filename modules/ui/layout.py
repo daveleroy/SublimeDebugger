@@ -128,6 +128,48 @@ class Layout:
 		self.update()
 		Layout.layouts_to_add.append(self)
 
+	def __str__(self):
+		return f'Layout: {self.stats.name}'
+
+	@staticmethod
+	def layout_at_layout_position(view: sublime.View, layout_position: tuple[float, float]):
+		found_layout = None
+		for layout in Layout.layouts:
+			print(layout)
+			if layout.view == view and layout.inside_region(layout_position[0]):
+				found_layout = layout
+				break
+		return found_layout
+
+	# FIX: This doesn't really fully implement what is required.
+	# It only looks at where the item would be rendered verticaly and doesn't take into account the actual width/height
+	def element_at_layout_position(self, layout_position: tuple[float, float], type: Type | None):
+		target_position_y = self.from_dip(layout_position[1])
+		found: Any = None
+
+		def visit(item: div, position_y: float):
+			nonlocal found
+
+			# we are currently only looking at the vertical position we would need to know the available width otherwise
+			if item.children_rendered_inline:
+				return item.html_height(10000, 10000)
+
+			target_height = target_position_y - position_y
+			height = 0
+			for child in item.children_rendered:
+				child = cast(div, child)
+				height_before = height
+				height += visit(child, position_y + height)
+
+				# check if this element was is at the position
+				if height_before < target_height and height > target_height:
+					if not type or isinstance(child, type):
+						found = found or child
+
+			return height + item.css_padding_height
+
+		visit(self.item, 0)
+		return found
 
 	def dispose(self) -> None:
 		Layout.layouts_to_remove.append(self)

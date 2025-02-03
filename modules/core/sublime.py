@@ -1,5 +1,9 @@
 from __future__ import annotations
-from typing import Any, Callable
+from re import sub
+from typing import Any, Callable, Protocol, TypeVar
+from .typing_extensions import TypeVarTuple, Unpack, Concatenate, ParamSpec
+
+from functools import wraps
 
 import sublime
 import sublime_plugin
@@ -30,12 +34,40 @@ async def wait_for_view_to_load(view: sublime.View):
 		await future_view
 		handle.dispose()
 
+def window_from_view_or_widow(view_or_window: sublime.View|sublime.Window):
+	if isinstance(view_or_window, sublime.View):
+		return view_or_window.window()
+	return view_or_window
+
+T = TypeVar('T')
+
+Args = TypeVarTuple('Args')
+Params = ParamSpec('Params')
 
 def edit(view: sublime.View, run: Callable[[sublime.Edit], Any]):
 	previous = DebuggerEditCommand._run
 	DebuggerEditCommand._run = run
 	view.run_command('debugger_edit')
 	DebuggerEditCommand._run = previous
+
+def sublime_edit(value: Callable[Concatenate[sublime.View, sublime.Edit, Params], T]) -> Callable[Concatenate[sublime.View, Params], T]:
+	@wraps(value)
+	def wrap(view: sublime.View, *args, **kwargs):
+		return edit(view, lambda edit: value(view, edit, *args, **kwargs))
+	return wrap #type: ignore
+
+class Viewable(Protocol):
+	@property
+	def view(self) -> sublime.View: ...
+
+SelfViewable = TypeVar('SelfViewable', bound=Viewable)
+
+
+def sublime_edit_method(value: Callable[Concatenate[SelfViewable, sublime.Edit, Params], T]) -> Callable[Concatenate[SelfViewable, Params], T]:
+	@wraps(value)
+	def wrap(self: SelfViewable, *args, **kwargs):
+		return edit(self.view, lambda edit: value(self, edit, *args, **kwargs))
+	return wrap #type: ignore
 
 on_view_load: Event[sublime.View] = Event()
 

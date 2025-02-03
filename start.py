@@ -1,28 +1,30 @@
 from __future__ import annotations
-from typing import Any, Iterable, Set
+from typing import Any, Iterable, Set, cast
 
 import sys
 import os
-import shutil
 
 import sublime
 import sublime_plugin
+
 
 if sublime.version() < '4000':
 	raise Exception('Debugger only supports Sublime Text 4')
 
 # remove old modules for this package so that they are reloaded when this module is reloaded
-for module in list(filter(lambda module: module.startswith(__package__ + '.') and module != __name__, sys.modules.keys())):
+
+for module in list(filter(lambda module: module.startswith(cast(str, __package__) + '.') and module != __name__, sys.modules.keys())):
 	del sys.modules[module]
 
 
 # import all the commands so that sublime sees them
-from .modules.command import CommandsRegistry, DebuggerExecCommand, DebuggerCommand, DebuggerInputCommand
 from .modules.core.sublime import DebuggerEditCommand
+from .modules.command import DebuggerExecCommand, DebuggerCommand, DebuggerTextCommand, DebuggerInputCommand
+
 from .modules.output_panel import DebuggerConsoleListener
 from .modules.terminal_integrated import DebuggerTerminusPostViewHooks
-
 from .modules.ui.input import CommandPaletteInputCommand
+
 from .modules import core
 from .modules import ui
 from .modules import dap
@@ -31,7 +33,8 @@ from .modules.debugger import Debugger
 from .modules.views.variable import VariableView
 from .modules.output_panel import OutputPanel
 
-from .modules.adapters import * #import all the adapters so Adapters.initialize() will see them
+from .modules.commands import *  # import all the action classes
+from .modules.adapters import *  # import all the adapters so Adapters.initialize() will see them
 from .modules.settings import SettingsRegistery, Settings
 
 was_opened_at_startup: Set[int] = set()
@@ -43,9 +46,9 @@ def plugin_loaded() -> None:
 	# do this first since we need to configure logging right away
 	SettingsRegistery.initialize(on_updated=updated_settings)
 	core.log_configure(
-		log_info= Settings.development,
-		log_errors= True,
-		log_exceptions= True,
+		log_info=Settings.development,
+		log_errors=True,
+		log_exceptions=True,
 	)
 
 	core.info('[startup]')
@@ -63,7 +66,7 @@ def plugin_unloaded() -> None:
 	core.info('[shutdown]')
 
 	for debugger in list(Debugger.debuggers()):
-		core.info("Disposing Debugger")
+		core.info('Disposing Debugger')
 		try:
 			debugger.dispose()
 		except Exception:
@@ -77,7 +80,8 @@ def plugin_unloaded() -> None:
 
 	core.info('[finished]')
 
-def open_debugger_in_window_or_view(window_or_view: sublime.View|sublime.Window):
+
+def open_debugger_in_window_or_view(window_or_view: sublime.View | sublime.Window):
 	if isinstance(window_or_view, sublime.View):
 		window = window_or_view.window()
 	else:
@@ -99,8 +103,8 @@ def open_debugger_in_window_or_view(window_or_view: sublime.View|sublime.Window)
 	if not project_data or 'debugger_configurations' not in project_data:
 		return
 
-
 	Debugger.get(window, create=True)
+
 
 # if there is a debugger running in the window then that is the most relevant one
 # otherwise all debuggers are relevant
@@ -113,9 +117,9 @@ def most_relevant_debuggers_for_view(view: sublime.View) -> Iterable[Debugger]:
 
 def updated_settings():
 	core.log_configure(
-		log_info= Settings.development,
-		log_errors= True,
-		log_exceptions= True,
+		log_info=Settings.development,
+		log_errors=True,
+		log_exceptions=True,
 	)
 
 	ui.update_and_render()
@@ -153,7 +157,8 @@ class EventListener (sublime_plugin.EventListener):
 
 	@core.run
 	async def on_hover(self, view: sublime.View, point: int, hover_zone: int):
-		if Debugger.ignore(view): return
+		if Debugger.ignore(view):
+			return
 
 		debugger = Debugger.get(view)
 		if not debugger:
@@ -205,7 +210,6 @@ class EventListener (sublime_plugin.EventListener):
 					with ui.div(width=500):
 						component.append_stack()
 
-
 				view.add_regions('selected_hover', [region], scope='comment')
 
 			show_popup()
@@ -214,11 +218,11 @@ class EventListener (sublime_plugin.EventListener):
 		except dap.Error as e:
 			core.error('adapter failed hover evaluation', e)
 
-	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any]|None) -> Any:
-		if Debugger.ignore(view): return
+	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any] | None) -> Any:
+		if Debugger.ignore(view):
+			return
 
 		if (cmd == 'drag_select' or cmd == 'context_menu') and args and 'event' in args:
-
 			# close the input on drag select or context menu since these menus are accessable from clicking the debugger ui
 			CommandPaletteInputCommand.cancel_running_command()
 
@@ -226,10 +230,10 @@ class EventListener (sublime_plugin.EventListener):
 			x: int = event['x']
 			y: int = event['y']
 
-			view_x, _ = view.layout_to_window(view.viewport_position()) #type: ignore
+			view_x, _ = view.layout_to_window(view.viewport_position())  # type: ignore
 
 			margin = view.settings().get('margin') or 0
-			offset = x - view_x #type: ignore
+			offset = x - view_x  # type: ignore
 
 			if offset < -30 - margin:
 				pt = view.window_to_text((x, y))
@@ -238,14 +242,14 @@ class EventListener (sublime_plugin.EventListener):
 				# only rewrite this command if someone actually consumed it
 				# otherwise let sublime do its thing
 				if self.on_view_gutter_clicked(view, line, event['button']):
-					return ('noop')
+					return 'noop'
 
-	def on_window_command(self, window: sublime.Window, cmd: str, args: dict[str, Any]|None) -> Any:
+	def on_window_command(self, window: sublime.Window, cmd: str, args: dict[str, Any] | None) -> Any:
 		if cmd == 'show_panel' and args:
 			debugger = Debugger.get(window)
-			if not debugger: return
+			if not debugger:
+				return
 			debugger._refresh_none_debugger_output_panel(args['panel'])
-
 
 	def on_post_window_command(self, window: sublime.Window, cmd: str, args: Any):
 		if cmd == 'show_panel':
@@ -262,7 +266,7 @@ class EventListener (sublime_plugin.EventListener):
 				debugger.open()
 
 	def on_view_gutter_clicked(self, view: sublime.View, line: int, button: int) -> bool:
-		line += 1 # convert to 1 based lines
+		line += 1  # convert to 1 based lines
 		debuggers = most_relevant_debuggers_for_view(view)
 		if not debuggers:
 			return False
@@ -270,7 +274,8 @@ class EventListener (sublime_plugin.EventListener):
 		for debugger in debuggers:
 			breakpoints = debugger.breakpoints
 			file = view.file_name()
-			if not file: continue
+			if not file:
+				continue
 
 			if window := view.window():
 				window.focus_view(view)
@@ -288,11 +293,11 @@ class EventListener (sublime_plugin.EventListener):
 
 		return True
 
-	def on_query_context(self, view: sublime.View, key: str, operator: int, operand: Any, match_all: bool) -> bool|None:
+	def on_query_context(self, view: sublime.View, key: str, operator: int, operand: Any, match_all: bool) -> bool | None:
 		if not key.startswith('debugger'):
 			return None
 
-		def apply_operator(value: Any):
+		def apply_operator(value: bool):
 			if operator == sublime.OP_EQUAL:
 				return value == operand
 			elif operator == sublime.OP_NOT_EQUAL:
@@ -311,7 +316,7 @@ class EventListener (sublime_plugin.EventListener):
 			return apply_operator(bool(debugger.session)) if debugger else apply_operator(False)
 
 		if key.startswith('debugger.'):
-			settings_key = key[len('debugger.'):]
+			settings_key = key[len('debugger.') :]
 			if SettingsRegistery.settings.has(settings_key):
 				return apply_operator(SettingsRegistery.settings.get(settings_key))
 			else:
@@ -319,23 +324,25 @@ class EventListener (sublime_plugin.EventListener):
 
 		return None
 
-
 	def on_load(self, view: sublime.View):
 		core.on_view_load(view)
 
-		if Debugger.ignore(view): return
+		if Debugger.ignore(view):
+			return
 
 		for debugger in Debugger.debuggers():
 			debugger.breakpoints.source.sync_from_breakpoints(view)
 
 	def on_activated(self, view: sublime.View):
-		if Debugger.ignore(view): return
+		if Debugger.ignore(view):
+			return
 
 		for debugger in Debugger.debuggers():
 			debugger.breakpoints.source.sync_from_breakpoints(view)
 
 	def on_modified(self, view: sublime.View) -> None:
-		if Debugger.ignore(view): return
+		if Debugger.ignore(view):
+			return
 
 		for debugger in Debugger.debuggers():
 			debugger.breakpoints.source.invalidate(view)

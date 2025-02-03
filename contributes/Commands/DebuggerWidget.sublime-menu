@@ -1,29 +1,61 @@
 [
-    {
-        "caption": "-"
-    },
-    {
-        "caption": "Clear Breakpoints",
-        "command": "debugger",
-        "args": {
-            "action": "clear_breakpoints"
-        }
-    },
-    {
-        "caption": "Clear Console",
-        "command": "debugger",
-        "args": {
-            "action": "clear_console"
-        }
-    },
-    {
-        "caption": "Show Protocol",
-        "command": "debugger",
-        "args": {
-            "action": "show_protocol"
-        }
-    },
-    {
-        "caption": "-"
-    }
+	{
+		"caption": "-"
+	},
+	{
+		"caption": "Copy Value",
+		"command": "debugger_text",
+		"args": {
+			"action": "variable_copy_value"
+		}
+	},
+	{
+		"caption": "Copy as Expression",
+		"command": "debugger_text",
+		"args": {
+			"action": "variable_copy_expression"
+		}
+	},
+	{
+		"caption": "Add To Watch",
+		"command": "debugger_text",
+		"args": {
+			"action": "variable_add_to_watch"
+		}
+	},
+	{
+		"caption": "Remove Expression",
+		"command": "debugger_text",
+		"args": {
+			"action": "watch_remove_expression"
+		}
+	},
+	{
+		"caption": "Remove All Expressions",
+		"command": "debugger_text",
+		"args": {
+			"action": "watch_remove_all_expressions"
+		}
+	},
+	{
+		"caption": "Edit Breakpoint",
+		"command": "debugger_text",
+		"args": {
+			"action": "edit_breakpoint"
+		}
+	},
+	{
+		"caption": "Remove Breakpoint",
+		"command": "debugger_text",
+		"args": {
+			"action": "remove_breakpoint"
+		}
+	},
+	{
+		"caption": "Remove All Breakpoints",
+		"command": "debugger_text",
+		"args": {
+			"action": "remove_all_breakpoints"
+		}
+	}
 ]
