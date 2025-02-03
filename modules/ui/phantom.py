@@ -7,13 +7,14 @@ from .layout import Layout
 
 import sublime
 
+
 class Phantom(Layout):
-	def __init__(self, view: sublime.View, region: sublime.Region|int, layout: int = sublime.LAYOUT_INLINE, name: str|None = None) -> None:
+	def __init__(self, view: sublime.View, region: sublime.Region | int, layout: int = sublime.LAYOUT_INLINE, name: str | None = None) -> None:
 		super().__init__(view)
 		self.region = sublime.Region(region) if isinstance(region, int) else region
 		self.layout = layout
 		self.view = view
-		self.pid: int|None = None
+		self.pid: int | None = None
 		self.stats.name = name or self.stats.name
 		self.update()
 
@@ -35,13 +36,16 @@ class Phantom(Layout):
 	def render_region(self):
 		region = self.region
 		if region.a == -1:
-			return sublime.Region(self.view.size())
+			return sublime.Region(self.view.size(), self.view.size() + 1)
 		return region
 
 	def render_phantom(self):
 		region = self.render_region()
-		if self.pid: self.view.erase_phantom_by_id(self.pid)
-		self.pid = self.view.add_phantom('debugger', region, self.html, self.layout, self.on_navigate)
+
+		pid = self.view.add_phantom('debugger', region, self.html, self.layout, self.on_navigate)
+		if self.pid:
+			self.view.erase_phantom_by_id(self.pid)
+		self.pid = pid
 
 	def render_if_out_of_position(self):
 		# if this phantom must be rendered just render it
@@ -51,28 +55,31 @@ class Phantom(Layout):
 			return
 
 		region = self.render_region()
-		at: list[sublime.Region] = self.view.query_phantoms([self.pid]) #type: ignore (the typing is wrong its a list of regions)
+		at: list[sublime.Region] = self.view.query_phantoms([self.pid])  # type: ignore (the typing is wrong its a list of regions)
 		if at and at[0] == region:
 			return
 
-		core.info('rendering phantom it is out of position or deleted')
+		# core.info('rendering phantom it is out of position or deleted')
 		self.render_phantom()
 
 	def dispose(self) -> None:
 		super().dispose()
-		if self.pid: self.view.erase_phantom_by_id(self.pid)
+		if self.pid:
+			self.view.erase_phantom_by_id(self.pid)
 
 
 @dataclass
 class Html:
 	html: str
-	on_navigate: Callable[[str], Any]|None = None
+	on_navigate: Callable[[str], Any] | None = None
 
-def region_from_region_or_position(region: sublime.Region|int):
+
+def region_from_region_or_position(region: sublime.Region | int):
 	return region if isinstance(region, sublime.Region) else sublime.Region(region)
 
+
 class RawPhantom:
-	def __init__(self, view: sublime.View, region: sublime.Region|int, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[str], Any]|None = None) -> None:
+	def __init__(self, view: sublime.View, region: sublime.Region | int, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[str], Any] | None = None) -> None:
 		self.view = view
 		self.pid = self.view.add_phantom(f'debugger', region_from_region_or_position(region), html, layout, on_navigate)
 
@@ -81,23 +88,23 @@ class RawPhantom:
 
 
 class RawAnnotation:
-	def __init__(self, view: sublime.View, region: sublime.Region|int, html: str):
+	def __init__(self, view: sublime.View, region: sublime.Region | int, html: str):
 		self.view = view
 		self.id = str(id(self))
-		view.add_regions(self.id, [region_from_region_or_position(region)], annotation_color="#fff0", annotations=[html])
+		view.add_regions(self.id, [region_from_region_or_position(region)], annotation_color='#fff0', annotations=[html])
 
 	def dispose(self):
 		self.view.erase_regions(self.id)
 
 
 class Popup(Layout):
-	def __init__(self, view: sublime.View, location: int = -1, on_close: Callable[[], None]|None = None) -> None:
+	def __init__(self, view: sublime.View, location: int = -1, on_close: Callable[[], None] | None = None) -> None:
 		super().__init__(view)
 
 		self.on_close = on_close
 		self.location = location
 		self.max_height = 500
-		self.max_width = 1000
+		self.max_width = 500
 		self.is_closed = False
 		self.created_popup = False
 
@@ -132,15 +139,7 @@ class Popup(Layout):
 			self.view.update_popup(self.html)
 		else:
 			self.created_popup = True
-			self.view.show_popup(
-				self.html,
-				location=self.location,
-				max_width=self.max_width,
-				max_height=self.max_height,
-				on_navigate=self.on_navigate,
-				flags=sublime.COOPERATE_WITH_AUTO_COMPLETE | sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-				on_hide=self.on_hide
-			)
+			self.view.show_popup(self.html, location=0, max_width=self.max_width, max_height=self.max_height, on_navigate=self.on_navigate, flags=sublime.KEEP_ON_SELECTION_MODIFIED, on_hide=self.on_hide)
 
 	def dispose(self) -> None:
 		super().dispose()

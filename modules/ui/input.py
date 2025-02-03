@@ -188,6 +188,9 @@ class InputText(sublime_plugin.TextInputHandler):
 	async def run(self):
 		await CommandPaletteInputCommand(sublime.active_window(), self).wait()
 
+	def __await__(self):
+		return self.run().__await__()
+
 	def placeholder(self): #type: ignore
 		if self._enable:
 			self._enable.enable()

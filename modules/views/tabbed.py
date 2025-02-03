@@ -1,9 +1,10 @@
 from __future__ import annotations
 from typing import Any, Callable, Iterable, Sequence, cast
 
-from ..import ui
-from .import css
 from functools import partial
+
+from .import css
+from ..import ui
 
 
 class TabbedView(ui.div):
@@ -84,10 +85,12 @@ class TabbedViewContainer(ui.div):
 
 		self.patch_selected()
 
+		self.layout.viewport_position_depedent = True
+
 		if self.layout.scrolling:
 			height = 500
 		else:
-			height = self.layout.height +self.layout.viewport_position_y
+			height = self.layout.viewport_bottom
 
 		if self._width:
 			width = self._width

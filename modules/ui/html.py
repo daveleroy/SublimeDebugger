@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Iterable, Sequence, TypedDict, Union
 from ..core.typing_extensions import Unpack
 
 from .image import Image
@@ -20,36 +20,26 @@ class alignable:
 HtmlResponse = Union[str, Iterable['HtmlResponse']]
 
 
-stack: list[list[element]] = []
-stack_lock = 0
+class ContextStackMeta(type):
+	stack: ClassVar[list[list[element]]] = []
+	locked: ClassVar[int] = 0
 
-def enter_render_frame():
-	stack.append([])
-
-def render(element: element):
-	stack[-1].append(element)
-
-def exit_render_frame():
-	return stack.pop()
-
-
-class StackMeta(type):
 	def __call__(cls, *args, **kwargs):
-		global stack_lock
+		global stack_locked
 
 		# when creating objects we need to lock the stack so that any elements created in the __init__ method don't get added to the render stack
 		# without this you cannot create and store elements and append them to the stack manually
-		stack_lock += 1
+		ContextStackMeta.locked += 1
 		instance = super().__call__(*args, **kwargs)
-		stack_lock -= 1
+		ContextStackMeta.locked -= 1
 
-		if stack and stack_lock == 0:
+		if ContextStackMeta.stack and ContextStackMeta.locked == 0:
 			instance.append_stack()
 
 		return instance
 
 
-class element(metaclass=StackMeta):
+class element(metaclass=ContextStackMeta):
 	Children = Union[Sequence['element'], 'element', None]
 
 	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
@@ -75,17 +65,19 @@ class element(metaclass=StackMeta):
 			self.css_padding_width = 0
 
 	def append_stack(self):
-		stack[-1].append(self)
+		ContextStackMeta.stack[-1].append(self)
 
 	def __enter__(self):
-		enter_render_frame()
+		ContextStackMeta.stack.append([])
 		return self
 
 	def __exit__(self, *args):
-		self.assign_children(exit_render_frame())
+		items = ContextStackMeta.stack.pop()
+		self.assign_children(items)
 
 	def assign_children(self, values: list[element]):
 		self.children = values
+		self.dirty()
 		self.modified_children()
 
 	def assign_rendered_children(self, values: list[element]):
@@ -96,13 +88,13 @@ class element(metaclass=StackMeta):
 		...
 
 	def perform_render(self):
-		enter_render_frame()
+		ContextStackMeta.stack.append([])
 		self.render()
-		items = exit_render_frame()
+		items = ContextStackMeta.stack.pop()
 		self.assign_rendered_children(items)
 
 	def render(self) -> None:
-		stack[-1].extend(self.children)
+		ContextStackMeta.stack[-1].extend(self.children)
 
 	def html_height(self, available_width: float, available_height: float) -> float: ...
 
@@ -130,7 +122,7 @@ class div (element):
 			return self.height + self.css_padding_height
 
 		if self.children_rendered_inline:
-			return 3
+			return 2.5
 
 		height = self.css_padding_height
 		for item in self.children_rendered:

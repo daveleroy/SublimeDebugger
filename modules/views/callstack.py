@@ -71,19 +71,19 @@ class CallstackView(ui.div, core.Dispose):
 			SessionView(self.debugger, session, self.state)
 
 
-class CallStackTabbedView (TabbedView):
+class CallStackTabbedView(TabbedView):
 	def __init__(self, debugger: Debugger, panel: OutputPanel):
 		super().__init__('Callstack')
 		self.debugger = debugger
-		self.callstack = CallstackView(self.debugger)
-		self.active = self.callstack
 
+		self.callstack = CallstackView(self.debugger)
 		self.tabs = OutputPanelTabs(self.debugger, panel)
 
 	def header(self, is_selected):
 		self.tabs.append_stack()
+
 	def render(self):
-		self.active.append_stack()
+		self.callstack.append_stack()
 
 def toggle(toggle_expand, item: ui.span, is_expanded):
 	with ui.div(height=css.row_height):
