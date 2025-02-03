@@ -3,13 +3,14 @@ from dataclasses import dataclass
 from io import BufferedReader, BufferedWriter
 from typing import IO, Any, Callable
 
-from ..import core
+from .. import core
 from .transport import Transport, TransportListener, TransportOutputLog, TransportConnectionError, TransportStream
 
 import socket
 import os
 import subprocess
 import threading
+
 
 class Process:
 	processes: set[subprocess.Popen] = set()
@@ -40,26 +41,18 @@ class Process:
 
 	@staticmethod
 	@core.run_in_executor
-	def check_output(command: list[str], cwd: str|None = None) -> bytes:
+	def check_output(command: list[str], cwd: str | None = None) -> bytes:
 		return subprocess.check_output(command, cwd=cwd)
 
-	def __init__(self, command: list[str]|str, cwd: str|None = None, env: dict[str, str]|None = None, shell = False):
+	def __init__(self, command: list[str] | str, cwd: str | None = None, env: dict[str, str] | None = None, shell=False):
 		# taken from Default/exec.py
 		# Hide the console window on Windows
 		startupinfo = None
-		if os.name == "nt":
-			startupinfo = subprocess.STARTUPINFO() #type: ignore
-			startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW #type: ignore
+		if os.name == 'nt':
+			startupinfo = subprocess.STARTUPINFO()  # type: ignore
+			startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # type: ignore
 
-		self.process = subprocess.Popen(command,
-			stdout=subprocess.PIPE,
-			stderr=subprocess.PIPE,
-			stdin=subprocess.PIPE,
-			shell=shell,
-			bufsize=0,
-			startupinfo=startupinfo,
-			cwd = cwd,
-			env=env)
+		self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=shell, bufsize=0, startupinfo=startupinfo, cwd=cwd, env=env)
 
 		Process.add_subprocess(self.process)
 
@@ -74,17 +67,17 @@ class Process:
 		self.pid = self.process.pid
 		self.closed = False
 
-		self.on_closed: Callable[[], None]|None = None
+		self.on_closed: Callable[[], None] | None = None
 
-	def on_stdout(self, callback: Callable[[str], None], closed: Callable[[], None]|None = None):
+	def on_stdout(self, callback: Callable[[str], None], closed: Callable[[], None] | None = None):
 		thread = threading.Thread(target=self._read_all, args=(self.process.stdout, callback, closed), name='stdout')
 		thread.start()
 
-	def on_stderr(self, callback: Callable[[str], None], closed: Callable[[], None]|None = None):
+	def on_stderr(self, callback: Callable[[str], None], closed: Callable[[], None] | None = None):
 		thread = threading.Thread(target=self._read_all, args=(self.process.stderr, callback, closed), name='stderr')
 		thread.start()
 
-	def _read_all(self, file: Any, callback: Callable[[str], None], closed: Callable[[], None]|None) -> None:
+	def _read_all(self, file: Any, callback: Callable[[str], None], closed: Callable[[], None] | None) -> None:
 		while True:
 			line = file.read(2**15).decode('UTF-8')
 			if not line:
@@ -125,13 +118,14 @@ class Process:
 @dataclass
 class StdioTransport(TransportStream):
 	command: list[str]
-	cwd: str|None = None
+	cwd: str | None = None
 	stderr: Callable[[str], None] | None = None
-	process: Process|None = None
+	process: Process | None = None
 
 	async def setup(self):
 		self.log('transport', f'-- stdio transport: {self.command}')
-		self.process = Process(self.command, self.cwd or self.configuration.variables.get('folder'))
+		cwd = self.cwd
+		self.process = Process(self.command, self.cwd or await self.configuration.variables['folder'].resolve())
 		self.process.on_stderr(self._log_stderr)
 
 	def _log_stderr(self, data: str):
@@ -163,31 +157,30 @@ class StdioTransport(TransportStream):
 
 @dataclass
 class SocketTransport(TransportStream):
-
 	host: str = 'localhost'
 	port: int = 0
 	timeout: int = 5
 
-	command: list[str]|None = None
-	cwd: str|None = None
-	env: dict[str, str]|None = None
+	command: list[str] | None = None
+	cwd: str | None = None
+	env: dict[str, str] | None = None
 
 	stderr: Callable[[str], None] | None = None
 	stdout: Callable[[str], None] | None = None
 
-	process: Process|None = None
+	process: Process | None = None
 
-	socket_stdin: BufferedWriter|None = None
-	socket_stdout: BufferedReader|None = None
+	socket_stdin: BufferedWriter | None = None
+	socket_stdout: BufferedReader | None = None
 
 	async def setup(self):
 		if self.command:
 			self.log('transport', f'-- socket transport process: {self.command}')
-			self.process = Process(self.command, cwd=self.cwd or self.configuration.variables.get('folder'), env=self.env)
+			self.process = Process(self.command, cwd=self.cwd or await self.configuration.variables['folder'].resolve(), env=self.env)
 
 		self.log('transport', f'-- socket transport: {self.host}:{self.port}')
 
-		exception: Exception|None = None
+		exception: Exception | None = None
 		for _ in range(0, self.timeout * 4):
 			try:
 				self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -208,14 +201,12 @@ class SocketTransport(TransportStream):
 		if exception:
 			raise TransportConnectionError(f'tcp://{self.host}:{self.port} {exception}')
 
-
 		if self.process:
 			self.process.on_stdout(self.stdout or (lambda data: self.log('transport', TransportOutputLog('stdout', data))))
 			self.process.on_stderr(self.stderr or (lambda data: self.log('transport', TransportOutputLog('stderr', data))))
 
 		self.socket_stdin = self.socket.makefile('wb')
 		self.socket_stdout = self.socket.makefile('rb')
-
 
 	def write(self, message: bytes) -> None:
 		assert self.socket_stdin

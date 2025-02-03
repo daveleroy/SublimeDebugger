@@ -9,7 +9,7 @@ from .sublime import *
 from .event import Handle, Event, EventReturning
 from . import platform
 from .error import Error
-from .json import json_encode, json_decode,json_decode_file, JSON
+from .json import json_encode, json_decode, json_decode_file, json_write_file, JSON
 from .log import *
 from .asyncio import (
 	Future,

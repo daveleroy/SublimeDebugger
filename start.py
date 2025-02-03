@@ -145,7 +145,7 @@ class EventListener (sublime_plugin.EventListener):
 		if debugger := Debugger.get(view):
 			if file := debugger.project.source_file(view):
 				for session in debugger.sessions:
-					session.adapter_configuration.on_saved_source_file(session, file)
+					session.adapter.on_saved_source_file(session, file)
 
 	def on_load_project(self, window: sublime.Window):
 		if debugger := Debugger.get(window):
@@ -174,7 +174,7 @@ class EventListener (sublime_plugin.EventListener):
 
 		session = debugger.session
 
-		r = session.adapter_configuration.on_hover_provider(view, point)
+		r = session.adapter.on_hover_provider(view, point)
 		if not r:
 			return
 		word_string, region = r

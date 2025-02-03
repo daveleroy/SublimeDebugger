@@ -24,6 +24,10 @@ def json_decode_file(path: str) -> JSON:
 	with open(path, encoding='utf8') as file:
 		return json_decode_b(file)
 
+def json_write_file(path: str, json: JSON, pretty=False):
+	with open(path, 'w') as file:
+		file.write(json_encode(json, pretty))
+
 def json_encode(obj: Any, pretty=False):
 	if pretty:
 		return json.dumps(obj, cls=JSONEncoder, indent='\t')
@@ -34,6 +38,7 @@ class DottedDict(dict, Mapping[K, T]):
 	__getattr__:Callable[[str], Any] = dict.get #type: ignore
 	__setattr__ = dict.__setitem__ #type: ignore
 	__delattr__ = dict.__delitem__ #type: ignore
+
 
 def object_hook(object: dict[Any, Any]):
 	return DottedDict(object)
@@ -48,7 +53,11 @@ class JSONEncoder(json.JSONEncoder):
 		return super().default(o)
 
 class JSON(DottedDict[str, 'JSON_VALUE']):
-	...
+	def copy(self) -> JSON:
+		return JSON(super().copy())
+
+
+
 
 JSON_VALUE: TypeAlias = 'DottedDict[str, "JSON_VALUE"] | list[JSON_VALUE] | str | int | float | bool | None'
 

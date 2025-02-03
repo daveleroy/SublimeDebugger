@@ -12,17 +12,18 @@ import os
 
 import contextlib
 
+
 class Project:
 	def __init__(self, window: sublime.Window, skip_project_check: bool):
 		if not skip_project_check and not Settings.global_debugger_configurations:
 			project_name = window.project_file_name()
 			while not project_name:
 				window.bring_to_front()
-				r = sublime.ok_cancel_dialog("Debugger requires a sublime project. Would you like to create a new sublime project?", "Save Project As...")
+				r = sublime.ok_cancel_dialog('Debugger requires a sublime project. Would you like to convert this window to a project?', 'Convert To Sublime Project')
 				if r:
 					window.run_command('save_project_and_workspace_as')
 				else:
-					raise core.Error("Debugger must be run inside a sublime project")
+					raise core.Error('Debugger must be run inside a sublime project')
 
 				project_name = window.project_file_name()
 
@@ -33,16 +34,15 @@ class Project:
 		self.compounds: list[ConfigurationCompound] = []
 		self.configurations: list[Configuration] = []
 
-		self.configuration_or_compound: Configuration|ConfigurationCompound|None = None
+		self.configuration_or_compound: Configuration | ConfigurationCompound | None = None
 
 		self.external_terminal_kind = 'platform'
 		self.bring_window_to_front_on_pause = False
 
-	def dispose(self):
-		...
+	def dispose(self): ...
 
 	@property
-	def location(self) -> str|None:
+	def location(self) -> str | None:
 		if project_name := self.window.project_file_name():
 			return project_name
 		return None
@@ -60,9 +60,9 @@ class Project:
 			'configuration_id_ish': self.configuration_or_compound and self.configuration_or_compound.id_ish,
 		}
 
-	def load_from_json(self, json: dict[str, Any]) -> Configuration|ConfigurationCompound|None:
-		configuration_name: str|None = json.get('configuration_name')
-		configuration_id_ish: str|None = json.get('configuration_id_ish')
+	def load_from_json(self, json: dict[str, Any]) -> Configuration | ConfigurationCompound | None:
+		configuration_name: str | None = json.get('configuration_name')
+		configuration_id_ish: str | None = json.get('configuration_id_ish')
 
 		if configuration_name and configuration_id_ish:
 			self.load_configuration(configuration_name, configuration_id_ish)
@@ -83,7 +83,6 @@ class Project:
 				if configuration.name == configuration_name:
 					return configuration
 			return None
-
 
 		previous_configuration_or_compound = self.configuration_or_compound
 		self.configuration_or_compound = find_matching_configuration()
@@ -128,13 +127,11 @@ class Project:
 	async def open_project_configurations_file(self):
 		project_name = self.window.project_file_name()
 		if not project_name:
-			self.window.run_command('edit_settings', {
-				'base_file': '${packages}/Debugger/debugger.sublime-settings'
-			})
+			self.window.run_command('edit_settings', {'base_file': '${packages}/Debugger/debugger.sublime-settings'})
 			return None, None
 
 		view = await core.sublime_open_file_async(self.window, project_name)
-		region = view.find(r'''"\s*debugger_configurations\s*"\s*:\s*\[''', 0)
+		region = view.find(r""""\s*debugger_configurations\s*"\s*:\s*\[""", 0)
 		if region:
 			view.show_at_center(region)
 
@@ -149,21 +146,16 @@ class Project:
 
 			view.sel().clear()
 			view.sel().add(sublime.Region(region.b, region.b))
-			view.run_command('insert', {
-				'characters': '\n'
-			})
-			view.run_command('insert_snippet', {
-				'contents': snippet + ','
-			})
+			view.run_command('insert', {'characters': '\n'})
+			view.run_command('insert_snippet', {'contents': snippet + ','})
 
 		except core.Error:
 			core.exception()
 			sublime.set_clipboard(snippet)
 			core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
 
-
 	def reload(self, console: dap.Console):
-		core.info("ProjectConfiguration.reload")
+		core.info('ProjectConfiguration.reload')
 		self._load_settings()
 		self._load_configurations(console)
 		self.on_updated()
@@ -190,16 +182,13 @@ class Project:
 				if not os.path.isabs(example_project):
 					example_project = os.path.join(self.window.extract_variables()['project_path'], example_project)
 
-				with open(example_project , 'r') as file:
+				with open(example_project, 'r') as file:
 					contents = file.read()
 
 				project_json = sublime.decode_value(contents) or {}
 				json: list[Any] = project_json.get(key, [])
 				for configuration in json:
-					configuration['$'] = {
-						'project_path': os.path.dirname(example_project),
-						'folder': os.path.dirname(example_project)
-					}
+					configuration['$'] = {'project_path': os.path.dirname(example_project), 'folder': os.path.dirname(example_project)}
 
 				source = dap.SourceLocation.from_path(example_project, line_regex=key)
 				configurations.extend(map(lambda i: (i, source), json))
@@ -207,7 +196,7 @@ class Project:
 		return configurations
 
 	def _load_configurations(self, console: dap.Console):
-		data: dict[str, Any]|None = self.window.project_data()
+		data: dict[str, Any] | None = self.window.project_data()
 		if data is None:
 			core.info('No project associated with window')
 			data = {}
@@ -253,7 +242,7 @@ class Project:
 	def is_source_file(self, view: sublime.View) -> bool:
 		return bool(self.source_file(view))
 
-	def source_file(self, view: sublime.View) -> str|None:
+	def source_file(self, view: sublime.View) -> str | None:
 		if view.window() != self.window:
 			return None
 
@@ -274,11 +263,11 @@ class Project:
 	def current_file_line_column(self) -> tuple[str, int, int]:
 		view = self.window.active_view()
 		if not view:
-			raise core.Error("No open view")
+			raise core.Error('No open view')
 
 		file = self.source_file(view)
 		if not file:
-			raise core.Error("No source file selected or file is not saved")
+			raise core.Error('No source file selected or file is not saved')
 
 		r, c = view.rowcol(view.sel()[0].begin())
 		return file, r + 1, c + 1

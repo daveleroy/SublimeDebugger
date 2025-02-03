@@ -21,33 +21,36 @@ def log_configure(log_info: bool, log_errors: bool, log_exceptions: bool):
 def info(*args: Any) -> None:
 	if not _should_log_info:
 		return
-	print('Debugger:', *args)
+	print('Debugger:', *args, file=stdout)
 
 def error(*args: Any) -> None:
 	if not _should_log_error:
 		return
-	print('Debugger: error:', *args)
+	print('Debugger: ❗', *args, file=stderr)
 
 def alert(*args: Any) -> None:
 	sublime.error_message(str(args))
 
 	if not _should_log_error:
 		return
-	print('Debugger: error:', *args)
+	print('Debugger: ❗', *args, file=stderr)
 
 def exception(*args: Any) -> None:
 	if not _should_log_exceptions:
 		return
 
 	if args:
-		print('Debugger: error:', *args)
-	print(traceback.format_exc())
+		print('Debugger: ❗', *args, file=stderr)
+	else:
+		print('Debugger: ❗', "Exception", file=stderr)
+
+	print(traceback.format_exc(), file=stderr)
 
 
 def debug(*args: Any) -> None:
 	if not _should_log_info:
 		return
-	print('Debugger:', *args)
+	print('Debugger:', *args, file=stdout)
 
 
 class Logger(Protocol):

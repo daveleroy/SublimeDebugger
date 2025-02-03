@@ -25,10 +25,10 @@ class Future(asyncio.Future, Generic[T]):
 		return super().set_result(result) #type: ignore
 
 def call_soon(callback: Callable[[Unpack[Args]], Any], *args: Unpack[Args]):
-	return loop.call_soon(callback, *args)
+	return loop.call_soon(callback, *args) #type: ignore
 
 def call_later(interval: float, callback: Callable[[Unpack[Args]], Any], *args: Unpack[Args]):
-	return loop.call_later(interval, callback, *args)
+	return loop.call_later(interval, callback, *args) #type: ignore
 
 def run_in_executor(func: Callable[Params, T]) -> Callable[Params, Future[T]]:
 	def wrap(*args, **kwargs):

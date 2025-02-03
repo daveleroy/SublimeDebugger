@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
-from ..import ui
-from ..import core
+from .. import ui
+from .. import core
 from .. import dap
 from . import css
 from .tabbed import TabbedView
@@ -13,6 +13,7 @@ import os
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
+
 
 class CallStackState:
 	def __init__(self):
@@ -31,21 +32,21 @@ class CallStackState:
 		self._expanded[id(item)] = not self.is_expanded(item, default)
 
 
-
 class CallstackView(ui.div, core.Dispose):
-
 	def __init__(self, debugger: Debugger):
 		super().__init__()
 		self.debugger = debugger
 		self.state = CallStackState()
 
 	def added(self):
-		self.dispose_add([
-			self.debugger.on_session_threads_updated.add(self.dirty_session),
-			self.debugger.on_session_active.add(self.dirty_session),
-			self.debugger.on_session_added.add(self.dirty_session),
-			self.debugger.on_session_removed.add(self.dirty_session),
-		])
+		self.dispose_add(
+			[
+				self.debugger.on_session_threads_updated.add(self.dirty_session),
+				self.debugger.on_session_active.add(self.dirty_session),
+				self.debugger.on_session_added.add(self.dirty_session),
+				self.debugger.on_session_removed.add(self.dirty_session),
+			]
+		)
 
 	def removed(self):
 		self.dispose()
@@ -65,8 +66,9 @@ class CallstackView(ui.div, core.Dispose):
 			return
 
 		for session in self.debugger.sessions:
-			# skip sessions that are children of another session since those will be renderer in the parent session
-			if session.parent: continue
+			# skip sessions that are children of another session since those will be rendered in the parent session
+			if session.parent:
+				continue
 
 			SessionView(self.debugger, session, self.state)
 
@@ -85,13 +87,15 @@ class CallStackTabbedView(TabbedView):
 	def render(self):
 		self.callstack.append_stack()
 
+
 def toggle(toggle_expand, item: ui.span, is_expanded):
 	with ui.div(height=css.row_height):
 		ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=toggle_expand)
 		item.append_stack()
 
-class SessionView (ui.div):
-	def __init__(self, debugger: Debugger, session: dap.Session, state: CallStackState, prefix: str|None = None):
+
+class SessionView(ui.div):
+	def __init__(self, debugger: Debugger, session: dap.Session, state: CallStackState, prefix: str | None = None):
 		super().__init__()
 		self.debugger = debugger
 		self.session = session
@@ -130,7 +134,6 @@ class SessionView (ui.div):
 			ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=lambda session=self.session: on_toggle(session))
 			ui.text(name, css=session_css_label, on_click=lambda session=self.session: self.selected_session())
 
-
 		if not is_expanded:
 			return label_view
 
@@ -142,13 +145,12 @@ class SessionView (ui.div):
 				ThreadView(self.debugger, self.session, thread, self.state)
 
 
-class ThreadView (ui.div):
+class ThreadView(ui.div):
 	def __init__(self, debugger: Debugger, session: dap.Session, thread: dap.Thread, state: CallStackState):
 		super().__init__()
 		self.debugger = debugger
 		self.session = session
 		self.is_selected = session.selected_thread == thread and debugger.session == session
-
 
 		self.show_thread_name = len(session.threads) > 1
 		self.thread = thread
@@ -198,7 +200,6 @@ class ThreadView (ui.div):
 		else:
 			text_css = css.secondary
 
-
 		thread_css = css.selected if self.is_selected and not self.session.selected_frame else None
 
 		def thread_name():
@@ -206,7 +207,6 @@ class ThreadView (ui.div):
 				ui.text(self.thread.name.strip(), css=text_css)
 				ui.spacer(1)
 				ui.text(self.thread.stopped_reason, css=css.secondary)
-
 
 		if not self.show_thread_name:
 			...
@@ -219,7 +219,6 @@ class ThreadView (ui.div):
 			with ui.div(height=css.row_height, css=thread_css):
 				ui.icon(ui.Images.shared.loading)
 				thread_name()
-
 
 		if not is_expanded:
 			return

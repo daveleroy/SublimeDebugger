@@ -2,14 +2,14 @@ from __future__ import annotations
 from typing import Any
 
 from ..settings import SettingsRegistery
-from .adapter import AdapterConfiguration
+from .adapter import Adapter
 from ..import core
 
 import json
 
 
 def generate_lsp_json_schema():
-	adapters = AdapterConfiguration.registered
+	adapters = Adapter.registered
 
 	allOf: list[Any] = []
 	installed_adapters: list[str] = []

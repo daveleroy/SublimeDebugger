@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
-from ..import core
-from ..import ui
-from ..import dap
+from .. import core
+from .. import ui
+from .. import dap
 
 from . import css
 
@@ -11,6 +11,7 @@ import sublime
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
+
 
 class VariableViewState:
 	def __init__(self):
@@ -30,13 +31,14 @@ class VariableViewState:
 		self._number_expanded[id(variable)] = value
 
 
-class VariableView (ui.div):
-	def __init__(self, debugger: Debugger, variable: dap.Variable, state = VariableViewState(), children_only = False) -> None:
+class VariableView(ui.div):
+	def __init__(self, debugger: Debugger, variable: dap.Variable, state=VariableViewState(), children_only=False, on_remove: Callable[[], None] | None = None) -> None:
 		super().__init__()
 		self.variable = variable
 		self.debugger = debugger
 		self.state = state
 		self.children_only = children_only
+		self.on_remove = on_remove
 
 		self.variable_children: Optional[list[dap.Variable]] = None
 		self.error: Optional[core.Error] = None
@@ -72,7 +74,7 @@ class VariableView (ui.div):
 
 	def add_watch(self):
 		expression = self.variable.name
-		self.variable.session.watch.add(expression)
+		self.debugger.watch.add(expression)
 
 	@core.run
 	async def on_edit_variable(self, value: str):
@@ -129,6 +131,14 @@ class VariableView (ui.div):
 			),
 		]
 
+		if self.on_remove:
+			items.append(
+				ui.InputListItem(
+					self.on_remove,
+					'Remove',
+				)
+			)
+
 		if self.edit_variable_menu:
 			self.copy_value()
 			self.edit_variable_menu.cancel()
@@ -143,16 +153,11 @@ class VariableView (ui.div):
 			}
 
 			def on_add_data_breakpoint(accessType: str):
-				session.breakpoints.data.add(info, accessType) #type: ignore
+				session.breakpoints.data.add(info, accessType)  # type: ignore
 
 			for acessType in types:
-				items.append(ui.InputListItem(
-					lambda: on_add_data_breakpoint(acessType),
-					labels.get(acessType) or 'Break On Value Change'
-				))
-		self.edit_variable_menu = core.run(ui.InputList(f'{name} {value}')[
-			items
-		])
+				items.append(ui.InputListItem(lambda: on_add_data_breakpoint(acessType), labels.get(acessType) or 'Break On Value Change'))
+		self.edit_variable_menu = core.run(ui.InputList(f'{name} {value}')[items])
 		await self.edit_variable_menu
 		self.edit_variable_menu = None
 
@@ -205,6 +210,7 @@ class VariableView (ui.div):
 	def render_children(self):
 		if self.error:
 			with ui.div(height=css.row_height):
+				ui.spacer(3)
 				ui.text(str(self.error), css=css.redish_secondary)
 
 			return
@@ -216,7 +222,6 @@ class VariableView (ui.div):
 
 			return
 
-
 		if not self.variable_children:
 			with ui.div(height=css.row_height):
 				ui.spacer(3)
@@ -224,10 +229,14 @@ class VariableView (ui.div):
 
 			return
 
-
 		count = self.state.number_expanded(self.variable)
 		for variable in self.variable_children[:count]:
-			VariableView(self.debugger, variable, state=self.state)
+			# this looks like a console log in js so expand it
+			if self.children_only and variable.name.startswith('arg'):
+				view = VariableView(self.debugger, variable, state=self.state, children_only=True)
+				view.set_expanded()
+			else:
+				VariableView(self.debugger, variable, state=self.state)
 
 		more_count = len(self.variable_children) - count
 		if more_count > 0:
@@ -235,9 +244,12 @@ class VariableView (ui.div):
 				ui.spacer(3)
 				ui.text('{} more items …'.format(more_count), css=css.secondary, on_click=self.show_more)
 
-
 	def render(self):
-		name =  self.variable.name
+		if self.variable_children and self.children_only:
+			self.render_children()
+			return
+
+		name = self.variable.name
 		value = self.variable.value or ''
 
 		is_expandable = self.variable.has_children
@@ -246,10 +258,6 @@ class VariableView (ui.div):
 		self.render_header(name, value, is_expandable, is_expanded)
 
 		if not is_expandable or not is_expanded:
-			return
-
-		if self.children_only:
-			self.render_children()
 			return
 
 		with ui.div(css=css.table_inset):

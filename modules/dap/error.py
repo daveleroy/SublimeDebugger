@@ -1,19 +1,20 @@
 from __future__ import annotations
 from typing import Dict, TypeVar
-from ..import core
-
-from .import dap
+from .. import core
+from . import dap
 
 
 T = TypeVar('T')
 V = TypeVar('V')
 
+
 class _DefaultDict(Dict[T, V]):
 	def __missing__(self, key: str):
-		return key.join("{}")
+		return key.join('{}')
+
 
 class Error(core.Error):
-	def __init__(self, message: str, url: str|None = None, urlLabel: str|None = None):
+	def __init__(self, message: str, url: str | None = None, urlLabel: str | None = None):
 		super().__init__(message)
 		self.message = message
 		self.url = url

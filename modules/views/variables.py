@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
-from ..import ui
-from ..import dap
+from .. import ui
+from .. import dap
+from .. import core
 
-from ..watch import Watch
+from ..watch import WatchExpression
 from .variable import VariableView
 from . import css
 from .tabbed import TabbedView
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 	from ..debugger import Debugger
 
 
-class VariablesTabbedView (TabbedView):
+class VariablesTabbedView(TabbedView):
 	def __init__(self, debugger: Debugger):
 		super().__init__('Variables')
 		self.watch_view = WatchView(debugger)
@@ -24,7 +25,7 @@ class VariablesTabbedView (TabbedView):
 		self.variables_view.append_stack()
 
 
-class VariablesView (ui.div):
+class VariablesView(ui.div):
 	def __init__(self, debugger: Debugger):
 		super().__init__()
 		self.debugger = debugger
@@ -80,16 +81,14 @@ class WatchView(ui.div):
 					ui.text('zero items …', css=css.secondary)
 
 			for expresion in self.debugger.watch.expressions:
-				WatchExpressionView(self.debugger, expresion, on_edit_not_available=self.debugger.watch.edit_run)
-
+				WatchExpressionView(self.debugger, expresion)
 
 
 class WatchExpressionView(ui.div):
-	def __init__(self, debugger: Debugger, expression: Watch.Expression, on_edit_not_available: Callable[[Watch.Expression], None]):
+	def __init__(self, debugger: Debugger, expression: WatchExpression):
 		super().__init__()
 		self.debugger = debugger
 		self.expression = expression
-		self.on_edit_not_available = on_edit_not_available
 
 	def added(self):
 		self.on_updated_handle = self.expression.on_updated.add(self.dirty)
@@ -99,12 +98,15 @@ class WatchExpressionView(ui.div):
 
 	def render(self):
 		if self.expression.evaluate_response:
-			VariableView(self.debugger, self.expression.evaluate_response)
-			return
+			VariableView(self.debugger, self.expression.evaluate_response, on_remove=lambda: self.debugger.watch.remove(self.expression))
 
 		with ui.div(height=css.row_height):
 			ui.spacer(3)
-			with ui.span(on_click=lambda: self.on_edit_not_available(self.expression)):
+			with ui.span(on_click=self.show_remove_menu):
 				ui.text(self.expression.value, css=css.secondary)
 				ui.spacer(1)
-				ui.text("not available", css=css.label)
+				ui.text('not available', css=css.label)
+
+	@core.run
+	async def show_remove_menu(self):
+		await ui.InputList('Remove')[ui.InputListItem(lambda: self.debugger.watch.remove(self.expression), 'Remove')]

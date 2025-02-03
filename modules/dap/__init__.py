@@ -9,30 +9,7 @@ from .error import (
 	NoActiveSessionError,
 )
 
-from .dap import (
-	StackFrame,
-	OutputEvent,
-
-	EvaluateResponse,
-	ReadMemoryResponse,
-
-	Breakpoint,
-	FunctionBreakpoint,
-	DataBreakpoint,
-	DataBreakpointInfoResponse,
-	SourceBreakpoint,
-	ExceptionBreakpointsFilter,
-
-	ExceptionInfoResponseBody,
-
-	RunInTerminalRequest,
-	RunInTerminalResponse,
-	RunInTerminalRequestArguments,
-
-	Module,
-	Source,
-	CompletionItem,
-)
+from .dap import StackFrame, OutputEvent, ProcessEvent, EvaluateResponse, ReadMemoryResponse, Breakpoint, FunctionBreakpoint, DataBreakpoint, DataBreakpointInfoResponse, SourceBreakpoint, ExceptionBreakpointsFilter, ExceptionInfoResponseBody, RunInTerminalRequest, RunInTerminalResponse, RunInTerminalRequestArguments, Module, Source, CompletionItem, NetworkingEvent
 
 from .session import (
 	Session,
@@ -40,8 +17,10 @@ from .session import (
 )
 
 from .adapter import (
+	Adapter,
 	AdapterInstaller,
-	AdapterConfiguration,
+	Adapter as AdapterConfiguration,
+	Adapter,
 )
 
 from .configuration import (
@@ -54,7 +33,8 @@ from .configuration import (
 
 from .debugger import (
 	Debugger,
-	Console
+	Console,
+	Logger,
 )
 
 from .transport import (
@@ -66,6 +46,5 @@ from .transports import (
 	Process,
 	StdioTransport,
 	SocketTransport,
-
 	TransportOutputLog,
 )

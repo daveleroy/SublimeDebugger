@@ -3,10 +3,10 @@ from typing import Any, Iterable
 
 import sublime
 
-from .import core
-from .import ui
-from .import dap
-from .import menus
+from . import core
+from . import ui
+from . import dap
+from . import menus
 
 from .settings import Settings
 from .breakpoints import Breakpoints, SourceBreakpoint
@@ -25,26 +25,27 @@ from .terminal_integrated import TerminusIntegratedTerminal
 
 from .source_navigation import SourceNavigationProvider
 
-class Debugger (core.Dispose, dap.Debugger):
 
-	debuggers_for_window: dict[int, Debugger|None] = {}
+class Debugger(core.Dispose, dap.Debugger):
+	debuggers_for_window: dict[int, Debugger | None] = {}
 
 	@staticmethod
 	def ignore(view: sublime.View) -> bool:
 		return not bool(Debugger.debuggers_for_window)
 
 	@staticmethod
+	@staticmethod
 	def debuggers() -> Iterable[Debugger]:
-		return filter(lambda i: i != None, Debugger.debuggers_for_window.values()) # type: ignore
+		return filter(lambda i: i != None, Debugger.debuggers_for_window.values())  # type: ignore
 
 	@staticmethod
-	def create(window_or_view: sublime.Window|sublime.View, skip_project_check = False) -> Debugger:
+	def create(window_or_view: sublime.Window | sublime.View, skip_project_check=False) -> Debugger:
 		debugger = Debugger.get(window_or_view, create=True, skip_project_check=skip_project_check)
 		assert debugger
 		return debugger
 
 	@staticmethod
-	def get(window_or_view: sublime.Window|sublime.View, create = False, skip_project_check = False) -> Debugger|None:
+	def get(window_or_view: sublime.Window | sublime.View, create=False, skip_project_check=False) -> Debugger | None:
 		window = window_or_view.window() if isinstance(window_or_view, sublime.View) else window_or_view
 		if window is None:
 			return None
@@ -54,7 +55,7 @@ class Debugger (core.Dispose, dap.Debugger):
 		if id in Debugger.debuggers_for_window:
 			instance = Debugger.debuggers_for_window[id]
 			if not instance and create:
-				raise core.Error('We shouldn\'t be creating another debugger instance for this window...')
+				raise core.Error("We shouldn't be creating another debugger instance for this window...")
 
 			if instance and create:
 				instance.open()
@@ -74,13 +75,13 @@ class Debugger (core.Dispose, dap.Debugger):
 			core.exception()
 			del Debugger.debuggers_for_window[id]
 
-
-	def __init__(self, window: sublime.Window, skip_project_check = False) -> None:
+	def __init__(self, window: sublime.Window, skip_project_check=False) -> None:
 		self.window = window
 
 		self.on_session_added = core.Event[dap.Session]()
 		self.on_session_removed = core.Event[dap.Session]()
 		self.on_session_active = core.Event[dap.Session]()
+		self.on_session_thread_or_frame_updated = core.Event[dap.Session]()
 
 		self.on_session_modules_updated = core.Event[dap.Session]()
 		self.on_session_sources_updated = core.Event[dap.Session]()
@@ -94,22 +95,21 @@ class Debugger (core.Dispose, dap.Debugger):
 		self.on_session_output.add(self._on_session_output)
 		self.on_session_active.add(self._on_session_active)
 
-		self.session: dap.Session|None = None
+		self.session: dap.Session | None = None
 		self.sessions: list[dap.Session] = []
-		self.last_run_task = None
+		self.last_run_task_name = None
 
-
-		self.run_to_current_line_breakpoint: SourceBreakpoint|None = None
+		self.run_to_current_line_breakpoint: SourceBreakpoint | None = None
 
 		self.output_panels: list[OutputPanel] = []
 		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
 		self.integrated_terminals: dict[dap.Session, list[TerminusIntegratedTerminal]] = {}
 		self.memory_views: list[MemoryView] = []
-		self.disassembly_view: DisassembleView|None = None
+		self.disassembly_view: DisassembleView | None = None
 
 		self.project = Project(window, skip_project_check)
 		self.breakpoints = Breakpoints()
-		self.watch = Watch()
+		self.watch = Watch(self)
 
 		self.source_provider = SourceNavigationProvider(self.project, self)
 
@@ -133,14 +133,16 @@ class Debugger (core.Dispose, dap.Debugger):
 
 		self.callstack = CallstackOutputPanel(self)
 
-		self.dispose_add([
-			self.project,
-			self.breakpoints,
-			self.tasks,
-			self.source_provider,
-			self.console,
-			self.callstack,
-		])
+		self.dispose_add(
+			[
+				self.project,
+				self.breakpoints,
+				self.tasks,
+				self.source_provider,
+				self.console,
+				self.callstack,
+			]
+		)
 
 		if not self.project.location:
 			self.console.log('warn', 'Debugger not associated with a sublime-project so breakpoints and other data will not be saved')
@@ -212,13 +214,13 @@ class Debugger (core.Dispose, dap.Debugger):
 		all_adapters_installed = True
 
 		for type in types:
-			adapter_configuration = dap.AdapterConfiguration.get(type)
-			if not adapter_configuration.installed_version:
+			adapter = dap.Adapter.get(type)
+			if not adapter.installed_version:
 				all_adapters_installed = False
 
 				self.console.open()
-				if sublime.ok_cancel_dialog(f'Debug adapter with type name "{adapter_configuration.type}" is not installed.\n Would you like to install it?', 'Install'):
-					await dap.AdapterConfiguration.install_adapter(self.console, adapter_configuration, None)
+				if sublime.ok_cancel_dialog(f'Debug adapter with type name "{adapter.type}" is not installed.\n Would you like to install it?', 'Install'):
+					await dap.Adapter.install_adapter(self.console, adapter, None)
 
 		return all_adapters_installed
 
@@ -240,9 +242,7 @@ class Debugger (core.Dispose, dap.Debugger):
 					configurations = self.project.active_configurations()
 
 				else:
-					configurations = [
-						dap.Configuration.from_json(args['configuration'], -1)
-					]
+					configurations = [dap.Configuration.from_json(args['configuration'], -1)]
 
 			else:
 				configurations = self.project.active_configurations()
@@ -275,7 +275,7 @@ class Debugger (core.Dispose, dap.Debugger):
 
 			# This just ensures the console flashes briefly before starting the session if the adapter is just going to instantly put the exact same contents as before such as during a startup error
 			# Otherwise it can look like nothing happened
-			await core.delay(1.0/30.0)
+			await core.delay(1.0 / 30.0)
 
 		self.console.open()
 
@@ -287,7 +287,7 @@ class Debugger (core.Dispose, dap.Debugger):
 			@core.run
 			async def launch(configuration: dap.Configuration):
 				try:
-					adapter_configuration = dap.AdapterConfiguration.get(configuration.type)
+					adapter = dap.Adapter.get(configuration.type)
 					configuration_expanded = dap.ConfigurationExpanded(configuration, variables)
 
 					pre_debug_task = configuration_expanded.get('pre_debug_task')
@@ -298,34 +298,31 @@ class Debugger (core.Dispose, dap.Debugger):
 
 					if post_debug_task:
 						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)
+					session = await self.launch(adapter, configuration_expanded, no_debug=no_debug)
 
-					await self.launch(self.breakpoints, adapter_configuration, configuration_expanded, no_debug=no_debug)
 					self.console.open()
 
 				except core.Error as e:
 					self.console.open()
 
-					if sublime.ok_cancel_dialog("Unable To Start Debug Session\n\n{}".format(str(e)), 'Open Project'):
+					if sublime.ok_cancel_dialog('Unable To Start Debug Session\n\n{}'.format(str(e)), 'Open Project'):
 						self.project.open_project_configurations_file()
 
 			launch(configuration)
 
-	async def launch(self, breakpoints: Breakpoints, adapter: dap.AdapterConfiguration, configuration: dap.ConfigurationExpanded, restart: Any|None = None, no_debug: bool = False, parent: dap.Session|None = None) -> dap.Session:
+	async def launch(self, adapter: dap.Adapter, configuration: dap.ConfigurationExpanded, restart: Any | None = None, no_debug: bool = False, parent: dap.Session | None = None) -> dap.Session:
 		for session in self.sessions:
 			if configuration.id_ish == session.configuration.id_ish:
 				await self.stop(session)
 				# return
 
 		session = dap.Session(
-			adapter_configuration=adapter,
+			adapter=adapter,
 			configuration=configuration,
 			restart=restart,
 			no_debug=no_debug,
-			breakpoints=breakpoints,
-			watch=self.watch,
 			debugger=self,
 			parent=parent,
-			console=self.console,
 		)
 
 		session.on_updated_modules = self.on_session_modules_updated
@@ -334,7 +331,8 @@ class Debugger (core.Dispose, dap.Debugger):
 		session.on_updated_variables = self.on_session_variables_updated
 		session.on_updated = self.on_session_updated
 		session.on_output = self.on_session_output
-		session.on_selected_frame = lambda session, _: self.set_current_session(session)
+		session.on_updated_thread_or_frame = self.on_session_thread_or_frame_updated
+
 		session.on_finished = lambda session: self.remove_session(session)
 		session.on_terminal_request = self.session_terminal_request
 		session.on_task_request = self.session_task_request
@@ -355,7 +353,7 @@ class Debugger (core.Dispose, dap.Debugger):
 			raise dap.NoActiveSessionError()
 		return self.session
 
-	def set_current_session(self, session: dap.Session):
+	def _on_thread_or_frame_updated(self, session: dap.Session):
 		self.current_session = session
 
 	@current_session.setter
@@ -369,11 +367,11 @@ class Debugger (core.Dispose, dap.Debugger):
 
 	async def session_terminal_request(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		response = self._on_session_run_terminal_requested(session, request)
-		if not response: raise core.Error('No terminal session response')
+		if not response:
+			raise core.Error('No terminal session response')
 		return await response
 
 	def _on_session_updated(self, session: dap.Session):
-
 		if self.session and self.session != session:
 			return
 
@@ -409,7 +407,6 @@ class Debugger (core.Dispose, dap.Debugger):
 					break
 
 			self.on_session_active(session)
-
 
 		if session.stopped_unexpectedly:
 			found_error = False
@@ -497,7 +494,7 @@ class Debugger (core.Dispose, dap.Debugger):
 			self.console.error(f'Unable to step backwards: {e}')
 
 	@core.run
-	async def stop(self, session: dap.Session|None = None) -> None:
+	async def stop(self, session: dap.Session | None = None) -> None:
 		# the stop command stops all sessions in a hierachy
 		try:
 			if not session:
@@ -514,9 +511,10 @@ class Debugger (core.Dispose, dap.Debugger):
 
 			await session_stop
 
-		except dap.NoActiveSessionError: ...
-		except core.Error as e: self.console.error(f'Unable to stop: {e}')
-
+		except dap.NoActiveSessionError:
+			...
+		except core.Error as e:
+			self.console.error(f'Unable to stop: {e}')
 
 	def clear_all_breakpoints(self):
 		self.breakpoints.data.remove_all()
@@ -675,7 +673,7 @@ class Debugger (core.Dispose, dap.Debugger):
 
 		raise core.Error('unknown terminal kind requested "{}"'.format(request.kind))
 
-	def dispose_terminals(self, unused_only: bool=False):
+	def dispose_terminals(self, unused_only: bool = False):
 		removed_sessions: list[dap.Session] = []
 
 		for session, terminals in self.integrated_terminals.items():
@@ -691,11 +689,15 @@ class Debugger (core.Dispose, dap.Debugger):
 					terminal.dispose()
 
 		for session in removed_sessions:
-			try: del self.external_terminals[session]
-			except KeyError:...
+			try:
+				del self.external_terminals[session]
+			except KeyError:
+				...
 
-			try: del self.integrated_terminals[session]
-			except KeyError:...
+			try:
+				del self.integrated_terminals[session]
+			except KeyError:
+				...
 
 		self.tasks.remove_finished()
 
@@ -706,10 +708,7 @@ class Debugger (core.Dispose, dap.Debugger):
 		return False
 
 	def open(self) -> None:
-		if not self.session:
-			self.console.open()
-		else:
-			self.callstack.open()
+		self.console.open()
 
 
 	def show_disassembly(self, toggle: bool = False):
@@ -730,12 +729,11 @@ class Debugger (core.Dispose, dap.Debugger):
 		self.disassembly_view.dispose()
 		self.disassembly_view = DisassembleView(self.window, self)
 
-
 	def _on_navigate_to_source(self, source: dap.SourceLocation):
 		self.source_provider.show_source_location(source)
 
 	# Configuration Stuff
-	def set_configuration(self, configuration: dap.Configuration|dap.ConfigurationCompound):
+	def set_configuration(self, configuration: dap.Configuration | dap.ConfigurationCompound):
 		self.project.configuration_or_compound = configuration
 		self.project.on_updated()
 		self.save_data()

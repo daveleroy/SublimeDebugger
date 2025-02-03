@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
-from .import core
-from .import dap
+from . import core
+from . import dap
 
 from .views.selected_line import SelectedLine
 from .debugger import Project
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 import sublime
 
-syntax_name_for_mime_type: dict[str|None, str] = {
+syntax_name_for_mime_type: dict[str | None, str] = {
 	'text/plain': 'text.plain',
 	'text/javascript': 'source.js',
 	'text/java': 'source.java',
@@ -44,11 +44,11 @@ class SourceNavigationProvider:
 		self.debugger = debugger
 		self.project = project
 
-		self.updating: Any|None = None
-		self.selected_frame_line_time_out: Any|None = None
+		self.updating: Any | None = None
+		self.selected_frame_line_time_out: Any | None = None
 
-		self.generated_view: sublime.View|None = None
-		self.selected_frame_line: SelectedLine|None = None
+		self.generated_view: sublime.View | None = None
+		self.selected_frame_line: SelectedLine | None = None
 
 	def dispose(self):
 		self.clear()
@@ -62,7 +62,7 @@ class SourceNavigationProvider:
 				core.error(error)
 
 		async def select_async(source: dap.SourceLocation, thread: dap.Thread):
-			delay = core.run(core.delay(1.0/30.0))
+			delay = core.run(core.delay(1.0 / 30.0))
 
 			view = await self.navigate_to_source(source)
 
@@ -109,7 +109,7 @@ class SourceNavigationProvider:
 	async def navigate_to_source(self, source: dap.SourceLocation, move_cursor: bool = False) -> sublime.View:
 		# Check if adapter want to provide content
 		if session := self.debugger.session:
-			adapter_content = await session.adapter_configuration.on_navigate_to_source(source)
+			adapter_content = await session.adapter.on_navigate_to_source(source)
 		else:
 			adapter_content = None
 
@@ -137,7 +137,7 @@ class SourceNavigationProvider:
 			view = self.generated_view or self.project.window.new_file()
 			self.project.window.set_view_index(view, 0, len(self.project.window.views_in_group(0)))
 			self.generated_view = view
-			view.set_name(source.source.name or "")
+			view.set_name(source.source.name or '')
 			view.set_read_only(False)
 			view.settings().update(custom_settings)
 

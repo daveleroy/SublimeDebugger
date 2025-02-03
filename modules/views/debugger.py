@@ -22,7 +22,7 @@ class DebuggerTabbedView(TabbedView, core.Dispose):
 
 		self.breakpoints = BreakpointsView(debugger.breakpoints, on_navigate_to_source)
 
-		self.last_adapter_configuration: dap.AdapterConfiguration | None = None
+		self.last_adapter: dap.AdapterConfiguration | None = None
 		self.actions_tab = DebuggerActionsTab(debugger)
 
 		# self.process = ProcessView(debugger)
@@ -42,7 +42,7 @@ class DebuggerTabbedView(TabbedView, core.Dispose):
 		self.actions_tab.append_stack()
 
 	def on_selected_session(self, session: dap.Session):
-		self.last_adapter_configuration = session.adapter_configuration
+		self.last_adapter = session.adapter
 		self.dirty()
 
 	def render(self):
@@ -51,14 +51,14 @@ class DebuggerTabbedView(TabbedView, core.Dispose):
 		# breakpoints ...
 
 		if session := self.debugger.session:
-			self.last_adapter_configuration = session.adapter_configuration
+			self.last_adapter = session.adapter
 
 			if status := session.state.status:
 				with ui.div(height=css.row_height):
 					ui.text(status, css=css.secondary)
 
-		if self.last_adapter_configuration:
-			self.last_adapter_configuration.ui(self.debugger)
+		if self.last_adapter:
+			self.last_adapter.ui(self.debugger)
 
 		self.breakpoints.append_stack()
 

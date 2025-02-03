@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Awaitable, Protocol
 import sublime
 import re
 
-from .import core
-from .import dap
-from .import ui
+from . import core
+from . import dap
+from . import ui
 
 from .output_panel import OutputPanel
 
@@ -38,7 +38,6 @@ class Tasks(core.Dispose):
 
 	@core.run
 	async def run(self, debugger: Debugger, task: dap.TaskExpanded):
-
 		# if there is already an existing task we wait on it to finish and do not start a new task
 		# this matches the behavior of vscode?
 		for t in self.tasks:
@@ -47,7 +46,6 @@ class Tasks(core.Dispose):
 				if not t.task.background:
 					await t.wait()
 				return
-
 
 		depends_on = task.depends_on
 		sequence = task.depends_on_order == 'sequence'
@@ -75,10 +73,8 @@ class Tasks(core.Dispose):
 
 				await core.gather(*depends_on_tasks_expanded)
 
-
 		except core.Error as error:
 			raise core.Error(f'Unable to resolve depends_on: {error}')
-
 
 		terminal = TerminusTask(debugger, task)
 		terminal.on_opened_status = lambda: self.on_options(terminal)
@@ -105,9 +101,7 @@ class Tasks(core.Dispose):
 			self.cancel(task)
 			return
 
-		options = ui.InputList('Kill task?') [
-			ui.InputListItem(lambda: self.cancel(task), 'Kill'),
-		]
+		options = ui.InputList('Kill task?')[ui.InputListItem(lambda: self.cancel(task), 'Kill'),]
 		options.run()
 
 	def remove_finished(self):
