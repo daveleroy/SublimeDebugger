@@ -83,8 +83,8 @@ class Python(dap.Adapter):
 	async def on_custom_event(self, session: dap.Session, event: str, body: Any):
 		if event == 'debugpyAttach':
 			configuration = dap.Configuration.from_json(body, -1)
-			configuration_expanded = dap.ConfigurationExpanded(configuration, session.configuration.variables)
-			await session.debugger.launch(session.breakpoints, self, configuration_expanded, parent=session)
+			configuration_expanded = await configuration.Expanded([], session.configuration.variables)
+			await session.debugger.launch(self, configuration_expanded, parent=session)
 		else:
 			core.info(f'event not handled `{event}`')
 

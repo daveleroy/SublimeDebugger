@@ -24,6 +24,9 @@ from .adapter import (
 )
 
 from .configuration import (
+	Input,
+	InputLiteral,
+	ConfigurationVariables,
 	Configuration,
 	ConfigurationExpanded,
 	ConfigurationCompound,

@@ -25,7 +25,7 @@ class Java(dap.Adapter):
 			return key not in configuration or isinstance(configuration[key], str) and not configuration[key]
 
 		if _is_undefined('cwd'):
-			configuration['cwd'] = configuration.variables.get('folder')
+			configuration['cwd'] = await configuration.variables['folder']
 		if _is_undefined('console'):
 			configuration['console'] = 'internalConsole'
 

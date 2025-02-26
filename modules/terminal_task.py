@@ -61,14 +61,14 @@ class Tasks(core.Dispose):
 			if sequence:
 				for depends_on_name in depends_on:
 					depends_on_task = debugger.project.get_task(depends_on_name)
-					depends_on_task_expanded = dap.TaskExpanded(depends_on_task, task.variables)
+					depends_on_task_expanded = await depends_on_task.Expanded(task.variables)
 					await self.run(debugger, depends_on_task_expanded)
 
 			else:
 				depends_on_tasks_expanded: list[Awaitable[None]] = []
 				for depends_on_name in depends_on:
 					depends_on_task = debugger.project.get_task(depends_on_name)
-					depends_on_task_expanded = dap.TaskExpanded(depends_on_task, task.variables)
+					depends_on_task_expanded = await depends_on_task.Expanded(task.variables)
 					depends_on_tasks_expanded.append(self.run(debugger, depends_on_task_expanded))
 
 				await core.gather(*depends_on_tasks_expanded)

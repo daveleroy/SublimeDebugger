@@ -288,16 +288,16 @@ class Debugger(core.Dispose, dap.Debugger):
 			async def launch(configuration: dap.Configuration):
 				try:
 					adapter = dap.Adapter.get(configuration.type)
-					configuration_expanded = dap.ConfigurationExpanded(configuration, variables)
+					configuration_expanded = await configuration.Expanded(self.project.tasks, variables)
 
 					pre_debug_task = configuration_expanded.get('pre_debug_task')
 					post_debug_task = configuration_expanded.get('post_debug_task')
 
 					if pre_debug_task:
-						configuration_expanded.pre_debug_task = dap.TaskExpanded(self.project.get_task(pre_debug_task), variables)
+						configuration_expanded.pre_debug_task = await self.project.get_task(pre_debug_task).Expanded(variables)
 
 					if post_debug_task:
-						configuration_expanded.post_debug_task = dap.TaskExpanded(self.project.get_task(post_debug_task), variables)
+						configuration_expanded.post_debug_task = await self.project.get_task(post_debug_task).Expanded(variables)
 					session = await self.launch(adapter, configuration_expanded, no_debug=no_debug)
 
 					self.console.open()
@@ -576,7 +576,7 @@ class Debugger(core.Dispose, dap.Debugger):
 	async def run_task(self, task: dap.Task):
 		self.dispose_terminals(unused_only=True)
 		variables = self.project.extract_variables()
-		await self.tasks.run(self, dap.TaskExpanded(task, variables))
+		await self.tasks.run(self, await task.Expanded(variables))
 
 	def refresh_phantoms(self) -> None:
 		ui.Layout.render_layouts()

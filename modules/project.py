@@ -258,7 +258,14 @@ class Project:
 
 		variables['packages'] = sublime.packages_path()
 
-		return variables
+		inputs: dict[str, dap.Input] = {
+			'select_process': SelectProcess(),
+		}
+
+		for key, value in variables.items():
+			inputs[key] = dap.InputLiteral(value)
+
+		return inputs
 
 	def current_file_line_column(self) -> tuple[str, int, int]:
 		view = self.window.active_view()
