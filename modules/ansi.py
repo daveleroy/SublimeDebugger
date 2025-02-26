@@ -2,7 +2,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .import core 
+from .import core
 
 def ansi_colorize(text: str, color: str|None = None, previous_color: str|None = None):
 	text = text.replace('\r\n', '\n')
@@ -15,7 +15,7 @@ def ansi_colorize(text: str, color: str|None = None, previous_color: str|None = 
 			return ''
 
 	text = ansi_escape.sub(replacement, text)
-	
+
 	if color != previous_color:
 		return escape_code(color) + text
 	else:
@@ -40,7 +40,7 @@ escape_codes: list[dict[str, Any]] = [
 	},
 	{
 		'color': 'comment',
-		'escape': [],
+		'escape': ['\u001b[90m'],
 		'scope': 'comment.debugger',
 		'match': '\u200b\u200b',
 	},
