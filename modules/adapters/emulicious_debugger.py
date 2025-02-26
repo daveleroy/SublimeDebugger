@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from . import util
 from .. import dap
-from .. import core
 
-import sublime
 import socket
 import subprocess
 import os.path
 
-class EmuliciousDebugger(dap.AdapterConfiguration):
 
+class EmuliciousDebugger(dap.Adapter):
 	type = 'emulicious-debugger'
 	docs = 'https://github.com/Calindro/emulicious-debugger#usage'
 
@@ -19,8 +17,8 @@ class EmuliciousDebugger(dap.AdapterConfiguration):
 		repo='calindro/emulicious-debugger'
 	)
 
-	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
 		if configuration.get("port") is None:
+	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 			raise Exception("The field 'port' is not set. Please check your launch configuration.")
 		check_port_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		check_port_socket.settimeout(0.1)

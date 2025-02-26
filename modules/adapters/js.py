@@ -7,7 +7,7 @@ from ..import dap
 
 from .import util
 
-class JSAdapterConfiguration(dap.AdapterConfiguration):
+class JSAdapterConfiguration(dap.Adapter):
 	type = []
 
 	# This type is the one sent to the debug adapter
@@ -16,10 +16,7 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 
 	docs = 'https://github.com/microsoft/vscode-js-debug/blob/main/OPTIONS.md'
 
-	installer = util.GitInstaller (
-		type='js',
-		repo='daveleroy/vscode-js-debug'
-	)
+	installer = util.GitInstaller(type='js', repo='daveleroy/vscode-js-debug')
 
 	pending_target_parents: dict[str, dap.Session] = {}
 	sessions: dict[dap.Session, Any] = {}
@@ -32,18 +29,17 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 	def configuration_schema(self):
 		return self.installer.configuration_schema(self.configuration_type)
 
-	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
+	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 		__jsDebugChildServer = configuration.get('__jsDebugChildServer')
 
 		if __jsDebugChildServer is not None:
 			server = int(__jsDebugChildServer)
 			return dap.SocketTransport('localhost', server)
 
-		node = await util.get_and_warn_require_node(self.type, log)
+		node = await util.get_and_warn_require_node(self.type, console)
 		install_path = self.installer.install_path()
 
 		port = util.get_open_port()
-
 
 		# version >= 1.77.2
 		if os.path.exists(f'{install_path}/src/vsDebugServer.js'):
@@ -76,17 +72,15 @@ class JSAdapterConfiguration(dap.AdapterConfiguration):
 		return configuration
 
 
-class Chrome (JSAdapterConfiguration):
+class Node(JavaScriptAdapter):
+	type = 'node'
+	configuration_type = 'pwa-node'
+class Chrome(JavaScriptAdapter):
 	type = 'chrome'
 	configuration_type = 'pwa-chrome'
 	docs = 'https://github.com/Microsoft/vscode-chrome-debug#using-the-debugger'
 
 
-class Node (JSAdapterConfiguration):
-	type = 'node'
-	configuration_type = 'pwa-node'
-
-
-class Edge (JSAdapterConfiguration):
+class Edge(JavaScriptAdapter):
 	type = 'msedge'
 	configuration_type = 'pwa-msedge'

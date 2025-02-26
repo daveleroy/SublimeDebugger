@@ -1,24 +1,21 @@
 from __future__ import annotations
 from typing import Any
 
-from ..import core
-from ..import dap
-from .import util
+from .. import core
+from .. import dap
+from . import util
 
 import sublime
 import json
 
 
-class Java(dap.AdapterConfiguration):
+class Java(dap.Adapter):
 	type = 'java'
 	docs = 'https://github.com/redhat-developer/vscode-java/blob/master/README.md'
 
-	installer = util.GitInstaller(
-		type='java',
-		repo='microsoft/vscode-java-debug'
-	)
+	installer = util.GitInstaller(type='java', repo='microsoft/vscode-java-debug')
 
-	async def start(self, log, configuration):
+	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 		# Make sure LSP and LSP-JDTLS are installed
 		util.require_package('LSP-jdtls')
 		util.require_package('LSP')
@@ -32,7 +29,7 @@ class Java(dap.AdapterConfiguration):
 		if _is_undefined('console'):
 			configuration['console'] = 'internalConsole'
 
-		if _is_undefined('mainClass') or _is_undefined("projectName"):
+		if _is_undefined('mainClass') or _is_undefined('projectName'):
 			configuration['mainClass'], configuration['projectName'] = await self._get_mainclass_project_name(None if _is_undefined('mainClass') else configuration['mainClass'])
 		if _is_undefined('classPaths') and _is_undefined('modulePaths'):
 			configuration['modulePaths'], configuration['classPaths'] = await self._resolve_modulepath_classpath(configuration['mainClass'], configuration['projectName'])
@@ -48,11 +45,11 @@ class Java(dap.AdapterConfiguration):
 
 		return dap.SocketTransport('localhost', port)
 
-	async def on_navigate_to_source(self, source: dap.SourceLocation) -> tuple[str, str, list[tuple[str, Any]]]|None:
+	async def on_navigate_to_source(self, source: dap.SourceLocation) -> tuple[str, str, list[tuple[str, Any]]] | None:
 		if not source.source.path or not source.source.path.startswith('jdt:'):
 			return None
 		content = await self.get_class_content_for_uri(source.source.path)
-		return content, 'text/java', [("lsp_uri", source.source.path)]
+		return content, 'text/java', [('lsp_uri', source.source.path)]
 
 	async def get_class_content_for_uri(self, uri):
 		return await self.lsp_request('java/classFileContents', {'uri': uri})
@@ -72,10 +69,9 @@ class Java(dap.AdapterConfiguration):
 		if len(mainclasses) == 1:
 			return mainclasses[0]['mainClass'], mainclasses[0]['projectName']
 
-
 		# Show panel
 		future_index = core.Future()
-		items = [sublime.QuickPanelItem(x['mainClass'], x['filePath'], "", (3, "", "")) for x in mainclasses]
+		items = [sublime.QuickPanelItem(x['mainClass'], x['filePath'], '', (3, '', '')) for x in mainclasses]
 		# Preselect mainclass associated with active view
 		selected_index = -1
 		view = sublime.active_window().active_view()
@@ -85,27 +81,18 @@ class Java(dap.AdapterConfiguration):
 					selected_index = i
 					break
 		if sublime.version() < '4081':
-			sublime.active_window().show_quick_panel(items,
-			                                         lambda idx: future_index.set_result(idx),
-			                                         sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST,
-			                                         selected_index)
+			sublime.active_window().show_quick_panel(items, lambda idx: future_index.set_result(idx), sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST, selected_index)
 		else:
-			sublime.active_window().show_quick_panel(items,
-			                                         lambda idx: future_index.set_result(idx),
-			                                         sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST,
-			                                         selected_index,
-			                                         placeholder="Select Mainclass")
+			sublime.active_window().show_quick_panel(items, lambda idx: future_index.set_result(idx), sublime.MONOSPACE_FONT | sublime.KEEP_OPEN_ON_FOCUS_LOST, selected_index, placeholder='Select Mainclass')
 		index = await future_index
 
 		if index == -1:
-			raise core.Error("Please specify a main class")
+			raise core.Error('Please specify a main class')
 
 		return mainclasses[index]['mainClass'], mainclasses[index]['projectName']
 
 	async def _resolve_modulepath_classpath(self, main_class, project_name):
-		classpath_response = await self.lsp_execute_command(
-			'vscode.java.resolveClasspath', [main_class, project_name]
-		)
+		classpath_response = await self.lsp_execute_command('vscode.java.resolveClasspath', [main_class, project_name])
 		if not classpath_response[0] and not classpath_response[1]:
 			raise core.Error('Failed to resolve classpaths/modulepaths automatically, please specify the value in the debugger configuration')
 
@@ -113,30 +100,24 @@ class Java(dap.AdapterConfiguration):
 		class_paths = classpath_response[1]
 		return module_paths, class_paths
 
-
 	async def _is_preview_enabled(self, main_class, project_name) -> dict:
 		# See https://github.com/microsoft/vscode-java-debug/blob/b2a48319952b1af8a4a328fc95d2891de947df94/src/configurationProvider.ts#L297
 		return await self.lsp_execute_command(
-		    'vscode.java.checkProjectSettings',
-		    [
-                json.dumps(
-                    {
-                        'className': main_class,
-                        'projectName': project_name,
-                        'inheritedOptions': True,
-                        'expectedOptions': {
-                            'org.eclipse.jdt.core.compiler.problem.enablePreviewFeatures': 'enabled'
-                        },
-                    }
-                )
-            ]
+			'vscode.java.checkProjectSettings',
+			[
+				json.dumps(
+					{
+						'className': main_class,
+						'projectName': project_name,
+						'inheritedOptions': True,
+						'expectedOptions': {'org.eclipse.jdt.core.compiler.problem.enablePreviewFeatures': 'enabled'},
+					}
+				)
+			],
 		)
 
 	async def lsp_execute_command(self, command, arguments=None):
-		return await self.lsp_request('workspace/executeCommand', {
-			'command': command,
-			'arguments': arguments
-		})
+		return await self.lsp_request('workspace/executeCommand', {'command': command, 'arguments': arguments})
 
 	async def lsp_request(self, method, params) -> Any:
 		return await util.lsp.request('jdtls', method, params)

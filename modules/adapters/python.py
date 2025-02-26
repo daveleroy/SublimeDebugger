@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
-from .import util
+from . import util
 from .. import dap
 from .. import core
 
@@ -10,10 +10,12 @@ import shutil
 import os
 import subprocess
 import shlex
+
 from pathlib import Path
 
+
 class PythonInstaller(util.GitSourceInstaller):
-	async def post_install(self, version: str, log: core.Logger):
+	async def post_install(self, version: str, log: dap.Logger):
 		path = self.temporary_install_path()
 		debugpy_info = core.json_decode_file(f'{path}/debugpy_info.json')
 		try:
@@ -24,17 +26,13 @@ class PythonInstaller(util.GitSourceInstaller):
 		await util.request.download_and_extract_zip(url, f'{path}/debugpy', log=log)
 
 
-class Python(dap.AdapterConfiguration):
-
+class Python(dap.Adapter):
 	type = ['debugpy', 'python']
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
 
-	installer = PythonInstaller(
-		type = 'debugpy',
-		repo ='microsoft/vscode-python-debugger'
-	)
+	installer = PythonInstaller(type='debugpy', repo='microsoft/vscode-python-debugger')
 
-	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
+	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'attach':
 			connect = configuration.get('connect')
 			if connect:
@@ -56,15 +54,15 @@ class Python(dap.AdapterConfiguration):
 
 		if not python:
 			if 'cwd' in configuration:
-				venv = self.get_venv(log, Path(configuration['cwd']))
+				venv = self.get_venv(console, Path(configuration['cwd']))
 			elif 'program' in configuration:
-				venv = self.get_venv(log, Path(configuration['program']).parent)
+				venv = self.get_venv(console, Path(configuration['program']).parent)
 			else:
 				venv = None
 
 			if venv:
 				python, folder = venv
-				log.info('Detected virtual environment for `{}`'.format(folder))
+				console.info('Detected virtual environment for `{}`'.format(folder))
 			elif shutil.which('python3'):
 				python = shutil.which('python3')
 			else:
@@ -73,12 +71,14 @@ class Python(dap.AdapterConfiguration):
 		if not python:
 			raise core.Error('Unable to find `python3` or `python`')
 
-		log.info('Using python `{}`'.format(python))
+		console.info('Using python `{}`'.format(python))
 
-		return dap.StdioTransport([
-			f'{python}',
-			f'{install_path}/debugpy/debugpy/adapter',
-		])
+		return dap.StdioTransport(
+			[
+				f'{python}',
+				f'{install_path}/debugpy/debugpy/adapter',
+			]
+		)
 
 	async def on_custom_event(self, session: dap.Session, event: str, body: Any):
 		if event == 'debugpyAttach':
@@ -101,8 +101,8 @@ class Python(dap.AdapterConfiguration):
 					'name': 'Python: Current File',
 					'type': 'python',
 					'request': 'launch',
-					'program': '\\${file}'
-				}
+					'program': '\\${file}',
+				},
 			},
 			{
 				'label': 'Python: Attach using process id',
@@ -110,35 +110,34 @@ class Python(dap.AdapterConfiguration):
 					'name': 'Python: Attach using process id',
 					'type': 'python',
 					'request': 'launch',
-					'processId': '${1:process id}'
-				}
-			}
+					'processId': '${1:process id}',
+				},
+			},
 		]
 
-	def get_venv(self, log: core.Logger, start: Path) -> tuple[Path, Path]|None:
+	def get_venv(self, console: dap.Console, start: Path) -> tuple[Path, Path] | None:
 		"""
 		Searches a venv in `start` and all its parent directories.
 		"""
 		resolved = start.resolve()
 		for folder in [resolved] + list(resolved.parents):
-			python_path = self.resolve_python_path_from_venv_folder(log, folder)
+			python_path = self.resolve_python_path_from_venv_folder(console, folder)
 			if python_path:
 				return python_path, folder
 		return None
 
-	def resolve_python_path_from_venv_folder(self, log: core.Logger, folder: Path) -> Path|None:
+	def resolve_python_path_from_venv_folder(self, console: dap.Console, folder: Path) -> Path | None:
 		"""
 		Resolves the python binary from venv.
 		"""
 
-		def binary_from_python_path(path: Path) -> Path|None:
+		def binary_from_python_path(path: Path) -> Path | None:
 			if sublime.platform() == 'windows':
 				binary_path = path / 'Scripts' / 'python.exe'
 			else:
 				binary_path = path / 'bin' / 'python'
 
 			return binary_path if os.path.isfile(binary_path) else None
-
 
 		# Config file, venv resolution command, post-processing
 		venv_config_files = [
@@ -159,14 +158,12 @@ class Python(dap.AdapterConfiguration):
 			full_config_file_path = folder / config_file
 			if os.path.isfile(full_config_file_path):
 				try:
-					python_path = Path(subprocess.check_output(
-						command, cwd=folder, startupinfo=startupinfo, universal_newlines=True
-					).strip())
+					python_path = Path(subprocess.check_output(command, cwd=folder, startupinfo=startupinfo, universal_newlines=True).strip())
 					return post_processing(python_path) if post_processing else python_path
 				except FileNotFoundError:
-					log.warn(f'{config_file} detected but {command[0]} not found')
+					console.warn(f'{config_file} detected but {command[0]} not found')
 				except subprocess.CalledProcessError:
-					log.warn(f'{config_file} detected but {" ".join(map(shlex.quote, command))} exited with non-zero exit status')
+					console.warn(f'{config_file} detected but {" ".join(map(shlex.quote, command))} exited with non-zero exit status')
 
 		# virtual environment as subfolder in project
 		for file in folder.iterdir():
