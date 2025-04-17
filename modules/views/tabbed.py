@@ -3,14 +3,14 @@ from typing import Any, Callable, Iterable, Sequence, cast
 
 from functools import partial
 
-from .import css
-from ..import ui
+from . import css
+from .. import ui
 
 
 class TabbedView(ui.div):
 	name: str
-	parent: TabbedViewContainer|None
-	on_show: Callable[[], None]|None = None
+	parent: TabbedViewContainer | None
+	on_show: Callable[[], None] | None = None
 
 	def __init__(self, name: str):
 		super().__init__()
@@ -27,12 +27,13 @@ class TabbedView(ui.div):
 		return True
 
 	def dirty_header(self):
-		if not self.parent or not self.visible(): return
+		if not self.parent or not self.visible():
+			return
 		self.parent.dirty()
 
 
 class TabbedViewContainer(ui.div):
-	def __init__(self, width: float|None = None, width_scale: float|None = None, width_additional: float = 0, width_additional_dip: float = 0) -> None:
+	def __init__(self, width: float | None = None, width_scale: float | None = None, width_additional: float = 0, width_additional_dip: float = 0) -> None:
 		super().__init__()
 		self.selected_index = 0
 
@@ -63,7 +64,7 @@ class TabbedViewContainer(ui.div):
 				return
 
 	def patch_selected(self):
-		selected =  self.items[self.selected_index] if self.selected_index < len(self.items) else None
+		selected = self.items[self.selected_index] if self.selected_index < len(self.items) else None
 		if selected and selected.visible():
 			return
 
@@ -74,7 +75,8 @@ class TabbedViewContainer(ui.div):
 
 	def show(self, index: int):
 		on_show = self.items[index].on_show
-		if on_show: on_show()
+		if on_show:
+			on_show()
 
 		self.selected_index = index
 		self.dirty()
@@ -102,7 +104,7 @@ class TabbedViewContainer(ui.div):
 			# this inner panel controls how much content is actually displayed
 			# while scrolling the tab bar disappears revealing all the content
 			# while not scrolling this panel clips the content
-			with ui.div(height=height-css.panel_content.padding_height - css.header_height, css=css.panel_content):
+			with ui.div(height=height - css.panel_content.padding_height - css.header_height, css=css.panel_content):
 				self.items[self.selected_index].append_stack()
 
 			with ui.div(width=width, height=4):

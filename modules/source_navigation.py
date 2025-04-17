@@ -19,23 +19,22 @@ syntax_name_for_mime_type: dict[str | None, str] = {
 	'text/x-lldb.disassembly': 'source.disassembly',
 }
 
-def replace_contents(view: sublime.View, characters: str):
-	def run(edit: sublime.Edit):
-		view.replace(edit, sublime.Region(0, view.size()), characters)
-		view.sel().clear()
 
-	core.edit(view, run)
+@core.sublime_edit
+def replace_contents(view: sublime.View, edit: sublime.Edit, characters: str):
+	view.replace(edit, sublime.Region(0, view.size()), characters)
+	view.sel().clear()
 
-def show_line(view: sublime.View, line: int, column: int, move_cursor: bool):
-	def run(edit: sublime.Edit):
-		point = view.text_point(line, column)
-		view.show(point)
-		view.sel().clear()
 
-		if move_cursor:
-			view.sel().add(point)
+@core.sublime_edit
+def show_line(view: sublime.View, edit: sublime.Edit, line: int, column: int, move_cursor: bool):
+	point = view.text_point(line, column)
+	view.show(point)
+	view.sel().clear()
 
-	core.edit(view, run)
+	if move_cursor:
+		view.sel().add(point)
+
 
 class SourceNavigationProvider:
 	def __init__(self, project: Project, debugger: Debugger):

@@ -10,7 +10,7 @@ V = TypeVar('V')
 
 class _DefaultDict(Dict[T, V]):
 	def __missing__(self, key: str):
-		return key.join('{}')
+		return f'{{{key}}}'
 
 
 class Error(core.Error):

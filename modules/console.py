@@ -1,13 +1,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable
+
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
 import sublime
 
-from .import core
-from .import ui
-from .import dap
+from . import core
+from . import ui
+from . import dap
 
 from .views.variable import VariableView
 
@@ -30,7 +31,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
 		self.color: str | None = None
-		self.phantoms = []
+		self.phantoms: list[ui.Phantom | ui.RawPhantom] = []
 		self.input_size = 0
 
 		self.indent = ''
@@ -158,7 +159,6 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		return max(self.view.size() - 1, 0)
 
 	def write(self, text: str, color: str | None, ensure_new_line=False, ignore_indent: bool = True):
-
 		indent = ''
 
 		if not ignore_indent and self.indent:
@@ -178,7 +178,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.color = color
 
 	def write_variable(self, variable: dap.Variable, at: int, last: bool = True):
-		html = '''
+		html = """
 			<style>
 			html {
 				background-color: var(--background);
@@ -193,7 +193,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			<body id="debugger">
 				<a href="">❯</a>
 			</body>
-		'''
+		"""
 
 		# phantom_at = at + len(indent)
 
@@ -222,7 +222,6 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.phantoms.append(phantom)
 
 	def add_annotation(self, at: int, source: dap.SourceLocation | None = None, count: int | None = None, annotation_id: int | None = None):
-
 		if not annotation_id:
 			self._annotation_id += 1
 			annotation_id = self._annotation_id
@@ -237,7 +236,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 			count_html = f'<span>{count}</span>' if count else ''
 
-			html = f'''
+			html = f"""
 			<style>
 				html {{
 					background-color: var(--background);
@@ -260,9 +259,9 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 					{source_html}
 				</div>
 			</body>
-			'''
+			"""
 
-			self.view.add_regions(f'an{annotation_id}', [sublime.Region(at, at)], annotation_color="#fff0", annotations=[html], on_navigate=on_navigate)
+			self.view.add_regions(f'an{annotation_id}', [sublime.Region(at, at)], annotation_color='#fff0', annotations=[html], on_navigate=on_navigate)
 		else:
 			self.view.add_regions(f'an{annotation_id}', [sublime.Region(at, at)])
 
@@ -320,14 +319,14 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			if self.text_change_listener:
 				self.text_change_listener.on_text_changed([])
 
-	def on_text_command(self, command_name: str, args: Any): #type: ignore
+	def on_text_command(self, command_name: str, args: Any):  # type: ignore
 		if not self.view.is_auto_complete_visible() and command_name == 'move' and args['by'] == 'lines':
 			self.enable_input_mode()
 			if args['forward']:
 				self.autofill(-1)
 			else:
 				self.autofill(1)
-			return ('noop')
+			return 'noop'
 
 	def on_query_completions(self, prefix: str, locations: list[int]) -> Any:
 		input = self.input_region()
@@ -335,21 +334,21 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			return
 
 		text = self.view.substr(sublime.Region(input.b, self.view.size()))
-		col = (locations[0] - input.b)
+		col = locations[0] - input.b
 		completions = sublime.CompletionList()
 
 		items: list[sublime.CompletionItem] = []
 
 		for fill in self._history:
-			items.append(sublime.CompletionItem.command_completion(
+			items.append(
+				sublime.CompletionItem.command_completion(
 					trigger=fill,
 					annotation='',
 					kind=sublime.KIND_SNIPPET,
 					command='insert',
-					args={
-						'characters': fill
-					}
-			))
+					args={'characters': fill},
+				)
+			)
 
 		@core.run
 		async def fetch():
@@ -390,9 +389,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 						annotation=completion.detail or '',
 						kind=kind,
 						command='insert',
-						args={
-							'characters': completion.text or completion.label
-						}
+						args={'characters': completion.text or completion.label},
 					)
 
 					items.append(item)

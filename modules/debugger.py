@@ -646,28 +646,33 @@ class Debugger(core.Dispose, dap.Debugger):
 		commands = request.args
 
 		if request.kind == 'external':
-			def external_terminal():
-				if self.project.external_terminal_kind == 'platform':
-					if core.platform.osx:
-						return ExternalTerminalMacDefault(title, cwd, commands, env)
-					elif core.platform.windows:
-						return ExternalTerminalWindowsDefault(title, cwd, commands, env)
-					elif core.platform.linux:
-						raise core.Error('default terminal for linux not implemented')
-					else:
-						raise core.Error('unreachable')
+			if Settings.external_terminal == 'platform':
+				if core.platform.osx:
+					terminal = ExternalTerminalMacDefault(title, cwd, commands, env)
+				elif core.platform.windows:
+					terminal = ExternalTerminalWindowsDefault(title, cwd, commands, env)
+				elif core.platform.linux:
+					raise core.Error('default terminal for linux not implemented')
+				else:
+					raise core.Error('unreachable')
 
-				if self.project.external_terminal_kind == 'terminus':
-					return ExternalTerminalTerminus(title, cwd, commands, env)
+			elif Settings.external_terminal == 'terminus':
+				terminal = ExternalTerminalTerminus(title, cwd, commands, env)
 
-				raise core.Error('unknown external terminal type "{}"'.format(self.project.external_terminal_kind))
+			else:
+				raise core.Error('unknown external terminal type "{}"'.format(Settings.external_terminal))
 
-			terminal = external_terminal()
 			self.external_terminals.setdefault(session, []).append(terminal)
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
 
 		if request.kind == 'integrated':
-			terminal = TerminusIntegratedTerminal(self, request.title or 'Untitled', request.cwd, request.args, request.env)
+			terminal = TerminusIntegratedTerminal(
+				self,
+				request.title or 'Untitled',
+				request.cwd,
+				request.args,
+				request.env,
+			)
 			self.integrated_terminals.setdefault(session, []).append(terminal)
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
 

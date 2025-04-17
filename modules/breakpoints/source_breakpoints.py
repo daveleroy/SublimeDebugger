@@ -1,26 +1,27 @@
 from __future__ import annotations
 from typing import Any, Callable
 
-from ..import core
-from ..import ui
-from ..import dap
+from .. import core
+from .. import ui
+from .. import dap
 
 import sublime
 import os
 
 from .breakpoint import Breakpoint
 
+
 # note: Breakpoint lines are 1 based (sublime lines are 0 based)
 class SourceBreakpoint(Breakpoint):
 	next_id = 0
 
-	def __init__(self, breakpoints: SourceBreakpoints, file: str, line: int, column: int|None, enabled: bool):
+	def __init__(self, breakpoints: SourceBreakpoints, file: str, line: int, column: int | None, enabled: bool):
 		super().__init__()
 
 		SourceBreakpoint.next_id += 1
 		self.id = SourceBreakpoint.next_id
 		self.region_name = 'bp{}'.format(self.id)
-		self.views: list[SourceBreakpointView] = []
+		self.phantoms: list[SourceBreakpointGutterPhantom] = []
 
 		self.dap = dap.SourceBreakpoint(line, column, None, None, None)
 		self._file = file
@@ -54,15 +55,17 @@ class SourceBreakpoint(Breakpoint):
 		return self.dap.column
 
 	def into_json(self) -> core.JSON:
-		return core.JSON({
-			'file': self.file,
-			'line': self.dap.line,
-			'column': self.dap.column,
-			'enabled': self.enabled,
-			'condition': self.dap.condition,
-			'logMessage': self.dap.logMessage,
-			'hitCondition': self.dap.hitCondition
-		})
+		return core.JSON(
+			{
+				'file': self.file,
+				'line': self.dap.line,
+				'column': self.dap.column,
+				'enabled': self.enabled,
+				'condition': self.dap.condition,
+				'logMessage': self.dap.logMessage,
+				'hitCondition': self.dap.hitCondition,
+			}
+		)
 
 	@staticmethod
 	def from_json(breakoints: SourceBreakpoints, json: core.JSON):
@@ -118,7 +121,7 @@ class SourceBreakpointView:
 	def __init__(self, breakpoint: SourceBreakpoint, view: sublime.View, on_click_inline: Callable[[], None]):
 		self.breakpoint = breakpoint
 		self.view = view
-		self.column_phantom: ui.RawPhantom|None = None
+		self.column_phantom: ui.RawPhantom | None = None
 		self.on_click_inline = on_click_inline
 		self.render()
 
@@ -150,12 +153,12 @@ class SourceBreakpointView:
 			column_point = self.view.text_point(line - 1, column - 1)
 			self.column_phantom = ui.RawPhantom(self.view, sublime.Region(column_point), html, on_navigate=lambda _: self.on_click_inline())
 
-
 	def dispose(self):
 		self.view.erase_regions(self.breakpoint.region_name)
 		if self.column_phantom:
 			self.column_phantom.dispose()
 			self.column_phantom = None
+
 
 class SourceBreakpoints:
 	def __init__(self):
@@ -186,7 +189,7 @@ class SourceBreakpoints:
 		breakpoint.set_breakpoint_result(session, result)
 		self.updated(breakpoint, send=False)
 
-	def updated(self, breakpoint: SourceBreakpoint, send: bool=True):
+	def updated(self, breakpoint: SourceBreakpoint, send: bool = True):
 		breakpoint.update_views()
 		self.on_updated(breakpoint)
 		if send:
@@ -196,7 +199,7 @@ class SourceBreakpoints:
 		for bp in self.breakpoints:
 			bp.clear_views()
 
-	def edit(self, breakpoint: SourceBreakpoint, index = 4):
+	def edit(self, breakpoint: SourceBreakpoint, index=4):
 		def set_log(value: str):
 			breakpoint.dap.logMessage = value or None
 			self.updated(breakpoint)
@@ -244,13 +247,8 @@ class SourceBreakpoints:
 				'Enabled',
 				'Enabled',
 			),
-			ui.InputListItem(
-				remove,
-				'Remove'
-			),
+			ui.InputListItem(remove, 'Remove'),
 		]
-
-
 
 	def toggle_file_line(self, file: str, line: int):
 		bps = self.get_breakpoints_on_line(file, line)
@@ -273,13 +271,11 @@ class SourceBreakpoints:
 			items.append(
 				ui.InputListItem(
 					self.edit(breakpoint),
-					"Breakpoint @ {}".format(breakpoint.tag),
+					'Breakpoint @ {}'.format(breakpoint.tag),
 				)
 			)
 
-		ui.InputList('Edit breakpoint')[
-			items
-		].run()
+		ui.InputList('Edit breakpoint')[items].run()
 
 	# todo: fix... this is going to trigger a ton of breakpoint requests if the debugger is active
 	def remove_all(self):
@@ -295,7 +291,7 @@ class SourceBreakpoints:
 		breakpoint.enabled = not breakpoint.enabled
 		self.updated(breakpoint)
 
-	def toggle(self, file: str, line: int, column: int|None = None):
+	def toggle(self, file: str, line: int, column: int | None = None):
 		breakpoint = self.get_breakpoint(file, line, column)
 		if breakpoint:
 			self.remove(breakpoint)
@@ -315,7 +311,7 @@ class SourceBreakpoints:
 				bps[breakpoint.file] = [breakpoint]
 		return bps
 
-	def get_breakpoint(self, file: str, line: int, column: int|None = None):
+	def get_breakpoint(self, file: str, line: int, column: int | None = None):
 		for b in self.breakpoints:
 			if b.file == file and b.line == line and b.column == column:
 				return b
@@ -325,7 +321,7 @@ class SourceBreakpoints:
 		r = list(filter(lambda b: b.file == file and b.line == line, self.breakpoints))
 		return r
 
-	def add_breakpoint(self, file: str, line: int, column: int|None = None):
+	def add_breakpoint(self, file: str, line: int, column: int | None = None):
 		# ensure we don't add a breakpoint that is at the same location
 		# note: compare to the uderlying dap module since breakpoint.line/column reflect the actual location of the breakpoint
 		# after it has been verified

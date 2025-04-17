@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from . import core
 from . import ui
-from .import dap
+from . import dap
 
 from .output_panel import OutputPanel
 
@@ -14,24 +14,22 @@ from .views.variables import VariablesTabbedView
 from .views.modules import ModulesTabbedView
 from .views.sources import SourcesTabbedView
 
+
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
 
 class CallstackOutputPanel(OutputPanel, core.Dispose):
 	def __init__(self, debugger: Debugger) -> None:
-		super().__init__(debugger, 'Debugger', 'Callstack', show_tabs=False, lock_selection=True)
+		super().__init__(debugger, 'Debugger Callstack', 'Callstack', show_tabs=False, lock_selection=True, unlisted=True)
 
 		self.on_input = core.Event[str]()
 		self.on_navigate = core.Event[dap.SourceLocation]()
-		self.disposeables = []
 
 		# we need enough space to place our phantoms in increasing regions (1, 1), (1, 2)... etc
 		# otherwise they will get reordered when one of them gets redrawn
 		# we use zero width characters so we don't have extra around phantoms
-		self.view.run_command('insert', {
-			'characters': '\u200c\u200c\u200c\u200c\u200c\u200c'
-		})
+		self.view.run_command('insert', {'characters': '\u200c\u200c\u200c\u200c\u200c\u200c'})
 		self.view.set_read_only(True)
 
 		settings = self.view.settings()

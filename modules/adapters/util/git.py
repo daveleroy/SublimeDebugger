@@ -2,10 +2,10 @@ from __future__ import annotations
 from typing import Callable
 from ...settings import Setting
 
-from ...import core
+from ... import core
 
-from .import vscode
-from .import request
+from . import vscode
+from . import request
 
 import string
 
@@ -13,14 +13,18 @@ import string
 github_personal_access_token = Setting['str|None'](
 	key='github_personal_access_token',
 	default=None,
-	description='Personal access token used for github api requests. If you are testing installing adapters you may need to set this to have higher api limits if you are getting 429 errors.'
+	description='Personal access token used for github api requests. If you are testing installing adapters you may need to set this to have higher api limits if you are getting 429 errors.',
 )
 
+
 def headers():
+	if not github_personal_access_token.value:
+		return {}
+
 	return {
-		'Authorization': f'Bearer {github_personal_access_token.value}'
-	}\
-	if github_personal_access_token.value else {}
+		'Authorization': f'Bearer {github_personal_access_token.value}',
+	}
+
 
 class GitInstaller(vscode.AdapterInstaller):
 	def __init__(self, type: str, repo: str, is_valid_asset: Callable[[str], bool] = lambda asset: asset.endswith('.vsix')):
@@ -68,7 +72,7 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 		self.type = type
 		self.repo = repo
 
-	async def install(self, version: str|None, log: core.Logger):
+	async def install(self, version: str | None, log: core.Logger):
 		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 		for release in releases:
 			if version == version_from_release(release):
@@ -91,6 +95,7 @@ class GitSourceInstaller(vscode.AdapterInstaller):
 		except Exception as e:
 			log.error(f'{self.type}: {e}')
 			raise e
+
 
 def version_from_release(release: core.JSON):
 	# remove anything that isn't a number from the start of a tag

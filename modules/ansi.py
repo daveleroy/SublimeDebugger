@@ -2,9 +2,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .import core
+from . import core
 
-def ansi_colorize(text: str, color: str|None = None, previous_color: str|None = None):
+
+def ansi_colorize(text: str, color: str | None = None, previous_color: str | None = None):
 	text = text.replace('\r\n', '\n')
 
 	def replacement(x: Any):
@@ -21,7 +22,8 @@ def ansi_colorize(text: str, color: str|None = None, previous_color: str|None = 
 	else:
 		return text
 
-def escape_code(color: str|None):
+
+def escape_code(color: str | None):
 	match = escape_codes_by_color.get(color)
 	if not match:
 		return '\u200c\u200b'
@@ -80,17 +82,17 @@ escape_codes: list[dict[str, Any]] = [
 		'scope': 'region.cyanish.debugger debugger.background',
 		'match': '\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b',
 	},
-
 ]
 
-escape_codes_by_code: dict[str|None, Any] = {}
-escape_codes_by_color: dict[str|None, Any] = {}
+escape_codes_by_code: dict[str | None, Any] = {}
+escape_codes_by_color: dict[str | None, Any] = {}
 
 for item in escape_codes:
 	escape_codes_by_color[item['color']] = item
 
 	for escape in item['escape']:
 		escape_codes_by_code[escape] = item
+
 
 def generate_ansi_syntax():
 	yaml = '''%YAML 1.2

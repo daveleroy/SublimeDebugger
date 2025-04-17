@@ -147,7 +147,7 @@ class Popup(Layout):
 			self.created_popup = True
 			self.view.show_popup(self.html, location=0, max_width=self.max_width, max_height=self.max_height, on_navigate=self.on_navigate, flags=sublime.KEEP_ON_SELECTION_MODIFIED, on_hide=self.on_hide)
 
-	def dispose(self) -> None:
+	def dispose(self):
 		super().dispose()
 		if not self.is_closed:
 			self.is_closed = True

@@ -5,8 +5,10 @@ from . import core
 import sublime
 
 T = TypeVar('T')
+
+
 class Setting(Generic[T], object):
-	def __init__(self, key: str, default: T, description: str = '', visible = True, schema: Any|None = None) -> None:
+	def __init__(self, key: str, default: T, description: str = '', visible=True, schema: Any | None = None) -> None:
 		self.key = key
 		self.default = default
 		self.description = description
@@ -14,7 +16,7 @@ class Setting(Generic[T], object):
 		self.schema = schema
 
 	@property
-	def value(self)  -> T:
+	def value(self) -> T:
 		return SettingsRegistery.settings.get(self.key, self.default)
 
 	@value.setter
@@ -34,44 +36,44 @@ class Setting(Generic[T], object):
 
 
 class Settings:
-	open_at_startup = Setting[bool] (
+	open_at_startup = Setting[bool](
 		key='open_at_startup',
 		default=True,
-		description='Open the debugger automatically when a project that is set up for debugging'
+		description='Open the debugger automatically when a project that is set up for debugging is opened.',
 	)
 
 	always_keep_visible = Setting[bool] (
 		key='always_keep_visible',
 		default=False,
-		description='Always keep the debugger panel visible'
+		description='Always keep the debugger panel visible',
 	)
 
-	font_size = Setting['float|None'] (
+	font_size = Setting['float|None'](
 		key='font_size',
 		default=None,
-		description='Change the font size of the debugger ui. Defaults to the font size in your preferences.'
+		description='Change the font size of the debugger ui. Defaults to the font size in your preferences.',
 	)
 
-	internal_font_scale = Setting[float] (
+	internal_font_scale = Setting[float](
 		key='internal_font_scale',
 		default=1,
-		description='Expected values of around 0.95 to 1.05. Only change this if the text/images/content are not aligning correctly within the panels (could cause the last panel to be clipped).'
+		description='Expected values of around 0.95 to 1.05. Only change this if the text/images/content are not aligning correctly within the panels (could cause the last panel to be clipped).',
 	)
 
-	internal_width_modifier = Setting[float] (
+	internal_width_modifier = Setting[float](
 		key='internal_width_modifier',
 		default=0,
-		description='Expected values of around 0 to -5. Only change this if the size of the panels is too large and the last panel is cropped off (adjust internal_font_scale first if text/images/content are not aligned correctly). Negative values make the panels smaller. Postive make them bigger.'
+		description='Expected values of around 0 to -5. Only change this if the size of the panels is too large and the last panel is cropped off (adjust internal_font_scale first if text/images/content are not aligned correctly). Negative values make the panels smaller. Postive make them bigger.',
 	)
 
-	external_terminal = Setting[str] (
+	external_terminal = Setting[str](
 		key='external_terminal',
 		default='terminus',
-		description='''
+		description="""
 		Which external terminal should be used when an adapter requests an external terminal
 		"platform" (default) uses Terminal on MacOS, CMD (Not tested) on Windows, (Unimplemented) on Linux
 		"terminus" Opens a new terminal view using terminus. The terminus package must be installed https://github.com/randy3k/Terminus
-		'''
+		""",
 	)
 
 	minimum_console_height = Setting[int] (
@@ -84,24 +86,22 @@ class Settings:
 
 	bring_window_to_front_on_pause: bool = False
 
-	development = Setting[bool] (
+	development = Setting[bool](
 		key='development',
 		default=False,
-		description='Additional console logs and some new features are locked behind this flag'
+		description='Additional console logs and some new features are locked behind this flag',
 	)
 
-	node = Setting['str|None'] (
+	node = Setting['str|None'](
 		key='node',
 		default=None,
-		description='Sets a specific path for node if not set adapters that require node to run will use whatever is in your path'
+		description='Sets a specific path for node if not set adapters that require node to run will use whatever is in your path',
 	)
 
-
-	integrated_output_panels = Setting['dict[str, dict[str, str]]'] (
+	integrated_output_panels = Setting['dict[str, dict[str, str]]'](
 		key='integrated_output_panels',
 		default={},
-		description=
-		'''
+		description="""
 		Output panels outside of the debugger can be integrated into the tabbed debugger interface (note: In some cases output panels may cause issues and not work correctly depending on who owns them)
 		An example for interating the Diagnostics panel of LSP and a Terminus output panel.
 
@@ -114,53 +114,49 @@ class Settings:
 				"position": "bottom",
 			}
 		}
-		'''
+		""",
 	)
 
-	installed_packages = Setting['list[str]'] (
+	installed_packages = Setting['list[str]'](
 		key='installed_packages',
 		default=[],
-		description='Some debug adapters require certain packages to be installed via package control. If you have installed these package outside of package control then you can add them to this list and they will be treated as if they are installed.'
+		description='Some debug adapters require certain packages to be installed via package control. If you have installed these package outside of package control then you can add them to this list and they will be treated as if they are installed.',
 	)
 
-	global_debugger_configurations = Setting['list[Any]'] (
+	global_debugger_configurations = Setting['list[Any]'](
 		key='global_debugger_configurations',
 		default=[],
-		description='''
-		Global debugger configurations that are accessible from every project
-		''',
+		description='Global debugger configurations that are accessible from every project',
 		schema={
 			'type': 'array',
-			'items': { '$ref': 'sublime://settings/debugger#/definitions/debugger_configuration' },
-		}
+			'items': {'$ref': 'sublime://settings/debugger#/definitions/debugger_configuration'},
+		},
 	)
 
-	global_debugger_tasks = Setting['list[Any]'] (
+	global_debugger_tasks = Setting['list[Any]'](
 		key='global_debugger_tasks',
 		default=[],
-		description='''
-		Global debugger tasks that are accessible from every project
-		''',
+		description='Global debugger tasks that are accessible from every project',
 		schema={
 			'type': 'array',
-			'items': { '$ref': 'sublime://settings/debugger#/definitions/debugger_task' },
-		}
+			'items': {'$ref': 'sublime://settings/debugger#/definitions/debugger_task'},
+		},
 	)
 
-	global_debugger_compounds = Setting['list[Any]'] (
+	global_debugger_compounds = Setting['list[Any]'](
 		key='global_debugger_compounds',
 		default=[],
-		description='''
-		Global debugger compounds that are accessible from every project
-		''',
+		description='Global debugger compounds that are accessible from every project',
 		schema={
 			'type': 'array',
-			'items': { '$ref': 'sublime://settings/debugger#/definitions/debugger_compound' },
-		}
+			'items': {'$ref': 'sublime://settings/debugger#/definitions/debugger_compound'},
+		},
 	)
 
+
 # Settings __set__ method will not get called on a class so just override the class with an instance of itself...
-Settings = Settings() # type: ignore
+Settings = Settings()  # type: ignore
+
 
 class SettingsRegistery:
 	settings: sublime.Settings
@@ -186,35 +182,32 @@ class SettingsRegistery:
 			if not isinstance(setting, Setting):
 				continue
 
-			t = typing.get_args(setting.__orig_class__)[0] #type: ignore
+			t = typing.get_args(setting.__orig_class__)[0]  # type: ignore
 
 			schema: dict[str, Any] = {}
 			if setting.schema:
 				schema = setting.schema
 			elif t == bool:
-				schema = { 'type': 'boolean' }
+				schema = {'type': 'boolean'}
 			elif t == int:
-				schema = { 'type': 'number' }
+				schema = {'type': 'number'}
 			elif t == ForwardRef('int|None'):
-				schema = { 'type': ['number', 'null'] }
+				schema = {'type': ['number', 'null']}
 			elif t == float:
-				schema = { 'type': 'number' }
+				schema = {'type': 'number'}
 			elif t == ForwardRef('float|None'):
-				schema = { 'type': ['number', 'null'] }
+				schema = {'type': ['number', 'null']}
 			elif t == str:
-				schema = { 'type': 'string' }
+				schema = {'type': 'string'}
 			elif t == ForwardRef('str|None'):
-				schema = { 'type': ['string', 'null'] }
+				schema = {'type': ['string', 'null']}
 			else:
-				schema = { 'type': ['object', 'array'] }
+				schema = {'type': ['object', 'array']}
 
 			schema['description'] = textwrap.dedent(setting.description).strip().split('\n')[0]
 			properties[setting.key] = schema
 
-		return {
-			'additionalProperties': False,
-			'properties': properties
-		}
+		return {'additionalProperties': False, 'properties': properties}
 
 	@staticmethod
 	def generate_settings():
@@ -228,20 +221,21 @@ class SettingsRegistery:
 			if not isinstance(setting, Setting):
 				continue
 
-			if not setting.visible: continue
+			if not setting.visible:
+				continue
 
 			lines = textwrap.dedent(setting.description).strip().split('\n')
 			comment = ''
 			for line in lines:
 				# skip leading empty lines
-				if not comment and not line: continue
+				if not comment and not line:
+					continue
 
 				comment += f'\t// {line}\n'
 
 			output += comment
 			output += f'\t{json.dumps(setting.key)}: {json.dumps(setting.default)},'
 			output += '\n\n'
-
 
 		output += '}'
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 from . import util
 from .. import dap
 from .. import core
-from .. import commands
+from .. import command
 
 
 class GDB(dap.Adapter):
@@ -18,9 +18,9 @@ class GDB(dap.Adapter):
 		return dap.StdioTransport(command)
 
 
-class GDBAction(commands.Action):
+class GDBAction(command.Action):
 	def enabled(self, debugger: dap.Debugger):
-		return bool(debugger.session and debugger.session.is_paused and isinstance(debugger.session.adapter, GDB))
+		return bool(debugger.session and isinstance(debugger.session.adapter, GDB) and debugger.session.is_paused)
 
 
 class GDBRecord(GDBAction):

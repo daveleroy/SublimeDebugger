@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import Any
 
-from ..import core
-from ..import ui
-from ..import dap
+from .. import core
+from .. import ui
+from .. import dap
 
 from .breakpoint import Breakpoint
 
@@ -15,17 +15,11 @@ class FunctionBreakpoint(Breakpoint):
 		self.dap = breakpoint
 
 	def into_json(self) -> core.JSON:
-		return core.JSON({
-			'dap': self.dap,
-			'enabled': self.enabled
-		})
+		return core.JSON({'dap': self.dap, 'enabled': self.enabled})
 
 	@staticmethod
 	def from_json(json: core.JSON):
-		return FunctionBreakpoint(
-			json['dap'],
-			json['enabled']
-		)
+		return FunctionBreakpoint(json['dap'], json['enabled'])
 
 	@property
 	def image(self):
@@ -88,7 +82,7 @@ class FunctionBreakpoints:
 		breakpoint.enabled = not breakpoint.enabled
 		self.updated()
 
-	def edit(self, breakpoint: FunctionBreakpoint, index = 4):
+	def edit(self, breakpoint: FunctionBreakpoint, index=4):
 		def set_name(value: str):
 			if value:
 				breakpoint.dap.name = value
@@ -137,22 +131,14 @@ class FunctionBreakpoints:
 				'Enabled',
 				'Disabled',
 			),
-			ui.InputListItem(
-				remove,
-				'Remove'
-			),
+			ui.InputListItem(remove, 'Remove'),
 		]
 
 	def add_command(self):
 		ui.InputText(self.add, "Name of function to break on").run()
 
 	def add(self, name: str):
-		self.breakpoints.append(
-			FunctionBreakpoint(
-				dap.FunctionBreakpoint(name, None, None),
-				enabled=True
-			)
-		)
+		self.breakpoints.append(FunctionBreakpoint(dap.FunctionBreakpoint(name, None, None), enabled=True))
 		self.updated()
 
 	def remove(self, breakpoint: FunctionBreakpoint):

@@ -1,20 +1,19 @@
 from __future__ import annotations
 from typing import Any, Callable
 
-from ..import ui
-from ..import dap
-from ..import core
+from .. import ui
+from .. import dap
+from .. import core
 
 from ..breakpoints import (
 	Breakpoints,
-	IBreakpoint,
 	SourceBreakpoint,
 	DataBreakpoint,
 	FunctionBreakpoint,
 	ExceptionBreakpointsFilter,
 )
 
-from .import css
+from . import css
 
 
 class BreakpointsView(ui.div, core.Dispose):
@@ -44,7 +43,7 @@ class BreakpointsView(ui.div, core.Dispose):
 
 
 class BreakpointView(ui.div):
-	def __init__(self, breakpoints: Breakpoints, breakpoint: DataBreakpoint|ExceptionBreakpointsFilter|FunctionBreakpoint|SourceBreakpoint, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
+	def __init__(self, breakpoints: Breakpoints, breakpoint: DataBreakpoint | ExceptionBreakpointsFilter | FunctionBreakpoint | SourceBreakpoint, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
 		self.breakpoint = breakpoint
@@ -53,6 +52,7 @@ class BreakpointView(ui.div):
 	def render(self):
 		ui.icon(self.breakpoint.image, on_click=self._on_toggle)
 		ui.text(self.breakpoint.name, css=css.secondary, on_click=self._on_navigate)
+
 		if self.breakpoint.tag:
 			ui.spacer()
 			ui.text(self.breakpoint.tag, css=css.button, on_click=self._on_navigate)
@@ -88,14 +88,15 @@ class BreakpointView(ui.div):
 		else:
 			assert False, 'unreachable'
 
-	def edit(self) -> None:
+	@core.run
+	async def edit(self) -> None:
 		if isinstance(self.breakpoint, DataBreakpoint):
-			self.breakpoints.data.edit(self.breakpoint).run()
+			await self.breakpoints.data.edit(self.breakpoint)
 		elif isinstance(self.breakpoint, FunctionBreakpoint):
-			self.breakpoints.function.edit(self.breakpoint).run()
+			await self.breakpoints.function.edit(self.breakpoint)
 		elif isinstance(self.breakpoint, ExceptionBreakpointsFilter):
-			self.breakpoints.filters.edit(self.breakpoint).run()
+			await self.breakpoints.filters.edit(self.breakpoint)
 		elif isinstance(self.breakpoint, SourceBreakpoint):
-			self.breakpoints.source.edit(self.breakpoint).run()
+			await self.breakpoints.source.edit(self.breakpoint)
 		else:
 			assert False, 'unreachable'

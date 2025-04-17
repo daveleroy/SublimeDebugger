@@ -12,7 +12,7 @@ from .asyncio import Future
 from .event import Event
 
 
-async def sublime_open_file_async(window: sublime.Window, file: str, line: int|None = None, column: int|None = None, group: int=-1) -> sublime.View:
+async def sublime_open_file_async(window: sublime.Window, file: str, line: int | None = None, column: int | None = None, group: int = -1) -> sublime.View:
 	if line:
 		file += f':{line}'
 	if column:
@@ -21,6 +21,7 @@ async def sublime_open_file_async(window: sublime.Window, file: str, line: int|N
 	view = window.open_file(file, sublime.ENCODED_POSITION, group=group)
 	await wait_for_view_to_load(view)
 	return view
+
 
 async def wait_for_view_to_load(view: sublime.View):
 	if view.is_loading():
@@ -34,15 +35,18 @@ async def wait_for_view_to_load(view: sublime.View):
 		await future_view
 		handle.dispose()
 
-def window_from_view_or_widow(view_or_window: sublime.View|sublime.Window):
+
+def window_from_view_or_widow(view_or_window: sublime.View | sublime.Window):
 	if isinstance(view_or_window, sublime.View):
 		return view_or_window.window()
 	return view_or_window
+
 
 T = TypeVar('T')
 
 Args = TypeVarTuple('Args')
 Params = ParamSpec('Params')
+
 
 def edit(view: sublime.View, run: Callable[[sublime.Edit], Any]):
 	previous = DebuggerEditCommand._run
@@ -50,15 +54,19 @@ def edit(view: sublime.View, run: Callable[[sublime.Edit], Any]):
 	view.run_command('debugger_edit')
 	DebuggerEditCommand._run = previous
 
+
 def sublime_edit(value: Callable[Concatenate[sublime.View, sublime.Edit, Params], T]) -> Callable[Concatenate[sublime.View, Params], T]:
 	@wraps(value)
 	def wrap(view: sublime.View, *args, **kwargs):
 		return edit(view, lambda edit: value(view, edit, *args, **kwargs))
-	return wrap #type: ignore
+
+	return wrap  # type: ignore
+
 
 class Viewable(Protocol):
 	@property
 	def view(self) -> sublime.View: ...
+
 
 SelfViewable = TypeVar('SelfViewable', bound=Viewable)
 
@@ -67,9 +75,12 @@ def sublime_edit_method(value: Callable[Concatenate[SelfViewable, sublime.Edit, 
 	@wraps(value)
 	def wrap(self: SelfViewable, *args, **kwargs):
 		return edit(self.view, lambda edit: value(self, edit, *args, **kwargs))
-	return wrap #type: ignore
+
+	return wrap  # type: ignore
+
 
 on_view_load: Event[sublime.View] = Event()
+
 
 class DebuggerEditCommand(sublime_plugin.TextCommand):
 	_run: Callable[[sublime.Edit], None] | None = None

@@ -36,9 +36,6 @@ class Project:
 
 		self.configuration_or_compound: Configuration | ConfigurationCompound | None = None
 
-		self.external_terminal_kind = 'platform'
-		self.bring_window_to_front_on_pause = False
-
 	def dispose(self): ...
 
 	@property
@@ -156,13 +153,8 @@ class Project:
 
 	def reload(self, console: dap.Console):
 		core.info('ProjectConfiguration.reload')
-		self._load_settings()
 		self._load_configurations(console)
 		self.on_updated()
-
-	def _load_settings(self):
-		self.external_terminal_kind = Settings.external_terminal
-		self.bring_window_to_front_on_pause = Settings.bring_window_to_front_on_pause
 
 	def _extract_from_project_data(self, project_data: Any, key: str) -> list[tuple[Any, dap.SourceLocation]]:
 		debugger_include_examples = project_data.get('debugger_include_examples') == True

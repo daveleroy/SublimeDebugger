@@ -192,7 +192,7 @@ class VariableView(ui.div):
 		self.dirty()
 
 
-	def render_header(self, name: str, value: str, is_expandable:bool, is_expanded: bool):
+	def render_header(self, name: str, value: str, is_expandable: bool, is_expanded: bool):
 		with ui.div(height=css.row_height):
 			if is_expandable:
 				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=self.toggle_expand)
@@ -203,7 +203,6 @@ class VariableView(ui.div):
 				ui.text(name, css=css.secondary, on_click=self.edit_variable)
 				ui.spacer(1)
 				ui.code(value, on_click=self.edit_variable)
-
 			else:
 				ui.code(value, on_click=self.edit_variable)
 

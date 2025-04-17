@@ -8,7 +8,7 @@ import socket
 import shutil
 import sublime
 
-def version_tuple(v):
+def version_tuple(v: str):
 	return tuple(v.split('.'))
 
 def get_node_path(adapter_type: str|list[str]) -> str:
