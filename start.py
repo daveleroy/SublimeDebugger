@@ -106,15 +106,6 @@ def open_debugger_in_window_or_view(window_or_view: sublime.View | sublime.Windo
 	Debugger.get(window, create=True)
 
 
-# if there is a debugger running in the window then that is the most relevant one
-# otherwise all debuggers are relevant
-def most_relevant_debuggers_for_view(view: sublime.View) -> Iterable[Debugger]:
-	if debugger := Debugger.get(view):
-		return [debugger]
-
-	return list(Debugger.debuggers())
-
-
 def updated_settings():
 	core.log_configure(
 		log_info=Settings.development,
@@ -128,7 +119,7 @@ def updated_settings():
 		debugger.updated_settings()
 
 
-class EventListener (sublime_plugin.EventListener):
+class EventListener(sublime_plugin.EventListener):
 	def on_new_window(self, window: sublime.Window):
 		open_debugger_in_window_or_view(window)
 
@@ -157,22 +148,15 @@ class EventListener (sublime_plugin.EventListener):
 
 	@core.run
 	async def on_hover(self, view: sublime.View, point: int, hover_zone: int):
-		if Debugger.ignore(view):
-			return
-
 		debugger = Debugger.get(view)
 		if not debugger:
 			return
 
 		project = debugger.project
-
-		if hover_zone != sublime.HOVER_TEXT or not project.is_source_file(view):
-			return
-
-		if not debugger.session:
-			return
-
 		session = debugger.session
+
+		if not session or hover_zone != sublime.HOVER_TEXT or not project.is_source_file(view):
+			return
 
 		r = session.adapter.on_hover_provider(view, point)
 		if not r:
@@ -219,7 +203,8 @@ class EventListener (sublime_plugin.EventListener):
 			core.error('adapter failed hover evaluation', e)
 
 	def on_text_command(self, view: sublime.View, cmd: str, args: dict[str, Any] | None) -> Any:
-		if Debugger.ignore(view):
+		debugger = Debugger.get(view)
+		if not debugger:
 			return
 
 		if (cmd == 'drag_select' or cmd == 'context_menu') and args and 'event' in args:
@@ -267,25 +252,26 @@ class EventListener (sublime_plugin.EventListener):
 
 	def on_view_gutter_clicked(self, view: sublime.View, line: int, button: int) -> bool:
 		line += 1  # convert to 1 based lines
-		debuggers = most_relevant_debuggers_for_view(view)
-		if not debuggers:
+		debugger = Debugger.get(view)
+		if not debugger:
 			return False
 
-		for debugger in debuggers:
-			breakpoints = debugger.breakpoints
-			file = view.file_name()
-			if not file:
-				continue
+		breakpoints = debugger.breakpoints
+		file = view.file_name()
+		if not file:
+			return False
 
-			if window := view.window():
-				window.focus_view(view)
+		if window := view.window():
+			window.focus_view(view)
 
-			source_breakpoints = breakpoints.source.get_breakpoints_on_line(file, line)
-			if button == 1 or (not source_breakpoints and button == 2):
-				debugger.breakpoints.source.toggle_file_line(file, line)
+		source_breakpoints = breakpoints.source.get_breakpoints_on_line(file, line)
+		if button == 1 or (not source_breakpoints and button == 2):
+			debugger.breakpoints.source.toggle_file_line(file, line)
+			debugger.callstack.open()
 
-			elif source_breakpoints and button == 2:
-				debugger.breakpoints.source.edit_breakpoints(source_breakpoints)
+		elif source_breakpoints and button == 2:
+			debugger.breakpoints.source.edit_breakpoints(source_breakpoints)
+			debugger.callstack.open()
 
 		return True
 
@@ -322,23 +308,13 @@ class EventListener (sublime_plugin.EventListener):
 
 	def on_load(self, view: sublime.View):
 		core.on_view_load(view)
-
-		if Debugger.ignore(view):
-			return
-
 		for debugger in Debugger.debuggers():
 			debugger.breakpoints.source.sync_from_breakpoints(view)
 
 	def on_activated(self, view: sublime.View):
-		if Debugger.ignore(view):
-			return
-
 		for debugger in Debugger.debuggers():
 			debugger.breakpoints.source.sync_from_breakpoints(view)
 
 	def on_modified(self, view: sublime.View) -> None:
-		if Debugger.ignore(view):
-			return
-
 		for debugger in Debugger.debuggers():
 			debugger.breakpoints.source.invalidate(view)
