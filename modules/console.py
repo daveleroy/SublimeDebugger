@@ -20,7 +20,7 @@ from .output_panel import OutputPanel
 
 class ConsoleOutputPanel(OutputPanel, dap.Console):
 	def __init__(self, debugger: Debugger) -> None:
-		super().__init__(debugger, 'Debugger Console', name='Console', show_tabs=True, remove_last_newline=True)
+		super().__init__(debugger, 'Debugger', name='Console', show_tabs=True, remove_last_newline=True)
 
 		self.on_input = core.Event[str]()
 		self.on_navigate = core.Event[dap.SourceLocation]()

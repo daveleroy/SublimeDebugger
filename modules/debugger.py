@@ -20,8 +20,9 @@ from .output_panel import OutputPanel
 from .disassemble import DisassembleView
 
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
-from .terminal_task import Tasks
 from .terminal_integrated import TerminusIntegratedTerminal
+
+from .tasks import Tasks
 
 from .source_navigation import SourceNavigationProvider
 

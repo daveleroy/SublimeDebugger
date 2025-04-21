@@ -21,7 +21,7 @@ for module in list(filter(lambda module: module.startswith(cast(str, __package__
 from .modules.core.sublime import DebuggerEditCommand
 from .modules.command import DebuggerExecCommand, DebuggerCommand, DebuggerTextCommand, DebuggerInputCommand
 
-from .modules.output_panel import DebuggerConsoleListener
+from .modules.output_panel import OutputPanelEventListener
 from .modules.terminal_integrated import DebuggerTerminusPostViewHooks
 from .modules.ui.input import CommandPaletteInputCommand
 

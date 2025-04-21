@@ -135,7 +135,6 @@ class Layout:
 	def layout_at_layout_position(view: sublime.View, layout_position: tuple[float, float]):
 		found_layout = None
 		for layout in Layout.layouts:
-			print(layout)
 			if layout.view == view and layout.inside_region(layout_position[0]):
 				found_layout = layout
 				break

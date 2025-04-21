@@ -14,21 +14,12 @@ if TYPE_CHECKING:
 	from .debugger import Debugger
 
 
-class TaskRunner(Protocol):
-	task: dap.TaskExpanded
-
-	async def wait(self) -> None: ...
-	def is_finished(self): ...
-	def dispose(self): ...
-	def cancel(self): ...
-
-
 class Tasks(core.Dispose):
 	def __init__(self) -> None:
-		self.added = core.Event[TaskRunner]()
-		self.removed = core.Event[TaskRunner]()
-		self.updated = core.Event[TaskRunner]()
-		self.tasks: list[TaskRunner] = []
+		self.added = core.Event[TerminusTask]()
+		self.removed = core.Event[TerminusTask]()
+		self.updated = core.Event[TerminusTask]()
+		self.tasks: list[TerminusTask] = []
 
 	def is_active(self):
 		for task in self.tasks:
@@ -96,7 +87,7 @@ class Tasks(core.Dispose):
 		if not task.background:
 			await terminal.wait()
 
-	def on_options(self, task: TaskRunner):
+	def on_options(self, task: TerminusTask):
 		if task.is_finished():
 			self.cancel(task)
 			return
@@ -115,7 +106,7 @@ class Tasks(core.Dispose):
 
 		return False
 
-	def cancel(self, task: TaskRunner):
+	def cancel(self, task: TerminusTask):
 		try:
 			self.tasks.remove(task)
 		except ValueError:
@@ -134,32 +125,83 @@ class Tasks(core.Dispose):
 
 class TerminusTask(OutputPanel):
 	def __init__(self, debugger: Debugger, task: dap.TaskExpanded):
-
-		# is there a better way to do this? This could mean the user customized the settings but not have terminus installed?
-		settings = sublime.load_settings("Terminus.sublime-settings")
-		if not settings:
-			raise core.Error('Terminus must be installed to use the `console` value of `integratedTerminal`. Either install from Package control or change your debugging configuration `console` value to `integratedConsole`.')
-
 		super().__init__(debugger, task.name, show_tabs=True)
-
-		self.task = task
-		core.edit(self.view, lambda edit: self.view.insert(edit, 0, ''))
-
-		arguments = task.copy()
-		arguments['tag' ] = self.output_panel_name
-		arguments['panel_name'] = self.name
-		arguments['auto_close'] = False
-		arguments['post_view_hooks'] = [
-			['debugger_terminus_post_view_hooks', {}],
-		]
-		debugger.window.run_command('terminus_open', arguments)
-
-
+		# title: str, cwd: str, commands: list[str], env: dict[str, str|None]|None
 		self.future: core.Future[None] = core.Future()
 		self.view.settings().add_on_change('debugger', self._on_settings_changed)
 
+		# is there a better way to do this? This could mean the user customized the settings but not have terminus installed?
+		try:
+			settings = sublime.load_settings('Terminus.sublime-settings')
+			if not settings:
+				raise core.Error('Terminus must be installed to use the `console` value of `integratedTerminal`. Either install from Package control or change your debugging configuration `console` value to `integratedConsole`.')
 
-		self.set_status(ui.Images.shared.loading)
+			self.task = task
+			core.edit(self.view, lambda edit: self.view.insert(edit, 0, ''))
+
+			arguments = task.copy()
+			arguments['tag'] = self.output_panel_name
+			arguments['panel_name'] = self.panel_name
+			arguments['auto_close'] = False
+			arguments['post_view_hooks'] = [
+				['debugger_terminus_post_view_hooks', {}],
+			]
+			try:
+				self.verify_arguments(**arguments)
+			except TypeError as e:
+				message: str = e.args[0]
+				if message.startswith('verify_arguments() got an unexpected keyword argument '):
+					message = message.replace('verify_arguments() got an unexpected keyword argument ', '')
+					raise core.Error('Terminus: unknown key in task ' + message)
+
+				core.error('Unable to start Terminus', e)
+				raise core.Error(str(e))
+
+			debugger.window.run_command('terminus_open', arguments)
+
+			# if self.task.start_file_regex or self.task.end_file_regex:
+			# 	self.attach(self.view.buffer())
+
+			self.set_status(ui.Images.shared.loading)
+
+		except core.Error as error:
+			self.throw(error)
+
+	@core.run
+	async def throw(self, error: core.Error):
+		# just in case an error happens instantly there will be a flash when retrying
+		await core.delay(0.05)
+
+		text = str(error)
+		core.edit(self.view, lambda e: self.view.insert(e, 0, text))
+		self.set_status(ui.Images.shared.clear)
+		self.future.set_exception(error)
+
+	def verify_arguments(
+		self,
+		config_name=None,
+		cmd=None,
+		shell_cmd=None,
+		cwd=None,
+		working_dir=None,
+		env={},
+		title=None,
+		show_in_panel=None,
+		panel_name=None,
+		focus=True,
+		tag=None,
+		file_regex=None,
+		line_regex=None,
+		pre_window_hooks=[],
+		post_window_hooks=[],
+		post_view_hooks=[],
+		view_settings={},
+		auto_close=True,
+		cancellable=False,
+		reactivable=True,
+		timeit=False,
+		paths=[],
+	): ...
 
 
 	def _check_status_code(self):
@@ -198,7 +240,7 @@ class TerminusTask(OutputPanel):
 		await self.future
 
 	def is_finished(self):
-		return self.view.settings().get('terminus_view.finished')
+		return self.view.settings().get('terminus_view.finished') or self.future.done()
 
 	def cancel(self): ...
 

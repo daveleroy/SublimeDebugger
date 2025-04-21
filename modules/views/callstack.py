@@ -7,12 +7,13 @@ from .. import dap
 from . import css
 from .tabbed import TabbedView
 
-from ..output_panel import OutputPanelTabs, OutputPanel
+from .output_panel_views import OutputPanelTabsView
 
 import os
 
 if TYPE_CHECKING:
 	from ..debugger import Debugger
+	from ..output_panel import OutputPanel
 
 
 class CallStackState:
@@ -79,7 +80,7 @@ class CallStackTabbedView(TabbedView):
 		self.debugger = debugger
 
 		self.callstack = CallstackView(self.debugger)
-		self.tabs = OutputPanelTabs(self.debugger, panel)
+		self.tabs = OutputPanelTabsView(self.debugger, panel)
 
 	def header(self, is_selected):
 		self.tabs.append_stack()

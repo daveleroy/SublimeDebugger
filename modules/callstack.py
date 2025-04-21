@@ -69,9 +69,5 @@ class CallstackOutputPanel(OutputPanel, core.Dispose):
 				ModulesTabbedView(self.debugger)
 				SourcesTabbedView(self.debugger, debugger._on_navigate_to_source)
 
-
-	def updated_status(self):
-		self.callstack.tabs.dirty()
-
 	def scroll_to_end(self):
 		self.view.set_viewport_position((0, 0), False)

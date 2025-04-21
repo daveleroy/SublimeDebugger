@@ -4,58 +4,15 @@ from typing import TYPE_CHECKING, Callable, Any, ClassVar, Dict
 import sublime
 import sublime_plugin
 
+
 from . import core
 from . import ui
 
-from .views.debugger import DebuggerActionsTab
-from .views import css
 from .settings import Settings
+from .views.output_panel_views import OutputPanelTabsBarView
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
-
-
-class OutputPanelTabs(ui.span):
-	def __init__(self, debugger: Debugger, panel: OutputPanel):
-		super().__init__()
-		self.debugger = debugger
-		self.debugger.on_output_panels_updated.add(self.dirty)
-		self.output_name = panel.output_panel_name
-		self.show_tabs_top = panel.show_tabs_top
-
-	def __repr__(self) -> str:
-		return super().__repr__() + self.output_name + str(self.children)
-
-	def render(self):
-		for panel in self.debugger.output_panels:
-			is_selected = panel.output_panel_name == self.output_name
-			with ui.span(css=css.tab_selected if is_selected else css.tab, on_click=lambda panel=panel, tab=panel.name: panel.open()):
-				ui.spacer(1)
-				ui.text(panel.name, css=css.label if is_selected else css.secondary)
-				ui.spacer(1)
-				if panel.status:
-					ui.icon(panel.status, on_click=lambda panel=panel: panel.open_status())
-
-			ui.spacer_dip(10)
-
-
-class OutputPanelBar(ui.div):
-	def __init__(self, debugger: Debugger, panel: OutputPanel):
-		super().__init__(css=css.console_tabs_top if panel.show_tabs_top else css.console_tabs_bottom)
-
-		self.actions = DebuggerActionsTab(debugger)
-		self.tabs = OutputPanelTabs(debugger, panel)
-		self.top = panel.show_tabs_top
-
-	def render(self):
-		with ui.div(width=self.layout.width):
-			with ui.div(height=css.header_height):
-				self.actions.append_stack()
-				ui.spacer_dip(9)
-				self.tabs.append_stack()
-
-			if self.top:
-				ui.div(height=0.25, css=css.seperator)
 
 
 class OutputPanel(core.Dispose):
@@ -138,7 +95,7 @@ class OutputPanel(core.Dispose):
 			# 3 seems to be an inline for the content before and the content after is left aligned below the phantom which lets us put a phantom at the top of the ui if you use Region(0)
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(0), 3)
 			with self.controls_and_tabs_phantom:
-				self.controls_and_tabs = OutputPanelBar(debugger, self)
+				self.controls_and_tabs = OutputPanelTabsBarView(debugger, self)
 
 			self.dispose_add(
 				[
@@ -149,7 +106,7 @@ class OutputPanel(core.Dispose):
 		elif show_tabs:
 			self.controls_and_tabs_phantom = ui.Phantom(self.view, sublime.Region(-1), sublime.LAYOUT_BLOCK)
 			with self.controls_and_tabs_phantom:
-				self.controls_and_tabs = OutputPanelBar(debugger, self)
+				self.controls_and_tabs = OutputPanelTabsBarView(debugger, self)
 
 			self.text_change_listener = OutputPanelBottomTextChangeListener(self)
 			self.controls_and_tabs_phantom.on_layout_invalidated = self.text_change_listener.invalidated
@@ -190,14 +147,7 @@ class OutputPanel(core.Dispose):
 			return
 
 		self.status = status
-
-		# if the status of a panel changes we need to re-render all the output panels
-		for panel in self.debugger.output_panels:
-			panel.updated_status()
-
-	def updated_status(self):
-		if controls_and_tabs := self.controls_and_tabs:
-			controls_and_tabs.dirty()
+		self.debugger.on_output_panels_updated()
 
 	def dispose(self):
 		super().dispose()
@@ -289,7 +239,7 @@ class OutputPanel(core.Dispose):
 	def on_query_completions(self, prefix: str, locations: list[int]) -> Any: ...
 
 
-class DebuggerConsoleListener(sublime_plugin.EventListener):
+class OutputPanelEventListener(sublime_plugin.EventListener):
 	def on_selection_modified(self, view: sublime.View) -> None:
 		panel = OutputPanel.for_view(view)
 		if not panel:
