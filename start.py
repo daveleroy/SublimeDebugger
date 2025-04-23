@@ -168,35 +168,10 @@ class EventListener(sublime_plugin.EventListener):
 			component = VariableView(debugger, dap.Variable.from_evaluate(session, '', response))
 			component.toggle_expand()
 
-			popup = None
-
-			def on_close_popup():
-				nonlocal popup
-				if popup:
-					popup.dispose()
-					popup = None
-
-				core.info('Popup closed')
-				view.erase_regions('selected_hover')
-
-			def force_update():
-				if popup:
-					popup.create_or_update_popup()
-
-			# hack to ensure if someone else updates our popup in the first second it gets re-updated
-			for i in range(1, 10):
-				core.timer(force_update, 0.1 * i)
-
-			def show_popup():
-				nonlocal popup
-				popup = ui.Popup(view, region.a, on_close=on_close_popup)
-				with popup:
-					with ui.div(width=500):
-						component.append_stack()
-
-				view.add_regions('selected_hover', [region], scope='comment')
-
-			show_popup()
+			popup = ui.Popup(view, region.a)
+			with popup:
+				with ui.div(width=500):
+					component.append_stack()
 
 		# errors trying to evaluate a hover expression should be ignored
 		except dap.Error as e:

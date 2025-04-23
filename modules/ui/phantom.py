@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, ClassVar
 
 from .. import core
 from .layout import Layout
@@ -104,6 +104,8 @@ class RawAnnotation:
 
 
 class Popup(Layout):
+	current: ClassVar[Popup | None] = None
+
 	def __init__(self, view: sublime.View, location: int = -1, on_close: Callable[[], None] | None = None) -> None:
 		super().__init__(view)
 
@@ -111,18 +113,37 @@ class Popup(Layout):
 		self.location = location
 		self.max_height = 500
 		self.max_width = 500
-		self.is_closed = False
-		self.created_popup = False
+		self.is_disposed = False
+		self.existing_popup = False
+
+		if Popup.current:
+			Popup.current.dispose()
+
+		Popup.current = self
+
+	def dispose(self):
+		super().dispose()
+
+		if Popup.current == self:
+			Popup.current = None
+
+		self.is_disposed = True
+		self.view.hide_popup()
 
 	def on_hide(self) -> None:
-		self.is_closed = True
-		self.dispose()
+		self.existing_popup = False
 
+		# another popup has taken over but we want precedence for debugger popups when debugging
+		if self.view.is_popup_visible():
+			self.create_or_update_popup()
+			return
+
+		self.dispose()
 		if self.on_close:
 			self.on_close()
 
 	def render(self) -> bool:
-		if self.is_closed:
+		if self.is_disposed:
 			return False
 
 		timer = core.stopwatch()
@@ -138,17 +159,8 @@ class Popup(Layout):
 		return True
 
 	def create_or_update_popup(self):
-		if self.is_closed:
-			return False
-
-		if self.created_popup:
+		if self.existing_popup:
 			self.view.update_popup(self.html)
 		else:
-			self.created_popup = True
-			self.view.show_popup(self.html, location=0, max_width=self.max_width, max_height=self.max_height, on_navigate=self.on_navigate, flags=sublime.KEEP_ON_SELECTION_MODIFIED, on_hide=self.on_hide)
-
-	def dispose(self):
-		super().dispose()
-		if not self.is_closed:
-			self.is_closed = True
-			self.view.hide_popup()
+			self.existing_popup = True
+			self.view.show_popup(self.html, location=self.location, max_width=self.max_width, max_height=self.max_height, on_navigate=self.on_navigate, flags=sublime.KEEP_ON_SELECTION_MODIFIED | sublime.HIDE_ON_MOUSE_MOVE_AWAY, on_hide=self.on_hide)
