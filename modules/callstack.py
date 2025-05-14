@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 class CallstackOutputPanel(OutputPanel, core.Dispose):
 	def __init__(self, debugger: Debugger) -> None:
-		super().__init__(debugger, 'Debugger Callstack', 'Callstack', show_tabs=False, lock_selection=True, unlisted=True)
+		super().__init__(debugger, 'Debugger Callstack', 'Callstack', show_tabs_top=True, lock_selection=True, unlisted=True)
 
 		self.on_input = core.Event[str]()
 		self.on_navigate = core.Event[dap.SourceLocation]()
@@ -43,6 +43,7 @@ class CallstackOutputPanel(OutputPanel, core.Dispose):
 
 		self.debugger = debugger
 		self.callstack = CallStackTabbedView(self.debugger, self)
+
 		# the -30 dip is to account for the space between phantoms
 		width_additional_dip = -30
 
@@ -66,8 +67,5 @@ class CallstackOutputPanel(OutputPanel, core.Dispose):
 
 			with TabbedViewContainer(width_scale=0.5, width_additional=width_additional, width_additional_dip=width_additional_dip) as tab:
 				VariablesTabbedView(self.debugger)
-				ModulesTabbedView(self.debugger)
-				SourcesTabbedView(self.debugger, debugger._on_navigate_to_source)
-
-	def scroll_to_end(self):
-		self.view.set_viewport_position((0, 0), False)
+				# ModulesTabbedView(self.debugger)
+				# SourcesTabbedView(self.debugger, debugger._on_navigate_to_source)

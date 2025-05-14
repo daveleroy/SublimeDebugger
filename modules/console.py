@@ -316,8 +316,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 		# left_delete seems to cause issues with the layout not being updated so manually call on_text_changed
 		if command_name == 'left_delete':
-			if self.text_change_listener:
-				self.text_change_listener.on_text_changed([])
+			self.force_invalidate_layout()
 
 	def on_text_command(self, command_name: str, args: Any):  # type: ignore
 		if not self.view.is_auto_complete_visible() and command_name == 'move' and args['by'] == 'lines':
@@ -457,11 +456,13 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			self.disable_input_mode()
 			return True
 
-		self.edit(lambda edit: (
-			self.view.erase(edit, text_region),
-			self.view.sel().clear(),
-			self.view.sel().add(self.view.size())
-		))
+		self.edit(
+			lambda edit: (
+				self.view.erase(edit, text_region),
+				self.view.sel().clear(),
+				self.view.sel().add(self.view.size()),
+			)
+		)
 
 		self.on_input(text)
 		self.write(':' + text, 'comment', True)
@@ -483,17 +484,21 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 		text_region = sublime.Region(input.b, self.view.size())
 		if self._history_offset:
-			self.edit(lambda edit: (
-				self.view.replace(edit, text_region, self._history[-self._history_offset]),
-				self.view.sel().clear(),
-				self.view.sel().add(self.view.size())
-			))
+			self.edit(
+				lambda edit: (
+					self.view.replace(edit, text_region, self._history[-self._history_offset]),
+					self.view.sel().clear(),
+					self.view.sel().add(self.view.size()),
+				)
+			)
 		else:
-			self.edit(lambda edit: (
-				self.view.erase(edit, text_region),
-				self.view.sel().clear(),
-				self.view.sel().add(self.view.size())
-			))
+			self.edit(
+				lambda edit: (
+					self.view.erase(edit, text_region),
+					self.view.sel().clear(),
+					self.view.sel().add(self.view.size()),
+				)
+			)
 
 	def log(self, type: str, value: Any, source: dap.SourceLocation | None = None, session: dap.Session | None = None, phantom: ui.Html | None = None):
 		if type == 'transport':

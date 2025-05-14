@@ -6,7 +6,7 @@ from .log import error
 import sublime
 
 
-D = TypeVar("D", bound="Disposeable")
+D = TypeVar('D', bound='Disposeable')
 
 
 class Disposeable(Protocol):
@@ -14,23 +14,28 @@ class Disposeable(Protocol):
 
 
 class Dispose:
-	_dispose: list[Disposeable]|None = None
+	_dispose: list[Disposeable | Callable[[], Any]] | None = None
 
 	def dispose(self):
-		if not self._dispose: return
+		if not self._dispose:
+			return
 
 		for _dispose in self._dispose:
-			_dispose.dispose()
+			if hasattr(_dispose, 'dispose'):
+				_dispose.dispose()
+			else:
+				_dispose()  # type: ignore
 
 		self._dispose.clear()
 
-	def dispose_remove(self, item: Disposeable):
-		if not self._dispose: return
+	def dispose_remove(self, item: Disposeable | Callable[[], None]):
+		if not self._dispose:
+			return
 
 		self._dispose.remove(item)
 		item.dispose()
 
-	def dispose_add(self, *items: Disposeable|list[Disposeable]):
+	def dispose_add(self, *items: Disposeable | Callable[[], Any] | list[Disposeable]):
 		if not self._dispose:
 			self._dispose = []
 

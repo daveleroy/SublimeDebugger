@@ -6,13 +6,14 @@ if TYPE_CHECKING:
 
 import sublime
 
+
 class css:
 	next_id = 1
 	instances = []
 
 	_cached_css: dict[str, str] = {}
 	_variables_css = ''
-	_base_css = '''
+	_base_css = """
 	a {
 		text-decoration: none;
 		color: var(--foreground);
@@ -26,7 +27,7 @@ class css:
 	i {
 		display: inline-block;
 	}
-	'''
+	"""
 	# for debugging purposes
 	# d {
 	# 	background-color: color(red alpha(0.1));
@@ -130,18 +131,17 @@ class css:
 
 	def __init__(
 		self,
-		raw: str|None = None,
-		width: float|None = None,
-		height: float|None = None,
-		padding_top: float|None = None,
-		padding_bottom: float|None = None,
-		padding_left: float|None = None,
-		padding_right: float|None = None,
-		radius: float|None = None,
-		background_color: str|None = None,
-		color: str|None = None,
+		raw: str | None = None,
+		width: float | None = None,
+		height: float | None = None,
+		padding_top: float | None = None,
+		padding_bottom: float | None = None,
+		padding_left: float | None = None,
+		padding_right: float | None = None,
+		radius: float | None = None,
+		background_color: str | None = None,
+		color: str | None = None,
 	):
-
 		self.raw = raw
 		self.width = width
 		self.height = height

@@ -166,6 +166,9 @@ class Debugger(core.Dispose, dap.Debugger):
 
 		del Debugger.debuggers_for_window[self.window.id()]
 
+	def run_action(self, action: type[Action]):
+		self.window.run_command('debugger', {'action': action.key})
+
 	def _refresh_none_debugger_output_panel(self, panel_name: str):
 		name = panel_name.replace('output.', '')
 		panel = Settings.integrated_output_panels.get(name)
