@@ -1,9 +1,8 @@
 from __future__ import annotations
-from typing import Any, Iterable
+from typing import Any
+from . import core
+from . import dap
 
-from ..import examples
-from .import core
-from .import dap
 from .dap import Configuration, ConfigurationCompound, Task
 from .settings import Settings
 
@@ -157,7 +156,6 @@ class Project:
 		self.on_updated()
 
 	def _extract_from_project_data(self, project_data: Any, key: str) -> list[tuple[Any, dap.SourceLocation]]:
-		debugger_include_examples = project_data.get('debugger_include_examples') == True
 		configurations: list[tuple[Any, dap.SourceLocation]] = []
 
 		if location := self.location:
@@ -169,10 +167,14 @@ class Project:
 			source = dap.SourceLocation.from_path('Debugger.sublime-settings', line_regex=key)
 			configurations += map(lambda i: (i, source), global_configurations)
 
+		# This is basically only for developing the Debugger package so we can have all the example configurations accessible
+		debugger_include_examples = project_data.get('debugger_include_examples') == True
 		if debugger_include_examples:
-			for example_project in examples.projects:
+			from .commands.commands_configurations import ExampleProjects
+
+			for example_project in ExampleProjects.example_projects:
 				if not os.path.isabs(example_project):
-					example_project = os.path.join(self.window.extract_variables()['project_path'], example_project)
+					example_project = os.path.join(self.window.extract_variables()['folder'], example_project)
 
 				with open(example_project, 'r') as file:
 					contents = file.read()

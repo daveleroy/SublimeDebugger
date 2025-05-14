@@ -1,7 +1,5 @@
 from __future__ import annotations
-from collections.abc import Iterable
-from sre_constants import ANY
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, Iterable
 
 from .settings import Settings
 
@@ -9,7 +7,6 @@ from . import core
 from .ansi import generate_ansi_syntax
 import sublime_plugin
 import sublime
-import json
 
 from . import ui
 
@@ -22,7 +19,7 @@ class DebuggerCommand(sublime_plugin.WindowCommand):
 		return True
 
 	def run(self, action: str, **kwargs: dict[str, Any]):
-		print('RUN', action)
+		core.info(f'Debugger.{action}', kwargs)
 		return DebuggerCommand.action_run(self.window, action, **kwargs)
 
 	def is_enabled(self, action: str, **kwargs: dict[str, Any]):  # type: ignore
@@ -229,8 +226,6 @@ class Action(CommandProtocol):
 	name: str = ''
 	key: str = ''
 
-	open_without_running = False
-
 	is_menu_commands = True
 	is_menu_main = True
 
@@ -253,16 +248,10 @@ class Action(CommandProtocol):
 
 		debugger = Debugger.get(view)
 		if not debugger:
-			debugger = Debugger.create(view)
-
-			if self.open_without_running:
-				return
+			return
 
 		if not debugger.is_open():
 			debugger.open()
-
-			if self.open_without_running:
-				return
 
 		self.action(debugger)
 		self.action_with_args(debugger, **kwargs)

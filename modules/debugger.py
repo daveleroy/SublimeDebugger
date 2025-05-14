@@ -6,7 +6,9 @@ import sublime
 from . import core
 from . import ui
 from . import dap
-from . import menus
+
+from .command import Action
+from .commands.commands import ChangeConfiguration
 
 from .settings import Settings
 from .breakpoints import Breakpoints, SourceBreakpoint
@@ -252,10 +254,7 @@ class Debugger(core.Dispose, dap.Debugger):
 				configurations = self.project.active_configurations()
 				if not configurations:
 					self.console.error('Add or select a configuration to begin debugging')
-					await menus.change_configuration(self)
-
-				configurations = self.project.active_configurations()
-				if not configurations:
+					self.run_action(ChangeConfiguration)
 					return
 
 			await self.start_with_configurations(configurations, no_debug)
@@ -449,55 +448,6 @@ class Debugger(core.Dispose, dap.Debugger):
 		return 'instruction'
 
 	@core.run
-	async def resume(self) -> None:
-		try:
-			await self.current_session.resume()
-		except core.Error as e:
-			self.console.error(f'Unable to continue: {e}')
-
-	@core.run
-	async def reverse_continue(self) -> None:
-		try:
-			await self.current_session.reverse_continue()
-		except core.Error as e:
-			self.console.error(f'Unable to reverse continue: {e}')
-
-	@core.run
-	async def pause(self) -> None:
-		try:
-			await self.current_session.pause()
-		except core.Error as e:
-			self.console.error(f'Unable to pause: {e}')
-
-	@core.run
-	async def step_over(self) -> None:
-		try:
-			await self.current_session.step_over(granularity=self.stepping_granularity())
-		except core.Error as e:
-			self.console.error(f'Unable to step over: {e}')
-
-	@core.run
-	async def step_in(self) -> None:
-		try:
-			await self.current_session.step_in(granularity=self.stepping_granularity())
-		except core.Error as e:
-			self.console.error(f'Unable to step in: {e}')
-
-	@core.run
-	async def step_out(self) -> None:
-		try:
-			await self.current_session.step_out(granularity=self.stepping_granularity())
-		except core.Error as e:
-			self.console.error(f'Unable to step out: {e}')
-
-	@core.run
-	async def step_back(self) -> None:
-		try:
-			await self.current_session.step_back(granularity=self.stepping_granularity())
-		except core.Error as e:
-			self.console.error(f'Unable to step backwards: {e}')
-
-	@core.run
 	async def stop(self, session: dap.Session | None = None) -> None:
 		# the stop command stops all sessions in a hierachy
 		try:
@@ -519,11 +469,6 @@ class Debugger(core.Dispose, dap.Debugger):
 			...
 		except core.Error as e:
 			self.console.error(f'Unable to stop: {e}')
-
-	def clear_all_breakpoints(self):
-		self.breakpoints.data.remove_all()
-		self.breakpoints.source.remove_all()
-		self.breakpoints.function.remove_all()
 
 	def is_paused(self):
 		return bool(self.session and self.session.is_paused)
@@ -606,24 +551,6 @@ class Debugger(core.Dispose, dap.Debugger):
 			sel = view.sel()[0]
 			expression = view.substr(sel)
 			self.on_run_command(expression)
-
-	def toggle_breakpoint(self):
-		file, line, _ = self.project.current_file_line_column()
-		self.breakpoints.source.toggle(file, line)
-
-	def toggle_column_breakpoint(self):
-		file, line, column = self.project.current_file_line_column()
-		self.breakpoints.source.toggle(file, line, column)
-
-	def add_function_breakpoint(self):
-		self.breakpoints.function.add_command()
-
-	def add_watch_expression(self):
-		self.watch.add_command()
-
-	def on_input_command(self) -> None:
-		self.console.open()
-		self.console.enter()
 
 	def _on_project_or_settings_updated(self):
 		for panel in self.output_panels:

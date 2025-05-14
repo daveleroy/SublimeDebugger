@@ -134,9 +134,6 @@ class FunctionBreakpoints:
 			ui.InputListItem(remove, 'Remove'),
 		]
 
-	def add_command(self):
-		ui.InputText(self.add, "Name of function to break on").run()
-
 	def add(self, name: str):
 		self.breakpoints.append(FunctionBreakpoint(dap.FunctionBreakpoint(name, None, None), enabled=True))
 		self.updated()

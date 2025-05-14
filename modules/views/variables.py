@@ -65,11 +65,13 @@ class WatchView(ui.div):
 		self.dirty()
 
 	def render(self):
+		from ..commands.commands import AddWatchExpression
+
 		with ui.div(height=css.row_height):
 			ui.icon(ui.Images.shared.open if self.open else ui.Images.shared.close, on_click=self.toggle_expand)
 			ui.text('Watch', css=css.secondary)
 			ui.spacer()
-			ui.text('add', css=css.secondary, on_click=self.debugger.add_watch_expression)
+			ui.text('add', css=css.secondary, on_click=lambda: self.debugger.run_action(AddWatchExpression))
 
 		if not self.open:
 			return

@@ -58,14 +58,6 @@ class Watch(core.Dispose):
 				self.evaluate(session, session.selected_frame)
 
 	@core.run
-	async def add_command(self) -> None:
-		def add(value: str):
-			if value:
-				self.add(value)
-
-		await ui.InputText(add, 'Expression to watch')
-
-	@core.run
 	async def evaluate(self, session: dap.Session, frame: dap.StackFrame) -> None:
 		results: list[Awaitable[dap.EvaluateResponse]] = []
 		for expression in self.expressions:

@@ -33,7 +33,7 @@ from .modules.debugger import Debugger
 from .modules.views.variable import VariableView
 from .modules.output_panel import OutputPanel
 
-from .modules.commands import *  # import all the action classes
+from .modules.commands.commands import *  # import all the action classes
 from .modules.adapters import *  # import all the adapters so Adapters.initialize() will see them
 from .modules.settings import SettingsRegistery, Settings
 

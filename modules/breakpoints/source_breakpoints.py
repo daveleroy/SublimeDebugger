@@ -95,38 +95,48 @@ class SourceBreakpoint(Breakpoint):
 		return 'text'
 
 	def update_views(self):
-		for view in self.views:
-			view.render()
+		for phantom in self.phantoms:
+			phantom.render()
 
 	def add_to_view(self, view: sublime.View):
-		for old_view in self.views:
-			if old_view.view.id() == view.id():
-				old_view.render()
+		for phantom in self.phantoms:
+			if phantom.view.id() == view.id():
+				phantom.render()
 				return
 
 		def show_edit_menu():
 			self.breakpoints.edit(self).run()
 
-		self.views.append(SourceBreakpointView(self, view, show_edit_menu))
+		self.phantoms.append(SourceBreakpointGutterPhantom(self, view, show_edit_menu))
 
 	def clear_views(self):
-		for view in self.views:
-			view.dispose()
-		self.views = []
+		for phantom in self.phantoms:
+			phantom.dispose()
+		self.phantoms = []
 
 	def __lt__(self, other: SourceBreakpoint):
 		return (self.file, self.line, self.column or 0) < (other.file, other.line, other.column or 0)
 
-class SourceBreakpointView:
+
+class SourceBreakpointGutterPhantom:
 	def __init__(self, breakpoint: SourceBreakpoint, view: sublime.View, on_click_inline: Callable[[], None]):
 		self.breakpoint = breakpoint
 		self.view = view
+		self.disposed = False
 		self.column_phantom: ui.RawPhantom | None = None
 		self.on_click_inline = on_click_inline
 		self.render()
 
-	def render(self):
-		self.dispose()
+	@core.run
+	async def render(self):
+		# Occasionally when opening a view it will not be loaded before this stuff is executed (probably depends on how long the os takes loading the file)
+		# If it does happen the breakpoint will not appear until the user activates the view and we refresh breakpoints
+		await core.wait_for_view_to_load(self.view)
+
+		if self.disposed:
+			return
+
+		self.clear()
 
 		image = self.breakpoint.image
 		line = self.breakpoint.line
@@ -153,11 +163,15 @@ class SourceBreakpointView:
 			column_point = self.view.text_point(line - 1, column - 1)
 			self.column_phantom = ui.RawPhantom(self.view, sublime.Region(column_point), html, on_navigate=lambda _: self.on_click_inline())
 
-	def dispose(self):
+	def clear(self):
 		self.view.erase_regions(self.breakpoint.region_name)
 		if self.column_phantom:
 			self.column_phantom.dispose()
 			self.column_phantom = None
+
+	def dispose(self):
+		self.clear()
+		self.disposed = True
 
 
 class SourceBreakpoints:
