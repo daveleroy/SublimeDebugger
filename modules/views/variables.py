@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
+
 from .. import ui
 from .. import dap
 from .. import core
@@ -19,6 +20,8 @@ class VariablesTabbedView(TabbedView):
 		super().__init__('Variables')
 		self.watch_view = WatchView(debugger)
 		self.variables_view = VariablesView(debugger)
+
+	def header(self, is_selected: bool): ...
 
 	def render(self):
 		self.watch_view.append_stack()

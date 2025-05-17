@@ -33,13 +33,8 @@ class Debugger(core.Dispose, dap.Debugger):
 	debuggers_for_window: dict[int, Debugger | None] = {}
 
 	@staticmethod
-	def ignore(view: sublime.View) -> bool:
-		return not bool(Debugger.debuggers_for_window)
-
-	@staticmethod
-	@staticmethod
 	def debuggers() -> Iterable[Debugger]:
-		return filter(lambda i: i != None, Debugger.debuggers_for_window.values())  # type: ignore
+		return filter(lambda i: i is not None, Debugger.debuggers_for_window.values())  # type: ignore
 
 	@staticmethod
 	def create(window_or_view: sublime.Window | sublime.View, skip_project_check=False) -> Debugger:
@@ -97,6 +92,7 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.on_session_updated.add(self._on_session_updated)
 		self.on_session_output.add(self._on_session_output)
 		self.on_session_active.add(self._on_session_active)
+		self.on_session_thread_or_frame_updated.add(self._on_thread_or_frame_updated)
 
 		self.session: dap.Session | None = None
 		self.sessions: list[dap.Session] = []
@@ -301,8 +297,8 @@ class Debugger(core.Dispose, dap.Debugger):
 
 					if post_debug_task:
 						configuration_expanded.post_debug_task = await self.project.get_task(post_debug_task).Expanded(variables)
-					session = await self.launch(adapter, configuration_expanded, no_debug=no_debug)
 
+					await self.launch(adapter, configuration_expanded, no_debug=no_debug)
 					self.console.open()
 
 				except core.Error as e:

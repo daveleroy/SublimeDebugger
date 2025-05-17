@@ -113,8 +113,8 @@ class DisassembleView(core.Dispose):
 
 	@core.run
 	async def _disassemble_and_insert(self, at: int, memory_reference: str, offset: int, count: int, select_line: int|None = None):
-		if not self.session:
-			core.info('not loading memory, no session')
+		if not self.session or not self.session.selected_thread:
+			core.info('not loading memory, no session or thread')
 			return
 
 		core.info(f'loading memory @{offset}-{offset + count}')
