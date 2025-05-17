@@ -76,12 +76,24 @@ class Settings:
 		""",
 	)
 
-	minimum_console_height = Setting[int] (
-		key='minimum_console_height',
-		default=10,
-		description='''
+	console_minimum_height = Setting[int](
+		key='console_minimum_height',
+		default=20,
+		description="""
 		Controls the minimum height of the debugger output panels in lines
-		'''
+		""",
+	)
+	console_scrollback_limit = Setting[int](
+		key='console_scrollback_limit',
+		default=2000,
+		description="""
+		Limits the number of lines allowed in the console before lines are removed
+		""",
+	)
+	console_scrollback_annotation_limit = Setting[int](
+		key='console_scrollback_annotation_limit',
+		default=100,
+		description='Limits the number of annotationed regions/phantoms (source locations, variables, etc) allowed in the console',
 	)
 
 	bring_window_to_front_on_pause: bool = False

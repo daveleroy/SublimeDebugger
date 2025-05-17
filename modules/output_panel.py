@@ -168,7 +168,6 @@ class OutputPanel(core.Dispose):
 		self.window.bring_to_front()
 		self.window.run_command('show_panel', {'panel': self.output_panel_name})
 		self.window.focus_view(self.view)
-		# sublime.set_timeout(self.scroll_to_end, 5)
 
 	def open_status(self):
 		if on_opened_status := self.on_opened_status:
@@ -180,7 +179,6 @@ class OutputPanel(core.Dispose):
 		return self.window.active_panel() == self.output_panel_name
 
 	def on_show_panel(self):
-		# self.scroll_to_end()
 		if self.on_opened:
 			self.on_opened()
 
@@ -205,25 +203,14 @@ class OutputPanel(core.Dispose):
 			height = self.view.layout_extent()[1]
 			self.view.set_viewport_position((0, height), False)
 
-		self.window.focus_view(self.view)
+		if self.window.active_view() == self.input_view:
+			self.window.focus_view(self.view)
 
 		if input_view := self.input_view:
 			sublime.set_timeout(lambda: input_view.set_viewport_position((0, 0), False))
 
 	def at(self):
 		return self.view.size()
-
-	def ensure_new_line(self, text: str, at: int | None = None):
-		if at is None:
-			at = self.at()
-
-		if self.removed_newline == at:
-			return text
-
-		if at != 0 and self.view.substr(at - 1) != '\n':
-			text = '\n' + text
-
-		return text
 
 	def on_selection_modified(self): ...
 	def on_activated(self): ...
@@ -248,8 +235,11 @@ class OutputPanelEventListener(sublime_plugin.EventListener):
 		panel.on_selection_modified()
 
 	def on_activated(self, view: sublime.View):
+		# block the input view from gaining focus (it changes color when it has focus which we do not like) and can shift positions down
 		if panel := OutputPanel.from_input_view.get(view):
-			panel.scroll_to_end()
+			panel.window.focus_view(panel.view)
+			# changing viewport has to be done the next cycle or it does not change
+			sublime.set_timeout(lambda: view.set_viewport_position((0, 0), False))
 			return
 
 		if panel := OutputPanel.from_view.get(view):

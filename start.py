@@ -213,7 +213,7 @@ class EventListener(sublime_plugin.EventListener):
 
 	def on_post_window_command(self, window: sublime.Window, cmd: str, args: Any):
 		if cmd == 'show_panel':
-			if panel := OutputPanel.for_output_panel_name(window.active_panel() or ''):
+			if panel := OutputPanel.from_output_panel_name.get(window.active_panel() or ''):
 				panel.on_show_panel()
 
 			debugger = Debugger.get(window)

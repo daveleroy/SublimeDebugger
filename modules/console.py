@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable
 
+
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
@@ -10,6 +11,7 @@ from . import core
 from . import ui
 from . import dap
 
+from .settings import Settings
 from .views.variable import VariableView
 
 from .ansi import ansi_colorize
@@ -31,7 +33,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
 		self.color: str | None = None
-		self.phantoms: list[ui.Phantom | ui.RawPhantom] = []
+		self.phantoms: list[ui.Phantom | ui.RawPhantom | RegionAnnotation] = []
 		self.input_size = 0
 
 		self.indent = ''
@@ -40,26 +42,20 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self._history_offset = 0
 		self._history = []
 
-		self._annotation_id = 0
-
 		self._last_output_event: dap.OutputEvent | None = None
-		self._last_output_event_annotation_id = 0
-		self._last_output_event_count = 0
 
 		settings = self.view.settings()
 		settings.set('auto_complete_selector', 'debugger.console')
 
-		# adjust the line padding so line_padding_top is always 3 but the space between lines is the same as what the user already has set
-		# If < 3 there is space at the bottom
-		# if > 3 it gets clipped at the bottom
-		line_padding_bottom = settings.get('line_padding_bottom', 0)
-		line_padding_top = settings.get('line_padding_top', 0)
-		settings.set('line_padding_top', 3)
-		settings.set('line_padding_bottom', line_padding_bottom + line_padding_top - 3)
-
 		self.clear()
 
 	def edit(self, fn: Callable[[sublime.Edit], Any]):
+		h = self.view.viewport_extent()[1]
+		extend_y = self.view.layout_extent()[1]
+		position_y = self.view.viewport_position()[1]
+
+		at_bottom_ish = ((position_y + h) - extend_y) >= 0
+
 		is_read_only = self.view.is_read_only()
 		if is_read_only:
 			self.view.set_read_only(False)
@@ -67,6 +63,20 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			self.view.set_read_only(True)
 		else:
 			core.edit(self.view, fn)
+
+		if at_bottom_ish:
+			self.scroll_to_end()
+
+	def ensure_scrollback_size(self):
+		while len(self.phantoms) > Settings.console_scrollback_annotation_limit:
+			self.phantoms.pop().dispose()
+
+		line_count = self.view.rowcol(self.view.size())[0]
+
+		if line_count > Settings.console_scrollback_limit:
+			remove = 1000 - Settings.console_scrollback_limit
+			region = sublime.Region(0, self.view.text_point(remove, 0))
+			self.edit(lambda e: self.view.replace(e, region, ''))
 
 	def program_output(self, session: dap.Session, event: dap.OutputEvent):
 		type = event.category or 'console'
@@ -77,13 +87,13 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		if event.source:
 			source = dap.SourceLocation(event.source, event.line)
 
-		if self.is_output_identical_to_previous(event):
-			self._last_output_event_count += 1
-			self._last_output_event_annotation_id = self.add_annotation(self.at() - 1, source, self._last_output_event_count, self._last_output_event_annotation_id)
-			return
-		else:
+		# ignore if the group has the same header
+		# this is mostly a workaround for this bug in node... https://github.com/nodejs/node/issues/31973
+		if self._last_output_event and self._last_output_event.group == 'start' and self._last_output_event.output == event.output:
 			self._last_output_event = event
-			self._last_output_event_count = 1
+			return
+
+		self._last_output_event = event
 
 		color_for_type: dict[str | None, str | None] = {
 			'stderr': 'red',
@@ -97,48 +107,41 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			self.end_indent()
 
 		if event.variablesReference:
-			self.write(f'\u200b\n', color, ensure_new_line=True, ignore_indent=False)
-			placeholder = self.add_annotation(self.at() - 1, source)
-			self._last_output_event_annotation_id = placeholder
+			output = event.output
+			region = self.write(output, color, ensure_new_line=False, ignore_indent=False, annotation_region=True)
 
 			async def appendVariabble(variablesReference: int) -> None:
 				try:
 					variables = await session.get_variables(variablesReference, without_names=True)
+					at = region.location().a
+
 					for variable in variables:
-						at = self.annotation_region(placeholder).a
-						self.write_variable(variable, at, variable == variables[-1])
+						self.write_variable(variable, at)
 
 				# if a request is cancelled it is because the debugger session ended
+				except core.CancelledError:
+					...
 				# In some cases the variable cannot be fetched since the debugger session was terminated because of the exception
 				# However the exception message is actually important and needs to be shown to the user...
-				except core.CancelledError:
-					print('Unable to fetch variables: Cancelled')
-					# todo: this should be inserted into the place the phantom was going to be
+				except Exception:
+					core.exception('Unable to fetch variables')
+					# todo: this should be inserted into the place the phantom was going to be?
 					# self.append_text(event.category or 'console', self.indent + event.output, event.source, event.line)
 
 			core.run(appendVariabble(event.variablesReference))
 
 		elif event.output:
-				self.write(event.output, color, ignore_indent=False)
-				if event.source:
-					self._last_output_event_annotation_id = self.add_annotation(self.at() - 1, source)
-				else:
-					self._last_output_event_annotation_id = None
+			self.write(event.output, color, ignore_indent=False)
+			if event.source:
+				RegionAnnotation(self.view, sublime.Region(self.at() - 1), self.on_navigate, source=source)
 
 		if event.group == 'start' or event.group == 'startCollapsed':
 			self.start_indent()
 
-	def is_output_identical_to_previous(self, event: dap.OutputEvent):
-		if not self._last_output_event or not event.output:
+	def is_output_identical(self, last_event: dap.OutputEvent, event: dap.OutputEvent):
+		if not event.output:
 			return False
-
-		if event.group:
-			return False
-
-		if self._last_output_event.group:
-			return False
-
-		return self._last_output_event.category == event.category and self._last_output_event.output == event.output
+		return last_event.category == event.category and last_event.output == event.output
 
 	def start_indent(self, forced: bool = False):
 		if forced:
@@ -158,7 +161,19 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			return max(input.a - 1, 0)
 		return max(self.view.size() - 1, 0)
 
-	def write(self, text: str, color: str | None, ensure_new_line=False, ignore_indent: bool = True):
+	def is_newline_required(self, at: int | None = None):
+		if at is None:
+			at = self.at()
+
+		if self.removed_newline == at:
+			return False
+
+		if at != 0 and self.view.substr(at - 1) != '\n':
+			return True
+
+		return False
+
+	def write(self, text: str, color: str | None, ensure_new_line=False, ignore_indent: bool = True, annotation_region: bool = False) -> RegionAnnotation:
 		indent = ''
 
 		if not ignore_indent and self.indent:
@@ -171,13 +186,26 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			text = text.replace('\n', '\n' + indent, text.count('\n') - 1)
 
 		# if we are changing color we want it on its own line
-		if ensure_new_line or self.color != color:
-			text = self.ensure_new_line(text)
+		if (ensure_new_line or self.color != color) and self.is_newline_required():
+			self.edit(lambda edit: self.view.insert(edit, self.at(), '\n'))
 
-		self.edit(lambda edit: self.view.insert(edit, self.at(), ansi_colorize(text, color, self.color)))
+		colored = ansi_colorize(text, color, self.color)
+		region: Any = None
+
+		def edit(edit: sublime.Edit):
+			nonlocal region
+			at = self.at()
+			self.view.insert(edit, at, colored)
+			if annotation_region:
+				region = RegionAnnotation(self.view, sublime.Region(at), self.on_navigate)
+
+		self.edit(edit)
 		self.color = color
 
-	def write_variable(self, variable: dap.Variable, at: int, last: bool = True):
+		self.ensure_scrollback_size()
+		return region
+
+	def write_variable(self, variable: dap.Variable, at: int):
 		html = """
 			<style>
 			html {
@@ -195,80 +223,24 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			</body>
 		"""
 
-		# phantom_at = at + len(indent)
+		phantom = None
 
-		def on_navigate(path: str):
-			if window := self.view.window():
-				window.focus_view(self.view)
+		def on_navigate(_: str):
+			nonlocal phantom
+			if phantom:
+				phantom.dispose()
+				phantom = None
+				return
 
-			component = VariableView(self.debugger, variable, children_only=True)
-			component.set_expanded()
-			popup = ui.Popup(self.view, at)
-			with popup:
-				with ui.div(width=100):
-					component.append_stack()
+			with ui.Phantom(self.view, at, sublime.LAYOUT_BELOW) as p:
+				phantom = p
+				self.phantoms.append(p)
+				with ui.panel():
+					view = VariableView(self.debugger, variable, children_only=True)
+					view.set_expanded()
 
-		def edit(edit: sublime.Edit):
-			# remove trailing \n if it exists since we already inserted a newline to place this variable in
-			content = (variable.value or variable.name or '{variable}').rstrip('\n')
-			if not last:
-				content += ' '
-
-			self.view.insert(edit, at, content)
-
-		self.edit(edit)
-
-		phantom = ui.RawPhantom(self.view, sublime.Region(at, at), html, on_navigate=on_navigate)
-		self.phantoms.append(phantom)
-
-	def add_annotation(self, at: int, source: dap.SourceLocation | None = None, count: int | None = None, annotation_id: int | None = None):
-		if not annotation_id:
-			self._annotation_id += 1
-			annotation_id = self._annotation_id
-
-		if source or count and count > 1:
-			if source:
-				on_navigate = lambda _: self.on_navigate(source)
-				source_html = f'<a href="">{source.name}</a>'
-			else:
-				on_navigate = None
-				source_html = ''
-
-			count_html = f'<span>{count}</span>' if count else ''
-
-			html = f"""
-			<style>
-				html {{
-					background-color: var(--background);
-				}}
-				a {{
-					color: color(var(--foreground) alpha(0.33));
-					text-decoration: none;
-				}}
-				span {{
-					color: color(var(--foreground) alpha(0.66));
-					background-color: color(var(--accent) alpha(0.5));
-					padding-right: 1.1rem;
-					padding-left: -0.1rem;
-					border-radius: 0.5rem;
-				}}
-			</style>
-			<body id="debugger">
-				<div>
-					{count_html}
-					{source_html}
-				</div>
-			</body>
-			"""
-
-			self.view.add_regions(f'an{annotation_id}', [sublime.Region(at, at)], annotation_color='#fff0', annotations=[html], on_navigate=on_navigate)
-		else:
-			self.view.add_regions(f'an{annotation_id}', [sublime.Region(at, at)])
-
-		return annotation_id
-
-	def annotation_region(self, id: int):
-		return self.view.get_regions(f'an{id}')[0]
+		raw_phantom = ui.RawPhantom(self.view, sublime.Region(at, at), html, on_navigate=on_navigate)
+		self.phantoms.append(raw_phantom)
 
 	def clear(self):
 		self.indent = ''
@@ -532,7 +504,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			self.write(str(value).rstrip('\n'), 'comment', ensure_new_line=True)
 
 		if source:
-			self.add_annotation(self.at() - 1, source)
+			self.phantoms.append(RegionAnnotation(self.view, sublime.Region(self.at() - 1), self.on_navigate, source=source))
 
 		if phantom:
 			self.phantoms.append(ui.RawPhantom(self.view, self.at() - 1, html=phantom.html, on_navigate=phantom.on_navigate))
@@ -546,3 +518,64 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		super().dispose()
 		self.dispose_phantoms()
 		self.protocol.dispose()
+
+
+class RegionAnnotation(core.Dispose):
+	next_annotation_id = 0
+
+	def __init__(self, view: sublime.View, region: sublime.Region, on_navigate: Callable[[dap.SourceLocation], Any], count: int | None = None, source: dap.SourceLocation | None = None) -> None:
+		self.view = view
+
+		RegionAnnotation.next_annotation_id += 1
+		self.id = f'debugger.{RegionAnnotation.next_annotation_id}'
+
+		self.on_navigate = on_navigate
+		self._update(region, count, source)
+
+		self.dispose_add(lambda: self.view.erase_regions(self.id))
+
+	def update(self, count: int | None, source: dap.SourceLocation | None):
+		self._update(self.location(), count, source)
+
+	def _update(self, region: sublime.Region, count: int | None, source: dap.SourceLocation | None):
+		if source or count and count > 1:
+			if source:
+				on_navigate = lambda _: self.on_navigate(source)
+				source_html = f'<a href="">{source.name}</a>'
+			else:
+				on_navigate = None
+				source_html = ''
+
+			count_html = f'<span>{count}</span>' if count else ''
+
+			html = f"""
+			<style>
+				html {{
+					background-color: var(--background);
+				}}
+				a {{
+					color: color(var(--foreground) alpha(0.33));
+					text-decoration: none;
+				}}
+				span {{
+					color: color(var(--foreground) alpha(0.66));
+					background-color: color(var(--accent) alpha(0.5));
+					padding-right: 1.1rem;
+					padding-left: -0.1rem;
+					border-radius: 0.5rem;
+				}}
+			</style>
+			<body id="debugger">
+				<div>
+					{count_html}
+					{source_html}
+				</div>
+			</body>
+			"""
+
+			self.view.add_regions(self.id, [region], annotation_color='#fff0', annotations=[html], on_navigate=on_navigate)
+		else:
+			self.view.add_regions(self.id, [region])
+
+	def location(self):
+		return self.view.get_regions(self.id)[0]
