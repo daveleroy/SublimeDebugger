@@ -2,17 +2,13 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from ..import core
-from ..import dap
+from .. import core
+from .. import dap
+from . import util
 
-from .import util
 
-class JSAdapterConfiguration(dap.Adapter):
+class JavaScriptAdapter(dap.Adapter):
 	type = []
-
-	# This type is the one sent to the debug adapter
-	# It should be overriden in each subclass (see below)
-	configuration_type = 'js'
 
 	docs = 'https://github.com/microsoft/vscode-js-debug/blob/main/OPTIONS.md'
 
@@ -23,11 +19,11 @@ class JSAdapterConfiguration(dap.Adapter):
 
 	@property
 	def configuration_snippets(self):
-		return self.installer.configuration_snippets(self.configuration_type)
+		return self.installer.configuration_snippets(self.types[0])
 
 	@property
 	def configuration_schema(self):
-		return self.installer.configuration_schema(self.configuration_type)
+		return self.installer.configuration_schema(self.types[0])
 
 	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 		__jsDebugChildServer = configuration.get('__jsDebugChildServer')
@@ -63,24 +59,23 @@ class JSAdapterConfiguration(dap.Adapter):
 		if command == 'attachedChildSession':
 			debugger = session.debugger
 			config = dap.Configuration.from_json(arguments['config'], 0)
-			await debugger.launch(session.breakpoints, self, dap.ConfigurationExpanded(config, session.configuration.variables), parent=session)
+			await debugger.launch(self, await config.Expanded([], session.configuration.variables), parent=session)
 			return {}
 
 	async def configuration_resolve(self, configuration: dap.ConfigurationExpanded):
-		configuration['type'] = self.configuration_type
-		configuration['__workspaceFolder'] = configuration.variables['folder']
+		# not sure if this is still required?
+		configuration['type'] = f'pwa-{self.types[0]}'
+
+		configuration['__workspaceFolder'] = await configuration.variables['folder']
 		return configuration
 
 
 class Node(JavaScriptAdapter):
 	type = 'node'
-	configuration_type = 'pwa-node'
 class Chrome(JavaScriptAdapter):
 	type = 'chrome'
-	configuration_type = 'pwa-chrome'
 	docs = 'https://github.com/Microsoft/vscode-chrome-debug#using-the-debugger'
 
 
 class Edge(JavaScriptAdapter):
 	type = 'msedge'
-	configuration_type = 'pwa-msedge'
