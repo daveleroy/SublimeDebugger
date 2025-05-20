@@ -1,5 +1,5 @@
 {
-	// Open the debugger automatically when a project that is set up for debugging
+	// Open the debugger automatically when a project that is set up for debugging is opened.
 	"open_at_startup": true,
 
 	// Always keep the debugger panel visible
@@ -20,7 +20,13 @@
 	"external_terminal": "terminus",
 
 	// Controls the minimum height of the debugger output panels in lines
-	"minimum_console_height": 10,
+	"console_minimum_height": 20,
+
+	// Limits the number of lines allowed in the console before lines are removed
+	"console_scrollback_limit": 2000,
+
+	// Limits the number of annotationed regions/phantoms (source locations, variables, etc) allowed in the console
+	"console_scrollback_annotation_limit": 100,
 
 	// Additional console logs and some new features are locked behind this flag
 	"development": false,

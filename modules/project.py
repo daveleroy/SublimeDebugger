@@ -3,6 +3,8 @@ from typing import Any
 from . import core
 from . import dap
 
+from .inputs import SelectProcess
+
 from .dap import Configuration, ConfigurationCompound, Task
 from .settings import Settings
 

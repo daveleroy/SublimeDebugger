@@ -21,7 +21,7 @@
 		],
 		"command": "debugger",
 		"args": {
-			"action": "input_command"
+			"action": "callstack_toggle_input"
 		},
 		"context": [
 			{
@@ -36,7 +36,7 @@
 		],
 		"command": "debugger",
 		"args": {
-			"action": "input_command"
+			"action": "callstack_toggle_input"
 		},
 		"context": [
 			{

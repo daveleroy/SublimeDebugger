@@ -7,13 +7,6 @@
 				"caption": "Debugger",
 				"children": [
 					{
-						"caption": "Generate Commands/Settings/Schema",
-						"command": "debugger",
-						"args": {
-							"action": "generate_commands"
-						}
-					},
-					{
 						"caption": "Open",
 						"command": "debugger",
 						"args": {
@@ -28,17 +21,13 @@
 						}
 					},
 					{
-						"caption": "Browse Package storage",
-						"command": "debugger",
-						"args": {
-							"action": "browse_storage"
-						}
+						"caption": "-"
 					},
 					{
-						"caption": "Install Adapters",
+						"caption": "Example Projects",
 						"command": "debugger",
 						"args": {
-							"action": "install_adapters"
+							"action": "example_projects"
 						}
 					},
 					{
@@ -56,17 +45,17 @@
 						}
 					},
 					{
-						"caption": "Edit Configurations",
+						"caption": "Edit Configuration File",
 						"command": "debugger",
 						"args": {
 							"action": "edit_configurations"
 						}
 					},
 					{
-						"caption": "Example Projects",
+						"caption": "Install Adapters",
 						"command": "debugger",
 						"args": {
-							"action": "example_projects"
+							"action": "install_adapters"
 						}
 					},
 					{
@@ -80,10 +69,7 @@
 						}
 					},
 					{
-						"caption": "-"
-					},
-					{
-						"caption": "Start (no debug)",
+						"caption": "Start (No Debug)",
 						"command": "debugger",
 						"args": {
 							"action": "start_no_debug"
@@ -152,13 +138,6 @@
 						"caption": "-"
 					},
 					{
-						"caption": "Input Command",
-						"command": "debugger",
-						"args": {
-							"action": "input_command"
-						}
-					},
-					{
 						"caption": "Run Task",
 						"command": "debugger",
 						"args": {
@@ -173,6 +152,23 @@
 						}
 					},
 					{
+						"caption": "New Terminal",
+						"command": "debugger",
+						"args": {
+							"action": "new_terminal"
+						}
+					},
+					{
+						"caption": "Open Terminal",
+						"command": "debugger",
+						"args": {
+							"action": "open_terminal"
+						}
+					},
+					{
+						"caption": "-"
+					},
+					{
 						"caption": "Add Function Breakpoint",
 						"command": "debugger",
 						"args": {
@@ -184,13 +180,6 @@
 						"command": "debugger",
 						"args": {
 							"action": "add_watch_expression"
-						}
-					},
-					{
-						"caption": "Force Save",
-						"command": "debugger",
-						"args": {
-							"action": "save_data"
 						}
 					},
 					{
@@ -228,10 +217,34 @@
 						"caption": "-"
 					},
 					{
+						"caption": "Browse Package storage",
+						"command": "debugger",
+						"args": {
+							"action": "browse_storage"
+						}
+					},
+					{
 						"caption": "Show Protocol",
 						"command": "debugger",
 						"args": {
 							"action": "show_protocol"
+						}
+					},
+					{
+						"caption": "Force Save",
+						"command": "debugger",
+						"args": {
+							"action": "save_data"
+						}
+					},
+					{
+						"caption": "-"
+					},
+					{
+						"caption": "Generate Contributions",
+						"command": "debugger",
+						"args": {
+							"action": "generate_contributions"
 						}
 					},
 					{

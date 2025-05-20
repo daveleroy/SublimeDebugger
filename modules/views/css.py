@@ -34,7 +34,6 @@ button = ui.css(
 	color='var(--primary)',
 	raw='border-radius: 0.4rem;',
 )
-)
 
 button_drop = ui.css(
 	padding_left=1,
