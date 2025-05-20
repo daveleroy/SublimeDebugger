@@ -13,19 +13,7 @@ import contextlib
 
 
 class Project:
-	def __init__(self, window: sublime.Window, skip_project_check: bool):
-		if not skip_project_check and not Settings.global_debugger_configurations:
-			project_name = window.project_file_name()
-			while not project_name:
-				window.bring_to_front()
-				r = sublime.ok_cancel_dialog('Debugger requires a sublime project. Would you like to convert this window to a project?', 'Convert To Sublime Project')
-				if r:
-					window.run_command('save_project_and_workspace_as')
-				else:
-					raise core.Error('Debugger must be run inside a sublime project')
-
-				project_name = window.project_file_name()
-
+	def __init__(self, window: sublime.Window):
 		self.window = window
 		self.on_updated = core.Event[None]()
 
@@ -123,7 +111,7 @@ class Project:
 	async def open_project_configurations_file(self):
 		project_name = self.window.project_file_name()
 		if not project_name:
-			self.window.run_command('edit_settings', {'base_file': '${packages}/Debugger/debugger.sublime-settings'})
+			self.window.run_command('edit_settings', {'base_file': '${packages}/Debugger/Debugger.sublime-settings'})
 			return None, None
 
 		view = await core.sublime_open_file_async(self.window, project_name)

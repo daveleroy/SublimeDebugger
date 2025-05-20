@@ -27,6 +27,7 @@ from .terminal_integrated import TerminusIntegratedTerminal
 from .tasks import Tasks
 
 from .source_navigation import SourceNavigationProvider
+from .suggestions import Suggestions
 
 
 class Debugger(core.Dispose, dap.Debugger):
@@ -37,13 +38,13 @@ class Debugger(core.Dispose, dap.Debugger):
 		return filter(lambda i: i is not None, Debugger.debuggers_for_window.values())  # type: ignore
 
 	@staticmethod
-	def create(window_or_view: sublime.Window | sublime.View, skip_project_check=False) -> Debugger:
-		debugger = Debugger.get(window_or_view, create=True, skip_project_check=skip_project_check)
+	def create(window_or_view: sublime.Window | sublime.View) -> Debugger:
+		debugger = Debugger.get(window_or_view, create=True)
 		assert debugger
 		return debugger
 
 	@staticmethod
-	def get(window_or_view: sublime.Window | sublime.View, create=False, skip_project_check=False) -> Debugger | None:
+	def get(window_or_view: sublime.Window | sublime.View, create=False) -> Debugger | None:
 		window = window_or_view.window() if isinstance(window_or_view, sublime.View) else window_or_view
 		if window is None:
 			return None
@@ -65,7 +66,7 @@ class Debugger(core.Dispose, dap.Debugger):
 
 		Debugger.debuggers_for_window[id] = None
 		try:
-			instance = Debugger(window, skip_project_check=skip_project_check)
+			instance = Debugger(window)
 			Debugger.debuggers_for_window[id] = instance
 			return instance
 
@@ -73,8 +74,10 @@ class Debugger(core.Dispose, dap.Debugger):
 			core.exception()
 			del Debugger.debuggers_for_window[id]
 
-	def __init__(self, window: sublime.Window, skip_project_check=False) -> None:
+	def __init__(self, window: sublime.Window) -> None:
 		self.window = window
+
+		self.on_project_or_settings_updated = core.Event[None]()
 
 		self.on_session_added = core.Event[dap.Session]()
 		self.on_session_removed = core.Event[dap.Session]()
@@ -106,19 +109,18 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.memory_views: list[MemoryView] = []
 		self.disassembly_view: DisassembleView | None = None
 
-		self.project = Project(window, skip_project_check)
+		self.project = Project(window)
 		self.breakpoints = Breakpoints()
 		self.watch = Watch(self)
 
 		self.source_provider = SourceNavigationProvider(self.project, self)
+		self.dispose_add(Suggestions(self))
 
 		self.tasks = Tasks()
 
 		self.console: ConsoleOutputPanel = ConsoleOutputPanel(self)
 		self.console.on_input.add(self.on_run_command)
 		self.console.on_navigate.add(self._on_navigate_to_source)
-
-		self.project.reload(self.console)
 
 		if location := self.project.location:
 			json = core.json.load_json_from_package_data(location)
@@ -127,8 +129,6 @@ class Debugger(core.Dispose, dap.Debugger):
 			self.watch.load_json(json.get('watch', []))
 		else:
 			core.info('Not loading data, project is not associated with a location')
-
-		self.project.on_updated.add(self._on_project_or_settings_updated)
 
 		self.callstack = CallstackOutputPanel(self)
 
@@ -147,10 +147,14 @@ class Debugger(core.Dispose, dap.Debugger):
 			self.console.log('warn', 'Debugger not associated with a sublime-project so breakpoints and other data will not be saved')
 
 		self.console.open()
+		self.project_or_settings_updated()
 		self._refresh_none_debugger_output_panels()
 
 	def dispose(self) -> None:
 		self.save_data()
+
+		for view in self.memory_views:
+			view.dispose()
 
 		if self.disassembly_view:
 			self.disassembly_view.dispose()
@@ -184,8 +188,12 @@ class Debugger(core.Dispose, dap.Debugger):
 		output_panel = OutputPanel(self, name, name=panel.get('name'), show_panel=False, show_tabs=True, show_tabs_top=panel.get('position') != 'bottom', create=False)
 		self.dispose_add(output_panel)
 
-	def updated_settings(self):
+	def project_or_settings_updated(self):
 		self.project.reload(self.console)
+		for panel in self.output_panels:
+			panel.update_settings()
+
+		self.on_project_or_settings_updated()
 
 	def _refresh_none_debugger_output_panels(self):
 		for panel_name in self.window.panels():
@@ -547,10 +555,6 @@ class Debugger(core.Dispose, dap.Debugger):
 			sel = view.sel()[0]
 			expression = view.substr(sel)
 			self.on_run_command(expression)
-
-	def _on_project_or_settings_updated(self):
-		for panel in self.output_panels:
-			panel.update_settings()
 
 	def _on_session_active(self, session: dap.Session):
 		if not self.session:

@@ -42,7 +42,7 @@ class Settings:
 		description='Open the debugger automatically when a project that is set up for debugging is opened.',
 	)
 
-	always_keep_visible = Setting[bool] (
+	always_keep_visible = Setting[bool](
 		key='always_keep_visible',
 		default=False,
 		description='Always keep the debugger panel visible',
@@ -172,12 +172,28 @@ Settings = Settings()  # type: ignore
 
 class SettingsRegistery:
 	settings: sublime.Settings
+	package_control_settings: sublime.Settings
 
 	@staticmethod
 	def initialize(on_updated: Callable[[], None]):
 		SettingsRegistery.settings = sublime.load_settings('Debugger.sublime-settings')
-		SettingsRegistery.settings.clear_on_change('debugger_settings')
 		SettingsRegistery.settings.add_on_change('debugger_settings', on_updated)
+
+		SettingsRegistery.package_control_settings = sublime.load_settings('Package Control.sublime-settings')
+		SettingsRegistery.package_control_settings.add_on_change('debugger_settings', on_updated)
+
+	@staticmethod
+	def is_package_installed(package: str):
+		installed_packages = SettingsRegistery.package_control_settings.get('installed_packages', [])
+		for installed_package in installed_packages:
+			if installed_package == package:
+				return True
+
+		for installed_package in Settings.installed_packages:
+			if installed_package == package:
+				return True
+
+		return False
 
 	@staticmethod
 	def save():

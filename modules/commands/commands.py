@@ -43,30 +43,8 @@ class Open(Action):
 			debugger.open()
 			return
 
-		if not window.project_file_name():
-			sublime.error_message('`Debugger: Open` requires a Sublime project')
-			return
-
 		if not debugger:
 			debugger = Debugger.create(window)
-
-
-class OpenOutsideProject(Action):
-	name = 'Open (Ignore Sublime Project Restriction)'
-	key = 'open_outside_project'
-
-	def action_raw(self, view: sublime.View | sublime.Window, kwargs: dict[str, Any]):
-		from ..debugger import Debugger
-
-		debugger = Debugger.create(view)
-		debugger.open()
-
-	def _is_visible(self, view: sublime.View | sublime.Window, **kwargs: dict[str, Any]):
-		window = core.window_from_view_or_widow(view)
-		if not window:
-			return False
-
-		return not window.project_file_name()
 
 
 class Quit(Action):

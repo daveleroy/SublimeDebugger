@@ -31,10 +31,6 @@ class Start(Action):
 		existing_debugger = debugger
 
 		if not debugger:
-			if not window.project_file_name() and not len(kwargs):
-				sublime.error_message('`Debugger: Open` requires a Sublime project')
-				return
-
 			debugger = Debugger.create(view)
 
 		if not debugger.is_open():

@@ -1,8 +1,6 @@
 from __future__ import annotations
-from typing import Any, Iterable, Set, cast
-
+from typing import Any, Set, cast
 import sys
-import os
 
 import sublime
 import sublime_plugin
@@ -53,8 +51,12 @@ def plugin_loaded() -> None:
 	ui.Layout.debug = Settings.development
 	ui.startup()
 
-	for window in sublime.windows():
-		open_debugger_in_window_or_view(window)
+	def open_in_windows():
+		for window in sublime.windows():
+			open_debugger_in_window_or_view(window)
+
+	# this is working around an issue where output panels not showing during plugin_loaded for some reason
+	sublime.set_timeout(open_in_windows)
 
 	core.info('[finished]')
 
@@ -113,7 +115,7 @@ def updated_settings():
 	ui.update_and_render()
 
 	for debugger in Debugger.debuggers():
-		debugger.updated_settings()
+		debugger.project_or_settings_updated()
 
 
 class EventListener(sublime_plugin.EventListener):
@@ -135,13 +137,18 @@ class EventListener(sublime_plugin.EventListener):
 				for session in debugger.sessions:
 					session.adapter.on_saved_source_file(session, file)
 
+	# is on_new_project bugged? this gets called when creating a new project so use it instead
+	def on_pre_save_project(self, window: sublime.Window):
+		if debugger := Debugger.get(window):
+			debugger.project_or_settings_updated()
+
 	def on_load_project(self, window: sublime.Window):
 		if debugger := Debugger.get(window):
-			debugger.project.reload(debugger.console)
+			debugger.project_or_settings_updated()
 
 	def on_pre_close_project(self, window: sublime.Window):
 		if debugger := Debugger.get(window):
-			sublime.set_timeout(lambda: debugger.project.reload(debugger.console), 0)
+			sublime.set_timeout(lambda: debugger.project_or_settings_updated(), 0)
 
 	@core.run
 	async def on_hover(self, view: sublime.View, point: int, hover_zone: int):
