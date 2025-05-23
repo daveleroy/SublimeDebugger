@@ -34,6 +34,8 @@ from .modules.commands.commands import *  # import all the action classes
 from .modules.adapters import *  # import all the adapters so Adapters.initialize() will see them
 from .modules.settings import SettingsRegistery, Settings
 
+from .modules.dap.schema import initialize_lsp_json_schema
+
 was_opened_at_startup: Set[int] = set()
 
 
@@ -57,6 +59,8 @@ def plugin_loaded() -> None:
 
 	# this is working around an issue where output panels not showing during plugin_loaded for some reason
 	sublime.set_timeout(open_in_windows)
+
+	initialize_lsp_json_schema()
 
 	core.info('[finished]')
 

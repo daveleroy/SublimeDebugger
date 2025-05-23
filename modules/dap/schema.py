@@ -1,11 +1,19 @@
 from __future__ import annotations
+from pathlib import Path
 from typing import Any
 
 from ..settings import SettingsRegistery
 from .adapter import Adapter
-from ..import core
+from .. import core
 
 import json
+
+SCHEMA_PATH = Path(core.package_path('contributes/Schema/sublime-package.json'))
+
+
+def initialize_lsp_json_schema():
+	if not SCHEMA_PATH.exists():
+		generate_lsp_json_schema()
 
 
 def generate_lsp_json_schema():
@@ -25,8 +33,8 @@ def generate_lsp_json_schema():
 
 	definitions['type'] = {
 		'properties': {
-				'type': {
-				'type':'string',
+			'type': {
+				'type': 'string',
 				'description': 'Type of configuration.',
 				'enum': all_adapters,
 			},
@@ -36,8 +44,8 @@ def generate_lsp_json_schema():
 
 	definitions['type_installed'] = {
 		'properties': {
-				'type': {
-				'type':'string',
+			'type': {
+				'type': 'string',
 				'description': 'Type of configuration.',
 				'enum': installed_adapters,
 				'errorMessage': 'This adapter is not installed, install this adapter to get completions',
@@ -46,17 +54,17 @@ def generate_lsp_json_schema():
 		'required': ['type'],
 	}
 
-	allOf.append({
-		'if': {
-			'$ref': F'sublime://settings/debugger#/definitions/type',
-		},
-		'then': {
-			'$ref': F'sublime://settings/debugger#/definitions/type_installed'
-		},
-		'else': {
-			'$ref': F'sublime://settings/debugger#/definitions/type',
-		},
-	})
+	allOf.append(
+		{
+			'if': {
+				'$ref': f'sublime://settings/debugger#/definitions/type',
+			},
+			'then': {'$ref': f'sublime://settings/debugger#/definitions/type_installed'},
+			'else': {
+				'$ref': f'sublime://settings/debugger#/definitions/type',
+			},
+		}
+	)
 
 	for adapter in adapters:
 		schema = adapter.configuration_schema or {}
@@ -83,7 +91,7 @@ def generate_lsp_json_schema():
 			'properties': {
 				'request': {
 					'type': 'string',
-					'description': F'Request type of configuration.',
+					'description': f'Request type of configuration.',
 					'enum': requests,
 				},
 				'name': {
@@ -95,15 +103,17 @@ def generate_lsp_json_schema():
 		}
 
 		for type in types:
-			allOf.append({
-				'if': {
-					'properties': { 'type': { 'const': type }, },
-					'required': ['type'],
-				},
-				'then': {
-					'$ref': F'sublime://settings/debugger#/definitions/{key}'
-				},
-			})
+			allOf.append(
+				{
+					'if': {
+						'properties': {
+							'type': {'const': type},
+						},
+						'required': ['type'],
+					},
+					'then': {'$ref': f'sublime://settings/debugger#/definitions/{key}'},
+				}
+			)
 
 		for request, value in schema.items():
 			# make sure all the default properties are defined here because we are setting additionalProperties to false
@@ -119,35 +129,34 @@ def generate_lsp_json_schema():
 				'description': 'name of task to run after debugging ends',
 			}
 			value['properties']['osx'] = {
-				'$ref': F'sublime://settings/debugger#/definitions/{key}.{request}',
+				'$ref': f'sublime://settings/debugger#/definitions/{key}.{request}',
 				'description': 'MacOS specific configuration attributes',
 			}
 			value['properties']['windows'] = {
-				'$ref': F'sublime://settings/debugger#/definitions/{key}.{request}',
+				'$ref': f'sublime://settings/debugger#/definitions/{key}.{request}',
 				'description': 'Windows specific configuration attributes',
 			}
 			value['properties']['linux'] = {
-				'$ref': F'sublime://settings/debugger#/definitions/{key}.{request}',
+				'$ref': f'sublime://settings/debugger#/definitions/{key}.{request}',
 				'description': 'Linux specific configuration attributes',
 			}
 
 			definitions[f'{key}.{request}'] = value
 
 			for type in types:
-				allOf.append({
-					'if': {
-						'properties': {'type': { 'const': type }, 'request': { 'const': request }},
-						'required': ['name', 'type', 'request']
-					},
-					'then': {
-						'unevaluatedProperties': False,
-						'allOf': [
-							{ '$ref': F'sublime://settings/debugger#/definitions/type' },
-							{ '$ref': F'sublime://settings/debugger#/definitions/{key}' },
-							{ '$ref': F'sublime://settings/debugger#/definitions/{key}.{request}'},
-						]
-					},
-				})
+				allOf.append(
+					{
+						'if': {'properties': {'type': {'const': type}, 'request': {'const': request}}, 'required': ['name', 'type', 'request']},
+						'then': {
+							'unevaluatedProperties': False,
+							'allOf': [
+								{'$ref': f'sublime://settings/debugger#/definitions/type'},
+								{'$ref': f'sublime://settings/debugger#/definitions/{key}'},
+								{'$ref': f'sublime://settings/debugger#/definitions/{key}.{request}'},
+							],
+						},
+					}
+				)
 
 		for snippet in snippets:
 			debugger_snippets.append(snippet)
@@ -163,18 +172,14 @@ def generate_lsp_json_schema():
 				'type': 'string',
 				'description': 'Name of compound which appears in the launch configuration drop down menu.',
 			},
-			'configurations': {
-				'type': 'array',
-				'description': 'Names of configurations that compose this compound configuration',
-				'items': { 'type': 'string' }
-			}
+			'configurations': {'type': 'array', 'description': 'Names of configurations that compose this compound configuration', 'items': {'type': 'string'}},
 		},
-		'required': ['name', 'configurations']
+		'required': ['name', 'configurations'],
 	}
 
 	definitions['debugger_task'] = {
 		'allOf': [
-			{ '$ref': 'sublime://schemas/sublime-build' },
+			{'$ref': 'sublime://schemas/sublime-build'},
 			{
 				'properties': {
 					'name': {
@@ -182,8 +187,8 @@ def generate_lsp_json_schema():
 						'description': 'Name of task',
 					}
 				},
-				'required': ['name']
-			}
+				'required': ['name'],
+			},
 		]
 	}
 
@@ -205,28 +210,27 @@ def generate_lsp_json_schema():
 							'debugger_configurations': {
 								'description': 'Debugger Configurations',
 								'type': 'array',
-								'items': { '$ref': F'sublime://settings/debugger#/definitions/debugger_configuration' },
+								'items': {'$ref': f'sublime://settings/debugger#/definitions/debugger_configuration'},
 							},
 							'debugger_tasks': {
 								'description': 'Debugger Tasks',
 								'type': 'array',
-								'items': { '$ref': F'sublime://settings/debugger#/definitions/debugger_task' },
+								'items': {'$ref': f'sublime://settings/debugger#/definitions/debugger_task'},
 							},
 							'debugger_compounds': {
 								'description': 'Debugger Compounds',
 								'type': 'array',
-								'items': { '$ref': F'sublime://settings/debugger#/definitions/debugger_compound' },
-							}
+								'items': {'$ref': f'sublime://settings/debugger#/definitions/debugger_compound'},
+							},
 						},
 					},
 				},
 				{
 					'file_patterns': ['Debugger.sublime-settings'],
 					'schema': SettingsRegistery.schema(),
-				}
+				},
 			]
 		}
 	}
 
-	with open(core.package_path('sublime-package.json'), 'w') as file:
-		file.write(json.dumps(schema_debug_configurations, indent='  '))
+	SCHEMA_PATH.write_text(json.dumps(schema_debug_configurations, indent='\t'))
