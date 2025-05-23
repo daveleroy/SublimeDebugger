@@ -122,14 +122,6 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.console.on_input.add(self.on_run_command)
 		self.console.on_navigate.add(self._on_navigate_to_source)
 
-		if location := self.project.location:
-			json = core.json.load_json_from_package_data(location)
-			self.project.load_from_json(json.get('project', {}))
-			self.breakpoints.load_from_json(json.get('breakpoints', {}))
-			self.watch.load_json(json.get('watch', []))
-		else:
-			core.info('Not loading data, project is not associated with a location')
-
 		self.callstack = CallstackOutputPanel(self)
 
 		self.dispose_add(
@@ -149,6 +141,7 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.console.open()
 		self.project_or_settings_updated()
 		self._refresh_none_debugger_output_panels()
+		self.load_data()
 
 	def dispose(self) -> None:
 		self.save_data()
@@ -492,6 +485,17 @@ class Debugger(core.Dispose, dap.Debugger):
 
 		file, line, column = self.project.current_file_line_column()
 		self.run_to_line_breakpoint = self.breakpoints.source.add_breakpoint(file, line, column)
+
+	def load_data(self):
+		location = self.project.location
+		if not location:
+			core.info('Not loading project data, project not associated with a location')
+			return
+
+		json = core.json.load_json_from_package_data(location)
+		self.project.load_from_json(json.get('project', {}))
+		self.breakpoints.load_from_json(json.get('breakpoints', {}))
+		self.watch.load_json(json.get('watch', []))
 
 	def save_data(self):
 		location = self.project.location
