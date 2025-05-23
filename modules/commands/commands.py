@@ -81,21 +81,9 @@ from .commands_session import StepBack
 
 Section()
 
+from .commands_tasks import RunTask, RunLastTask
 
-class RunTask(Action):
-	name = 'Run Task'
-	key = 'run_task'
-
-	def action(self, debugger: Debugger):
-		debugger.on_run_task()
-
-
-class RunLastTask(Action):
-	name = 'Select & Run Task'
-	key = 'select_and_run_task'
-
-	def action(self, debugger: Debugger):
-		debugger.on_run_task(select=True)
+Section()
 
 
 class NewTerminal(Action):

@@ -99,7 +99,6 @@ class Debugger(core.Dispose, dap.Debugger):
 
 		self.session: dap.Session | None = None
 		self.sessions: list[dap.Session] = []
-		self.last_run_task_name = None
 
 		self.run_to_current_line_breakpoint: SourceBreakpoint | None = None
 
@@ -119,7 +118,7 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.tasks = Tasks()
 
 		self.console: ConsoleOutputPanel = ConsoleOutputPanel(self)
-		self.console.on_input.add(self.on_run_command)
+		self.console.on_input.add(self._on_console_input)
 		self.console.on_navigate.add(self._on_navigate_to_source)
 
 		self.callstack = CallstackOutputPanel(self)
@@ -510,36 +509,11 @@ class Debugger(core.Dispose, dap.Debugger):
 		}
 		core.json.save_json_to_package_data(location, json)
 
-	def on_run_task(self) -> None:
-		values: list[ui.InputListItem] = []
-		for task in self.project.tasks:
-			def run(task: dap.Task = task):
-				self.last_run_task = task
-				self.run_task(task)
-
-			values.append(ui.InputListItem(run, task.name))
-
-		ui.InputList('Select task to run')[
-			values
-		].run()
-
-	def on_run_last_task(self) -> None:
-		if self.last_run_task:
-			self.run_task(self.last_run_task)
-		else:
-			self.on_run_task()
-
-	@core.run
-	async def run_task(self, task: dap.Task):
-		self.dispose_terminals(unused_only=True)
-		variables = self.project.extract_variables()
-		await self.tasks.run(self, await task.Expanded(variables))
-
 	def refresh_phantoms(self) -> None:
 		ui.Layout.render_layouts()
 
 	@core.run
-	async def on_run_command(self, command: str) -> None:
+	async def _on_console_input(self, command: str) -> None:
 		try:
 			result = await self.current_session.evaluate_expression(command, context='repl')
 			if result.variablesReference:
@@ -552,13 +526,6 @@ class Debugger(core.Dispose, dap.Debugger):
 
 		except core.Error as e:
 			self.console.error(f'{e}')
-
-	@core.run
-	async def evaluate_selected_expression(self):
-		if view := sublime.active_window().active_view():
-			sel = view.sel()[0]
-			expression = view.substr(sel)
-			self.on_run_command(expression)
 
 	def _on_session_active(self, session: dap.Session):
 		if not self.session:

@@ -1,7 +1,4 @@
 from __future__ import annotations
-
-import sublime
-
 from .. import core
 from ..command import Action, Section
 
