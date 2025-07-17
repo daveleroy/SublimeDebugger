@@ -5,19 +5,11 @@ from .. import ui
 from .. import dap
 from .. import core
 
-from ..breakpoints import (
-	Breakpoints,
-	SourceBreakpoint,
-	DataBreakpoint,
-	FunctionBreakpoint,
-	ExceptionBreakpointsFilter,
-)
-
 from . import css
 
 
 class BreakpointsView(ui.div, core.Dispose):
-	def __init__(self, breakpoints: Breakpoints, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
+	def __init__(self, breakpoints: dap.Breakpoints, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
 		self.on_navigate = on_navigate
@@ -43,7 +35,7 @@ class BreakpointsView(ui.div, core.Dispose):
 
 
 class BreakpointView(ui.div):
-	def __init__(self, breakpoints: Breakpoints, breakpoint: DataBreakpoint | ExceptionBreakpointsFilter | FunctionBreakpoint | SourceBreakpoint, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
+	def __init__(self, breakpoints: dap.Breakpoints, breakpoint: dap.DataBreakpoint | dap.ExceptionBreakpointsFilter | dap.FunctionBreakpoint | dap.SourceBreakpoint, on_navigate: Callable[[dap.SourceLocation], None]) -> None:
 		super().__init__()
 		self.breakpoints = breakpoints
 		self.breakpoint = breakpoint
@@ -58,45 +50,45 @@ class BreakpointView(ui.div):
 			ui.text(self.breakpoint.tag, css=css.button, on_click=self._on_navigate)
 
 	def _on_navigate(self) -> None:
-		if isinstance(self.breakpoint, SourceBreakpoint):
+		if isinstance(self.breakpoint, dap.SourceBreakpoint):
 			self.on_navigate(dap.SourceLocation.from_path(self.breakpoint.file, self.breakpoint.line, self.breakpoint.column))
 
 	def _on_toggle(self) -> None:
-		if isinstance(self.breakpoint, DataBreakpoint):
+		if isinstance(self.breakpoint, dap.DataBreakpoint):
 			self.breakpoints.data.toggle_enabled(self.breakpoint)
-		elif isinstance(self.breakpoint, FunctionBreakpoint):
+		elif isinstance(self.breakpoint, dap.FunctionBreakpoint):
 			self.breakpoints.function.toggle_enabled(self.breakpoint)
-		elif isinstance(self.breakpoint, ExceptionBreakpointsFilter):
+		elif isinstance(self.breakpoint, dap.ExceptionBreakpointsFilter):
 			self.breakpoints.filters.toggle_enabled(self.breakpoint)
-		elif isinstance(self.breakpoint, SourceBreakpoint):
+		elif isinstance(self.breakpoint, dap.SourceBreakpoint):
 			self.breakpoints.source.toggle_enabled(self.breakpoint)
 		else:
 			assert False, 'unreachable'
 
 	def is_removeable(self):
-		return not isinstance(self.breakpoint, ExceptionBreakpointsFilter)
+		return not isinstance(self.breakpoint, dap.ExceptionBreakpointsFilter)
 
 	def remove(self) -> None:
-		if isinstance(self.breakpoint, ExceptionBreakpointsFilter):
+		if isinstance(self.breakpoint, dap.ExceptionBreakpointsFilter):
 			...
-		elif isinstance(self.breakpoint, DataBreakpoint):
+		elif isinstance(self.breakpoint, dap.DataBreakpoint):
 			self.breakpoints.data.remove(self.breakpoint)
-		elif isinstance(self.breakpoint, FunctionBreakpoint):
+		elif isinstance(self.breakpoint, dap.FunctionBreakpoint):
 			self.breakpoints.function.remove(self.breakpoint)
-		elif isinstance(self.breakpoint, SourceBreakpoint):
+		elif isinstance(self.breakpoint, dap.SourceBreakpoint):
 			self.breakpoints.source.remove(self.breakpoint)
 		else:
 			assert False, 'unreachable'
 
 	@core.run
 	async def edit(self) -> None:
-		if isinstance(self.breakpoint, DataBreakpoint):
+		if isinstance(self.breakpoint, dap.DataBreakpoint):
 			await self.breakpoints.data.edit(self.breakpoint)
-		elif isinstance(self.breakpoint, FunctionBreakpoint):
+		elif isinstance(self.breakpoint, dap.FunctionBreakpoint):
 			await self.breakpoints.function.edit(self.breakpoint)
-		elif isinstance(self.breakpoint, ExceptionBreakpointsFilter):
+		elif isinstance(self.breakpoint, dap.ExceptionBreakpointsFilter):
 			await self.breakpoints.filters.edit(self.breakpoint)
-		elif isinstance(self.breakpoint, SourceBreakpoint):
+		elif isinstance(self.breakpoint, dap.SourceBreakpoint):
 			await self.breakpoints.source.edit(self.breakpoint)
 		else:
 			assert False, 'unreachable'

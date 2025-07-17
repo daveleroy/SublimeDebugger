@@ -2,9 +2,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, cast
 from enum import IntEnum
 from .. import core
-from . import dap
-from ..watch import Watch
-from .debugger import Console, ConsoleSessionBound, Debugger
+from . import api
+from .debugger import ConsoleSessionBound, Debugger
 from .error import Error
 from .variable import Variable
 from .thread import Thread
@@ -13,8 +12,7 @@ from .configuration import ConfigurationExpanded, TaskExpanded
 from .transport import Transport, TransportConnectionError, TransportListener
 
 if TYPE_CHECKING:
-	from ..breakpoints import Breakpoints, SourceBreakpoint, Breakpoint
-
+	from .breakpoints import SourceBreakpoint, Breakpoint
 
 class Session(TransportListener, core.Dispose):
 	class State(IntEnum):
@@ -32,7 +30,7 @@ class Session(TransportListener, core.Dispose):
 			self.status = ''
 			self.previous: 'Session.State' = 0  # type: ignore
 
-	on_output: core.Event['Session', dap.OutputEvent]
+	on_output: core.Event['Session', api.OutputEvent]
 
 	on_updated: core.Event['Session']
 	on_updated_modules: core.Event['Session']
@@ -44,7 +42,7 @@ class Session(TransportListener, core.Dispose):
 	on_finished: Callable[['Session'], None]
 
 	on_task_request: Callable[['Session', TaskExpanded], Awaitable[None]]
-	on_terminal_request: Callable[['Session', dap.RunInTerminalRequestArguments], Awaitable[dap.RunInTerminalResponse]]
+	on_terminal_request: Callable[['Session', api.RunInTerminalRequestArguments], Awaitable[api.RunInTerminalResponse]]
 
 	def __init__(self, debugger: Debugger, adapter: Adapter, configuration: ConfigurationExpanded, restart: Any | None, no_debug: bool, parent: Session | None = None) -> None:
 		self.adapter = adapter
@@ -76,7 +74,7 @@ class Session(TransportListener, core.Dispose):
 		self._transport: Transport | None = None
 
 		self.launching_async: core.Future | None = None
-		self.capabilities = dap.Capabilities()
+		self.capabilities = api.Capabilities()
 		self.stop_requested = False
 		self.launch_request = True
 		self.stepping = False
@@ -96,10 +94,10 @@ class Session(TransportListener, core.Dispose):
 
 		self.threads: list[Thread] = []
 		self.variables: list[Variable] = []
-		self.sources: dict[int | str, dap.Source] = {}
-		self.modules: dict[int | str, dap.Module] = {}
+		self.sources: dict[int | str, api.Source] = {}
+		self.modules: dict[int | str, api.Module] = {}
 
-		self.process: dap.ProcessEvent | None = None
+		self.process: api.ProcessEvent | None = None
 
 	@property
 	def name(self) -> str:
@@ -159,7 +157,7 @@ class Session(TransportListener, core.Dispose):
 
 		installed_version = self.adapter.installed_version
 		if not installed_version:
-			raise core.Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(self.adapter.type))
+			raise Error('Debug adapter with type name "{}" is not installed. You can install it by running Debugger: Install Adapters'.format(self.adapter.type))
 
 		if not await self.run_pre_debug_task():
 			await self.stop_session()
@@ -167,19 +165,19 @@ class Session(TransportListener, core.Dispose):
 
 		self._change_state_status('Starting')
 		try:
-			self.console('transport', f'-- adapter: type={self.adapter.type} version={installed_version}')
+			self.console.log('transport', f'-- adapter: type={self.adapter.type} version={installed_version}')
 			transport = await self.adapter.start(console=self.console, configuration=self.configuration)
 		except TransportConnectionError as e:
 			self.stopped_unexpectedly = True
-			raise core.Error(f'Unable to start adapter: {e}')
+			raise Error(f'Unable to start adapter: {e}')
 		except Exception as e:
-			raise core.Error(f'Unable to start adapter: {e}')
+			raise Error(f'Unable to start adapter: {e}')
 
 		self._transport = transport
 		await self._transport.start(self, self.configuration, self.console)
 		self._transport_started = True
 
-		capabilities: dap.Capabilities = await self.request(
+		capabilities: api.Capabilities = await self.request(
 			'initialize',
 			{
 				'clientID': 'sublime',
@@ -214,7 +212,7 @@ class Session(TransportListener, core.Dispose):
 			self.launch_request = False
 			await self.request('attach', self.configuration)
 		else:
-			raise core.Error('expected configuration to have request of either "launch" or "attach" found {}'.format(self.configuration.request))
+			raise Error('expected configuration to have request of either "launch" or "attach" found {}'.format(self.configuration.request))
 
 		self.adapter.did_start_debugging(self)
 
@@ -228,10 +226,10 @@ class Session(TransportListener, core.Dispose):
 
 	async def request(self, command: str, arguments: Any) -> Any:
 		if not self._transport_started:
-			raise core.Error('Debugging not started')
+			raise Error('Debugging not started')
 
 		if not self._transport:
-			raise core.Error('Debugging ended')
+			raise Error('Debugging ended')
 
 		return await self._transport.send_request(command, arguments)
 
@@ -257,11 +255,11 @@ class Session(TransportListener, core.Dispose):
 			return True
 
 		except core.CancelledError:
-			self.console('error-no-open', f'{name}: cancelled')
+			self.console.log('error-no-open', f'{name}: cancelled')
 			return False
 
-		except core.Error as e:
-			self.console('error-no-open', f'{name}: {e}')
+		except Error as e:
+			self.console.log('error-no-open', f'{name}: {e}')
 			return False
 
 	def _refresh_state(self) -> None:
@@ -274,7 +272,7 @@ class Session(TransportListener, core.Dispose):
 				self._change_state_status('Running')
 				self._change_state(Session.State.RUNNING)
 
-		except core.Error as e:
+		except Error as e:
 			self._change_state(Session.State.RUNNING)
 
 	async def add_breakpoints(self) -> None:
@@ -299,20 +297,20 @@ class Session(TransportListener, core.Dispose):
 			return
 		try:
 			filters: list[str] = []
-			filterOptions: list[dap.ExceptionFilterOptions] = []
+			filterOptions: list[api.ExceptionFilterOptions] = []
 
 			for f in self.breakpoints.filters:
 				if f.enabled:
 					filters.append(f.dap.filter)
 					filterOptions.append(
-						dap.ExceptionFilterOptions(
+						api.ExceptionFilterOptions(
 							f.dap.filter,
 							f.condition,
 						)
 					)
 
 			await self.request('setExceptionBreakpoints', {'filters': filters, 'filterOptions': filterOptions})
-		except core.Error as e:
+		except Error as e:
 			self.console.error('Error while exception filters: {}'.format(e))
 
 	async def set_function_breakpoints(self) -> None:
@@ -330,14 +328,14 @@ class Session(TransportListener, core.Dispose):
 			dap_breakpoints = list(map(lambda b: b.dap, breakpoints))
 
 			response = await self.request('setFunctionBreakpoints', {'breakpoints': dap_breakpoints})
-			results: list[dap.Breakpoint] = response['breakpoints']
+			results: list[api.Breakpoint] = response['breakpoints']
 
 			for result, b in zip(results, breakpoints):
 				self.breakpoints.function.set_breakpoint_result(b, self, result)
 				if result.id is not None:
 					self.breakpoints_for_id[result.id] = b
 
-		except core.Error as e:
+		except Error as e:
 			self.console.error('Error while adding function breakpoints: {}'.format(e))
 
 	async def set_data_breakpoints(self) -> None:
@@ -348,13 +346,13 @@ class Session(TransportListener, core.Dispose):
 
 		try:
 			response = await self.request('setDataBreakpoints', {'breakpoints': dap_breakpoints})
-			results: list[dap.Breakpoint] = response['breakpoints']
+			results: list[api.Breakpoint] = response['breakpoints']
 			for result, b in zip(results, breakpoints):
 				self.breakpoints.data.set_breakpoint_result(b, self, result)
 				if result.id is not None:
 					self.breakpoints_for_id[result.id] = b
 
-		except core.Error as e:
+		except Error as e:
 			self.console.error('Error while adding data breakpoints: {}'.format(e))
 
 	async def set_breakpoints_for_file(self, file: str, breakpoints: list[SourceBreakpoint]) -> None:
@@ -362,7 +360,7 @@ class Session(TransportListener, core.Dispose):
 			return
 
 		enabled_breakpoints: list[SourceBreakpoint] = []
-		dap_breakpoints: list[dap.SourceBreakpoint] = []
+		dap_breakpoints: list[api.SourceBreakpoint] = []
 
 		lines: list[int] = []
 
@@ -403,7 +401,7 @@ class Session(TransportListener, core.Dispose):
 		except Error as e:
 			self.console.error('Error while adding breakpoints: {}'.format(e))
 			for b in enabled_breakpoints:
-				self.breakpoints.source.set_breakpoint_result(b, self, dap.Breakpoint(verified=False, message=str(e)))
+				self.breakpoints.source.set_breakpoint_result(b, self, api.Breakpoint(verified=False, message=str(e)))
 
 	def on_send_data_breakpoints(self, any: Any):
 		core.run(self.set_data_breakpoints())
@@ -507,7 +505,7 @@ class Session(TransportListener, core.Dispose):
 		else:
 			allThreadsContinued = True
 
-		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, allThreadsContinued))
+		self.on_continued_event(api.ContinuedEvent(self.command_thread.id, allThreadsContinued))
 
 	async def reverse_continue(self):
 		if not self.capabilities.supportsStepBack:
@@ -522,7 +520,7 @@ class Session(TransportListener, core.Dispose):
 		else:
 			allThreadsContinued = True
 
-		self.on_continued_event(dap.ContinuedEvent(self.command_thread.id, allThreadsContinued))
+		self.on_continued_event(api.ContinuedEvent(self.command_thread.id, allThreadsContinued))
 
 	async def pause(self):
 		await self.request('pause', {'threadId': self.command_thread.id})
@@ -543,7 +541,7 @@ class Session(TransportListener, core.Dispose):
 				'granularity': granularity,
 			},
 		)
-		self.on_continued_event(dap.ContinuedEvent(thread.id, False))
+		self.on_continued_event(api.ContinuedEvent(thread.id, False))
 
 	async def step_over(self, granularity: str | None = None):
 		await self.step('next', granularity)
@@ -561,7 +559,7 @@ class Session(TransportListener, core.Dispose):
 
 		await self.step('stepBack', granularity)
 
-	async def exception_info(self, thread_id: int) -> dap.ExceptionInfoResponseBody:
+	async def exception_info(self, thread_id: int) -> api.ExceptionInfoResponseBody:
 		return await self.request('exceptionInfo', {'threadId': thread_id})
 
 	async def evaluate(self, expression: str, context: str = 'repl'):
@@ -570,10 +568,10 @@ class Session(TransportListener, core.Dispose):
 			raise Error('expression did not return a result')
 
 		# variablesReference doesn't appear to be optional in the spec... but some adapters treat it as such
-		event = dap.OutputEvent(result.result + '\n', 'console', variablesReference=result.variablesReference)
+		event = api.OutputEvent(result.result + '\n', 'console', variablesReference=result.variablesReference)
 		self.on_output(self, event)
 
-	async def evaluate_expression(self, expression: str, context: str | None) -> dap.EvaluateResponse:
+	async def evaluate_expression(self, expression: str, context: str | None) -> api.EvaluateResponse:
 		frameId: int | None = None
 		if self.selected_frame:
 			frameId = self.selected_frame.id
@@ -593,7 +591,7 @@ class Session(TransportListener, core.Dispose):
 
 		return response
 
-	async def disassemble(self, memory_reference: str, instruction_offset: int, instruction_count: int) -> dap.DisassembleResponseBody:
+	async def disassemble(self, memory_reference: str, instruction_offset: int, instruction_count: int) -> api.DisassembleResponseBody:
 		return await self.request(
 			'disassemble',
 			{
@@ -603,10 +601,10 @@ class Session(TransportListener, core.Dispose):
 			},
 		)
 
-	async def read_memory(self, memory_reference: str, count: int, offset: int) -> dap.ReadMemoryResponse:
+	async def read_memory(self, memory_reference: str, count: int, offset: int) -> api.ReadMemoryResponse:
 		return await self.request('readMemory', {'memoryReference': memory_reference, 'count': count, 'offset': offset})
 
-	async def write_memory(self, memory_reference: str, offset: int | None, allowPartial: bool | None, data: str) -> dap.WriteMemoryResponse:
+	async def write_memory(self, memory_reference: str, offset: int | None, allowPartial: bool | None, data: str) -> api.WriteMemoryResponse:
 		return await self.request(
 			'writeMemory',
 			{
@@ -617,7 +615,7 @@ class Session(TransportListener, core.Dispose):
 			},
 		)
 
-	async def stack_trace(self, thread_id: int) -> list[dap.StackFrame]:
+	async def stack_trace(self, thread_id: int) -> list[api.StackFrame]:
 		body = await self.request(
 			'stackTrace',
 			{
@@ -626,7 +624,7 @@ class Session(TransportListener, core.Dispose):
 		)
 		return body['stackFrames']
 
-	async def completions(self, text: str, column: int) -> list[dap.CompletionItem]:
+	async def completions(self, text: str, column: int) -> list[api.CompletionItem]:
 		frameId = None
 		if self.selected_frame:
 			frameId = self.selected_frame.id
@@ -641,7 +639,7 @@ class Session(TransportListener, core.Dispose):
 		)
 		return response['targets']
 
-	async def set_variable(self, variablesReference: int, name: str, value: str) -> dap.SetVariableResponse:
+	async def set_variable(self, variablesReference: int, name: str, value: str) -> api.SetVariableResponse:
 		return await self.request(
 			'setVariable',
 			{
@@ -651,7 +649,7 @@ class Session(TransportListener, core.Dispose):
 			},
 		)
 
-	async def data_breakpoint_info(self, variablesReference: int, name: str) -> dap.DataBreakpointInfoResponse:
+	async def data_breakpoint_info(self, variablesReference: int, name: str) -> api.DataBreakpointInfoResponse:
 		response = await self.request(
 			'dataBreakpointInfo',
 			{
@@ -661,20 +659,20 @@ class Session(TransportListener, core.Dispose):
 		)
 		return response
 
-	async def refresh_scopes(self, frame: dap.StackFrame):
+	async def refresh_scopes(self, frame: api.StackFrame):
 		body = await self.request('scopes', {'frameId': frame.id})
-		scopes: list[dap.Scope] = body['scopes']
+		scopes: list[api.Scope] = body['scopes']
 		self.variables = [Variable.from_scope(self, scope) for scope in scopes]
 		self.on_updated_variables(self)
 
-	async def get_source(self, source: dap.Source) -> tuple[str, str | None]:
+	async def get_source(self, source: api.Source) -> tuple[str, str | None]:
 		body = await self.request('source', {'source': {'path': source.path, 'sourceReference': source.sourceReference}, 'sourceReference': source.sourceReference})
 		return body['content'], body.get('mimeType')
 
 	async def get_variables(self, variablesReference: int, without_names: bool = False) -> list[Variable]:
 		response = await self.request('variables', {'variablesReference': variablesReference})
 
-		variables: list[dap.Variable] = response['variables']
+		variables: list[api.Variable] = response['variables']
 
 		# vscode seems to remove the names from variables in output events
 		if without_names:
@@ -684,14 +682,14 @@ class Session(TransportListener, core.Dispose):
 
 		return [Variable.from_variable(self, variablesReference, v) for v in variables]
 
-	def on_breakpoint_event(self, event: dap.BreakpointEvent):
+	def on_breakpoint_event(self, event: api.BreakpointEvent):
 		assert event.breakpoint.id
 		if b := self.breakpoints_for_id.get(event.breakpoint.id):
 			self.breakpoints.set_breakpoint_result(b, self, event.breakpoint)
 		else:
 			core.debug(f'Breakpoint for id not found {event.breakpoint.id}')
 
-	def on_module_event(self, event: dap.ModuleEvent):
+	def on_module_event(self, event: api.ModuleEvent):
 		if event.reason == 'new':
 			self.modules[event.module.id] = event.module
 
@@ -705,11 +703,11 @@ class Session(TransportListener, core.Dispose):
 
 		self.on_updated_modules(self)
 
-	def on_process_event(self, event: dap.ProcessEvent):
+	def on_process_event(self, event: api.ProcessEvent):
 		self.process = event
 		self.on_updated(self)
 
-	def on_loaded_source_event(self, event: dap.LoadedSourceEvent):
+	def on_loaded_source_event(self, event: api.LoadedSourceEvent):
 		id = f'{event.source.name}~{event.source.path}~{event.source.sourceReference}'
 		if event.reason == 'new':
 			self.sources[id] = event.source
@@ -736,11 +734,11 @@ class Session(TransportListener, core.Dispose):
 		if self.capabilities.supportsConfigurationDoneRequest:
 			await self.request('configurationDone', {})
 
-	def on_output_event(self, event: dap.OutputEvent):
+	def on_output_event(self, event: api.OutputEvent):
 		self.on_output(self, event)
 
 	@core.run
-	async def on_terminated_event(self, event: dap.TerminatedEvent):
+	async def on_terminated_event(self, event: api.TerminatedEvent):
 		self.terminated_event = event
 		await self.stop()
 
@@ -755,21 +753,21 @@ class Session(TransportListener, core.Dispose):
 
 	async def on_reverse_request(self, command: str, arguments: core.JSON) -> core.JSON:
 		if command == 'runInTerminal':
-			response = await self.on_run_in_terminal(cast(dap.RunInTerminalRequestArguments, arguments))
+			response = await self.on_run_in_terminal(cast(api.RunInTerminalRequestArguments, arguments))
 			return cast(core.JSON, response)
 
 		assert self.adapter
 		response = await self.adapter.on_custom_request(self, command, arguments)
 
 		if response is None:
-			raise core.Error(f'reverse request not implemented {command}')
+			raise Error(f'reverse request not implemented {command}')
 
 		return cast(core.JSON, response)
 
-	async def on_run_in_terminal(self, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
+	async def on_run_in_terminal(self, request: api.RunInTerminalRequestArguments) -> api.RunInTerminalResponse:
 		try:
 			return await self.on_terminal_request(self, request)
-		except core.Error as e:
+		except Error as e:
 			self.console.error(str(e))
 			raise e
 
@@ -780,7 +778,7 @@ class Session(TransportListener, core.Dispose):
 		if self.threads:
 			return self.threads[0]
 
-		raise core.Error('No threads to run command')
+		raise Error('No threads to run command')
 
 	def get_thread(self, id: int):
 		t = self.threads_for_id.get(id)
@@ -791,7 +789,7 @@ class Session(TransportListener, core.Dispose):
 			self.threads_for_id[id] = t
 			return t
 
-	def set_selected(self, thread: Thread, frame: dap.StackFrame | None):
+	def set_selected(self, thread: Thread, frame: api.StackFrame | None):
 		self.select(thread, frame, explicitly=True)
 		self._refresh_state()
 
@@ -815,10 +813,10 @@ class Session(TransportListener, core.Dispose):
 
 		self.on_updated_threads(self)
 
-	def on_threads_event(self, event: dap.ThreadEvent) -> None:
+	def on_threads_event(self, event: api.ThreadEvent) -> None:
 		self.refresh_threads()
 
-	def on_stopped_event(self, stopped: dap.StoppedEvent):
+	def on_stopped_event(self, stopped: api.StoppedEvent):
 		self.stepping_hit_stopped_event = True
 
 		if stopped.allThreadsStopped or False:
@@ -853,7 +851,7 @@ class Session(TransportListener, core.Dispose):
 		children = await thread.children()
 		if children and not self.selected_frame and not self.selected_explicitly and self.selected_thread is thread:
 
-			def first_non_subtle_frame(frames: list[dap.StackFrame]):
+			def first_non_subtle_frame(frames: list[api.StackFrame]):
 				for frame in frames:
 					if frame.presentationHint != 'subtle' and frame.source:
 						return frame
@@ -865,7 +863,7 @@ class Session(TransportListener, core.Dispose):
 			self.on_updated_threads(self)
 			self._refresh_state()
 
-	def on_continued_event(self, continued: dap.ContinuedEvent):
+	def on_continued_event(self, continued: api.ContinuedEvent):
 		# if we hit a stopped event while stepping then the next continue event that is not a stepping event sets stepping to false
 		if self.stepping_hit_stopped_event:
 			self.stepping = False
@@ -885,9 +883,9 @@ class Session(TransportListener, core.Dispose):
 		self.on_updated_threads(self)
 		self._refresh_state()
 
-	def select(self, thread: Thread | None, frame: dap.StackFrame | None, explicitly: bool):
+	def select(self, thread: Thread | None, frame: api.StackFrame | None, explicitly: bool):
 		if frame and not thread:
-			raise core.Error('Expected thread')
+			raise Error('Expected thread')
 
 		self.selected_explicitly = explicitly
 		self.selected_thread = thread
@@ -899,6 +897,38 @@ class Session(TransportListener, core.Dispose):
 		else:
 			self.variables.clear()
 			self.on_updated_variables(self)
+
+	def on_invalidated_event(self, invalidated: api.InvalidatedEvent):
+		areas = invalidated.areas or []
+
+		# 'all' | 'stacks' | 'threads' | 'variables'
+		invalidate_all = bool(areas)
+		invalidate_threads = False
+		invalidate_variables = False
+		invalidate_stacks = False
+
+		for area in areas:
+			if area == 'stacks':
+				invalidate_stacks = True
+			elif area == 'threads':
+				invalidate_threads = True
+			elif area == 'variables':
+				invalidate_stacks = True
+			else:
+				# found unhandled area so just invalidate the entire thing
+				invalidate_all = True
+
+		if invalidate_all or invalidate_threads:
+			self.refresh_threads()
+
+		if invalidate_all or invalidate_variables:
+			if self.selected_frame:
+				core.run(self.refresh_scopes(self.selected_frame))
+
+		if invalidate_all or invalidate_stacks:
+			for thread in self.threads:
+				...
+				# if thread.children
 
 	def on_event(self, event: str, body: Any):
 		if not self._transport:
@@ -925,5 +955,7 @@ class Session(TransportListener, core.Dispose):
 			self.on_loaded_source_event(body)
 		elif event == 'process':
 			self.on_process_event(body)
+		elif event == 'invalidated':
+			self.on_invalidated_event(body)
 		else:
 			core.run(self.adapter.on_custom_event(self, event, body))

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from ...settings import Settings
-from ...import core
 from ...import dap
 
 import socket
@@ -14,7 +13,7 @@ def version_tuple(v: str):
 def get_node_path(adapter_type: str|list[str]) -> str:
 	return Settings.node or shutil.which('node') or 'node'
 
-async def get_and_warn_require_node(adapter_type: str|list[str], log: core.Logger):
+async def get_and_warn_require_node(adapter_type: str|list[str], log: dap.Console):
 	node_path = get_node_path(adapter_type)
 	# max_version = 'v13.0.0'
 
@@ -47,4 +46,4 @@ def require_package(package: str):
 		if installed_package == package:
 			return
 
-	raise core.Error(f'{package} must be installed via package control or listed in `installed_packages` if installed outside of package control')
+	raise dap.Error(f'{package} must be installed via package control or listed in `installed_packages` if installed outside of package control')

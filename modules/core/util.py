@@ -8,27 +8,15 @@ import sublime
 import time
 
 from .log import debug
-from .error import Error
 
-from .asyncio import (
-	Future,
-	CancelledError,
-
-	call_later,
-	call_soon,
-	delay,
-	run,
-	run_in_executor,
-
-	gather,
-	gather_results,
-)
+from . import asyncio
 
 
 _current_package = __package__.split('.', 1)[0]
 _current_package_path = os.path.join(sublime.packages_path(), _current_package)
 
-def debugger_storage_path(ensure_exists: bool = False):
+
+def package_storage_path(ensure_exists: bool = False):
 	"""
 	This is taken from LSP
 
@@ -54,6 +42,7 @@ def package_path(*components: str) -> str:
 		return os.path.join(_current_package_path, *components)
 	return _current_package_path
 
+
 def package_path_relative(component: str) -> str:
 	# WARNING!!! dont change to os.path.join sublime doesn't like back slashes in add_region? and other places?
 	return f'Packages/{_current_package}/{component}'
@@ -69,21 +58,22 @@ class stopwatch:
 
 	def print(self, postfix=''):
 		te = time.time()
-		print ('%s: %2.2f ms %s' %  (self.prefix.rjust(8), (te - self.ts) * 1000, postfix))
+		print('%s: %2.2f ms %s' % (self.prefix.rjust(8), (te - self.ts) * 1000, postfix))
 
 	def elapsed(self):
 		te = time.time()
 		return (te - self.ts) * 1000
 
+
 class timer:
 	def __init__(self, callback: Callable[[], Any], interval: float, repeat: bool = False) -> None:
 		self.interval = interval
 		self.callback = callback
-		self.cancelable = call_later(interval, self.on_complete)
+		self.cancelable = asyncio.call_later(interval, self.on_complete)
 		self.repeat = repeat
 
 	def schedule(self) -> None:
-		self.cancelable = call_later(self.interval, self.on_complete)
+		self.cancelable = asyncio.call_later(self.interval, self.on_complete)
 
 	def on_complete(self) -> None:
 		self.callback()
@@ -92,6 +82,7 @@ class timer:
 
 	def dispose(self) -> None:
 		self.cancelable.cancel()
+
 
 def symlink(origin: str, destination: str):
 	try:
@@ -109,6 +100,7 @@ def symlink(origin: str, destination: str):
 			return
 		raise
 
+
 def write(path: str, data: str, overwrite_existing=False):
 	if not overwrite_existing and os.path.exists(path):
 		return
@@ -116,10 +108,13 @@ def write(path: str, data: str, overwrite_existing=False):
 	with open(path, 'w') as f:
 		f.write(data)
 
+
 def make_directory(path: str):
 	try:
 		os.mkdir(path)
-	except FileExistsError: ...
+	except FileExistsError:
+		...
+
 
 def remove_file_or_dir(path: str):
 	if not os.path.exists(path):
@@ -134,6 +129,7 @@ def remove_file_or_dir(path: str):
 		os.remove(path)
 
 	else:
+		from ..dap import Error
 		raise Error('Unexpected file type')
 
 
@@ -150,12 +146,13 @@ class ZipFile(zipfile.ZipFile):
 			member = self.getinfo(member)
 
 		targetpath = self._path(targetpath)
-		ret_val = zipfile.ZipFile._extract_member(self, member, targetpath, pwd) #type: ignore
+		ret_val = zipfile.ZipFile._extract_member(self, member, targetpath, pwd)  # type: ignore
 
 		attr = member.external_attr >> 16
 		if attr != 0:
 			os.chmod(ret_val, attr)
 		return ret_val
+
 
 def _abspath_fix(path):
 	if sublime.platform() == 'windows':
@@ -171,7 +168,7 @@ def format_bytes(size):
 	# 2**10 = 1024
 	power = 2**10
 	n = 0
-	power_labels = {0 : '', 1: 'KB', 2: 'MB', 3: 'GB', 4: 'TB'}
+	power_labels = {0: '', 1: 'KB', 2: 'MB', 3: 'GB', 4: 'TB'}
 
 	while size > power:
 		size /= power

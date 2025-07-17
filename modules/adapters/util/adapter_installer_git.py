@@ -2,9 +2,10 @@ from __future__ import annotations
 from typing import Callable
 from ...settings import Setting
 
+from ... import dap
 from ... import core
 
-from . import vscode
+from .adapter_installer_vscode import VSCodeAdapterInstaller
 from . import request
 
 import string
@@ -26,13 +27,13 @@ def headers():
 	}
 
 
-class GitInstaller(vscode.AdapterInstaller):
+class GitInstaller(VSCodeAdapterInstaller):
 	def __init__(self, type: str, repo: str, is_valid_asset: Callable[[str], bool] = lambda asset: asset.endswith('.vsix')):
 		self.type = type
 		self.repo = repo
 		self.is_valid_asset = is_valid_asset
 
-	async def install(self, version: str, log: core.Logger):
+	async def install(self, version: str, log: dap.Console):
 		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 		for release in releases:
 			if version != version_from_release(release):
@@ -43,9 +44,9 @@ class GitInstaller(vscode.AdapterInstaller):
 					await self.install_vsix(asset['browser_download_url'], log=log)
 					return
 
-		raise core.Error(f'Unable to find a suitable release in {self.repo}')
+		raise dap.Error(f'Unable to find a suitable release in {self.repo}')
 
-	async def installable_versions(self, log: core.Logger) -> list[str]:
+	async def installable_versions(self, log: dap.Console) -> list[str]:
 		try:
 			releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 			versions: list[str] = []
@@ -67,21 +68,21 @@ class GitInstaller(vscode.AdapterInstaller):
 			raise e
 
 
-class GitSourceInstaller(vscode.AdapterInstaller):
+class GitSourceInstaller(VSCodeAdapterInstaller):
 	def __init__(self, type: str, repo: str):
 		self.type = type
 		self.repo = repo
 
-	async def install(self, version: str | None, log: core.Logger):
+	async def install(self, version: str | None, log: dap.Console):
 		releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 		for release in releases:
 			if version == version_from_release(release):
 				await self.install_source(release['zipball_url'], log=log)
 				return
 
-		raise core.Error(f'Unable to find a suitable release in {self.repo}')
+		raise dap.Error(f'Unable to find a suitable release in {self.repo}')
 
-	async def installable_versions(self, log: core.Logger) -> list[str]:
+	async def installable_versions(self, log: dap.Console) -> list[str]:
 		try:
 			releases = await request.json(f'https://api.github.com/repos/{self.repo}/releases', headers=headers())
 			versions: list[str] = []

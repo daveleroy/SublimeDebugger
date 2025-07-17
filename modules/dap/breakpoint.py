@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from ..import dap
+from .session import Session
+from .import api
 
 
 class Breakpoint:
@@ -9,8 +10,8 @@ class Breakpoint:
 	tag: str
 
 	def __init__(self):
-		self._result: dap.Breakpoint|None = None
-		self._results: dict[dap.Session, dap.Breakpoint] = {}
+		self._result: api.Breakpoint|None = None
+		self._results: dict[Session, api.Breakpoint] = {}
 
 	@property
 	def description(self) -> str|None:
@@ -42,12 +43,12 @@ class Breakpoint:
 				self._result = result
 				return
 
-	def set_breakpoint_result(self, session: dap.Session, result: dap.Breakpoint):
+	def set_breakpoint_result(self, session: Session, result: api.Breakpoint):
 		self._results[session] = result
 		self._refresh_verified_status()
 
-	def clear_breakpoint_result(self, session: dap.Session):
-		try: 
+	def clear_breakpoint_result(self, session: Session):
+		try:
 			del self._results[session]
 			self._refresh_verified_status()
 			return True

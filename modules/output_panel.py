@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable, Any, ClassVar, Dict, TypeVar, cast
+from typing import TYPE_CHECKING, Callable, Any, ClassVar, cast
 
 import sublime
 import sublime_plugin
@@ -9,7 +9,6 @@ from . import core
 from . import ui
 
 from .settings import Settings
-from .output_panel_tabs import OutputPanelTabsBottomPhantom, OutputPanelTabsPhantom
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
@@ -21,9 +20,9 @@ class OutputPanel(core.Dispose):
 	on_opened: Callable[[], Any] | None = None
 	on_opened_status: Callable[[], Any] | None = None
 
-	from_view: ClassVar[Dict[sublime.View, OutputPanel]] = {}
-	from_input_view: ClassVar[Dict[sublime.View, OutputPanel]] = {}
-	from_output_panel_name: ClassVar[Dict[str, OutputPanel]] = {}
+	from_view: ClassVar[dict[sublime.View, OutputPanel]] = {}
+	from_input_view: ClassVar[dict[sublime.View, OutputPanel]] = {}
+	from_output_panel_name: ClassVar[dict[str, OutputPanel]] = {}
 
 	def __init__(
 		self,
@@ -57,8 +56,11 @@ class OutputPanel(core.Dispose):
 
 		previous_panel = self.window.active_panel()
 
+		from .output_panel_tabs import OutputPanelTabsBottomPhantom, OutputPanelTabsPhantom
+
 		if SUPPORTS_IO_PANEL:
-			self.view, self.input_view = cast('tuple[sublime.View, sublime.View]', self.window.create_io_panel(self.panel_name, lambda i: ..., unlisted=unlisted))
+			self.view, self.input_view = cast('tuple[sublime.View, sublime.View]', self.window.create_io_panel(self.panel_name, lambda i:  None))
+
 			input_settings = self.input_view.settings()
 			input_settings.set('line_padding_top', 0)
 			input_settings.set('line_padding_bottom', 0)
@@ -74,7 +76,7 @@ class OutputPanel(core.Dispose):
 				self.tabs_phantom = OutputPanelTabsBottomPhantom(self, self.view)
 
 		settings = self.view.settings()
-		settings.set('debugger', True)
+		settings.set('debugger', id(debugger))
 		settings.set('debugger.output', True)
 		settings.set('debugger.output.' + self.name.lower(), True)
 
@@ -95,7 +97,8 @@ class OutputPanel(core.Dispose):
 
 		# this is just a hack to get the output panel to have a bigger height
 		self.update_settings()
-		scaled_font = (settings.get('font_size') or 12) * (Settings.console_minimum_height + 1.75) / 5
+		font_size = cast(float, settings.get('font_size') or 12)
+		scaled_font = font_size * (Settings.console_minimum_height + 1.75) / 5
 		settings.set('font_size', scaled_font)  # this will be removed in update_settings()
 		self.open()
 
@@ -134,9 +137,6 @@ class OutputPanel(core.Dispose):
 		if not OutputPanel.from_view.get(self.view):
 			return
 
-		if self.create:
-			self.window.destroy_output_panel(self.panel_name)
-
 		# remove debugger markers we added
 		else:
 			settings = self.view.settings()
@@ -149,6 +149,9 @@ class OutputPanel(core.Dispose):
 
 		if self.input_view:
 			del OutputPanel.from_input_view[self.input_view]
+
+		if self.create:
+			self.window.destroy_output_panel(self.panel_name)
 
 	def _get_free_output_panel_name(self, window: sublime.Window, name: str) -> str:
 		id = 1

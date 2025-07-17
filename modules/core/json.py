@@ -6,7 +6,7 @@ import json
 import dataclasses
 import hashlib
 
-from .util import debugger_storage_path, write
+from .util import package_storage_path, write
 from .typing_extensions import TypeAlias
 
 
@@ -65,7 +65,7 @@ VERSION_NUMBER = 0
 
 def _file_from_key(key: str):
 	name = os.path.basename(key).split('.')[0]
-	return f'{debugger_storage_path()}/{name}({hashlib.md5(key.encode()).hexdigest()[:10]}).json'
+	return f'{package_storage_path()}/{name}({hashlib.md5(key.encode()).hexdigest()[:10]}).json'
 
 def load_json_from_package_data(key: str) -> JSON:
 	path = _file_from_key(key)
@@ -86,5 +86,5 @@ def load_json_from_package_data(key: str) -> JSON:
 def save_json_to_package_data(key: str, json: Any):
 	path = _file_from_key(key)
 	json['_version'] = VERSION_NUMBER
-	debugger_storage_path(ensure_exists=True)
+	package_storage_path(ensure_exists=True)
 	write(path, json_encode(json, pretty=True), overwrite_existing=True)

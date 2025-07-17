@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Any, BinaryIO
+from typing import BinaryIO
 
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
@@ -9,9 +9,8 @@ import tarfile
 
 import sublime
 
-from ...core.json import JSON, json_decode
-
 from ... import core
+from ... import dap
 
 
 @dataclass
@@ -36,7 +35,7 @@ class URLRequest:
 		elif content_encoding == 'deflate':
 			data_file: BinaryIO = response
 		elif content_encoding:
-			raise core.Error(f'Unknown Content-Encoding {content_encoding}')
+			raise dap.Error(f'Unknown Content-Encoding {content_encoding}')
 		else:
 			data_file = response
 
@@ -57,8 +56,8 @@ def request(url: str, timeout: int | None = 30, headers: dict[str, str] = {}):
 
 
 @core.run_in_executor
-def json(url: str, headers: dict[str, str] = {}) -> JSON:
-	return json_decode(request_bytes(url, headers=headers))
+def json(url: str, headers: dict[str, str] = {}) -> core.JSON:
+	return core.json_decode(request_bytes(url, headers=headers))
 
 
 @core.run_in_executor
@@ -97,12 +96,12 @@ def request_bytes(url: str, timeout: int | None = 30, headers: dict[str, str] = 
 
 def handle_request_error(url: str, error: Exception):
 	if isinstance(error, HTTPError):
-		return core.Error(f'Unable to perform request ({error.code}) ({url})')
+		return dap.Error(f'Unable to perform request ({error.code}) ({url})')
 	else:
-		return core.Error(f'Unable to perform request ({error}) ({url})')
+		return dap.Error(f'Unable to perform request ({error}) ({url})')
 
 
-async def download_and_extract_zip(url: str, path: str, extract_folder: str | None = None, *, log: core.Logger = core.stdio):
+async def download_and_extract_zip(url: str, path: str, extract_folder: str | None = None, *, log: dap.Console = dap.stdio):
 	def log_info(value: str):
 		sublime.status_message(f'Debugger: {value}')
 		# core.call_soon_threadsafe(log.info, value)
@@ -144,7 +143,7 @@ async def download_and_extract_zip(url: str, path: str, extract_folder: str | No
 	core.remove_file_or_dir(archive_name)
 
 
-async def download_and_extract_targz(url: str, path: str, extract_folder: str | None = None, *, log: core.Logger = core.stdio):
+async def download_and_extract_targz(url: str, path: str, extract_folder: str | None = None, *, log: dap.Console = dap.stdio):
 	def log_info(value: str):
 		sublime.status_message(f'Debugger: {value}')
 		# core.call_soon_threadsafe(log.info, value)

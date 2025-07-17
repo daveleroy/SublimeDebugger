@@ -1,10 +1,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Type
+
 from .. import core
-from .. import dap
+
+
 
 if TYPE_CHECKING:
+	from .error import Error
 	from .adapter import Adapter
+	from .debugger import Console
 
 
 class AdapterRegistery(type):
@@ -16,7 +20,7 @@ class AdapterRegistery(type):
 		return kclass
 
 	registered: ClassVar[list[Adapter]] = []
-	registered_types: ClassVar[dict[str, Adapter]] = {}
+	registered_types: ClassVar[dict[str | Type[Adapter], Adapter]] = {}
 
 	@staticmethod
 	def _register(adapter: Adapter):
@@ -30,17 +34,17 @@ class AdapterRegistery(type):
 			Adapter.registered_types[type] = adapter
 
 	@staticmethod
-	def get(type: str | Type[Adapter]) -> dap.Adapter:
+	def get(type: str | Type[Adapter]) -> Adapter:
 		from .adapter import Adapter
 
 		if adapter := Adapter.registered_types.get(type):
 			return adapter
 
-		raise core.Error(f'Unable to find debug adapter with the type name "{type}"')
+		raise Error(f'Unable to find debug adapter with the type name "{type}"')
 
 	@staticmethod
 	@core.run
-	async def install_adapter(console: dap.Console, adapter: dap.Adapter, version: str | None) -> None:
+	async def install_adapter(console: Console, adapter: Adapter, version: str | None) -> None:
 		console.log('group-start', f'{core.platform.unicode_unchecked_sigil} Installing {adapter.name}')
 
 		try:

@@ -55,28 +55,3 @@ def debug(*args: Any) -> None:
 	if not _should_log_info:
 		return
 	print('Debugger:', *args)
-
-
-class Logger(Protocol):
-	def log(self, type: str, value: Any):
-		print(f'Debugger: {type}: {value}')
-
-	def __call__(self, type: str, value: Any):
-		self.log(type, value)
-
-	def error(self, text: str):
-		self.log('error', text)
-
-	def warn(self, text: str):
-		self.log('warn', text)
-
-	def info(self, text: str):
-		self.log('info', text)
-
-
-class StdioLogger(Logger):
-	def log(self, type: str, value: Any):
-		print(f'Debugger: {type}: {value}')
-
-
-stdio = StdioLogger()

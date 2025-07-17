@@ -6,12 +6,13 @@ from .dap.configuration import Input
 
 from . import core
 from . import ui
+from . import dap
 class SelectProcess(Input):
 	async def resolve(self):
 		try:
 			import psutil
 		except ImportError:
-			raise core.Error('Unable to select a process, `psutil` is not available')
+			raise dap.Error('Unable to select a process, `psutil` is not available')
 
 		items: list[ui.InputListItem] = []
 		selected_proc: Any = None

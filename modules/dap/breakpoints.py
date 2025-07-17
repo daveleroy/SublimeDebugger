@@ -1,15 +1,20 @@
 from __future__ import annotations
 from typing import Protocol
 
+from .error import Error
+
+from .session import Session
+
 from ..import ui
-from .. import dap
 from .. import core
 
+from . import api
+
 from .breakpoint import Breakpoint
-from .data_breakpoints import DataBreakpoints, DataBreakpoint
-from .function_breakpoints import FunctionBreakpoints, FunctionBreakpoint
-from .source_breakpoints import SourceBreakpoints, SourceBreakpoint
-from .exception_filters import ExceptionBreakpointsFilters, ExceptionBreakpointsFilter
+from .breakpoint_data import DataBreakpoints, DataBreakpoint
+from .breakpoint_function import FunctionBreakpoints, FunctionBreakpoint
+from .breakpoint_source import SourceBreakpoints, SourceBreakpoint
+from .breakpoint_exception_filters import ExceptionBreakpointsFilters, ExceptionBreakpointsFilter
 
 class IBreakpoint (Protocol):
 	@property
@@ -31,7 +36,7 @@ class Breakpoints:
 	def dispose(self) -> None:
 		self.source.dispose()
 
-	def set_breakpoint_result(self, breakpoint: Breakpoint, session: dap.Session, result: dap.Breakpoint) -> None:
+	def set_breakpoint_result(self, breakpoint: Breakpoint, session: Session, result: api.Breakpoint) -> None:
 		if isinstance(breakpoint, DataBreakpoint):
 			self.data.set_breakpoint_result(breakpoint, session, result)
 		elif isinstance(breakpoint, FunctionBreakpoint):
@@ -39,14 +44,14 @@ class Breakpoints:
 		elif isinstance(breakpoint, SourceBreakpoint):
 			self.source.set_breakpoint_result(breakpoint, session, result)
 		else:
-			raise core.Error('Unsupprted Breakpoint type)')
+			raise Error('Unsupprted Breakpoint type)')
 
 	def remove_all(self):
 		self.source.remove_all()
 		self.data.remove_all()
 		self.function.remove_all()
 
-	def clear_breakpoint_result(self, session: dap.Session) -> None:
+	def clear_breakpoint_result(self, session: Session) -> None:
 		self.data.clear_breakpoint_result(session)
 		self.function.clear_breakpoint_result(session)
 		self.source.clear_breakpoint_result(session)

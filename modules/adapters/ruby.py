@@ -11,7 +11,7 @@ class Ruby(dap.Adapter):
 
 	docs = 'https://github.com/ruby/vscode-rdbg#how-to-use'
 
-	installer = util.git.GitSourceInstaller(
+	installer = util.GitSourceInstaller(
 		type='rdbg',
 		repo='ruby/vscode-rdbg',
 	)
@@ -19,7 +19,7 @@ class Ruby(dap.Adapter):
 	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 		rdbg = shutil.which('rdbg')
 		if not rdbg:
-			raise core.Error('You must install the `rdbg` gem. Install it by running `gem install rdbg`')
+			raise dap.Error('You must install the `rdbg` gem. Install it by running `gem install rdbg`')
 
 		port = util.get_open_port()
 		command = [

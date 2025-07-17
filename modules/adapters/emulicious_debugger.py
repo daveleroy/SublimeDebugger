@@ -25,7 +25,7 @@ class EmuliciousDebugger(dap.Adapter):
 		check_port_socket.close()
 		return dap.SocketTransport(configuration.get('host') or 'localhost', configuration['port'])
 
-	async def startEmulicious(self, console: dap.Logger, configuration: dap.ConfigurationExpanded):
+	async def startEmulicious(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 		if configuration.get('request') == 'attach':
 			raise Exception('Failed to attach to Emulicious Debugger.\n' + "Please make sure that Emulicious is running and Remote Debugging is enabled in Emulicious's Tools menu.")
 		emuliciousPath = configuration.get('emuliciousPath')

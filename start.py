@@ -1,30 +1,35 @@
 from __future__ import annotations
-from typing import Any, Set, cast
 import sys
 
+for module in list(filter(lambda module: module.startswith(f'{__package__}.') and module != __name__, sys.modules.keys())):
+	del sys.modules[module]
+
+from typing import Any, Set, cast
 import sublime
 import sublime_plugin
+
+from .modules import asyncio
+
 
 if sublime.version() < '4000':
 	raise Exception('Debugger only supports Sublime Text 4')
 
 # remove old modules for this package so that they are reloaded when this module is reloaded
 
-for module in list(filter(lambda module: module.startswith(cast(str, __package__) + '.') and module != __name__, sys.modules.keys())):
-	del sys.modules[module]
-
 
 # import all the commands so that sublime sees them
 from .modules.core.sublime import DebuggerEditCommand
-from .modules.command import DebuggerExecCommand, DebuggerCommand, DebuggerTextCommand, DebuggerInputCommand
+from .modules.command import DebuggerCommand, DebuggerTextCommand, DebuggerInputCommand
 
 from .modules.output_panel import OutputPanelEventListener
-from .modules.terminal_integrated import DebuggerTerminusPostViewHooks
+from .modules.output_panel_terminus import DebuggerTerminusPostViewHooks
+
 from .modules.ui.input import CommandPaletteInputCommand
 
 from .modules import core
 from .modules import ui
 from .modules import dap
+from .modules.project import Project
 
 from .modules.debugger import Debugger
 from .modules.views.variable import VariableView
@@ -102,7 +107,7 @@ def open_debugger_in_window_or_view(window_or_view: sublime.View | sublime.Windo
 	if not Settings.open_at_startup and not window.settings().get('debugger.open_at_startup'):
 		return
 
-	project_data = window.project_data()
+	project_data: Any = window.project_data()
 	if not project_data or 'debugger_configurations' not in project_data:
 		return
 
@@ -200,7 +205,7 @@ class EventListener(sublime_plugin.EventListener):
 
 			view_x, _ = view.layout_to_window(view.viewport_position())  # type: ignore
 
-			margin = view.settings().get('margin') or 0
+			margin = cast(float, view.settings().get('margin') or 0)
 			offset = x - view_x  # type: ignore
 
 			if offset < -30 - margin:
@@ -263,7 +268,7 @@ class EventListener(sublime_plugin.EventListener):
 		if not key.startswith('debugger'):
 			return None
 
-		def apply_operator(value: bool):
+		def apply_operator(value: Any):
 			if operator == sublime.OP_EQUAL:
 				return value == operand
 			elif operator == sublime.OP_NOT_EQUAL:

@@ -21,7 +21,7 @@ class AdapterInfo:
 	schema_and_snippets: dict[str, Any]
 
 
-class AdapterInstaller(dap.AdapterInstaller):
+class VSCodeAdapterInstaller(dap.AdapterInstaller):
 	type: str
 
 	_package_info: AdapterInfo | None = None
@@ -30,7 +30,7 @@ class AdapterInstaller(dap.AdapterInstaller):
 		super().remove()
 		self._package_info = None
 
-	async def install_vsix(self, url: str, *, log: core.Logger):
+	async def install_vsix(self, url: str, *, log: dap.Console):
 		try:
 			del _info_for_type[self.type]
 		except KeyError:
@@ -39,7 +39,7 @@ class AdapterInstaller(dap.AdapterInstaller):
 		path = self.temporary_install_path()
 		await request.download_and_extract_zip(url, path, 'extension', log=log)
 
-	async def install_source(self, url: str, *, log: core.Logger):
+	async def install_source(self, url: str, *, log: dap.Console):
 		try:
 			del _info_for_type[self.type]
 		except KeyError:

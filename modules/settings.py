@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, ForwardRef, Generic, Any, TypeVar
+from typing import Callable, ForwardRef, Generic, Any, TypeVar, cast
 from . import core
 
 import sublime
@@ -10,28 +10,28 @@ T = TypeVar('T')
 class Setting(Generic[T], object):
 	def __init__(self, key: str, default: T, description: str = '', visible=True, schema: Any | None = None) -> None:
 		self.key = key
-		self.default = default
+		self.default: Any = default
 		self.description = description
 		self.visible = visible
 		self.schema = schema
 
 	@property
 	def value(self) -> T:
-		return SettingsRegistery.settings.get(self.key, self.default)
+		return cast(T, SettingsRegistery.settings.get(self.key, self.default))
 
 	@value.setter
 	def value(self, value: T):
-		return SettingsRegistery.settings.set(self.key, value)
+		return SettingsRegistery.settings.set(self.key, cast(Any, value))
 
 	def __get__(self, obj, objtype=None) -> T:
-		return SettingsRegistery.settings.get(self.key, self.default)
+		return cast(T, SettingsRegistery.settings.get(self.key, self.default))
 
 	def update(self, value: T):
-		SettingsRegistery.settings.set(self.key, value)
+		SettingsRegistery.settings.set(self.key, cast(Any, value))
 		SettingsRegistery.save()
 
 	def __set__(self, obj, value: T):
-		SettingsRegistery.settings.set(self.key, value)
+		SettingsRegistery.settings.set(self.key, cast(Any, value))
 		SettingsRegistery.save()
 
 
@@ -184,7 +184,7 @@ class SettingsRegistery:
 
 	@staticmethod
 	def is_package_installed(package: str):
-		installed_packages = SettingsRegistery.package_control_settings.get('installed_packages', [])
+		installed_packages = cast('list[str]', SettingsRegistery.package_control_settings.get('installed_packages', []))
 		for installed_package in installed_packages:
 			if installed_package == package:
 				return True

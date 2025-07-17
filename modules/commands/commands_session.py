@@ -1,5 +1,6 @@
 from __future__ import annotations
 from .. import core
+from .. import dap
 from ..command import Action, Section
 
 
@@ -64,7 +65,7 @@ class Continue(Action):
 	async def action(self, debugger):
 		try:
 			await debugger.current_session.resume()
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to continue: {e}')
 
 	def is_enabled(self, debugger):
@@ -79,7 +80,7 @@ class Pause(Action):
 	async def action(self, debugger):
 		try:
 			await debugger.current_session.pause()
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to pause: {e}')
 
 	def is_enabled(self, debugger):
@@ -94,7 +95,7 @@ class StepOver(Action):
 	async def action(self, debugger):
 		try:
 			await debugger.current_session.step_over(granularity=debugger.stepping_granularity())
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to step over: {e}')
 
 	def is_enabled(self, debugger):
@@ -109,7 +110,7 @@ class StepIn(Action):
 	async def action(self, debugger):
 		try:
 			await debugger.current_session.step_in(granularity=debugger.stepping_granularity())
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to step in: {e}')
 
 	def is_enabled(self, debugger):
@@ -124,7 +125,7 @@ class StepOut(Action):
 	async def action(self, debugger):
 		try:
 			await debugger.current_session.step_out(granularity=debugger.stepping_granularity())
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to step out: {e}')
 
 	def is_enabled(self, debugger):
@@ -142,7 +143,7 @@ class ReverseContinue(Action):
 	async def action(self, debugger):
 		try:
 			await debugger.current_session.reverse_continue()
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to reverse continue: {e}')
 
 	def is_enabled(self, debugger):
@@ -157,7 +158,7 @@ class StepBack(Action):
 	async def action(self, debugger):
 		try:
 			await debugger.current_session.step_back(granularity=debugger.stepping_granularity())
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to step backwards: {e}')
 
 	def is_enabled(self, debugger):

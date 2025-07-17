@@ -20,7 +20,7 @@ class Go(dap.Adapter):
 		port = util.get_open_port()
 		dlv = self.go_dlv or shutil.which('dlv')
 		if not dlv:
-			raise core.Error('`dlv` not found see https://github.com/go-delve/delve for setting up delve')
+			raise dap.Error('`dlv` not found see https://github.com/go-delve/delve for setting up delve')
 
 		command = [dlv, 'dap', '--listen', f'localhost:{port}']
 

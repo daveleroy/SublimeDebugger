@@ -77,21 +77,21 @@ class ChangeConfiguration(Action):
 		def report_issue():
 			webbrowser.open_new_tab('https://github.com/daveleroy/sublime_debugger/issues')
 
-		values: list[ui.InputListItem] = []
+
+		values: list[ui.InputListItem] = [
+			ui.InputListItem(lambda: debugger.run_action(EditConfiguration), EditConfiguration.name + f'\t{debugger.project.project_file_name}'),
+			ui.InputListItem(lambda: debugger.run_action(AddConfiguration), AddConfiguration.name),
+			ui.InputListItem(lambda: debugger.run_action(InstallAdapters), InstallAdapters.name),
+			ui.InputListItem(lambda: ..., ''),
+		]
+
 		for c in debugger.project.compounds:
 			name = f'{c.name}\tcompound'
-			values.append(ui.InputListItemChecked(partial(debugger.set_configuration, c), c == debugger.project.configuration_or_compound, name))
+			values.append(ui.InputListItemChecked(partial(debugger.set_configuration, c), c == debugger.project.configuration_or_compound, name, run_alt=lambda c=c: c.source and c.source.open_file()))
 
 		for c in debugger.project.configurations:
 			name = f'{c.name}\t{c.type}'
-			values.append(ui.InputListItemChecked(partial(debugger.set_configuration, c), c == debugger.project.configuration_or_compound, name))
-
-		if values:
-			values.append(ui.InputListItem(lambda: ..., ''))
-
-		values.append(ui.InputListItem(lambda: debugger.run_action(AddConfiguration), AddConfiguration.name))
-		values.append(ui.InputListItem(lambda: debugger.run_action(EditConfiguration), EditConfiguration.name))
-		values.append(ui.InputListItem(lambda: debugger.run_action(InstallAdapters), InstallAdapters.name))
+			values.append(ui.InputListItemChecked(partial(debugger.set_configuration, c), c == debugger.project.configuration_or_compound, name, run_alt=lambda c=c: c.source and c.source.open_file()))
 
 		values.extend(
 			[

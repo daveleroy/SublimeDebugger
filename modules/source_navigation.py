@@ -63,7 +63,7 @@ class SourceNavigationProvider:
 		async def select_async(source: dap.SourceLocation, thread: dap.Thread):
 			delay = core.run(core.delay(1.0 / 30.0))
 
-			view = await self.navigate_to_source(source)
+			view = await self.navigate_to_source(source, move_cursor=True)
 
 			# delay least 1 frame at 30 fps so that a selected source at the same location right after clearing the previous one will briefly be removed before shown again
 			# this is just always done since its easy and the screen is scrolling to the source location anyway
@@ -125,7 +125,7 @@ class SourceNavigationProvider:
 			else:
 				session = self.debugger.session
 				if not session:
-					raise core.Error('No Active Debug Session')
+					raise dap.Error('No Active Debug Session')
 				content, mime_type = await session.get_source(source.source)
 				custom_settings = []
 
@@ -150,7 +150,7 @@ class SourceNavigationProvider:
 		elif source.source.path:
 			view = await core.sublime_open_file_async(self.project.window, source.source.path, group=0)
 		else:
-			raise core.Error('source has no reference or path')
+			raise dap.Error('source has no reference or path')
 
 		if source.line_regex:
 			match = view.find(source.line_regex, 0)

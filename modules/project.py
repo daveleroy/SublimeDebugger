@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Any
+from pathlib import Path
+from typing import Any, cast
 from . import core
 from . import dap
 
@@ -32,6 +33,13 @@ class Project:
 		if project_name := self.window.project_file_name():
 			return project_name
 		return None
+
+	@property
+	def project_file_name(self) -> str | None:
+		if project_name := self.window.project_file_name():
+			return Path(project_name).name
+		return ''
+
 
 	@property
 	def name(self) -> str:
@@ -85,7 +93,7 @@ class Project:
 		for task in self.tasks:
 			if task.name == name:
 				return task
-		raise core.Error(f'Unable to find task with name "{name}"')
+		raise dap.Error(f'Unable to find task with name "{name}"')
 
 	def active_configurations(self) -> list[Configuration]:
 		if isinstance(self.configuration_or_compound, ConfigurationCompound):
@@ -100,7 +108,7 @@ class Project:
 				if configuration:
 					configurations.append(configuration)
 				else:
-					raise core.Error(f'Unable to find configuration with name "{configuration_name}" while evaluating compound "{self.configuration_or_compound.name}"')
+					raise dap.Error(f'Unable to find configuration with name "{configuration_name}" while evaluating compound "{self.configuration_or_compound.name}"')
 
 			return configurations
 
@@ -128,14 +136,14 @@ class Project:
 		try:
 			view, region = await project.open_project_configurations_file()
 			if not region or not view:
-				raise core.Error('Unable to find debugger_configurations')
+				raise dap.Error('Unable to find debugger_configurations')
 
 			view.sel().clear()
 			view.sel().add(sublime.Region(region.b, region.b))
 			view.run_command('insert', {'characters': '\n'})
 			view.run_command('insert_snippet', {'contents': snippet + ','})
 
-		except core.Error:
+		except dap.Error:
 			core.exception()
 			sublime.set_clipboard(snippet)
 			core.display('Unable to insert configuration into sublime-project file: Copied to clipboard instead')
@@ -169,7 +177,7 @@ class Project:
 				with open(example_project, 'r') as file:
 					contents = file.read()
 
-				project_json = sublime.decode_value(contents) or {}
+				project_json: Any = sublime.decode_value(contents) or {}
 				json: list[Any] = project_json.get(key, [])
 				for configuration in json:
 					configuration['$'] = {'project_path': os.path.dirname(example_project), 'folder': os.path.dirname(example_project)}
@@ -179,8 +187,11 @@ class Project:
 
 		return configurations
 
+	def project_data(self)-> dict[str, Any]:
+		return cast(Any, self.window.project_data())
+
 	def _load_configurations(self, console: dap.Console):
-		data: dict[str, Any] | None = self.window.project_data()
+		data = self.project_data()
 		if data is None:
 			core.info('No project associated with window')
 			data = {}
@@ -230,6 +241,9 @@ class Project:
 		if view.window() != self.window:
 			return None
 
+		if view.settings().get('debugger.view.source') is False:
+			return None
+
 		return view.file_name()
 
 	def extract_variables(self):
@@ -254,11 +268,11 @@ class Project:
 	def current_file_line_column(self) -> tuple[str, int, int]:
 		view = self.window.active_view()
 		if not view:
-			raise core.Error('No open view')
+			raise dap.Error('No open view')
 
 		file = self.source_file(view)
 		if not file:
-			raise core.Error('No source file selected or file is not saved')
+			raise dap.Error('No source file selected or file is not saved')
 
 		r, c = view.rowcol(view.sel()[0].begin())
 		return file, r + 1, c + 1

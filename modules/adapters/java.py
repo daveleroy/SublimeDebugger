@@ -57,14 +57,14 @@ class Java(dap.Adapter):
 	async def _get_mainclass_project_name(self, preferred_mainclass=None):
 		mainclasses = await self.lsp_execute_command('vscode.java.resolveMainClass')
 		if not mainclasses:
-			raise core.Error('Failed to resolve main class')
+			raise dap.Error('Failed to resolve main class')
 
 		if preferred_mainclass:
 			matches = [x for x in mainclasses if x['mainClass'] == preferred_mainclass]
 			if matches:
 				return matches[0]['mainClass'], matches[0]['projectName']
 			else:
-				raise core.Error('Mainclass {} not found. Check your debugger configuration or leave "mainClass" empty to detect the mainclass automatically'.format(preferred_mainclass))
+				raise dap.Error('Mainclass {} not found. Check your debugger configuration or leave "mainClass" empty to detect the mainclass automatically'.format(preferred_mainclass))
 
 		if len(mainclasses) == 1:
 			return mainclasses[0]['mainClass'], mainclasses[0]['projectName']
@@ -87,20 +87,20 @@ class Java(dap.Adapter):
 		index = await future_index
 
 		if index == -1:
-			raise core.Error('Please specify a main class')
+			raise dap.Error('Please specify a main class')
 
 		return mainclasses[index]['mainClass'], mainclasses[index]['projectName']
 
 	async def _resolve_modulepath_classpath(self, main_class, project_name):
 		classpath_response = await self.lsp_execute_command('vscode.java.resolveClasspath', [main_class, project_name])
 		if not classpath_response[0] and not classpath_response[1]:
-			raise core.Error('Failed to resolve classpaths/modulepaths automatically, please specify the value in the debugger configuration')
+			raise dap.Error('Failed to resolve classpaths/modulepaths automatically, please specify the value in the debugger configuration')
 
 		module_paths = classpath_response[0]
 		class_paths = classpath_response[1]
 		return module_paths, class_paths
 
-	async def _is_preview_enabled(self, main_class, project_name) -> dict:
+	async def _is_preview_enabled(self, main_class, project_name):
 		# See https://github.com/microsoft/vscode-java-debug/blob/b2a48319952b1af8a4a328fc95d2891de947df94/src/configurationProvider.ts#L297
 		return await self.lsp_execute_command(
 			'vscode.java.checkProjectSettings',

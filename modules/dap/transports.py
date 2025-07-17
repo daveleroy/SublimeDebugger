@@ -17,9 +17,12 @@ class Process:
 
 	@staticmethod
 	def cleanup_processes():
+		core.info('Removing Processes')
 		for self in Process.processes:
-			if self.poll() is not None:
-				core.info('killing process')
+			if self.poll() is None:
+				core.error('Killing Process')
+				self.terminate()
+				self.wait(0.5)
 				self.kill()
 
 		Process.processes.clear()
@@ -109,8 +112,9 @@ class Process:
 	def dispose(self):
 		self.closed = True
 		try:
+			self.process.terminate()
+			self.process.wait(0.5)
 			self.process.kill()
-			self.process.wait()
 		except Exception:
 			core.exception()
 

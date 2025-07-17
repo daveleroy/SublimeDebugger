@@ -81,57 +81,7 @@ from .commands_session import StepBack
 
 Section()
 
-from .commands_tasks import RunTask, RunLastTask
-
-Section()
-
-
-class NewTerminal(Action):
-	name = 'New Terminal'
-	key = 'new_terminal'
-
-	@core.run
-	async def action(self, debugger: Debugger):
-		debugger.dispose_terminals(unused_only=True)
-
-		for task in debugger.tasks.tasks:
-			if task.task.name == 'Terminal':
-				await ui.InputText(
-					lambda name: self.create(debugger, name),
-					'Create New Terminal With Name',
-				)
-				return
-
-		await self.create(debugger, 'Terminal')
-
-	@core.run
-	async def create(self, debugger: Debugger, name: str):
-		task = await dap.Task({'name': name}).Expanded({})
-		await debugger.tasks.run(debugger, task)
-
-
-class OpenTerminal(Action):
-	name = 'Open Terminal'
-	key = 'open_terminal'
-
-	@core.run
-	async def action(self, debugger: Debugger):
-		if not debugger.tasks.tasks:
-			debugger.run_action(NewTerminal)
-			return
-
-		next_task = 0
-
-		for i, task in enumerate(debugger.tasks.tasks):
-			if task.is_open():
-				next_task = i + 1
-				break
-
-		next_task = debugger.tasks.tasks[next_task % len(debugger.tasks.tasks)]
-		next_task.open()
-
-
-Section()
+from .commands_tasks import RunTask, RunLastTask, NewTerminal, OpenTerminal
 
 
 class AddFunctionBreakpoint(Action):
@@ -217,7 +167,7 @@ class BrowseStorage(Action):
 
 	def action_raw(self, view: sublime.View | sublime.Window, kwargs: dict[str, Any]):
 		if window := core.window_from_view_or_widow(view):
-			window.run_command('open_dir', {'dir': core.debugger_storage_path(ensure_exists=True)})
+			window.run_command('open_dir', {'dir': core.package_storage_path(ensure_exists=True)})
 
 
 class ShowProtocol(Action):

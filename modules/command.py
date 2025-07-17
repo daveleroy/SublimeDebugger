@@ -9,10 +9,10 @@ import sublime_plugin
 import sublime
 
 from . import ui
+from . import dap
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
-
 
 class DebuggerCommand(sublime_plugin.WindowCommand):
 	def want_event(self) -> bool:
@@ -159,22 +159,10 @@ class DebuggerTextCommand(sublime_plugin.TextCommand):
 		return DebuggerCommand.action_is_visible(self.view, action, **kwargs)
 
 
-# allow using debugger_exec to run a build system as a Debugger Task
-class DebuggerExecCommand(sublime_plugin.WindowCommand):
-	def run(self, **kwargs: dict[str, Any]):  # type: ignore
-		from .debugger import Debugger
-		from .dap import Task
-
-		debugger = Debugger.create(self.window)
-
-		task = Task.from_json(kwargs)
-		debugger.run_task(task)
-
-
 class DebuggerInputCommand(sublime_plugin.WindowCommand):
 	def input(self, args: Any):  # type: ignore
 		if not ui.CommandPaletteInputCommand.running_command:
-			raise core.Error('expected running_command')
+			raise dap.Error('expected running_command')
 
 		input = ui.CommandPaletteInputCommand.running_command.input
 		ui.CommandPaletteInputCommand.running_command = None

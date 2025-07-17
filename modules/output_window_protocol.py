@@ -6,7 +6,7 @@ import sublime
 from .import core
 from .import dap
 
-class ProtocolWindow:
+class ProtocolConsoleWindow(dap.Console):
 	def __init__(self) -> None:
 		window = None
 
@@ -25,7 +25,7 @@ class ProtocolWindow:
 			sublime.run_command('new_window')
 			self.window = sublime.active_window()
 			settings = self.window.settings()
-			settings.set('debugger', True)
+			settings.set('debugger', 1)
 			settings.set('debugger.window', True)
 			settings.set('debugger.window.protocol', True)
 
@@ -71,7 +71,7 @@ class ProtocolWindow:
 		output += '\n'
 		return output
 
-	def log(self, type: str, value: Any, session: dap.Session|None = None):
+	def log(self, type: str, value: Any, source: dap.SourceLocation|None = None, session: dap.Session|None = None):
 		if not self.window:
 			return
 

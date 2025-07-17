@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 class PythonInstaller(util.GitSourceInstaller):
-	async def post_install(self, version: str, log: dap.Logger):
+	async def post_install(self, version: str, log: dap.Console):
 		path = self.temporary_install_path()
 		debugpy_info = core.json_decode_file(f'{path}/debugpy_info.json')
 		try:
@@ -52,6 +52,7 @@ class Python(dap.Adapter):
 
 		python = configuration.get('pythonPath') or configuration.get('python')
 
+		configuration['cwd'] = configuration.get('cwd', await configuration.variables['folder'])
 		if not python:
 			if 'cwd' in configuration:
 				venv = self.get_venv(console, Path(configuration['cwd']))
@@ -69,7 +70,7 @@ class Python(dap.Adapter):
 				python = shutil.which('python')
 
 		if not python:
-			raise core.Error('Unable to find `python3` or `python`')
+			raise dap.Error('Unable to find `python3` or `python`')
 
 		console.info('Using python `{}`'.format(python))
 

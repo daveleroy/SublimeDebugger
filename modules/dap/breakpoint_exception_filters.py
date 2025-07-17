@@ -3,10 +3,10 @@ from typing import Any, Iterable
 
 from ..import core
 from ..import ui
-from ..import dap
+from .import api
 
 class ExceptionBreakpointsFilter:
-	def __init__(self, dap: dap.ExceptionBreakpointsFilter, enabled: bool = True, condition: str|None = None):
+	def __init__(self, dap: api.ExceptionBreakpointsFilter, enabled: bool = True, condition: str | None = None):
 		self.dap = dap
 		self.enabled = enabled
 		self.condition = condition
@@ -103,7 +103,7 @@ class ExceptionBreakpointsFilters:
 		self.on_updated(self.filters.values())
 		self.on_send(self.filters.values())
 
-	def update(self, filters: list[dap.ExceptionBreakpointsFilter]):
+	def update(self, filters: list[api.ExceptionBreakpointsFilter]):
 		old = self.filters
 		self.filters = {}
 		for f in filters:

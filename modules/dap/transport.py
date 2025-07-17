@@ -20,11 +20,11 @@ import threading
 from dataclasses import dataclass
 
 
-class TransportConnectionError(core.Error):
+class TransportConnectionError(Error):
 	...
 
 class Transport:
-	async def start(self, listener: TransportListener, configuration: ConfigurationExpanded, log: core.Logger):
+	async def start(self, listener: TransportListener, configuration: ConfigurationExpanded, log: dap.Console):
 		...
 	def dispose(self) -> None:
 		...
@@ -107,7 +107,7 @@ class TransportStream(Transport):
 	async def setup(self):
 		...
 
-	async def start(self, listener: TransportListener, configuration: ConfigurationExpanded, log: core.Logger):
+	async def start(self, listener: TransportListener, configuration: ConfigurationExpanded, log: dap.Console):
 		self.events = listener
 		self.configuration = configuration
 		self.log = log
@@ -232,7 +232,7 @@ class TransportStream(Transport):
 			try:
 				response = await self.events.on_reverse_request(command, request.get('arguments', {}))
 				self.send_response(request, response)
-			except core.Error as e:
+			except Error as e:
 				self.send_response(request, core.JSON(), error=str(e))
 
 		r()

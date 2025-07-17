@@ -1,6 +1,10 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
+import sublime
+
+from ..command import ActionElement
+
 from .. import ui
 from .. import core
 from .. import dap
@@ -140,6 +144,18 @@ class SessionView(ui.div):
 			for thread in self.session.threads:
 				ThreadView(self.debugger, self.session, thread, self.state)
 
+	@core.run
+	async def copy_to_clipboard(self):
+		result = ''
+
+		for thread in self.session.threads:
+			result += f'{thread.name}\n'
+
+			for frame in await thread.children():
+				result += f'\t{frame.name}\n'
+
+		sublime.set_clipboard(result)
+
 
 class ThreadView(ui.div):
 	def __init__(self, debugger: Debugger, session: dap.Session, thread: dap.Thread, state: CallStackState):
@@ -240,3 +256,20 @@ class ThreadView(ui.div):
 						ui.text(name, css=css.secondary)
 						ui.spacer(1)
 						ui.text(line_str, css=css.button)
+
+					if is_frame_selected and frame.instructionPointerReference:
+						if frame.source:
+							ui.spacer(1)
+						else:
+							ui.spacer()
+
+						ui.text('☰', css=css.button, on_click=self.on_select_frame_instructions_view)
+
+
+class CopyCallstack(ActionElement):
+	name = 'Copy Callstack'
+	key = 'copy_callstack'
+	element = SessionView
+
+	def action(self, debugger, element: SessionView):
+		element.copy_to_clipboard()

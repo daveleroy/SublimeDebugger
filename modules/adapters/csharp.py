@@ -22,7 +22,7 @@ class CSharpInstaller(util.GitSourceInstaller):
 	}
 
 	# look through the package.json to install netcoredbg
-	async def post_install(self, version: str, log: core.Logger):
+	async def post_install(self, version: str, log: dap.Console):
 		path = self.temporary_install_path()
 		data = core.json_decode_file(f'{path}/package.json')
 
@@ -37,16 +37,16 @@ class CSharpInstaller(util.GitSourceInstaller):
 
 			url = dep['url']
 			if self.platform_check(platforms, architectures):
-				return await self.download_and_unarchive(url, os.path.join(path, 'runtimeDependencies'), log=core.stdio)
+				return await self.download_and_unarchive(url, os.path.join(path, 'runtimeDependencies'), log=dap.stdio)
 
-		raise core.Error('Unable to find suitable netcoredbg runtime dependency')
+		raise dap.Error('Unable to find suitable netcoredbg runtime dependency')
 
-	async def download_and_unarchive(self, url: str, path: str, log: core.Logger):
+	async def download_and_unarchive(self, url: str, path: str, log: dap.Console):
 		log.info('Downloading {}'.format(url))
 		if url.find('.tar.gz') >= 0:
-			return await request.download_and_extract_targz(url, path, log=core.stdio)
+			return await request.download_and_extract_targz(url, path, log=dap.stdio)
 		else:
-			return await request.download_and_extract_zip(url, path, log=core.stdio)
+			return await request.download_and_extract_zip(url, path, log=dap.stdio)
 
 	def platform_check(self, platforms, archs):
 		return self.HOSTS_PLATFORMS[sublime.platform()] in platforms and self.HOST_ARCHS[sublime.arch()] in archs
@@ -59,7 +59,7 @@ class CSharp(dap.Adapter):
 
 	installer = CSharpInstaller('coreclr', 'muhammadsammy/free-vscode-csharp')
 
-	async def start(self, log: core.Logger, configuration: dap.ConfigurationExpanded):
+	async def start(self, log: dap.Console, configuration: dap.ConfigurationExpanded):
 		install_path = self.installer.install_path()
 		executable_path = 'netcoredbg.exe' if sublime.platform() == 'windows' else 'netcoredbg/netcoredbg'
 

@@ -3,6 +3,7 @@ from typing import Any, Iterable
 
 import sublime
 
+
 from . import core
 from . import ui
 from . import dap
@@ -11,18 +12,19 @@ from .command import Action
 from .commands.commands import ChangeConfiguration
 
 from .settings import Settings
-from .breakpoints import Breakpoints, SourceBreakpoint
 from .project import Project
 from .watch import Watch
 
-from .console import ConsoleOutputPanel
-from .callstack import CallstackOutputPanel
+from .output_panel_console import ConsoleOutputPanel
+from .output_panel_callstack import CallstackOutputPanel
+from .output_panel_terminus import TerminusOutputPanel
 from .output_panel import OutputPanel
 
-from .disassemble import DisassembleView
+from .memory_view import MemoryView
+from .disassemble_view import DisassembleView
 
 from .terminal_external import ExternalTerminal, ExternalTerminalTerminus, ExternalTerminalMacDefault, ExternalTerminalWindowsDefault
-from .terminal_integrated import TerminusIntegratedTerminal
+
 
 from .tasks import Tasks
 
@@ -54,7 +56,7 @@ class Debugger(core.Dispose, dap.Debugger):
 		if id in Debugger.debuggers_for_window:
 			instance = Debugger.debuggers_for_window[id]
 			if not instance and create:
-				raise core.Error("We shouldn't be creating another debugger instance for this window...")
+				raise dap.Error("We shouldn't be creating another debugger instance for this window...")
 
 			if instance and create:
 				instance.open()
@@ -100,16 +102,17 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.session: dap.Session | None = None
 		self.sessions: list[dap.Session] = []
 
-		self.run_to_current_line_breakpoint: SourceBreakpoint | None = None
+		self.run_to_current_line_breakpoint: dap.SourceBreakpoint | None = None
 
 		self.output_panels: list[OutputPanel] = []
+
 		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
-		self.integrated_terminals: dict[dap.Session, list[TerminusIntegratedTerminal]] = {}
+		self.integrated_terminals: dict[dap.Session, list[TerminusOutputPanel]] = {}
 		self.memory_views: list[MemoryView] = []
 		self.disassembly_view: DisassembleView | None = None
 
 		self.project = Project(window)
-		self.breakpoints = Breakpoints()
+		self.breakpoints = dap.Breakpoints()
 		self.watch = Watch(self)
 
 		self.source_provider = SourceNavigationProvider(self.project, self)
@@ -141,6 +144,11 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.project_or_settings_updated()
 		self._refresh_none_debugger_output_panels()
 		self.load_data()
+
+	def current_panel(self) -> OutputPanel|None:
+		for panel in self.output_panels:
+			if panel.is_open():
+				return panel
 
 	def dispose(self) -> None:
 		self.save_data()
@@ -174,7 +182,7 @@ class Debugger(core.Dispose, dap.Debugger):
 			return
 
 		# this view was already added
-		if view.settings().has('debugger'):
+		if view.settings().get('debugger') == id(self):
 			return
 
 		output_panel = OutputPanel(self, name, name=panel.get('name'), show_panel=False, show_tabs=True, show_tabs_top=panel.get('position') != 'bottom', create=False)
@@ -193,7 +201,7 @@ class Debugger(core.Dispose, dap.Debugger):
 
 	def add_output_panel(self, panel: OutputPanel):
 		# force integrated terminals to sit between the console and callstack
-		if isinstance(panel, TerminusIntegratedTerminal):
+		if isinstance(panel, TerminusOutputPanel):
 			self.output_panels.insert(1, panel)
 		else:
 			self.output_panels.append(panel)
@@ -207,7 +215,7 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.output_panels.remove(panel)
 		self.on_output_panels_updated()
 
-	async def ensure_installed(self, configurations: list[dap.Configuration]):
+	async def ensure_adapters_installed(self, configurations: list[dap.Configuration]):
 		types: list[str] = []
 		for configuration in configurations:
 			if not configuration.type in types:
@@ -227,7 +235,7 @@ class Debugger(core.Dispose, dap.Debugger):
 		return all_adapters_installed
 
 	@core.run
-	async def start(self, no_debug: bool = False, args: dict[str, Any]|None = None):
+	async def start(self, no_debug: bool = False, args: dict[str, Any] | None = None):
 		try:
 			if args and 'configuration' in args:
 				configuration = args['configuration']
@@ -235,7 +243,7 @@ class Debugger(core.Dispose, dap.Debugger):
 					previous_configuration_or_compound = self.project.configuration_or_compound
 					self.project.load_configuration(configuration)
 					if not self.project.configuration_or_compound:
-						raise core.Error(f'Unable to find the configuration with the name `{configuration}`')
+						raise dap.Error(f'Unable to find the configuration with the name `{configuration}`')
 
 					if self.project.configuration_or_compound != previous_configuration_or_compound:
 						core.info('Saving data: configuration selection changed')
@@ -260,8 +268,7 @@ class Debugger(core.Dispose, dap.Debugger):
 			core.display(e)
 
 	@core.run
-	async def start_with_configurations(self, configurations: list[dap.Configuration], no_debug: bool = False):
-
+	async def start_with_configurations(self, configurations: list[dap.Configuration], no_debug: bool):
 		# grab variables before we open the console because the console will become the focus
 		# and then things like $file would point to the console
 		variables = self.project.extract_variables()
@@ -278,11 +285,11 @@ class Debugger(core.Dispose, dap.Debugger):
 
 		self.console.open()
 
-		if not await self.ensure_installed(configurations):
+		if not await self.ensure_adapters_installed(configurations):
 			return
 
-
 		for configuration in configurations:
+
 			@core.run
 			async def launch(configuration: dap.Configuration):
 				try:
@@ -301,11 +308,23 @@ class Debugger(core.Dispose, dap.Debugger):
 					await self.launch(adapter, configuration_expanded, no_debug=no_debug)
 					self.console.open()
 
-				except core.Error as e:
+				except dap.Error as error:
 					self.console.open()
 
-					if sublime.ok_cancel_dialog('Unable To Start Debug Session\n\n{}'.format(str(e)), 'Open Project'):
-						self.project.open_project_configurations_file()
+					self.console.indent = ''
+					self.console.log(
+						'error',
+						'Unable to start debug session ',
+					)
+					self.console.error('\t' + str(error))
+
+					if source := error.source:
+						self.console.log(
+							'info',
+							'\nEdit Configuration? ',
+							phantom=ui.Html('<a href="">[Open]</a>', lambda s, source=source: source.open_file()),
+						)
+
 
 			launch(configuration)
 
@@ -349,7 +368,7 @@ class Debugger(core.Dispose, dap.Debugger):
 	@property
 	def current_session(self):
 		if not self.session:
-			raise dap.NoActiveSessionError()
+			raise dap.NoActiveSessionError('No active debug session')
 		return self.session
 
 	def _on_thread_or_frame_updated(self, session: dap.Session):
@@ -367,7 +386,7 @@ class Debugger(core.Dispose, dap.Debugger):
 	async def session_terminal_request(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		response = self._on_session_run_terminal_requested(session, request)
 		if not response:
-			raise core.Error('No terminal session response')
+			raise dap.Error('No terminal session response')
 		return await response
 
 	def _on_session_updated(self, session: dap.Session):
@@ -386,10 +405,16 @@ class Debugger(core.Dispose, dap.Debugger):
 					self.console.open()
 
 	def _on_session_output(self, session: dap.Session, event: dap.OutputEvent):
+		# if event.output.startswith('dap: '):
+		# 	dap = core.json_decode(event.output[5:].split('\n')[0])
+		# 	if dap.type == 'event':
+		# 		dap.body.variablesReference = event.variablesReference
+		# 		session.on_event(dap.event, dap.body)
 
 		self.console.program_output(session, event)
 
 	def remove_session(self, session: dap.Session):
+		core.remove_and_dispose(self.memory_views, lambda view: view.session == session)
 		session.dispose()
 
 		self.sessions.remove(session)
@@ -463,7 +488,7 @@ class Debugger(core.Dispose, dap.Debugger):
 
 		except dap.NoActiveSessionError:
 			...
-		except core.Error as e:
+		except dap.Error as e:
 			self.console.error(f'Unable to stop: {e}')
 
 	def is_paused(self):
@@ -524,7 +549,7 @@ class Debugger(core.Dispose, dap.Debugger):
 			else:
 				core.debug('discarded evaluated expression empty result')
 
-		except core.Error as e:
+		except dap.Error as e:
 			self.console.error(f'{e}')
 
 	def _on_session_active(self, session: dap.Session):
@@ -554,31 +579,35 @@ class Debugger(core.Dispose, dap.Debugger):
 				elif core.platform.windows:
 					terminal = ExternalTerminalWindowsDefault(title, cwd, commands, env)
 				elif core.platform.linux:
-					raise core.Error('default terminal for linux not implemented')
+					raise dap.Error('default terminal for linux not implemented')
 				else:
-					raise core.Error('unreachable')
+					raise dap.Error('unreachable')
 
 			elif Settings.external_terminal == 'terminus':
 				terminal = ExternalTerminalTerminus(title, cwd, commands, env)
 
 			else:
-				raise core.Error('unknown external terminal type "{}"'.format(Settings.external_terminal))
+				raise dap.Error('unknown external terminal type "{}"'.format(Settings.external_terminal))
 
 			self.external_terminals.setdefault(session, []).append(terminal)
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
 
 		if request.kind == 'integrated':
-			terminal = TerminusIntegratedTerminal(
+			terminal = TerminusOutputPanel(
 				self,
-				request.title or 'Untitled',
-				request.cwd,
-				request.args,
-				request.env,
+				await dap.Task(
+					{
+						'name': request.title or 'Untitled',
+						'working_dir': request.cwd,
+						'cmd': request.args,
+						'env': request.env,
+					}
+				).Expanded({}, allow_cmd=True),
 			)
 			self.integrated_terminals.setdefault(session, []).append(terminal)
 			return dap.RunInTerminalResponse(processId=None, shellProcessId=None)
 
-		raise core.Error('unknown terminal kind requested "{}"'.format(request.kind))
+		raise dap.Error('unknown terminal kind requested "{}"'.format(request.kind))
 
 	def dispose_terminals(self, unused_only: bool = False):
 		removed_sessions: list[dap.Session] = []
@@ -617,6 +646,9 @@ class Debugger(core.Dispose, dap.Debugger):
 	def open(self) -> None:
 		self.console.open()
 
+	def show_memory(self, session: dap.Session, memory_reference: str):
+		core.remove_and_dispose(self.memory_views, lambda view: view.session == session and view.memory_reference == memory_reference)
+		self.memory_views.append(MemoryView(self.window, self, session, memory_reference))
 
 	def show_disassembly(self, toggle: bool = False):
 		if not self.disassembly_view:

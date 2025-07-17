@@ -54,10 +54,17 @@ class TabsView(ui.span, core.Dispose):
 		for panel in self.panel.debugger.output_panels:
 			is_selected = panel == self.panel
 
+			names = panel.name.split('\t', 2)
+
 			with ui.span(css=css.tab_selected if is_selected else css.tab, on_click=lambda panel=panel, tab=panel.name: panel.open()):
 				ui.spacer(1)
-				ui.text(panel.name, css=css.bold if is_selected else css.secondary)
+				if len(names) > 1:
+					ui.text(names[1] + ':', css=css.bold if is_selected else css.secondary)
+					ui.spacer(1)
+
+				ui.text(names[0], css=css.bold if is_selected else css.secondary)
 				ui.spacer(1)
+
 				# if panel.status:
 				# 	ui.icon(panel.status, on_click=lambda panel=panel: panel.open_status())
 

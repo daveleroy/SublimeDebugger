@@ -1,15 +1,17 @@
 from __future__ import annotations
 from typing import Any
 
+from .session import Session
+
 from .. import core
 from .. import ui
-from .. import dap
+from . import api
 
 from .breakpoint import Breakpoint
 
 
 class FunctionBreakpoint(Breakpoint):
-	def __init__(self, breakpoint: dap.FunctionBreakpoint, enabled: bool = True):
+	def __init__(self, breakpoint: api.FunctionBreakpoint, enabled: bool = True):
 		super().__init__()
 		self.enabled = enabled
 		self.dap = breakpoint
@@ -63,11 +65,11 @@ class FunctionBreakpoints:
 		self.breakpoints = list(map(lambda j: FunctionBreakpoint.from_json(j), json))
 		self.on_updated(self.breakpoints)
 
-	def set_breakpoint_result(self, breakpoint: FunctionBreakpoint, session: dap.Session, result: dap.Breakpoint):
+	def set_breakpoint_result(self, breakpoint: FunctionBreakpoint, session: Session, result: api.Breakpoint):
 		breakpoint.set_breakpoint_result(session, result)
 		self.updated(send=False)
 
-	def clear_breakpoint_result(self, session: dap.Session):
+	def clear_breakpoint_result(self, session: Session):
 		for breakpoint in self.breakpoints:
 			breakpoint.clear_breakpoint_result(session)
 
@@ -135,7 +137,7 @@ class FunctionBreakpoints:
 		]
 
 	def add(self, name: str):
-		self.breakpoints.append(FunctionBreakpoint(dap.FunctionBreakpoint(name, None, None), enabled=True))
+		self.breakpoints.append(FunctionBreakpoint(api.FunctionBreakpoint(name, None, None), enabled=True))
 		self.updated()
 
 	def remove(self, breakpoint: FunctionBreakpoint):

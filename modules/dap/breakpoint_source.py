@@ -1,9 +1,11 @@
 from __future__ import annotations
 from typing import Any, Callable
 
+from .session import Session
+
 from .. import core
 from .. import ui
-from .. import dap
+from . import api
 
 import sublime
 import os
@@ -23,7 +25,7 @@ class SourceBreakpoint(Breakpoint):
 		self.region_name = 'bp{}'.format(self.id)
 		self.phantoms: list[SourceBreakpointGutterPhantom] = []
 
-		self.dap = dap.SourceBreakpoint(line, column, None, None, None)
+		self.dap = api.SourceBreakpoint(line, column, None, None, None)
 		self._file = file
 		self.enabled = enabled
 		self.breakpoints = breakpoints
@@ -194,12 +196,12 @@ class SourceBreakpoints:
 		self.breakpoints.sort()
 		self.add_breakpoints_to_current_view()
 
-	def clear_breakpoint_result(self, session: dap.Session):
+	def clear_breakpoint_result(self, session: Session):
 		for breakpoint in self.breakpoints:
 			if breakpoint.clear_breakpoint_result(session):
 				self.updated(breakpoint, send=False)
 
-	def set_breakpoint_result(self, breakpoint: SourceBreakpoint, session: dap.Session, result: dap.Breakpoint):
+	def set_breakpoint_result(self, breakpoint: SourceBreakpoint, session: Session, result: api.Breakpoint):
 		breakpoint.set_breakpoint_result(session, result)
 		self.updated(breakpoint, send=False)
 

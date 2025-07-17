@@ -1,14 +1,16 @@
 from __future__ import annotations
 from typing import Any, Literal
 
+from .session import Session
+
 from ..import core
 from ..import ui
-from ..import dap
+from . import api
 
 from .breakpoint import Breakpoint
 
 class DataBreakpoint(Breakpoint):
-	def __init__(self, breakpoint: dap.DataBreakpoint, info: dap.DataBreakpointInfoResponse, enabled: bool):
+	def __init__(self, breakpoint: api.DataBreakpoint, info: api.DataBreakpointInfoResponse, enabled: bool):
 		super().__init__()
 		self.dap = breakpoint
 		self.info = info
@@ -59,11 +61,11 @@ class DataBreakpoints:
 		if send:
 			self.on_send(self.breakpoints)
 
-	def set_breakpoint_result(self, breakpoint: DataBreakpoint, session: dap.Session, result: dap.Breakpoint):
+	def set_breakpoint_result(self, breakpoint: DataBreakpoint, session: Session, result: api.Breakpoint):
 		breakpoint.set_breakpoint_result(session, result)
 		self.updated(send=False)
 
-	def clear_breakpoint_result(self, session: dap.Session):
+	def clear_breakpoint_result(self, session: Session):
 		for breakpoint in self.breakpoints:
 			breakpoint.clear_breakpoint_result(session)
 
@@ -76,12 +78,12 @@ class DataBreakpoints:
 
 	def edit(self, breakpoint: DataBreakpoint, index=3):
 		def set_condition(value: str):
-			breakpoint.dap.condition = value or None
+			breakpoint.api.condition = value or None
 			self.updated()
 			self.edit(breakpoint, index=0).run()
 
 		def set_hit_condition(value: str):
-			breakpoint.dap.hitCondition = value or None
+			breakpoint.api.hitCondition = value or None
 			self.updated()
 			self.edit(breakpoint, index=1).run()
 
@@ -98,13 +100,13 @@ class DataBreakpoints:
 				set_condition,
 				"Condition",
 				"Breaks when expression is true",
-				breakpoint.dap.condition,
+				breakpoint.api.condition,
 			),
 			ui.InputListItemCheckedText(
 				set_hit_condition,
 				"Count",
 				"Breaks when hit count condition is met",
-				breakpoint.dap.hitCondition,
+				breakpoint.api.hitCondition,
 			),
 			ui.InputListItemChecked(
 				toggle_enabled,
@@ -118,11 +120,11 @@ class DataBreakpoints:
 			),
 		]
 
-	def add(self, info: dap.DataBreakpointInfoResponse, type: Literal['read','write','readWrite']|None):
+	def add(self, info: api.DataBreakpointInfoResponse, type: Literal['read','write','readWrite']|None):
 		assert info.dataId, "this info request has no id"
 		self.breakpoints.append(
 			DataBreakpoint(
-				dap.DataBreakpoint(info.dataId, type),
+				api.DataBreakpoint(info.dataId, type),
 				info,
 				enabled=True
 			)

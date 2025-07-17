@@ -1,4 +1,5 @@
 
+from typing import Any
 from .variable import (
 	Variable,
 	SourceLocation,
@@ -9,18 +10,12 @@ from .error import (
 	NoActiveSessionError,
 )
 
-from .dap import (
+from .api import (
 	StackFrame,
 	OutputEvent,
 	ProcessEvent,
 	EvaluateResponse,
 	ReadMemoryResponse,
-	Breakpoint,
-	FunctionBreakpoint,
-	DataBreakpoint,
-	DataBreakpointInfoResponse,
-	SourceBreakpoint,
-	ExceptionBreakpointsFilter,
 	ExceptionInfoResponseBody,
 	RunInTerminalRequest,
 	RunInTerminalResponse,
@@ -56,8 +51,9 @@ from .configuration import (
 from .debugger import (
 	Debugger,
 	Console,
-	Logger,
+	stdio
 )
+
 
 from .transport import (
 	Transport,
@@ -69,4 +65,21 @@ from .transports import (
 	StdioTransport,
 	SocketTransport,
 	TransportOutputLog,
+)
+
+
+from .breakpoints import (
+	Breakpoints,
+
+	SourceBreakpoint,
+	SourceBreakpoints,
+
+	DataBreakpoint,
+	DataBreakpoints,
+
+	FunctionBreakpoint,
+	FunctionBreakpoints,
+
+	ExceptionBreakpointsFilter,
+	ExceptionBreakpointsFilters,
 )

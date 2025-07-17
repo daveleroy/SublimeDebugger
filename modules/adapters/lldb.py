@@ -22,7 +22,7 @@ def is_valid_asset(asset: str):
 	elif core.platform.linux and arch == 'arm64':
 		return asset.endswith('-aarch64-linux.vsix')
 	else:
-		raise core.Error('Your platforms architecture is not supported by vscode lldb. See https://github.com/vadimcn/vscode-lldb/releases/latest')
+		raise dap.Error('Your platforms architecture is not supported by vscode lldb. See https://github.com/vadimcn/vscode-lldb/releases/latest')
 
 
 class LLDB(dap.Adapter):

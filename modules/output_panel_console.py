@@ -16,7 +16,7 @@ from .views.variable import VariableView
 
 from .ansi import ansi_colorize
 
-from .protocol import ProtocolWindow
+from .output_window_protocol import ProtocolConsoleWindow
 from .output_panel import OutputPanel
 
 
@@ -28,7 +28,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.on_navigate = core.Event[dap.SourceLocation]()
 		self.debugger = debugger
 
-		self.protocol = ProtocolWindow()
+		self.protocol = ProtocolConsoleWindow()
 		self.dispose_add(self.protocol)
 
 		self.view.assign_syntax(core.package_path_relative('contributes/Syntax/DebuggerConsole.sublime-syntax'))
@@ -69,7 +69,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 	def ensure_scrollback_size(self):
 		while len(self.phantoms) > Settings.console_scrollback_annotation_limit:
-			self.phantoms.pop().dispose()
+			self.phantoms.pop(0).dispose()
 
 		line_count = self.view.rowcol(self.view.size())[0]
 
@@ -133,7 +133,8 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		elif event.output:
 			self.write(event.output, color, ignore_indent=False)
 			if event.source:
-				RegionAnnotation(self.view, sublime.Region(self.at() - 1), self.on_navigate, source=source)
+				region = RegionAnnotation(self.view, sublime.Region(self.at() - 1), self.on_navigate, source=source)
+				self.phantoms.append(region)
 
 		if event.group == 'start' or event.group == 'startCollapsed':
 			self.start_indent()
@@ -198,6 +199,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			self.view.insert(edit, at, colored)
 			if annotation_region:
 				region = RegionAnnotation(self.view, sublime.Region(at), self.on_navigate)
+				self.phantoms.append(region)
 
 		self.edit(edit)
 		self.color = color
@@ -235,7 +237,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			with ui.Phantom(self.view, at, sublime.LAYOUT_BELOW) as p:
 				phantom = p
 				self.phantoms.append(p)
-				with ui.panel():
+				with ui.div():
 					view = VariableView(self.debugger, variable, children_only=True)
 					view.set_expanded()
 
@@ -365,7 +367,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 					items.append(item)
 
-			except core.Error as e:
+			except dap.Error as e:
 				core.debug('Unable to fetch completions:', e)
 
 			except core.CancelledError:
@@ -474,7 +476,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 
 	def log(self, type: str, value: Any, source: dap.SourceLocation | None = None, session: dap.Session | None = None, phantom: ui.Html | None = None):
 		if type == 'transport':
-			self.protocol.log('transport', value, session)
+			self.protocol.log('transport', value, source, session)
 		elif type == 'error-no-open':
 			self.write(str(value).rstrip('\n'), 'red', ensure_new_line=True)
 		elif type == 'error':
@@ -489,10 +491,10 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 			if value is not None:
 				self.write(str(value), None, ensure_new_line=True)
 		elif type == 'stdout':
-			self.protocol.log('stdout', value, session)
+			self.protocol.log('stdout', value, source, session)
 			self.write(str(value), None)
 		elif type == 'stderr':
-			self.protocol.log('stderr', value, session)
+			self.protocol.log('stderr', value, source, session)
 			self.write(str(value), 'red')
 		elif type == 'stdout':
 			self.write(str(value), None)

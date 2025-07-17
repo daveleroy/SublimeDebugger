@@ -63,6 +63,9 @@ label = ui.css(
 secondary = ui.css(
 	color='var(--secondary)',
 )
+placeholder = ui.css(
+	color='var(--placeholder)',
+)
 redish = ui.css(
 	color='var(--redish)',
 )

@@ -1,8 +1,10 @@
 from __future__ import annotations
-from typing import Dict, TypeVar
-from .. import core
-from . import dap
+from typing import TYPE_CHECKING, Dict, TypeVar
 
+from . import api
+
+if TYPE_CHECKING:
+	from .configuration import SourceLocation
 
 T = TypeVar('T')
 V = TypeVar('V')
@@ -13,15 +15,16 @@ class _DefaultDict(Dict[T, V]):
 		return f'{{{key}}}'
 
 
-class Error(core.Error):
-	def __init__(self, message: str, url: str | None = None, urlLabel: str | None = None):
+class Error(Exception):
+	def __init__(self, message: str, url: str | None = None, urlLabel: str | None = None, source: SourceLocation|None = None):
 		super().__init__(message)
 		self.message = message
 		self.url = url
+		self.source = source
 		self.urlLabel = urlLabel
 
 	@staticmethod
-	def from_message(message: dap.Message):
+	def from_message(message: api.Message):
 		# why on earth does the optional error details have variables that need to be formatted in it????????
 		format = message.format or 'No error reason given'
 		if message.variables:
@@ -32,5 +35,5 @@ class Error(core.Error):
 		return Error(format, message.url, message.urlLabel)
 
 
-class NoActiveSessionError(core.Error):
-	message = 'No Active Debug Session'
+class NoActiveSessionError(Error):
+	...

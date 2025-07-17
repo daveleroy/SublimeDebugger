@@ -31,7 +31,7 @@ class GDBRecord(GDBAction):
 	async def action(self, debugger: dap.Debugger):
 		try:
 			await debugger.current_session.request('evaluate', {'expression': 'record'})
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to start recording: {e}')
 
 
@@ -43,7 +43,7 @@ class GDBStepBackOver(GDBAction):
 	async def action(self, debugger: dap.Debugger):
 		try:
 			await debugger.current_session.request('evaluate', {'expression': 'reverse-next'})
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to reverse-next: {e}')
 
 
@@ -55,5 +55,5 @@ class GDBStepBackOut(GDBAction):
 	async def action(self, debugger: dap.Debugger):
 		try:
 			await debugger.current_session.request('evaluate', {'expression': 'reverse-finish'})
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'Unable to reverse-finish: {e}')

@@ -1328,6 +1328,8 @@ class Capabilities:
 	"""The debug adapter supports adding breakpoints based on instruction references."""
 	supportsExceptionFilterOptions: Optional[bool] = None
 	"""The debug adapter supports 'filterOptions' as an argument on the 'setExceptionBreakpoints' request."""
+	supportsStartDebuggingRequest: Optional[bool] = None
+	"""Client supports the `startDebugging` request."""
 
 @dataclass
 class Source:

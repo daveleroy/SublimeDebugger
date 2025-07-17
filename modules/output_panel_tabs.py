@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Protocol
 
 import sublime
 import sublime_plugin
@@ -8,10 +8,10 @@ import sublime_plugin
 from . import core
 from . import ui
 
-from .views.output_panel_tabs import OutputPanelTabsView
 
 if TYPE_CHECKING:
 	from .output_panel import OutputPanel
+	from .views.output_panel_tabs import OutputPanelTabsView
 
 
 class OutputPanelTabsPhantom(core.Dispose):
@@ -21,6 +21,7 @@ class OutputPanelTabsPhantom(core.Dispose):
 
 		self.controls_and_tabs_phantom = ui.Phantom(view, sublime.Region(0), 3)
 		with self.controls_and_tabs_phantom:
+			from .views.output_panel_tabs import OutputPanelTabsView
 			self.controls_and_tabs = OutputPanelTabsView(panel)
 
 		self.dispose_add(
@@ -67,6 +68,7 @@ class OutputPanelBottomTextChangeListener(sublime_plugin.TextChangeListener):
 		self.phantom = phantom
 		self.panel = phantom.panel
 		self.view = self.phantom.view
+		self.removed_newline_change_id: Any = None
 
 		self.inside_on_text_changed = False
 		self.attach(self.view.buffer())

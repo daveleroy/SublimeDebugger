@@ -3,6 +3,8 @@ import functools
 from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
+import sublime
+
 from .. import dap
 from .. import core
 from .. import ui
@@ -37,11 +39,11 @@ class RunTask(Action):
 
 			values: list[ui.InputListItem] = []
 			for task in tasks:
-				values.append(ui.InputListItem(functools.partial(self.run_task, debugger, task, variables), task.name))
+				values.append(ui.InputListItem(functools.partial(self.run_task, debugger, task, variables), task.name, run_alt=lambda task=task: task.source and task.source.open_file()))
 
 			ui.InputList('Select task to run')[values].run()
 
-		except core.Error as e:
+		except dap.Error as e:
 			debugger.console.error(f'{e}')
 
 	@core.run
@@ -56,4 +58,61 @@ class RunLastTask(Action):
 	key = 'select_and_run_task'
 
 	def action(self, debugger):
-		debugger.window.run_command('debugger', {'action': 'run_task', 'args': {'select': True}})
+		debugger.window.run_command('debugger', {'action': 'run_task', 'select': True})
+
+
+class NewTerminal(Action):
+	name = 'New Terminal'
+	key = 'new_terminal'
+
+	@core.run
+	async def action(self, debugger: Debugger):
+		debugger.dispose_terminals(unused_only=True)
+
+		for task in debugger.tasks.tasks:
+			if task.task.name == 'Terminal':
+				await ui.InputText(
+					lambda name: self.create(debugger, name),
+					'Create New Terminal With Name',
+				)
+				return
+
+		await self.create(debugger, 'Terminal')
+
+	@core.run
+	async def create(self, debugger: Debugger, name: str):
+		task = await dap.Task({'name': name}).Expanded({})
+		await debugger.tasks.run(debugger, task, is_terminal=True)
+
+
+class OpenTerminal(Action):
+	name = 'Open Terminal'
+	key = 'open_terminal'
+
+	@core.run
+	async def action(self, debugger: Debugger):
+		found_terminal = False
+		for i, task in enumerate(debugger.tasks.tasks):
+			found_terminal = found_terminal or task.is_terminal
+
+		if not found_terminal:
+			debugger.run_action(NewTerminal)
+			return
+
+		# Otherwise cyncle through all the active console like items
+		next_panel = 0
+
+
+		# cycle through active terminal like panels
+		if debugger.session:
+			panels = [debugger.console] + debugger.tasks.tasks
+		else:
+			panels = debugger.tasks.tasks
+
+		for i, panel in enumerate(panels):
+			if panel.is_open():
+				next_panel = i + 1
+				break
+
+		next_panel = panels[next_panel % len(panels)]
+		next_panel.open()

@@ -29,7 +29,7 @@ theme = """{{
 class SublimeInstaller(dap.AdapterInstaller):
 	type = 'sublime'
 
-	async def installable_versions(self, log: core.Logger) -> list[str]:
+	async def installable_versions(self, log: dap.Console) -> list[str]:
 		version = await util.request.text('https://download.sublimetext.com/latest/dev')
 		return ['4143', version.strip(), sublime.version()]
 
@@ -43,7 +43,7 @@ class SublimeInstaller(dap.AdapterInstaller):
 
 		return None
 
-	async def install(self, version: str | None, log: core.Logger) -> None:
+	async def install(self, version: str | None, log: dap.Console) -> None:
 		platform = sublime.platform()
 		arch = sublime.arch()
 
@@ -55,7 +55,7 @@ class SublimeInstaller(dap.AdapterInstaller):
 		elif platform == 'windows' and arch == 'x64':
 			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_x64.zip', path_app, log=log)
 		else:
-			raise core.Error('Install for this platform/arch is not currently supported')
+			raise dap.Error('Install for this platform/arch is not currently supported')
 
 		# The windows version has a data folder already here here
 		core.remove_file_or_dir(f'{path_app}/Data')
@@ -90,7 +90,7 @@ class Sublime(dap.Adapter):
 
 		python = configuration.get('python') or shutil.which('python3') or shutil.which('python')
 		if not python:
-			raise core.Error('Unable to find `python3` or `python`')
+			raise dap.Error('Unable to find `python3` or `python`')
 
 		configuration['python'] = python
 		configuration['port_33'] = configuration.get('port_33') or util.get_open_port()
@@ -177,7 +177,7 @@ class Sublime(dap.Adapter):
 
 
 class SublimeDebugTransport(dap.Transport):
-	def __init__(self, configuration: dap.ConfigurationExpanded, log: core.Logger) -> None:
+	def __init__(self, configuration: dap.ConfigurationExpanded, log: dap.Console) -> None:
 		super().__init__()
 
 		install_path = Sublime.installer.install_path()
@@ -190,7 +190,7 @@ class SublimeDebugTransport(dap.Transport):
 		elif sublime.platform() == 'windows':
 			sublime_text_directory = f'{install_path}/{Sublime.installer.debug_app_name}'
 		else:
-			raise core.Error('Install for this platform/arch is not currently supported')
+			raise dap.Error('Install for this platform/arch is not currently supported')
 
 		sublime_text_data_directory = f'{sublime_text_directory}/Data'
 
@@ -276,7 +276,7 @@ class SublimeDebugTransport(dap.Transport):
 		self.process.dispose()
 		self.events.on_event('terminated', core.JSON())
 
-	async def start(self, listener: dap.TransportListener, configuration: dap.ConfigurationExpanded, log: core.Logger):
+	async def start(self, listener: dap.TransportListener, configuration: dap.ConfigurationExpanded, log: dap.Console):
 		self.events = listener
 		self.log = log
 

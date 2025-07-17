@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, cast
 import re
 
+from . import Error
 from .. import core
 
 if TYPE_CHECKING:
@@ -77,25 +78,28 @@ class Task(Dict[str, Any]):
 	def from_json(json: dict[str, Any], source: SourceLocation | None = None):
 		return Task(json, source)
 
-	async def Expanded(self, variables: ConfigurationVariables):
+	async def Expanded(self, variables: ConfigurationVariables, allow_cmd: bool = False):
 		variables, json = await async_expand_variables_and_platform(self, variables)
-		return TaskExpanded(self, variables, json)
+		return TaskExpanded(self, variables, json, allow_cmd)
 
 
 class TaskExpanded(Task):
-	def __init__(self, task: Task, variables: ConfigurationVariables, json: dict[str, Any]):
+	def __init__(self, task: Task, variables: ConfigurationVariables, json: dict[str, Any], allow_cmd: bool):
 		super().__init__(json, task.source)
 
-		cmd: str | list[str] | None = json.get('cmd')
+		shell_cmd: str | None = json.get('shell_cmd')
+
+
+		# we make this an error because `shell_cmd` errors show up in the sublime console in a way we cannot detect making it appear broken with no error
+		if not allow_cmd and json.get('cmd'):
+			raise Error('`cmd` is not supported use `shell_cmd` in task configuration', source=task.source)
 
 		if 'name' in json:
 			name = json['name']
-		elif isinstance(cmd, str):
-			name = cmd
-		elif isinstance(cmd, list) and cmd:
-			name = cmd[0]
+		elif isinstance(shell_cmd, str):
+			name = shell_cmd
 		else:
-			name = 'Untitled'
+			raise Error('expecting `shell_cmd`', source=task.source)
 
 		self.variables = variables
 		self.name: str = name
@@ -105,11 +109,6 @@ class TaskExpanded(Task):
 
 		self.depends_on = json.get('depends_on')
 		self.depends_on_order = json.get('depends_on_sequence')
-
-		# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
-		for key in ['name', 'background', 'start_file_regex', 'end_file_regex', 'depends_on', 'depends_on_order']:
-			if key in self:
-				del self[key]
 
 
 async def async_expand_variables(json: Any, variables: ConfigurationVariables, supress_errors: bool = False):
@@ -126,7 +125,7 @@ async def async_expand_variables(json: Any, variables: ConfigurationVariables, s
 				for variable in variables:
 					error += f'${{{variable}}}\n'
 
-				raise core.Error(error)
+				raise Error(error, source=json.source)
 
 		return json
 

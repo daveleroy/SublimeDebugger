@@ -3,13 +3,15 @@ from typing import Any
 import os
 from .. import core
 
+from .debugger import Console
+from .error import Error
 
 class AdapterInstaller:
 	type: str
 
-	async def perform_install(self, version: str, log: core.Logger):
+	async def perform_install(self, version: str, log: Console):
 		self.remove()
-		core.debugger_storage_path(ensure_exists=True)
+		core.package_storage_path(ensure_exists=True)
 		core.make_directory(self.temporary_install_path())
 
 		await self.install(version, log)
@@ -17,32 +19,32 @@ class AdapterInstaller:
 
 		os.rename(self.temporary_install_path(), self.install_path())
 
-	async def install(self, version: str, log: core.Logger) -> None: ...
+	async def install(self, version: str, log: Console) -> None: ...
 
-	async def post_install(self, version: str, log: core.Logger) -> None: ...
+	async def post_install(self, version: str, log: Console) -> None: ...
 
 	def remove(self) -> None:
 		core.remove_file_or_dir(self.temporary_install_path())
 		core.remove_file_or_dir(self.install_path())
 
 	def temporary_install_path(self) -> str:
-		return os.path.join(core.debugger_storage_path(), f'{self.type}.tmp')
+		return os.path.join(core.package_storage_path(), f'{self.type}.tmp')
 
 	def install_path(self) -> str:
-		return os.path.join(core.debugger_storage_path(), f'{self.type}')
+		return os.path.join(core.package_storage_path(), f'{self.type}')
 
 	def installed_version(self) -> str | None:
 		return '1.0.0'
 
 	# note versions that include '(' are not installed unless explicity selected from the installable versions menu
 	# this supports tags like (prerelease) / (draft)
-	async def installable_versions(self, log: core.Logger) -> list[str]:
+	async def installable_versions(self, log: Console) -> list[str]:
 		return []
 
-	async def installable_versions_with_default(self, log: core.Logger) -> tuple[str, list[str]]:
+	async def installable_versions_with_default(self, log: Console) -> tuple[str, list[str]]:
 		versions = await self.installable_versions(log)
 		if not versions:
-			raise core.Error('No installable versions')
+			raise Error('No installable versions')
 
 		versions_without_tags = filter(lambda v: not '(' in v, versions)
 		version = next(versions_without_tags) or versions[0]

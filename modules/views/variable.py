@@ -41,7 +41,7 @@ class VariableView(ui.div):
 		self.on_remove = on_remove
 
 		self.variable_children: Optional[list[dap.Variable]] = None
-		self.error: Optional[core.Error] = None
+		self.error: Optional[dap.Error] = None
 
 		self.edit_variable_menu = None
 
@@ -80,7 +80,7 @@ class VariableView(ui.div):
 	async def on_edit_variable(self, value: str):
 		try:
 			if not self.variable.containerVariablesReference:
-				raise core.Error('Not able to set value of this item')
+				raise dap.Error('Not able to set value of this item')
 
 			session = self.variable.session
 			containerVariablesReference = self.variable.containerVariablesReference
@@ -91,14 +91,14 @@ class VariableView(ui.div):
 			self.variable.variablesReference = response.variablesReference
 			self.variable.fetched = None
 			self.dirty()
-		except core.Error as e:
+		except dap.Error as e:
 			core.exception()
 			core.display(e)
 
 	@core.run
 	async def edit_variable(self) -> None:
 		if not self.variable.containerVariablesReference:
-			raise core.Error('Not able to set value of this item')
+			raise dap.Error('Not able to set value of this item')
 
 		containerVariablesReference = self.variable.containerVariablesReference
 		session = self.variable.session
@@ -171,7 +171,7 @@ class VariableView(ui.div):
 
 		try:
 			self.variable_children = await self.variable.children()
-		except core.Error as error:
+		except dap.Error as error:
 			self.error = error
 
 		timer.dispose()
@@ -191,6 +191,9 @@ class VariableView(ui.div):
 		self.state.set_number_expanded(self.variable, count + 20)
 		self.dirty()
 
+	def clicked_memory(self):
+		assert self.variable.memoryReference
+		self.debugger.show_memory(self.variable.session, self.variable.memoryReference)
 
 	def render_header(self, name: str, value: str, is_expandable: bool, is_expanded: bool):
 		with ui.div(height=css.row_height):
@@ -205,6 +208,10 @@ class VariableView(ui.div):
 				ui.code(value, on_click=self.edit_variable)
 			else:
 				ui.code(value, on_click=self.edit_variable)
+
+			if self.variable.memoryReference:
+				ui.spacer(1)
+				ui.text('☰', css=css.button, on_click=self.clicked_memory)
 
 	def render_children(self):
 		if self.error:

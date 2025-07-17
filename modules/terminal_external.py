@@ -35,9 +35,6 @@ import sublime
 
 
 class ExternalTerminal(Protocol):
-	def __init__(self, title: str, cwd: str, commands: list[str], env: dict[str, str|None]):
-		...
-
 	def dispose(self):
 		...
 
