@@ -57,5 +57,12 @@
 		"args": {
 			"action": "remove_all_breakpoints"
 		}
+	},
+	{
+		"caption": "Copy Callstack",
+		"command": "debugger_text",
+		"args": {
+			"action": "copy_callstack"
+		}
 	}
 ]

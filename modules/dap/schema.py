@@ -178,19 +178,28 @@ def generate_lsp_json_schema():
 	}
 
 	definitions['debugger_task'] = {
-		'allOf': [
-			{'$ref': 'sublime://schemas/sublime-build'},
-			{
-				'properties': {
-					'name': {
-						'type': 'string',
-						'description': 'Name of task',
-					}
-				},
-				'required': ['name'],
+		'properties': {
+			'name': {
+				'type': 'string',
+				'description': 'Name of task',
 			},
-		]
+			'shell_cmd': {
+				'type': 'string',
+				'description': 'Shell command to execute',
+			},
+			'background': {
+				'type': 'boolean',
+				'description': 'This task will run in the background and not prevent the debugger from starting',
+			},
+			'env': {
+				'type': 'object',
+				'markdownDescription': 'Environment variables to use when running the shell command.\nExample:\n```\n{"KEY": "VALUE"}```',
+			},
+		},
+		'required': ['name', 'command'],
+		'additionalProperties': False,
 	}
+
 
 	definitions_schma = {
 		'schema': {
