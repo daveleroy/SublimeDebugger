@@ -26,15 +26,18 @@ class Start(Action):
 			return
 
 		debugger = Debugger.get(window)
-		existing_debugger = debugger
+
+		should_start_debugging = True
 
 		if not debugger:
 			debugger = Debugger.create(view)
+			should_start_debugging = False
 
 		if not debugger.is_open():
 			debugger.open()
+			should_start_debugging = False
 
-		if existing_debugger or len(kwargs):
+		if should_start_debugging or len(kwargs):
 			debugger.start(args=kwargs)
 
 
