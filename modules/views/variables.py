@@ -39,8 +39,15 @@ class VariablesView(ui.div):
 		self.dirty()
 
 	def render(self):
+		with ui.div():
+			ui.text('Variables')
+
 		session = self.debugger.session
 		if not session:
+			with ui.div():
+				ui.spacer(3)
+				ui.text('No debug session', css.secondary)
+
 			return
 
 		expand = True
@@ -55,7 +62,6 @@ class WatchView(ui.div):
 	def __init__(self, debugger: Debugger) -> None:
 		super().__init__()
 		self.debugger = debugger
-		self.open = self.debugger.watch.expressions
 
 	def added(self):
 		self.on_updated_handle = self.debugger.watch.on_updated.add(self.dirty)
@@ -63,27 +69,19 @@ class WatchView(ui.div):
 	def removed(self):
 		self.on_updated_handle.dispose()
 
-	def toggle_expand(self):
-		self.open = not self.open
-		self.dirty()
-
 	def render(self):
 		from ..commands.commands import AddWatchExpression
 
-		with ui.div(height=css.row_height):
-			ui.icon(ui.Images.shared.open if self.open else ui.Images.shared.close, on_click=self.toggle_expand)
-			ui.text('Watch', css=css.secondary)
+		with ui.div():
+			ui.text('Watched')
 			ui.spacer()
-			ui.text('add', css=css.secondary, on_click=lambda: self.debugger.run_action(AddWatchExpression))
+			ui.text('add', css=css.button, on_click=lambda: self.debugger.run_action(AddWatchExpression))
 
-		if not self.open:
-			return
-
-		with ui.div(css=css.table_inset):
+		with ui.div():
 			if not self.debugger.watch.expressions:
-				with ui.div(height=css.row_height):
+				with ui.div():
 					ui.spacer(3)
-					ui.text('zero items …', css=css.secondary)
+					ui.text('No watched expressions', css=css.secondary)
 
 			for expresion in self.debugger.watch.expressions:
 				WatchExpressionView(self.debugger, expresion)
@@ -104,13 +102,13 @@ class WatchExpressionView(ui.div):
 	def render(self):
 		if self.expression.evaluate_response:
 			VariableView(self.debugger, self.expression.evaluate_response, on_remove=lambda: self.debugger.watch.remove(self.expression))
-
-		with ui.div(height=css.row_height):
-			ui.spacer(3)
-			with ui.span(on_click=self.show_remove_menu):
-				ui.text(self.expression.value, css=css.secondary)
-				ui.spacer(1)
-				ui.text('not available', css=css.label)
+		else:
+			with ui.div():
+				ui.spacer(3)
+				with ui.span(on_click=self.show_remove_menu):
+					ui.text(self.expression.value, css=css.secondary)
+					ui.spacer(1)
+					ui.text('not available', css=css.label)
 
 	@core.run
 	async def show_remove_menu(self):

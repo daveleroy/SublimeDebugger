@@ -59,13 +59,13 @@ class ModulesTabbedView(TabbedView, core.Dispose):
 
 	def render(self):
 		for session in self.debugger.sessions:
-			with ui.div(height=css.row_height):
+			with ui.div():
 				ui.text(session.name)
 
 			for module in session.modules.values():
 				is_expanded = self.is_expanded(module)
 				image_toggle = ui.Images.shared.open if is_expanded else ui.Images.shared.close
-				with ui.div(height=css.row_height):
+				with ui.div():
 					ui.icon(image_toggle, on_click=lambda module=module: self.toggle_expanded(module))
 					ui.text(module.name)
 

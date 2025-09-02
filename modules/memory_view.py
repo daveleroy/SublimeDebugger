@@ -135,7 +135,7 @@ class InternalMemoryView:
 		data = self.slice(line, offset, 16)
 
 		def field(text: str, format: str, length: int):
-			with ui.div(height=css.row_height):
+			with ui.div():
 				ui.text(text, css=css.button)
 				ui.spacer(1)
 

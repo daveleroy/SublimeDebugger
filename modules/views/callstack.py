@@ -62,7 +62,7 @@ class CallstackView(ui.div, core.Dispose):
 
 	def render(self):
 		if not self.debugger.sessions:
-			with ui.div(height=css.row_height):
+			with ui.div():
 				ui.spacer(1)
 				ui.text('No Active Debug Sessions', css=css.secondary)
 
@@ -89,7 +89,7 @@ class CallStackTabbedView(TabbedView):
 
 
 def toggle(toggle_expand, item: ui.span, is_expanded):
-	with ui.div(height=css.row_height):
+	with ui.div():
 		ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=toggle_expand)
 		item.append_stack()
 
@@ -130,7 +130,7 @@ class SessionView(ui.div):
 			self.state.toggle_expanded(session, default=True)
 			self.dirty()
 
-		with ui.div(height=css.row_height):
+		with ui.div():
 			ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=lambda session=self.session: on_toggle(session))
 			ui.text(name, css=session_css_label, on_click=lambda session=self.session: self.selected_session())
 
@@ -223,12 +223,12 @@ class ThreadView(ui.div):
 		if not self.show_thread_name:
 			...
 		elif expandable:
-			with ui.div(height=css.row_height, css=thread_css):
+			with ui.div(css=thread_css):
 				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=self.toggle_expand)
 				thread_name()
 
 		else:
-			with ui.div(height=css.row_height, css=thread_css):
+			with ui.div(css=thread_css):
 				ui.icon(ui.Images.shared.loading)
 				thread_name()
 
@@ -238,7 +238,7 @@ class ThreadView(ui.div):
 		for frame in self.frames:
 			is_frame_selected = self.is_selected and self.session.selected_frame == frame
 
-			with ui.div(height=css.row_height, css=css.selected if is_frame_selected else None):
+			with ui.div(css=css.selected if is_frame_selected else None):
 				with ui.span(on_click=lambda frame=frame: self.on_select_frame(frame)):
 					if (frame.presentationHint == 'label' or frame.presentationHint == 'subtle' or frame.presentationHint == 'deemphasize') or not frame.source or frame.source.presentationHint == 'deemphasize':
 						css_label = css.secondary

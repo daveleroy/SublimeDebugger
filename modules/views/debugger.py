@@ -19,10 +19,9 @@ class DebuggerTabbedView(TabbedView, core.Dispose):
 		super().__init__('Debugger')
 
 		self.debugger = debugger
+		self.last_adapter: dap.Adapter | None = None
 
 		self.breakpoints = BreakpointsView(debugger.breakpoints, on_navigate_to_source)
-
-		self.last_adapter: dap.Adapter | None = None
 
 		# self.process = ProcessView(debugger)
 
@@ -52,7 +51,7 @@ class DebuggerTabbedView(TabbedView, core.Dispose):
 			self.last_adapter = session.adapter
 
 			if status := session.state.status:
-				with ui.div(height=css.row_height):
+				with ui.div():
 					ui.text(status, css=css.secondary)
 
 		if self.last_adapter:

@@ -31,7 +31,7 @@ class OutputPanelTabsView(ui.div, core.Dispose):
 
 	def render(self):
 		with ui.div(width=self.layout.width):
-			with ui.div(height=css.header_height):
+			with ui.div(height=3):
 				self.actions.append_stack()
 				ui.spacer_dip(9)
 				self.tabs.append_stack()

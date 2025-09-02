@@ -52,5 +52,5 @@ class SourcesTabbedView(TabbedView, core.Dispose):
 	def render(self):
 		for session in self.debugger.sessions:
 			for source in session.sources.values():
-				with ui.div(height=css.row_height):
+				with ui.div():
 					ui.text(source.path or source.name or '<no source name>', css=css.secondary, on_click=partial(self.on_clicked_source, source))

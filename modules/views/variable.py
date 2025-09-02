@@ -196,7 +196,7 @@ class VariableView(ui.div):
 		self.debugger.show_memory(self.variable.session, self.variable.memoryReference)
 
 	def render_header(self, name: str, value: str, is_expandable: bool, is_expanded: bool):
-		with ui.div(height=css.row_height):
+		with ui.div():
 			if is_expandable:
 				ui.icon(ui.Images.shared.open if is_expanded else ui.Images.shared.close, on_click=self.toggle_expand)
 			else:
@@ -215,21 +215,21 @@ class VariableView(ui.div):
 
 	def render_children(self):
 		if self.error:
-			with ui.div(height=css.row_height):
+			with ui.div():
 				ui.spacer(3)
 				ui.text(str(self.error), css=css.redish_secondary)
 
 			return
 
 		if self.variable_children is None:
-			with ui.div(height=css.row_height):
+			with ui.div():
 				ui.spacer(3)
 				ui.text('…', css=css.secondary)
 
 			return
 
 		if not self.variable_children:
-			with ui.div(height=css.row_height):
+			with ui.div():
 				ui.spacer(3)
 				ui.text('zero items …', css=css.secondary)
 
@@ -246,7 +246,7 @@ class VariableView(ui.div):
 
 		more_count = len(self.variable_children) - count
 		if more_count > 0:
-			with ui.div(height=css.row_height):
+			with ui.div():
 				ui.spacer(3)
 				ui.text('{} more items …'.format(more_count), css=css.secondary, on_click=self.show_more)
 

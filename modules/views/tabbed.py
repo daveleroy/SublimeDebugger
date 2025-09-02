@@ -104,7 +104,7 @@ class TabbedViewContainer(ui.div):
 			# this inner panel controls how much content is actually displayed
 			# while scrolling the tab bar disappears revealing all the content
 			# while not scrolling this panel clips the content
-			with ui.div(height=height - css.panel_content.padding_height - css.header_height, css=css.panel_content):
+			with ui.div(height=height - css.panel_content.padding_height - 3, css=css.panel_content):
 				self.items[self.selected_index].append_stack()
 
 			with ui.div(width=width, height=4):

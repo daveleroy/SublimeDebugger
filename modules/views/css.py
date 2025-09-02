@@ -1,9 +1,5 @@
 from .. import ui
 
-header_height = 3.75
-row_height = 2.5
-panel_padding = 2
-
 ui.css.variables(
 	dark={
 		'tinted': 'color(var(--background) blend(black 97%))',

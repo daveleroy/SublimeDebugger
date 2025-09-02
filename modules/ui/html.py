@@ -122,7 +122,7 @@ class div (element):
 			return self.height + self.css_padding_height
 
 		if self.children_rendered_inline:
-			return 2.5
+			return 2.75
 
 		height = self.css_padding_height
 		for item in self.children_rendered:
