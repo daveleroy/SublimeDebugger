@@ -146,7 +146,15 @@ class TerminusOutputPanel(OutputPanel):
 	def is_finished(self):
 		return self.view.settings().get('terminus_view.finished') or self.future.done()
 
-	def cancel(self): ...
+	def cancel(self):
+		"""Actually cancel/kill the running background process"""
+		if not self.is_finished():
+			# Use terminus_cancel_build to actually kill the running process
+			# (terminus_cancel only closes UI, doesn't kill the process)
+			self.view.run_command('terminus_cancel_build')
+			# Set as cancelled if the future isn't done yet
+			if not self.future.done():
+				self.future.set_exception(core.CancelledError)
 
 	def dispose(self):
 		super().dispose()

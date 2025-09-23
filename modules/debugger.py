@@ -108,6 +108,7 @@ class Debugger(core.Dispose, dap.Debugger):
 
 		self.external_terminals: dict[dap.Session, list[ExternalTerminal]] = {}
 		self.integrated_terminals: dict[dap.Session, list[TerminusOutputPanel]] = {}
+		self.session_tasks: dict[dap.Session, list[TerminusOutputPanel]] = {}  # Track pre-launch tasks per session
 		self.memory_views: list[MemoryView] = []
 		self.disassembly_view: DisassembleView | None = None
 
@@ -381,7 +382,13 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.on_session_active(session)
 
 	async def session_task_request(self, session: dap.Session, task: dap.TaskExpanded):
-		return await self.tasks.run(self, task)
+		terminal = await self.tasks.run(self, task)
+		
+		# Track background pre-launch tasks for cleanup when session stops
+		if task.background and terminal:
+			self.session_tasks.setdefault(session, []).append(terminal)
+			
+		return terminal
 
 	async def session_terminal_request(self, session: dap.Session, request: dap.RunInTerminalRequestArguments) -> dap.RunInTerminalResponse:
 		response = self._on_session_run_terminal_requested(session, request)
@@ -414,6 +421,21 @@ class Debugger(core.Dispose, dap.Debugger):
 		self.console.program_output(session, event)
 
 	def remove_session(self, session: dap.Session):
+		# Clean up background tasks associated with this session
+		if session in self.session_tasks:
+			tasks_to_clean = self.session_tasks[session]
+			cancelled_tasks = []
+			
+			for task in tasks_to_clean:
+				if not task.is_finished():
+					self.tasks.cancel(task)
+					cancelled_tasks.append(task.task.name)
+			
+			if cancelled_tasks:
+				self.console.info(f'Cancelled background tasks: {", ".join(cancelled_tasks)}')
+			
+			del self.session_tasks[session]
+
 		core.remove_and_dispose(self.memory_views, lambda view: view.session == session)
 		session.dispose()
 
@@ -632,6 +654,11 @@ class Debugger(core.Dispose, dap.Debugger):
 
 			try:
 				del self.integrated_terminals[session]
+			except KeyError:
+				...
+
+			try:
+				del self.session_tasks[session]
 			except KeyError:
 				...
 

@@ -98,6 +98,9 @@ class Tasks(core.Dispose):
 		elif not task.background:
 			# For non-background tasks, wait for completion
 			await terminal.wait()
+		
+		# Return the terminal so it can be tracked for cleanup
+		return terminal
 
 	def on_options(self, task: TerminusOutputPanel):
 		if task.is_finished():
@@ -124,7 +127,8 @@ class Tasks(core.Dispose):
 		except ValueError:
 			return
 
-		# todo actually cancel...
+		# Actually cancel the running background process
+		task.cancel()
 		self.removed(task)
 		task.dispose()
 
