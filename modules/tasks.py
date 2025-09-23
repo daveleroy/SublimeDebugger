@@ -1,6 +1,11 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Awaitable
 
+import asyncio
+import re
+import time
+import sublime
+
 from . import core
 from . import dap
 from . import ui
@@ -80,8 +85,22 @@ class Tasks(core.Dispose):
 
 		update_when_done()
 
-		if not task.background:
+		# For background tasks with a ready signal pattern, wait for it before returning
+		if task.background and task.ready_signal_pattern is not None:
+			debugger.console.info(f"Waiting for '{task.name}' to be ready...")
+			try:
+				await self.wait_for_ready_signal_with_timeout(terminal, task.ready_signal_pattern, task.ready_signal_timeout, debugger)
+				debugger.console.info(f"Task '{task.name}' is ready")
+			except asyncio.TimeoutError:
+				debugger.console.info(f"Timeout waiting for task '{task.name}'")
+			except Exception as e:
+				debugger.console.error(f"Error waiting for task '{task.name}': {e}")
+		elif not task.background:
+			# For non-background tasks, wait for completion
 			await terminal.wait()
+		
+		# Return the terminal so it can be tracked for cleanup
+		return terminal
 
 	def on_options(self, task: TerminusOutputPanel):
 		if task.is_finished():
@@ -108,9 +127,38 @@ class Tasks(core.Dispose):
 		except ValueError:
 			return
 
-		# todo actually cancel...
+		# Actually cancel the running background process
+		task.cancel()
 		self.removed(task)
 		task.dispose()
+
+	async def wait_for_ready_signal_with_timeout(self, terminal: TerminusOutputPanel, pattern: str, timeout: float, debugger: Debugger) -> None:
+		"""
+		Wait for a regex pattern to appear in the task output with a timeout.
+		This is useful for background tasks that need to signal when they're ready.
+		"""
+		compiled_pattern = re.compile(pattern)
+		check_count = 0
+		start_time = time.time()
+		
+		while not terminal.is_finished():
+			# Check if we've exceeded the timeout
+			elapsed = time.time() - start_time
+			if elapsed > timeout:
+				raise asyncio.TimeoutError(f"Timeout waiting for pattern '{pattern}'")
+			
+			# Get the current content of the output view
+			content = terminal.view.substr(sublime.Region(0, terminal.view.size()))
+			check_count += 1
+			
+			# Check if the pattern matches
+			if compiled_pattern.search(content):
+				return
+			
+			await core.delay(0.1)
+		
+		# If task finished without matching the pattern
+		raise Exception(f"Task finished without matching pattern '{pattern}'")
 
 	def dispose(self):
 		while self.tasks:

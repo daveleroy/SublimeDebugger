@@ -106,6 +106,11 @@ class TaskExpanded(Task):
 		self.background: bool = json.get('background', False)
 		self.start_file_regex: str | None = json.get('start_file_regex')
 		self.end_file_regex: str | None = json.get('end_file_regex')
+		
+		# Regex pattern to detect when the background task is ready/active
+		self.ready_signal_pattern: str | None = json.get('ready_signal_pattern')
+		# Timeout in seconds to wait for the ready signal
+		self.ready_signal_timeout: float = json.get('ready_signal_timeout', 60.0)
 
 		self.depends_on = json.get('depends_on')
 		self.depends_on_order = json.get('depends_on_sequence')

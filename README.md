@@ -80,8 +80,10 @@ Tasks are based on sublime build_systems with more integration so they can be us
 
 see https://www.sublimetext.com/docs/build_systems.html
 
-Tasks are basically the same as sublime builds but there are a few additional parameters.
-`name` which will show up in the debugger UI and be the name of the panel
+Tasks are basically the same as sublime builds but there are a few additional parameters:
+- `name` - The name that will show up in the debugger UI and be the name of the panel
+- `ready_signal_pattern` - (Optional) A regex pattern to detect when a background task is ready. Useful for services that need to start before debugging (e.g., waiting for "Listening on port 5005")
+- `ready_signal_timeout` - (Optional) Timeout in seconds to wait for the ready signal pattern. Defaults to 60 seconds
 
 ```
 "debugger_tasks" : [
@@ -92,6 +94,28 @@ Tasks are basically the same as sublime builds but there are a few additional pa
     }
 ]
 ```
+
+### Background Tasks with Ready Signal
+For background tasks that need to signal when they're ready (like starting a server before debugging), you can use the `ready_signal_pattern` and `ready_signal_timeout` parameters:
+
+```
+"debugger_tasks" : [
+    {
+        "name" : "run_server",
+        "shell_cmd" : "java -jar server.jar",
+        "background" : true,
+        "ready_signal_pattern" : "Listening for transport dt_socket at address: 5005",
+        "ready_signal_timeout" : 60.0
+    }
+]
+```
+
+When a task has a `ready_signal_pattern`:
+- The debugger will wait for the pattern to appear in the task's output before proceeding
+- If the pattern is found, debugging continues
+- If the timeout is reached without finding the pattern, a timeout message is shown
+- This ensures services are fully started before the debugger attempts to connect
+
 - Tasks can be run with `Debugger: Run Tasks`
 - You can run tasks before and after debugging by adding `pre_debug_task` or `post_debug_task` to your configuration specifying the name of the task to run.
 

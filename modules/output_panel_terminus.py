@@ -40,7 +40,7 @@ class TerminusOutputPanel(OutputPanel):
 			arguments = task.copy()
 
 			# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
-			for key in ['name', 'background', 'start_file_regex', 'end_file_regex', 'depends_on', 'depends_on_order']:
+			for key in ['name', 'background', 'start_file_regex', 'end_file_regex', 'depends_on', 'depends_on_order', 'ready_signal_pattern', 'ready_signal_timeout']:
 				if key in arguments:
 					del arguments[key]
 
@@ -146,7 +146,15 @@ class TerminusOutputPanel(OutputPanel):
 	def is_finished(self):
 		return self.view.settings().get('terminus_view.finished') or self.future.done()
 
-	def cancel(self): ...
+	def cancel(self):
+		"""Actually cancel/kill the running background process"""
+		if not self.is_finished():
+			# Use terminus_cancel_build to actually kill the running process
+			# (terminus_cancel only closes UI, doesn't kill the process)
+			self.view.run_command('terminus_cancel_build')
+			# Set as cancelled if the future isn't done yet
+			if not self.future.done():
+				self.future.set_exception(core.CancelledError)
 
 	def dispose(self):
 		super().dispose()

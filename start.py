@@ -8,9 +8,6 @@ from typing import Any, Set, cast
 import sublime
 import sublime_plugin
 
-from .modules import asyncio
-
-
 if sublime.version() < '4000':
 	raise Exception('Debugger only supports Sublime Text 4')
 
