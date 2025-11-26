@@ -102,6 +102,13 @@ class Tasks(core.Dispose):
 
 		return False
 
+	def cancel_background(self):
+		for task in self.tasks:
+			if task.task.background:
+				task.kill_process()
+
+		return False
+
 	def cancel(self, task: TerminusOutputPanel):
 		try:
 			self.tasks.remove(task)

@@ -148,6 +148,9 @@ class TerminusOutputPanel(OutputPanel):
 
 	def cancel(self): ...
 
+	def kill_process(self):
+		self.view.run_command('terminus_cleanup', {"by_user": True})
+
 	def dispose(self):
 		super().dispose()
 		self.view.run_command('terminus_close')

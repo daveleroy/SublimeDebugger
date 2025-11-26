@@ -124,6 +124,14 @@ def generate_lsp_json_schema():
 				'type': 'string',
 				'description': 'Name of task to run before debugging starts',
 			}
+			value['properties']['stop_pre_background_tasks_on_exit'] = {
+				'type': 'boolean',
+				'description': 'Whenever background tasks started before debug should be cancelled on exit.',
+			}
+			value['properties']['stop_post_background_tasks_on_exit'] = {
+				'type': 'boolean',
+				'description': 'Whenever background tasks started after debug ended should be cancelled on exit.',
+			}
 			value['properties']['post_debug_task'] = {
 				'type': 'string',
 				'description': 'name of task to run after debugging ends',
