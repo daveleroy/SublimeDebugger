@@ -8,7 +8,7 @@ from typing import Any, Set, cast
 import sublime
 import sublime_plugin
 
-from .modules import asyncio
+from .modules.core import asyncio
 
 
 if sublime.version() < '4000':
