@@ -40,7 +40,7 @@ class TerminusOutputPanel(OutputPanel):
 			arguments = task.copy()
 
 			# if we don't remove these additional arguments Default.exec.ExecCommand will be unhappy
-			for key in ['name', 'background', 'start_file_regex', 'end_file_regex', 'depends_on', 'depends_on_order']:
+			for key in ['name', 'background', 'start_file_regex', 'end_file_regex', 'depends_on', 'depends_on_sequence']:
 				if key in arguments:
 					del arguments[key]
 
