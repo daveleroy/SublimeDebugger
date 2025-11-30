@@ -322,7 +322,7 @@ class Debugger(core.Dispose, dap.Debugger):
 						self.console.log(
 							'info',
 							'\nEdit Configuration? ',
-							phantom=ui.Html('<a href="">[Open]</a>', lambda s, source=source: source.open_file()),
+							html=ui.Html('<a href="">[Open]</a>', lambda s, source=source: source.open_file()),
 						)
 
 

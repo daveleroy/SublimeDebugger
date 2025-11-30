@@ -29,12 +29,12 @@ class Suggestions(core.Dispose):
 			console.log(
 				'warn',
 				'\t- Would you like to create a Sublime Project? ',
-				phantom=ui.Html('<a href="">[Save As Project]</a>', lambda s: (console.window.run_command('save_project_and_workspace_as'), console.debugger.updated_settings())),
+				html=ui.Html('<a href="">[Save As Project]</a>', lambda _: (console.window.run_command('save_project_and_workspace_as'), console.debugger.project_or_settings_updated())),
 			)
 			console.log(
 				'warn',
 				'\t- Or open an existing project? ',
-				phantom=ui.Html('<a href="">[Open Project]</a>', lambda s: console.window.run_command('prompt_open_project_or_workspace')),
+				html=ui.Html('<a href="">[Open Project]</a>', lambda _: console.window.run_command('prompt_open_project_or_workspace')),
 			)
 			console.info('\n')
 
@@ -50,13 +50,13 @@ class Suggestions(core.Dispose):
 			console.log(
 				'success',
 				'- See `Debugger: Show Examples` to see various example projects ',
-				phantom=ui.Html('<a href="">[Show Examples]</a>', lambda s: console.debugger.run_action(ExampleProjects)),
+				html=ui.Html('<a href="">[Show Examples]</a>', lambda _: console.debugger.run_action(ExampleProjects)),
 			)
 
 			console.log(
 				'success',
 				'- Read the setup instructions for the Debugger package ',
-				phantom=ui.Html('<a href="">[GitHub]</a>', lambda s: webbrowser.open('https://github.com/daveleroy/SublimeDebugger#setup')),
+				html=ui.Html('<a href="">[GitHub]</a>', lambda _: webbrowser.open('https://github.com/daveleroy/SublimeDebugger#setup')),
 			)
 
 		console.log('group-end', '\n')
@@ -65,16 +65,16 @@ class Suggestions(core.Dispose):
 			console.log('group-start', f'{core.platform.unicode_checked_sigil} Suggested Packages')
 
 			if autoprojects_suggested:
-				console.log('success', '- Install `AutoProjects` to automatically handle creating Sublime projects ', phantom=_install_html(['AutoProjects']))
+				console.log('success', '- Install `AutoProjects` to automatically handle creating Sublime projects ', html=_install_html(['AutoProjects']))
 
 			if lsp_json_suggested:
-				console.log('success', '- Install `LSP-json` to provide validation and autocompletion of debug configurations ', phantom=_install_html(['LSP', 'LSP-json']))
+				console.log('success', '- Install `LSP-json` to provide validation and autocompletion of debug configurations ', html=_install_html(['LSP', 'LSP-json']))
 
 			if terminus_suggested:
-				console.log('success', '- Install `Terminus` which is required for debugger tasks and launching your target in a terminal ', phantom=_install_html(['Terminus']))
+				console.log('success', '- Install `Terminus` which is required for debugger tasks and launching your target in a terminal ', html=_install_html(['Terminus']))
 
 			console.log('group-end', '\n')
 
 
 def _install_html(packages: list[str]):
-	return ui.Html('<a href="">[Install]</a>', lambda s: sublime.run_command('install_packages', {'packages': packages}))
+	return ui.Html('<a href="">[Install]</a>', lambda _: sublime.run_command('install_packages', {'packages': packages}))

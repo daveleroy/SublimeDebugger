@@ -74,7 +74,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		line_count = self.view.rowcol(self.view.size())[0]
 
 		if line_count > Settings.console_scrollback_limit:
-			remove = 1000 - Settings.console_scrollback_limit
+			remove = line_count - Settings.console_scrollback_limit
 			region = sublime.Region(0, self.view.text_point(remove, 0))
 			self.edit(lambda e: self.view.replace(e, region, ''))
 
@@ -207,42 +207,49 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		self.ensure_scrollback_size()
 		return region
 
-	def write_variable(self, variable: dap.Variable, at: int):
-		html = """
+	def marker_html(self, marker: str):
+		return f"""
 			<style>
-			html {
+			html {{
 				background-color: var(--background);
-			}
-			a {
+			}}
+			a {{
 				color: color(var(--foreground) alpha(0.25));
 				text-decoration: none;
 				padding-left: 0.0rem;
-				padding-right: 0.0rem;
-			}
+				padding-right: 0.5rem;
+			}}
 			</style>
 			<body id="debugger">
-				<a href="">❯</a>
+				<a href="">{marker}</a>
 			</body>
 		"""
 
-		phantom = None
+	def write_variable(self, variable: dap.Variable, at: int):
+		expanded_phantom: ui.Phantom|None = None
+		phantom = ui.RawPhantom(self.view, sublime.Region(at, at), self.marker_html(core.platform.unicode_unchecked_sigil))
+		self.phantoms.append(phantom)
+
 
 		def on_navigate(_: str):
-			nonlocal phantom
-			if phantom:
-				phantom.dispose()
-				phantom = None
+			nonlocal expanded_phantom
+
+			sigil = core.platform.unicode_unchecked_sigil if expanded_phantom else core.platform.unicode_checked_sigil
+			phantom.update(self.marker_html(sigil))
+
+			if expanded_phantom:
+				expanded_phantom.dispose()
+				expanded_phantom = None
 				return
 
-			with ui.Phantom(self.view, at, sublime.LAYOUT_BELOW) as p:
-				phantom = p
+			with ui.Phantom(self.view, phantom.position(), sublime.LAYOUT_BELOW) as p:
+				expanded_phantom = p
 				self.phantoms.append(p)
-				with ui.div():
+				with ui.div(width=10000):
 					view = VariableView(self.debugger, variable, children_only=True)
 					view.set_expanded()
 
-		raw_phantom = ui.RawPhantom(self.view, sublime.Region(at, at), html, on_navigate=on_navigate)
-		self.phantoms.append(raw_phantom)
+		phantom.on_navigate = on_navigate
 
 	def clear(self):
 		self.indent = ''
@@ -474,7 +481,7 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 				)
 			)
 
-	def log(self, type: str, value: Any, source: dap.SourceLocation | None = None, session: dap.Session | None = None, phantom: ui.Html | None = None):
+	def log(self, type: str, value: Any, source: dap.SourceLocation | None = None, session: dap.Session | None = None, html: ui.Html | None = None):
 		if type == 'transport':
 			self.protocol.log('transport', value, source, session)
 		elif type == 'error-no-open':
@@ -508,8 +515,8 @@ class ConsoleOutputPanel(OutputPanel, dap.Console):
 		if source:
 			self.phantoms.append(RegionAnnotation(self.view, sublime.Region(self.at() - 1), self.on_navigate, source=source))
 
-		if phantom:
-			self.phantoms.append(ui.RawPhantom(self.view, self.at() - 1, html=phantom.html, on_navigate=phantom.on_navigate))
+		if html:
+			self.phantoms.append(ui.RawPhantom(self.view, self.at() - 1, html=html.html, on_navigate=html.on_navigate))
 
 	def dispose_phantoms(self):
 		for phantom in self.phantoms:
