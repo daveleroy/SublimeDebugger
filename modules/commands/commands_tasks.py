@@ -3,6 +3,8 @@ import functools
 from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
+from ...modules.output_panel import OutputPanel
+from ...modules.output_panel_terminus import TerminusOutputPanel
 import sublime
 
 from .. import dap
@@ -92,8 +94,11 @@ class OpenTerminal(Action):
 	@core.run
 	async def action(self, debugger: Debugger):
 		found_terminal = False
-		for i, task in enumerate(debugger.tasks.tasks):
-			found_terminal = found_terminal or task.is_terminal
+
+		panels:list[OutputPanel] = debugger.tasks.get_panels()
+
+		for i, panel in enumerate(panels):
+			found_terminal = found_terminal or (panel is TerminusOutputPanel and panel.is_terminal)
 
 		if not found_terminal:
 			debugger.run_action(NewTerminal)
@@ -102,12 +107,9 @@ class OpenTerminal(Action):
 		# Otherwise cyncle through all the active console like items
 		next_panel = 0
 
-
 		# cycle through active terminal like panels
 		if debugger.session:
-			panels = [debugger.console] + debugger.tasks.tasks
-		else:
-			panels = debugger.tasks.tasks
+			panels.insert(0, debugger.console)
 
 		for i, panel in enumerate(panels):
 			if panel.is_open():
@@ -116,3 +118,43 @@ class OpenTerminal(Action):
 
 		next_panel = panels[next_panel % len(panels)]
 		next_panel.open()
+
+class CancelTasks(Action):
+	name = 'Cancel Tasks'
+	key = 'cancel_tasks'
+
+	@core.run
+	async def action_with_args(self, debugger, **kwargs):
+		select = kwargs.get('select') == True
+		task_names:str | list[str] | None = kwargs.get('names')
+
+		running_tasks = debugger.tasks.get_running()
+
+		try:
+			if select:
+				values: list[ui.InputListItem] = []
+				for task in running_tasks:
+					values.append(ui.InputListItem(functools.partial(self.cancel_task, debugger, task.task), task.task.name, run_alt=lambda task=task: task.source and task.source.open_file()))
+
+				ui.InputList('Select task to run')[values].run()
+				return
+
+			if task_names is not None:
+				task_names = [task_names] if task_names is str else task_names
+				for task in running_tasks:
+					if task.task.name in task_names:
+						task.cancel()
+				return
+
+			# in case if no 'select' or 'task_name' were provided, we just going to cancel all tasks
+			for task in running_tasks:
+				task.cancel()
+
+		except dap.Error as e:
+			debugger.console.error(f'{e}')
+
+	@core.run
+	async def cancel_task(self, debugger: Debugger, task: dap.Task):
+		running_tasks = debugger.tasks.get_running()
+		if matching_tasks := filter(lambda t: t.task == task, running_tasks):
+			next(matching_tasks).cancel()

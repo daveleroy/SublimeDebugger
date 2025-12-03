@@ -465,14 +465,8 @@ class Session(TransportListener, core.Dispose):
 
 		self.dispose_adapter_session()
 
-		if self.configuration.get('stop_pre_background_tasks_on_exit', False):
-			self.debugger.tasks.cancel_background()
-
 		await self.run_post_debug_task()
 		self._change_state_status('Ended')
-
-		if self.configuration.get('stop_post_background_tasks_on_exit', False):
-			self.debugger.tasks.cancel_background()
 
 		self._change_state(Session.State.STOPPED)
 		self.on_finished(self)

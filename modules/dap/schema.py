@@ -124,14 +124,6 @@ def generate_lsp_json_schema():
 				'type': 'string',
 				'description': 'Name of task to run before debugging starts',
 			}
-			value['properties']['stop_pre_background_tasks_on_exit'] = {
-				'type': 'boolean',
-				'description': 'Whenever background tasks started before debug should be cancelled on exit.',
-			}
-			value['properties']['stop_post_background_tasks_on_exit'] = {
-				'type': 'boolean',
-				'description': 'Whenever background tasks started after debug ended should be cancelled on exit.',
-			}
 			value['properties']['post_debug_task'] = {
 				'type': 'string',
 				'description': 'name of task to run after debugging ends',
@@ -191,9 +183,22 @@ def generate_lsp_json_schema():
 				'type': 'string',
 				'description': 'Name of task',
 			},
+			'type':{
+				"type": 'string',
+				'description': 'The type of task to be used. shell: default option used to run shell commands specified in shell_cmd; sublime: option to run sublime command specified via "command" and "args"',
+				'enum':['shell', 'sublime']
+			},
 			'shell_cmd': {
 				'type': 'string',
-				'description': 'Shell command to execute',
+				'description': 'Shell command to execute (used in case if type is not given or equal to "shell")',
+			},
+			'command':{
+				'type':'string',
+				'description':'Sublime command to execute (used in case if type is specified as "sublime")'
+			},
+			'args':{
+				'type':'array',
+				'description':'Arguments provided to executes sublime command (used in case if type is specified as "sublime")'
 			},
 			'background': {
 				'type': 'boolean',
@@ -204,7 +209,7 @@ def generate_lsp_json_schema():
 				'markdownDescription': 'Environment variables to use when running the shell command.\nExample:\n```\n{"KEY": "VALUE"}```',
 			},
 		},
-		'required': ['name', 'command'],
+		'required': ['name'],
 		'additionalProperties': False,
 	}
 
