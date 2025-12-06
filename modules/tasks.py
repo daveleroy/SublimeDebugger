@@ -1,21 +1,78 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Awaitable
+from typing import TYPE_CHECKING, Any, Awaitable
 
 from . import core
 from . import dap
 from . import ui
 
+from .output_panel import OutputPanel
 from .output_panel_terminus import TerminusOutputPanel
 
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
+class TaskRuntime(core.Dispose):
+	def __init__(self, task: dap.TaskExpanded):
+		self.task:dap.TaskExpanded = task
+
+	async def run(self): ...
+	async def wait(self): ...
+
+	def is_finished(self) -> bool: ...
+	def cancel(self): ...
+	def dispose(self): ...
+
+	def get_panel(self) -> OutputPanel | None: ...
+
+class ShellTaskRuntime(TaskRuntime):
+	def __init__(self, debugger: Debugger, task: dap.TaskExpanded, is_terminal: bool = False):
+		super().__init__(task)
+		self.terminal = TerminusOutputPanel(debugger, task, is_terminal)
+
+	async def wait(self):
+		await self.terminal.wait()
+
+	def is_finished(self) -> bool:
+		return self.terminal.is_finished()
+
+	def cancel(self):
+		self.terminal.kill_process()
+
+	def dispose(self):
+		self.terminal.dispose()
+
+	def get_panel(self) -> OutputPanel:
+		return self.terminal
+
+class SublimeTaskRuntime(TaskRuntime):
+	def __init__(self, debugger: Debugger, task: dap.TaskExpanded):
+		super().__init__(task)
+		self.command:str = task['command']
+		self.arguments:Any | None = task.get('args')
+
+		debugger.window.run_command(self.command, self.arguments)
+
+	async def wait(self):
+		pass
+
+	def is_finished(self) -> bool:
+		return True
+
+	def cancel(self):
+		pass
+
+	def dispose(self):
+		pass
+
+	def get_panel(self) -> OutputPanel | None:
+		return None
+
 class Tasks(core.Dispose):
 	def __init__(self) -> None:
-		self.added = core.Event[TerminusOutputPanel]()
-		self.removed = core.Event[TerminusOutputPanel]()
-		self.updated = core.Event[TerminusOutputPanel]()
-		self.tasks: list[TerminusOutputPanel] = []
+		self.added = core.Event[TaskRuntime]()
+		self.removed = core.Event[TaskRuntime]()
+		self.updated = core.Event[TaskRuntime]()
+		self.tasks: list[TaskRuntime] = []
 
 	def is_active(self):
 		for task in self.tasks:
@@ -36,6 +93,7 @@ class Tasks(core.Dispose):
 
 		depends_on = task.depends_on
 		sequence = task.depends_on_order == 'sequence'
+		type = task.type
 
 		if isinstance(depends_on, str):
 			depends_on = [depends_on]
@@ -63,27 +121,35 @@ class Tasks(core.Dispose):
 		except dap.Error as error:
 			raise dap.Error(f'Unable to resolve depends_on: {error}')
 
-		terminal = TerminusOutputPanel(debugger, task, is_terminal)
-		terminal.on_opened_status = lambda: self.on_options(terminal)
+		if type == 'shell':
+			runtime = ShellTaskRuntime(debugger, task, is_terminal)
+			runtime.get_panel().on_opened_status = lambda: self.on_options(runtime)
+		elif type == 'sublime':
+			runtime = SublimeTaskRuntime(debugger, task)
+		else:
+			raise dap.Error('Unknown command type')
 
-		self.tasks.append(terminal)
-		self.added(terminal)
+		self.tasks.append(runtime)
+		self.added(runtime)
 
 		@core.run
 		async def update_when_done():
 			try:
-				await terminal.wait()
+				await runtime.wait()
 			except:
 				raise
 			finally:
-				self.updated(terminal)
+				self.updated(runtime)
 
 		update_when_done()
 
 		if not task.background:
-			await terminal.wait()
+			await runtime.wait()
 
-	def on_options(self, task: TerminusOutputPanel):
+	def get_running(self) -> list[TaskRuntime]:
+		return [task for task in self.tasks if not task.is_finished()]
+
+	def on_options(self, task: TaskRuntime):
 		if task.is_finished():
 			self.cancel(task)
 			return
@@ -102,7 +168,7 @@ class Tasks(core.Dispose):
 
 		return False
 
-	def cancel(self, task: TerminusOutputPanel):
+	def cancel(self, task: TaskRuntime):
 		try:
 			self.tasks.remove(task)
 		except ValueError:
@@ -117,3 +183,7 @@ class Tasks(core.Dispose):
 			task = self.tasks.pop()
 			self.removed(task)
 			task.dispose()
+
+	def get_panels(self) -> list[OutputPanel]:
+		panels = [task.get_panel() for task in self.tasks]
+		return [panel for panel in panels if panel is not None]

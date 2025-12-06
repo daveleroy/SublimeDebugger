@@ -3,6 +3,8 @@ import functools
 from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
+from ...modules.output_panel import OutputPanel
+from ...modules.output_panel_terminus import TerminusOutputPanel
 import sublime
 
 from .. import dap
@@ -92,8 +94,11 @@ class OpenTerminal(Action):
 	@core.run
 	async def action(self, debugger: Debugger):
 		found_terminal = False
-		for i, task in enumerate(debugger.tasks.tasks):
-			found_terminal = found_terminal or task.is_terminal
+
+		panels:list[OutputPanel] = debugger.tasks.get_panels()
+
+		for i, panel in enumerate(panels):
+			found_terminal = found_terminal or (panel is TerminusOutputPanel and panel.is_terminal)
 
 		if not found_terminal:
 			debugger.run_action(NewTerminal)
@@ -102,12 +107,9 @@ class OpenTerminal(Action):
 		# Otherwise cyncle through all the active console like items
 		next_panel = 0
 
-
 		# cycle through active terminal like panels
 		if debugger.session:
-			panels = [debugger.console] + debugger.tasks.tasks
-		else:
-			panels = debugger.tasks.tasks
+			panels.insert(0, debugger.console)
 
 		for i, panel in enumerate(panels):
 			if panel.is_open():
@@ -116,3 +118,50 @@ class OpenTerminal(Action):
 
 		next_panel = panels[next_panel % len(panels)]
 		next_panel.open()
+
+
+class CancelTasks(Action):
+	name = 'Cancel All Tasks'
+	key = 'cancel_all_tasks'
+
+	is_menu_commands = False
+	is_menu_main = False
+
+	@core.run
+	async def action_with_args(self, debugger, **kwargs):
+		running_tasks = debugger.tasks.get_running()
+		for task in running_tasks:
+			task.cancel()
+
+
+class CancelTask(Action):
+	name = 'Cancel Task'
+	key = 'cancel_task'
+
+	@core.run
+	async def action_with_args(self, debugger, **kwargs):
+		name: str | list[str] | None = kwargs.get('name')
+
+		running_tasks = debugger.tasks.get_running()
+
+		if name is not None:
+			task_names = [name] if name is str else name
+			for task in running_tasks:
+				if task.task.name in task_names:
+					task.cancel()
+			return
+
+
+		values: list[ui.InputListItem] = []
+
+		# todo? re-run cancel_task with the name field set so that this extra case shows up in the sublime console when log_commands is true which makes commands easier to find
+		for task in running_tasks:
+			values.append(ui.InputListItem(functools.partial(self.cancel_task, debugger, task.task), task.task.name, run_alt=lambda task=task: task.source and task.source.open_file()))
+
+		await ui.InputList('Select task to cancel')[values].run()
+
+	@core.run
+	async def cancel_task(self, debugger: Debugger, task: dap.Task):
+		running_tasks = debugger.tasks.get_running()
+		if matching_tasks := filter(lambda t: t.task == task, running_tasks):
+			next(matching_tasks).cancel()

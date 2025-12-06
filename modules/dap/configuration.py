@@ -88,21 +88,24 @@ class TaskExpanded(Task):
 		super().__init__(json, task.source)
 
 		shell_cmd: str | None = json.get('shell_cmd')
-
+		# possible types are:
+		# - 'shell': for system command execution like 'shell_cmd' or 'cmd'
+		# - 'sublime': for the sublime window command
+		type = json.get('type', 'shell')
 
 		# we make this an error because `shell_cmd` errors show up in the sublime console in a way we cannot detect making it appear broken with no error
-		if not allow_cmd and json.get('cmd'):
+		if type == 'shell' and not allow_cmd and json.get('cmd'):
 			raise Error('`cmd` is not supported use `shell_cmd` in task configuration', source=task.source)
 
 		if 'name' in json:
 			name = json['name']
-		elif isinstance(shell_cmd, str):
-			name = shell_cmd
 		else:
-			raise Error('expecting `shell_cmd`', source=task.source)
+			# Forcing a name
+			raise Error('expecting `name`', source=task.source)
 
 		self.variables = variables
 		self.name: str = name
+		self.type: str = type
 		self.background: bool = json.get('background', False)
 		self.start_file_regex: str | None = json.get('start_file_regex')
 		self.end_file_regex: str | None = json.get('end_file_regex')

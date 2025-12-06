@@ -81,7 +81,7 @@ from .commands_session import StepBack
 
 Section()
 
-from .commands_tasks import RunTask, RunLastTask, NewTerminal, OpenTerminal
+from .commands_tasks import RunTask, RunLastTask, NewTerminal, OpenTerminal, CancelTask, CancelTasks
 
 
 class AddFunctionBreakpoint(Action):

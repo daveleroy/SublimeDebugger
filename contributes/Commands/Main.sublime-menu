@@ -166,6 +166,13 @@
 						}
 					},
 					{
+						"caption": "Cancel Task",
+						"command": "debugger",
+						"args": {
+							"action": "cancel_task"
+						}
+					},
+					{
 						"caption": "Add Function Breakpoint",
 						"command": "debugger",
 						"args": {

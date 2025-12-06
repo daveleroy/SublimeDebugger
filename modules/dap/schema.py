@@ -183,9 +183,22 @@ def generate_lsp_json_schema():
 				'type': 'string',
 				'description': 'Name of task',
 			},
+			'type':{
+				"type": 'string',
+				'description': 'The type of task to be used. shell: default option used to run shell commands specified in shell_cmd; sublime: option to run sublime command specified via "command" and "args"',
+				'enum':['shell', 'sublime']
+			},
 			'shell_cmd': {
 				'type': 'string',
-				'description': 'Shell command to execute',
+				'description': 'Shell command to execute (used in case if type is not given or equal to "shell")',
+			},
+			'command':{
+				'type':'string',
+				'description':'Sublime command to execute with `window.run_command(command, args)` when type is specified as "sublime")'
+			},
+			'args':{
+				'type':'object',
+				'description':'Arguments provided to window.run_command when type is specified as "sublime"'
 			},
 			'background': {
 				'type': 'boolean',
@@ -196,7 +209,7 @@ def generate_lsp_json_schema():
 				'markdownDescription': 'Environment variables to use when running the shell command.\nExample:\n```\n{"KEY": "VALUE"}```',
 			},
 		},
-		'required': ['name', 'command'],
+		'required': ['name'],
 		'additionalProperties': False,
 	}
 
