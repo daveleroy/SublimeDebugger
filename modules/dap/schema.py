@@ -194,11 +194,11 @@ def generate_lsp_json_schema():
 			},
 			'command':{
 				'type':'string',
-				'description':'Sublime command to execute (used in case if type is specified as "sublime")'
+				'description':'Sublime command to execute with `window.run_command(command, args)` when type is specified as "sublime")'
 			},
 			'args':{
-				'type':'array',
-				'description':'Arguments provided to executes sublime command (used in case if type is specified as "sublime")'
+				'type':'object',
+				'description':'Arguments provided to window.run_command when type is specified as "sublime"'
 			},
 			'background': {
 				'type': 'boolean',

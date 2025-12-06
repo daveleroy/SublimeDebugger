@@ -133,14 +133,6 @@
 		}
 	},
 	{
-		"caption": "Debugger: Cancel Task",
-		"command": "debugger",
-		"args": {
-			"action": "cancel_tasks",
-			"select": "true"
-		}
-	},
-	{
 		"caption": "Debugger: Select & Run Task",
 		"command": "debugger",
 		"args": {
@@ -159,6 +151,13 @@
 		"command": "debugger",
 		"args": {
 			"action": "open_terminal"
+		}
+	},
+	{
+		"caption": "Debugger: Cancel Task",
+		"command": "debugger",
+		"args": {
+			"action": "cancel_task"
 		}
 	},
 	{

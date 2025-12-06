@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Awaitable
+from typing import TYPE_CHECKING, Any, Awaitable
 
 from . import core
 from . import dap
@@ -17,7 +17,7 @@ class TaskRuntime(core.Dispose):
 
 	async def run(self): ...
 	async def wait(self): ...
-	
+
 	def is_finished(self) -> bool: ...
 	def cancel(self): ...
 	def dispose(self): ...
@@ -31,7 +31,7 @@ class ShellTaskRuntime(TaskRuntime):
 
 	async def wait(self):
 		await self.terminal.wait()
-	
+
 	def is_finished(self) -> bool:
 		return self.terminal.is_finished()
 
@@ -48,13 +48,13 @@ class SublimeTaskRuntime(TaskRuntime):
 	def __init__(self, debugger: Debugger, task: dap.TaskExpanded):
 		super().__init__(task)
 		self.command:str = task['command']
-		self.arguments:str | None = task.get('args')
+		self.arguments:Any | None = task.get('args')
 
 		debugger.window.run_command(self.command, self.arguments)
 
 	async def wait(self):
 		pass
-	
+
 	def is_finished(self) -> bool:
 		return True
 

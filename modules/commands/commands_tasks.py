@@ -119,39 +119,46 @@ class OpenTerminal(Action):
 		next_panel = panels[next_panel % len(panels)]
 		next_panel.open()
 
+
 class CancelTasks(Action):
-	name = 'Cancel Tasks'
-	key = 'cancel_tasks'
+	name = 'Cancel All Tasks'
+	key = 'cancel_all_tasks'
+
+	is_menu_commands = False
+	is_menu_main = False
 
 	@core.run
 	async def action_with_args(self, debugger, **kwargs):
-		select = kwargs.get('select') == True
-		task_names:str | list[str] | None = kwargs.get('names')
+		running_tasks = debugger.tasks.get_running()
+		for task in running_tasks:
+			task.cancel()
+
+
+class CancelTask(Action):
+	name = 'Cancel Task'
+	key = 'cancel_task'
+
+	@core.run
+	async def action_with_args(self, debugger, **kwargs):
+		name: str | list[str] | None = kwargs.get('name')
 
 		running_tasks = debugger.tasks.get_running()
 
-		try:
-			if select:
-				values: list[ui.InputListItem] = []
-				for task in running_tasks:
-					values.append(ui.InputListItem(functools.partial(self.cancel_task, debugger, task.task), task.task.name, run_alt=lambda task=task: task.source and task.source.open_file()))
-
-				ui.InputList('Select task to run')[values].run()
-				return
-
-			if task_names is not None:
-				task_names = [task_names] if task_names is str else task_names
-				for task in running_tasks:
-					if task.task.name in task_names:
-						task.cancel()
-				return
-
-			# in case if no 'select' or 'task_name' were provided, we just going to cancel all tasks
+		if name is not None:
+			task_names = [name] if name is str else name
 			for task in running_tasks:
-				task.cancel()
+				if task.task.name in task_names:
+					task.cancel()
+			return
 
-		except dap.Error as e:
-			debugger.console.error(f'{e}')
+
+		values: list[ui.InputListItem] = []
+
+		# todo? re-run cancel_task with the name field set so that this extra case shows up in the sublime console when log_commands is true which makes commands easier to find
+		for task in running_tasks:
+			values.append(ui.InputListItem(functools.partial(self.cancel_task, debugger, task.task), task.task.name, run_alt=lambda task=task: task.source and task.source.open_file()))
+
+		await ui.InputList('Select task to cancel')[values].run()
 
 	@core.run
 	async def cancel_task(self, debugger: Debugger, task: dap.Task):
