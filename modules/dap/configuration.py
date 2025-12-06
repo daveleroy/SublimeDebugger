@@ -110,8 +110,8 @@ class TaskExpanded(Task):
 		self.start_file_regex: str | None = json.get('start_file_regex')
 		self.end_file_regex: str | None = json.get('end_file_regex')
 
-		self.depends_on = json.get('depends_on')
-		self.depends_on_order = json.get('depends_on_sequence')
+		self.depends_on: list[str]|None = json.get('depends_on')
+		self.depends_on_order: str|None = json.get('depends_on_order')
 
 
 async def async_expand_variables(json: Any, variables: ConfigurationVariables, supress_errors: bool = False):

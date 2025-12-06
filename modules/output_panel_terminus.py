@@ -47,6 +47,9 @@ class TerminusOutputPanel(OutputPanel):
 			try:
 				self.verify_arguments(**arguments)
 			except TypeError as e:
+				if 'depends_on_sequence' in arguments:
+					raise dap.Error('depends_on_sequence was removed use "depends_on_order": "sequence" instead.')
+
 				message: str = e.args[0]
 				if message.startswith('verify_arguments() got an unexpected keyword argument '):
 					message = message.replace('verify_arguments() got an unexpected keyword argument ', '')
