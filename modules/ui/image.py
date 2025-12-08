@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-	from . layout import Layout
+	from . layout import View
 
 from ..import core
 
@@ -42,7 +42,7 @@ class Image:
 		self.file_dark = file_dark
 
 
-	def data(self, layout: Layout|None = None) -> str:
+	def data(self, layout: View|None = None) -> str:
 		if layout and layout.luminocity < 0.5:
 			file = self.file_light
 		else:

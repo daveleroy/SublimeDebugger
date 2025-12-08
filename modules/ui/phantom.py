@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from typing import Any, Callable, ClassVar
 
 from .. import core
-from .layout import Layout
+from .view import View
 
 import sublime
 
 
-class Phantom(Layout):
+class Phantom(View):
 	def __init__(self, view: sublime.View, region: sublime.Region | int, layout: int = sublime.LAYOUT_INLINE, name: str | None = None) -> None:
 		super().__init__(view)
 		self.region = sublime.Region(region) if isinstance(region, int) else region
@@ -77,7 +77,7 @@ class Phantom(Layout):
 @dataclass
 class Html:
 	html: str
-	on_navigate: Callable[[RawPhantom, str], Any] | None = None
+	on_navigate: Callable[[str], Any] | None = None
 
 
 def region_from_region_or_position(region: sublime.Region | int):
@@ -85,15 +85,15 @@ def region_from_region_or_position(region: sublime.Region | int):
 
 
 class RawPhantom:
-	def __init__(self, view: sublime.View, region: sublime.Region | int, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[RawPhantom, str], Any] | None = None) -> None:
+	def __init__(self, view: sublime.View, region: sublime.Region | int, html: str, layout: int = sublime.LAYOUT_INLINE, on_navigate: Callable[[str], Any] | None = None) -> None:
 		self.view = view
 		self.layout = layout
 		self.on_navigate = on_navigate
-		self.pid = self.view.add_phantom(f'debugger', region_from_region_or_position(region), html, layout, self.navigate)
+		self.pid = self.view.add_phantom('debugger', region_from_region_or_position(region), html, layout, self.navigate)
 
 	def navigate(self, value: str):
 		if self.on_navigate:
-			self.on_navigate(self, value)
+			self.on_navigate(value)
 
 	def position(self):
 		regions = self.view.query_phantom(self.pid)
@@ -110,7 +110,7 @@ class RawPhantom:
 
 		region = regions[0]
 		self.view.erase_phantom_by_id(self.pid)
-		self.pid = self.view.add_phantom(f'debugger', region_from_region_or_position(region), html, self.layout, self.navigate)
+		self.pid = self.view.add_phantom('debugger', region_from_region_or_position(region), html, self.layout, self.navigate)
 
 	def dispose(self) -> None:
 		self.view.erase_phantom_by_id(self.pid)
@@ -126,7 +126,7 @@ class RawAnnotation:
 		self.view.erase_regions(self.id)
 
 
-class Popup(Layout):
+class Popup(View):
 	current: ClassVar[Popup | None] = None
 
 	def __init__(self, view: sublime.View, location: int = -1, on_close: Callable[[], None] | None = None) -> None:

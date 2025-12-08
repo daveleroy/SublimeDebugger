@@ -8,7 +8,7 @@ from .css import css
 import re
 
 if TYPE_CHECKING:
-	from .layout import Layout
+	from .layout import View
 
 class alignable:
 	align_required: int
@@ -44,7 +44,7 @@ class element(metaclass=ContextStackMeta):
 
 	def __init__(self, is_inline: bool, width: float|None, height: float|None, css: css|None) -> None:
 		super().__init__()
-		self.layout: Layout = None #type: ignore
+		self.layout: View = None #type: ignore
 
 		self.children: list[element] = []
 		self.children_rendered: list[element] = []

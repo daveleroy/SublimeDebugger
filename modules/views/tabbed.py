@@ -89,10 +89,7 @@ class TabbedViewContainer(ui.div):
 
 		self.layout.viewport_position_depedent = True
 
-		if self.layout.scrolling:
-			height = 500
-		else:
-			height = self.layout.viewport_bottom
+		height = 1000
 
 		if self._width:
 			width = self._width
@@ -100,11 +97,8 @@ class TabbedViewContainer(ui.div):
 			layout_width = self.layout.width + self._width_additional + self.layout.from_dip(self._width_additional_dip) + self.layout.internal_width_modifier
 			width = layout_width * self._width_scale if self._width_scale else layout_width
 
-		with ui.div(width=width, height=500, css=css.panel):
-			# this inner panel controls how much content is actually displayed
-			# while scrolling the tab bar disappears revealing all the content
-			# while not scrolling this panel clips the content
-			with ui.div(height=height - css.panel_content.padding_height - 3, css=css.panel_content):
+		with ui.div(width=width, height=10000, css=css.panel):
+			with ui.div(css=css.panel_content):
 				self.items[self.selected_index].append_stack()
 
 			with ui.div(width=width, height=4):

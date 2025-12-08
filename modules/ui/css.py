@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-	from .layout import Layout
+	from .view import View
 
 import sublime
 
@@ -83,7 +83,7 @@ class css:
 		css._cached_css.clear()
 
 	@staticmethod
-	def generate(layout: Layout):
+	def generate(layout: View):
 		key = f'{layout.em_width}-{layout.font_size}-{layout.internal_font_scale}'
 		if c := css._cached_css.get(key):
 			return c

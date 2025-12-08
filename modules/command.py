@@ -296,10 +296,10 @@ class ActionElement(Generic[T], CommandProtocol):
 		position = view.window_to_layout((event['x'], event['y']))
 
 		# note: this currently only looks at the y position
-		if layout := ui.Layout.layout_at_layout_position(view, position):
-			element = layout.element_at_layout_position(position, self.element)
-			if element:
-				return debugger, element
+		if element := ui.element_at_layout_position(view, position, self.element):
+			return debugger, element
+
+		return
 
 	def _run(self, view: sublime.View | sublime.Window, **kwargs: dict[str, Any]):
 		if args := self.parameters(view, **kwargs):

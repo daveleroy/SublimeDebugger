@@ -19,7 +19,7 @@ def flatten_html_response(items: HtmlResponse, list: list[str]):
 
 
 @dataclass
-class LayoutStats:
+class Stats:
 	name: str
 
 	render_count: int = 0
@@ -29,28 +29,33 @@ class LayoutStats:
 	render_time_total: float = 0
 
 
-class Layout:
-	layouts_to_add: ClassVar[list[Layout]] = []
-	layouts_to_remove: ClassVar[list[Layout]] = []
-	layouts: ClassVar[list[Layout]] = []
-	_render_scheduled = False
+class ViewRegistry:
+	layouts_to_add: ClassVar[list[View]] = []
+	layouts_to_remove: ClassVar[list[View]] = []
+	layouts: ClassVar[list[View]] = []
+	render_scheduled = False
+	debug = False
 
-	on_layout_invalidated: Callable[[], None] | None = None
+	@staticmethod
+	def register(view: View):
+		ViewRegistry.layouts_to_add.append(view)
 
-	debug: bool = False
+	@staticmethod
+	def unregister(view: View):
+		ViewRegistry.layouts_to_remove.append(view)
 
 	@staticmethod
 	def update_layouts():
-		for l in Layout.layouts:
+		for l in ViewRegistry.layouts:
 			l.update()
 
-		if Layout.debug:
-			Layout.render_debug_info()
+		if ViewRegistry.debug:
+			ViewRegistry.render_debug_info()
 
 	@staticmethod
 	def render_debug_info():
 		status = ''
-		for r in Layout.layouts:
+		for r in ViewRegistry.layouts:
 			if r.view.window() == sublime.active_window():
 				status += '         '
 				status += f'{r.stats.name}: {len(r.html) / 1024:.1f}kb {r.stats.render_time:.1f}ms {r.stats.render_count}x'
@@ -59,35 +64,46 @@ class Layout:
 
 	@staticmethod
 	def render_layouts():
-		Layout._render_scheduled = False
+		ViewRegistry.render_scheduled = False
 
-		Layout.layouts.extend(Layout.layouts_to_add)
-		Layout.layouts_to_add.clear()
+		ViewRegistry.layouts.extend(ViewRegistry.layouts_to_add)
+		ViewRegistry.layouts_to_add.clear()
 
-		for r in Layout.layouts_to_remove:
+		for r in ViewRegistry.layouts_to_remove:
 			try:
-				Layout.layouts.remove(r)
+				ViewRegistry.layouts.remove(r)
 			except ValueError:
 				...
 
-		Layout.layouts_to_remove.clear()
+		ViewRegistry.layouts_to_remove.clear()
 
-		for r in Layout.layouts:
+		for r in ViewRegistry.layouts:
 			r.render()
 
-		if Layout.debug:
-			Layout.render_debug_info()
+		if ViewRegistry.debug:
+			ViewRegistry.render_debug_info()
 
 	@staticmethod
-	def _schedule_render_layouts() -> None:
-		if Layout._render_scheduled:
+	def invalidated_view(view: View) -> None:
+		if ViewRegistry.render_scheduled:
 			return
 
-		Layout._render_scheduled = True
-		core.call_soon(Layout.render_layouts)
+		ViewRegistry.render_scheduled = True
+		core.call_soon(ViewRegistry.render_layouts)
 
+	@staticmethod
+	def view_at_position(view: sublime.View, layout_position: tuple[float, float]):
+		found_layout = None
+		for layout in ViewRegistry.layouts:
+			if layout.view == view and layout.inside_region(layout_position[0]):
+				found_layout = layout
+				break
+		return found_layout
+
+
+class View:
 	def __init__(self, view: sublime.View) -> None:
-		self.stats = LayoutStats(name=view.name())
+		self.stats = Stats(name=view.name())
 
 		self.requires_render = True
 		self.html_list: list[str] = []
@@ -109,14 +125,7 @@ class Layout:
 		self.font_size = 1.0
 		self.em_width = 1.0
 
-		self.scrolling = False
-		self.viewport_bottom = 0
-		self.viewport_position_depedent = False
-
 		self._layout_values = ()
-		self._layout_scrolling_values = ()
-		self._scrolling_time = None
-		self._vertical_offset = 0.0
 		self._last_check_was_differnt = 0
 
 		self._on_click_handlers: dict[int, Callable[[], None]] = {}
@@ -126,25 +135,17 @@ class Layout:
 		self.item.layout = self
 
 		self.update()
-		Layout.layouts_to_add.append(self)
+
+		ViewRegistry.register(self)
 
 	def __str__(self):
 		return f'Layout: {self.stats.name}'
 
-	@staticmethod
-	def layout_at_layout_position(view: sublime.View, layout_position: tuple[float, float]):
-		found_layout = None
-		for layout in Layout.layouts:
-			if layout.view == view and layout.inside_region(layout_position[0]):
-				found_layout = layout
-				break
-		return found_layout
-
 	# FIX: This doesn't really fully implement what is required.
 	# It only looks at where the item would be rendered verticaly and doesn't take into account the actual width/height
-	def element_at_layout_position(self, layout_position: tuple[float, float], type: Type | None):
+	def element_at_layout_position(self, layout_position: tuple[float, float], type: Type | None) -> element | None:
 		target_position_y = self.from_dip(layout_position[1])
-		found: Any = None
+		found: element|None = None
 
 		def visit(item: div, position_y: float):
 			nonlocal found
@@ -171,7 +172,7 @@ class Layout:
 		return found
 
 	def dispose(self) -> None:
-		Layout.layouts_to_remove.append(self)
+		ViewRegistry.unregister(self)
 
 	def inside_region(self, position_x: float) -> bool:
 		return True
@@ -183,16 +184,6 @@ class Layout:
 	def __exit__(self, *args):
 		self.item.__exit__()
 
-	@property
-	def vertical_offset(self):
-		return self._vertical_offset
-
-	@vertical_offset.setter
-	def vertical_offset(self, value: float):
-		if self._vertical_offset != value:
-			self._vertical_offset = value
-			self.dirty()
-
 	# from sublime dip units to character width units
 	def from_dip(self, dip: float) -> float:
 		return dip / self.em_width
@@ -200,14 +191,11 @@ class Layout:
 	def invalidate(self) -> None:
 		self.item.dirty()
 		self.requires_render = True
-		Layout._schedule_render_layouts()
-
-		if self.on_layout_invalidated:
-			self.on_layout_invalidated()
+		ViewRegistry.invalidated_view(self)
 
 	def dirty(self) -> None:
 		self.requires_render = True
-		Layout._schedule_render_layouts()
+		ViewRegistry.invalidated_view(self)
 
 	def _add_element_children(self, parent: element) -> None:
 		for child in parent.children_rendered:
@@ -249,7 +237,7 @@ class Layout:
 		self.render_element_tree(self.item)
 
 		css_string = css.generate(self)
-		html = ['<style>', css_string, '</style>', f'<body id="debugger" style="padding-top: {self.vertical_offset}px;">', self.item.html(25, 10000), '</body>']
+		html = ['<style>', css_string, '</style>', '<body id="debugger">', self.item.html(25, 10000), '</body>']
 
 		self.html_list.clear()
 		flatten_html_response(html, self.html_list)
@@ -269,38 +257,6 @@ class Layout:
 
 	def update(self) -> None:
 		self.invalidate_layout_if_needed()
-
-		if self.viewport_position_depedent:
-			self.invalidate_viewport_position_if_needed()
-
-	def invalidate_viewport_position_if_needed(self):
-		viewport_position_y = self.view.viewport_position()[1]
-		viewport_height = self.view.viewport_extent()[1]
-
-		scolling = self._layout_scrolling_values and abs(viewport_position_y - self._layout_scrolling_values[0]) > 1
-		if scolling and not self.scrolling:
-			if self._scrolling_time:
-				self._scrolling_time.cancel()
-				self._scrolling_time = None
-
-			self.scrolling = True
-			self.invalidate()
-
-		values = (
-			viewport_position_y,
-			viewport_height,
-		)
-		self._layout_scrolling_values = values
-
-		if self.scrolling and not scolling and not self._scrolling_time:
-
-			def finished():
-				self.scrolling = False
-				self.invalidate()
-
-			self._scrolling_time = core.call_later(0.25, finished)
-
-		self.viewport_bottom = (viewport_height + viewport_position_y) / self.em_width
 
 	def invalidate_layout_if_needed(self):
 		style = self.view.style()
