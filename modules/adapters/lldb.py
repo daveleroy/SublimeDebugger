@@ -12,15 +12,15 @@ from . import util
 def is_valid_asset(asset: str):
 	arch = core.platform.architecture
 	if core.platform.windows and arch == 'x64':
-		return asset.endswith('-x86_64-windows.vsix')
+		return asset.endswith('-x86_64-windows.vsix') or asset.endswith('-win32-x64.vsix')
 	elif core.platform.osx and arch == 'x64':
-		return asset.endswith('-x86_64-darwin.vsix')
+		return 'darwin' in asset and ('x86_64' in asset or 'x64' in asset)
 	elif core.platform.osx and arch == 'arm64':
-		return asset.endswith('-aarch64-darwin.vsix')
+		return 'darwin' in asset and ('aarch64' in asset or 'arm64' in asset)
 	elif core.platform.linux and arch == 'x64':
-		return asset.endswith('-x86_64-linux.vsix')
+		return 'linux' in asset and ('x86_64' in asset or 'x64' in asset)
 	elif core.platform.linux and arch == 'arm64':
-		return asset.endswith('-aarch64-linux.vsix')
+		return 'linux' in asset and ('aarch64' in asset or 'arm64' in asset)
 	else:
 		raise dap.Error('Your platforms architecture is not supported by vscode lldb. See https://github.com/vadimcn/vscode-lldb/releases/latest')
 
