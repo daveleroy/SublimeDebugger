@@ -535,7 +535,7 @@ class Debugger(core.Dispose, dap.Debugger):
 		core.json.save_json_to_package_data(location, json)
 
 	def refresh_phantoms(self) -> None:
-		ui.Layout.render_layouts()
+		ui.View.render_layouts()
 
 	@core.run
 	async def _on_console_input(self, command: str) -> None:

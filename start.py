@@ -11,8 +11,8 @@ import sublime_plugin
 from .modules.core import asyncio
 
 
-if sublime.version() < '4000':
-	raise Exception('Debugger only supports Sublime Text 4')
+if sublime.version() < '4199':
+	raise Exception('Debugger only supports Sublime Text version 4199 and later')
 
 # remove old modules for this package so that they are reloaded when this module is reloaded
 
@@ -55,8 +55,7 @@ def plugin_loaded() -> None:
 
 	core.info('[startup]')
 
-	ui.Layout.debug = Settings.development
-	ui.startup()
+	ui.startup(Settings.development)
 
 	def open_in_windows():
 		for window in sublime.windows():

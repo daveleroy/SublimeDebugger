@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Callable, Any, ClassVar, cast
-
 import sublime
 import sublime_plugin
 
@@ -13,8 +12,6 @@ from .settings import Settings
 if TYPE_CHECKING:
 	from .debugger import Debugger
 
-
-SUPPORTS_IO_PANEL = sublime.version() >= '4198'
 
 class OutputPanel(core.Dispose):
 	on_opened: Callable[[], Any] | None = None
@@ -56,24 +53,14 @@ class OutputPanel(core.Dispose):
 
 		previous_panel = self.window.active_panel()
 
-		from .output_panel_tabs import OutputPanelTabsBottomPhantom, OutputPanelTabsPhantom
+		from .output_panel_tabs import OutputPanelTabsPhantom
 
-		if SUPPORTS_IO_PANEL:
-			self.view, self.input_view = cast('tuple[sublime.View, sublime.View]', self.window.create_io_panel(self.panel_name, lambda i:  None))
+		self.view, self.input_view = cast('tuple[sublime.View, sublime.View]', self.window.create_io_panel(self.panel_name, lambda i:  None))
+		input_settings = self.input_view.settings()
+		input_settings.set('line_padding_top', 0)
+		input_settings.set('line_padding_bottom', 0)
 
-			input_settings = self.input_view.settings()
-			input_settings.set('line_padding_top', 0)
-			input_settings.set('line_padding_bottom', 0)
-
-			self.tabs_phantom = OutputPanelTabsPhantom(self, self.input_view)
-		else:
-			self.view = self.window.create_output_panel(self.panel_name, unlisted=unlisted)
-			self.input_view = None
-
-			if show_tabs_top:
-				self.tabs_phantom = OutputPanelTabsPhantom(self, self.view)
-			else:
-				self.tabs_phantom = OutputPanelTabsBottomPhantom(self, self.view)
+		self.tabs_phantom = OutputPanelTabsPhantom(self, self.input_view)
 
 		settings = self.view.settings()
 		settings.set('debugger', id(debugger))
@@ -185,10 +172,7 @@ class OutputPanel(core.Dispose):
 		if self.on_opened:
 			self.on_opened()
 
-		self.force_invalidate_layout()
-
-	def force_invalidate_layout(self):
-		self.tabs_phantom.force_refresh()
+		self.tabs_phantom.invalidated_layout()
 
 	def scroll_to_end(self):
 		sel = self.view.sel()
