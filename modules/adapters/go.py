@@ -17,12 +17,19 @@ class Go(dap.Adapter):
 	go_dlv = Setting['str|None'](key='go_dlv', default=None, description='Sets a specific path for dlv if not set go will use whatever is in your path')
 
 	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
-		port = util.get_open_port()
-		dlv = self.go_dlv or shutil.which('dlv')
-		if not dlv:
-			raise dap.Error('`dlv` not found see https://github.com/go-delve/delve for setting up delve')
+		if configuration.get('port'):
+			host = configuration.get('host', 'localhost')
+			port = configuration['port']
+			command = None
+			console.info(f'Start remote debugging, connecting {host}:{port}')
+		else:
+			host = 'localhost'
+			port = util.get_open_port()
+			dlv = self.go_dlv or shutil.which('dlv')
+			if not dlv:
+				raise dap.Error('`dlv` not found see https://github.com/go-delve/delve for setting up delve')
 
-		command = [dlv, 'dap', '--listen', f'localhost:{port}']
+			command = [dlv, 'dap', '--listen', f'{host}:{port}']
 
 		cwd = configuration.get('cwd')
 
@@ -41,6 +48,7 @@ class Go(dap.Adapter):
 			console.log('stderr', data)
 
 		return dap.SocketTransport(
+			host=host,
 			port=port,
 			command=command,
 			cwd=cwd,
