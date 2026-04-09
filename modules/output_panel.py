@@ -121,21 +121,25 @@ class OutputPanel(core.Dispose):
 	def dispose(self):
 		super().dispose()
 
-		if not OutputPanel.from_view.get(self.view):
-			return
+		view = self.view
+		input_view = self.input_view
+		output_panel_name = self.output_panel_name
 
 		# remove debugger markers we added
-		else:
-			settings = self.view.settings()
+		if not self.create:
+			settings = view.settings()
 			del settings['debugger']
 			del settings['debugger.output']
 			del settings['debugger.output.' + self.name.lower()]
 
-		del OutputPanel.from_view[self.view]
-		del OutputPanel.from_output_panel_name[self.output_panel_name]
 
-		if self.input_view:
-			del OutputPanel.from_input_view[self.input_view]
+		# we want to make sure we can run dispose multiple times
+		if view in OutputPanel.from_view:
+			del OutputPanel.from_view[view]
+		if output_panel_name in OutputPanel.from_output_panel_name:
+			del OutputPanel.from_output_panel_name[output_panel_name]
+		if input_view in OutputPanel.from_input_view:
+			del OutputPanel.from_input_view[input_view]
 
 		if self.create:
 			self.window.destroy_output_panel(self.panel_name)
@@ -151,6 +155,11 @@ class OutputPanel(core.Dispose):
 			id += 1
 
 	def open(self):
+		# disposed
+		if self.view not in OutputPanel.from_view:
+			return
+
+		# lost?
 		if not self.view.is_valid():
 			self.dispose()
 			return
