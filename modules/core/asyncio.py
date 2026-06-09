@@ -54,13 +54,21 @@ class MainEventLoop(asyncio.BaseEventLoop):
 	# We dont want to main loop set in the hopes sublime_aio gets its head out of its ass
 	def run_forever(self) -> None:
 		loop = asyncio._get_running_loop()
-		self._run_forever_setup() # type: ignore
+
+		# TODO: Remove check when removing 3.7 support
+		if hasattr(self, '_run_forever_setup'):
+			self._run_forever_setup() # type: ignore
+
 		asyncio._set_running_loop(loop) # undo
 
 	# We dont want to main loop cleared in the hopes sublime_aio gets its head out of its ass
 	def run_forever_stop(self) -> None:
 		loop = asyncio._get_running_loop()
-		self._run_forever_cleanup() # type: ignore
+
+		# TODO: Remove check when removing 3.7 support
+		if hasattr(self, '_run_forever_cleanup'):
+			self._run_forever_cleanup() # type: ignore
+
 		asyncio._set_running_loop(loop) # undo
 
 	def call_soon(self, callback, *args, context=None):  # type: ignore
