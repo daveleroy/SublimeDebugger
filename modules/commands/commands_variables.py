@@ -6,7 +6,7 @@ from ..command import ActionElement
 class VariableCopyValue(ActionElement):
 	name = 'Copy Value'
 	key = 'variable_copy_value'
-	view = VariableView
+	element = VariableView
 
 	def action(self, debugger, element: VariableView):
 		element.copy_value()
