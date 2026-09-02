@@ -224,24 +224,6 @@ class TransportStream(Transport):
 		self.log('transport', TransportOutgoingDataLog(data))
 		self.send(data)
 
-	def on_request(self, request: core.JSON):
-		command = request['command']
-
-		@core.run
-		async def r():
-			try:
-				response = await self.events.on_reverse_request(command, request.get('arguments', {}))
-				self.send_response(request, response)
-			except Error as e:
-				self.send_response(request, core.JSON(), error=str(e))
-
-		r()
-
-
-	def on_event(self, event: str, body: Any):
-		# use call_soon so that events and respones are handled in the same order as the server sent them
-		core.call_soon(self.events.on_event, event, body)
-
 	def on_closed(self, msg: str) -> None:
 		self.log('transport', msg)
 
@@ -275,7 +257,17 @@ class TransportStream(Transport):
 			return
 
 		if t == 'request':
-			self.on_request(data)
+			command = data['command']
+			@core.run
+			async def r():
+				try:
+					response = await self.events.on_reverse_request(command, data.get('arguments', {}))
+					self.send_response(data, response)
+				except Error as e:
+					self.send_response(data, core.JSON(), error=str(e))
+
+			core.call_soon(r)
 
 		if t == 'event':
-			self.on_event(data['event'], data.get('body', {}))
+			# use call_soon so that events and respones are handled in the same order as the server sent them
+			core.call_soon(self.events.on_event, data['event'], data.get('body', {}))
