@@ -183,6 +183,9 @@ class SocketTransport(TransportStream):
 			self.process = Process(self.command, cwd=self.cwd or await self.configuration.variables['folder'].resolve(), env=self.env)
 
 		self.log('transport', f'-- socket transport: {self.host}:{self.port}')
+		if self.process:
+			self.process.on_stdout(self.stdout or (lambda data: self.log('transport', TransportOutputLog('stdout', data))))
+			self.process.on_stderr(self.stderr or (lambda data: self.log('transport', TransportOutputLog('stderr', data))))
 
 		exception: Exception | None = None
 		for _ in range(0, self.timeout * 4):
@@ -205,9 +208,6 @@ class SocketTransport(TransportStream):
 		if exception:
 			raise TransportConnectionError(f'tcp://{self.host}:{self.port} {exception}')
 
-		if self.process:
-			self.process.on_stdout(self.stdout or (lambda data: self.log('transport', TransportOutputLog('stdout', data))))
-			self.process.on_stderr(self.stderr or (lambda data: self.log('transport', TransportOutputLog('stderr', data))))
 
 		self.socket_stdin = self.socket.makefile('wb')
 		self.socket_stdout = self.socket.makefile('rb')
