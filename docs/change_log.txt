@@ -2,6 +2,23 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.12.0 - Sep 24, 2026
+- Tabs are now rendered in the input view of the new `io_panel` api
+- Added right click menus for a number of debugger ui elements
+	- breakpoints
+	- variables
+	- callstack
+
+- Left on gutter now toggles breakpoints on/off
+- Right click on gutter now toggles breakpoints on or edits an existing breakpoint
+- Variables embedded in the console are now expanded inline
+- Added memory view support
+
+- elixir: fixes compatiblity with new adapters
+- lldb: fixes issue with missing adapter updates
+
+- this package now requires version 4199 or newer
+
 Version 0.11.6 - Dec 22, 2024
 - python: fixes issue with installing adapter
 
