@@ -217,6 +217,8 @@ class Action(CommandProtocol):
 	is_menu_commands = True
 	is_menu_main = True
 
+	create_debugger = True
+
 	def action_raw(self, view: sublime.View | sublime.Window, kwargs: dict[str, Any]): ...
 
 	def action(self, debugger: Debugger) -> Any: ...
@@ -234,7 +236,7 @@ class Action(CommandProtocol):
 
 		self.action_raw(view, kwargs)
 
-		debugger = Debugger.get(view)
+		debugger = Debugger.get(view, create=self.create_debugger)
 		if not debugger:
 			return
 
