@@ -1139,11 +1139,11 @@ class EvaluateArguments:
 	"""
 	expression: str
 	"""The expression to evaluate."""
-	frameId: Optional[int]
+	frameId: Optional[int] = None
 	"""Evaluate the expression in the scope of this stack frame. If not specified, the expression is evaluated in the global scope."""
-	context: Optional[str]
+	context: Optional[str] = None
 	"""The context in which the evaluate request is run."""
-	format: Optional[ValueFormat]
+	format: Optional[ValueFormat] = None
 	"""Specifies details on how to format the Evaluate result.\nThe attribute is only honored by a debug adapter if the capability 'supportsValueFormattingOptions' is true."""
 
 @dataclass

@@ -14,6 +14,7 @@ from .transport import Transport, TransportConnectionError, TransportListener
 if TYPE_CHECKING:
 	from .breakpoints import SourceBreakpoint, Breakpoint
 
+
 class Session(TransportListener, core.Dispose):
 	class State(IntEnum):
 		STARTING = 3
@@ -572,18 +573,11 @@ class Session(TransportListener, core.Dispose):
 		self.on_output(self, event)
 
 	async def evaluate_expression(self, expression: str, context: str | None) -> api.EvaluateResponse:
-		frameId: int | None = None
+		frame_id: int | None = None
 		if self.selected_frame:
-			frameId = self.selected_frame.id
+			frame_id = self.selected_frame.id
 
-		response = await self.request(
-			'evaluate',
-			{
-				'expression': expression,
-				'context': context,
-				'frameId': frameId,
-			},
-		)
+		response = await self.request('evaluate', api.EvaluateArguments(expression, frame_id, context))
 
 		# the spec doesn't say this is optional? But it seems that some implementations throw errors instead of marking things as not verified?
 		if response['result'] is None:
