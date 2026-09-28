@@ -163,6 +163,9 @@ class TransportStream(Transport):
 					bytes_left = size - len(content)
 					content += self.read(bytes_left)
 
+				content_str = bytearray(content).decode(encoding='utf-8', errors='replace')
+				content = content_str.encode('utf-8')
+				
 				self.on_message(core.json_decode(content))
 
 		except Exception as e:
