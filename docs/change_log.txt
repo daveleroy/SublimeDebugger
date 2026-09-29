@@ -2,6 +2,10 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.12.1 - Sep 29, 2026
+- python: fixes issue installing adapter
+- csharp: fixes issue running adapter
+
 Version 0.12.0 - Sep 24, 2026
 - Tabs are now rendered in the input view of the new `io_panel` api
 - Added right click menus for a number of debugger ui elements
