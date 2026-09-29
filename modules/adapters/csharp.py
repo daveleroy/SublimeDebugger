@@ -59,7 +59,7 @@ class CSharp(dap.Adapter):
 
 	installer = CSharpInstaller('coreclr', 'muhammadsammy/free-vscode-csharp')
 
-	async def start(self, log: dap.Console, configuration: dap.ConfigurationExpanded):
+	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 		install_path = self.installer.install_path()
 		executable_path = 'netcoredbg.exe' if sublime.platform() == 'windows' else 'netcoredbg/netcoredbg'
 
@@ -94,4 +94,4 @@ class CSharp(dap.Adapter):
 		]
 		command.extend(args)
 
-		return dap.StdioTransport(command, stderr=log.error)
+		return dap.StdioTransport(command, stderr=console.error)
