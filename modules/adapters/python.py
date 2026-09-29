@@ -1,36 +1,23 @@
 from __future__ import annotations
+
+import os
+import shlex
+import shutil
+import subprocess
+from pathlib import Path
 from typing import Any
 
-from . import util
-from .. import dap
-from .. import core
-
 import sublime
-import shutil
-import os
-import subprocess
-import shlex
 
-from pathlib import Path
-
-
-class PythonInstaller(util.GitSourceInstaller):
-	async def post_install(self, version: str, log: dap.Console):
-		path = self.temporary_install_path()
-		debugpy_info = core.json_decode_file(f'{path}/debugpy_info.json')
-		try:
-			url = debugpy_info['any'][0]['url']
-		except Exception:
-			url = debugpy_info['any']['url']
-
-		await util.request.download_and_extract_zip(url, f'{path}/debugpy', log=log)
+from .. import core, dap
+from . import util
 
 
 class Python(dap.Adapter):
 	type = ['debugpy', 'python']
 	docs = 'https://github.com/microsoft/vscode-docs/blob/main/docs/python/debugging.md#python-debug-configurations-in-visual-studio-code'
 
-	installer = PythonInstaller(type='debugpy', repo='microsoft/vscode-python-debugger')
+	installer = util.OpenVsxInstaller(type='debugpy', repo='ms-python/debugpy')
 
 	async def start(self, console: dap.Console, configuration: dap.ConfigurationExpanded):
 		if configuration.request == 'attach':
@@ -48,7 +35,6 @@ class Python(dap.Adapter):
 			if not configuration.get('listen') and not configuration.get('processId'):
 				sublime.error_message('Warning: Check your debugger configuration.\n\n"attach" requires "connect", "listen" or "processId".\n\nIf they contain a $variable that variable may not have existed.')
 
-		install_path = self.installer.install_path()
 
 		python = configuration.get('pythonPath') or configuration.get('python')
 
@@ -63,7 +49,7 @@ class Python(dap.Adapter):
 
 			if venv:
 				python, folder = venv
-				console.info('Detected virtual environment for `{}`'.format(folder))
+				console.info(f'Detected virtual environment for `{folder}`')
 			elif shutil.which('python3'):
 				python = shutil.which('python3')
 			else:
@@ -72,14 +58,27 @@ class Python(dap.Adapter):
 		if not python:
 			raise dap.Error('Unable to find `python3` or `python`')
 
-		console.info('Using python `{}`'.format(python))
+		console.info(f'Using python `{python}`')
 
-		return dap.StdioTransport(
-			[
-				f'{python}',
-				f'{install_path}/debugpy/debugpy/adapter',
-			]
-		)
+
+		install_path = self.installer.install_path()
+		paths = [
+			f'{install_path}/bundled/libs/debugpy', # new path using openvsx
+			f'{install_path}/debugpy/debugpy/adapter'
+		]
+
+		for path in paths:
+			if not os.path.exists(path):
+				continue
+
+			return dap.StdioTransport(
+				[
+					f'{python}',
+					path,
+				]
+			)
+
+		raise dap.Error(f'Unable to find debugpy searched {paths}')
 
 	async def on_custom_event(self, session: dap.Session, event: str, body: Any):
 		if event == 'debugpyAttach':
