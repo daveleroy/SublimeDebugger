@@ -120,4 +120,5 @@ class Java(dap.Adapter):
 		return await self.lsp_request('workspace/executeCommand', {'command': command, 'arguments': arguments})
 
 	async def lsp_request(self, method, params) -> Any:
-		return await util.lsp.request('jdtls', method, params)
+		# LSP-jdtls >= 3.0.0 uses `LSP-jdtls` as the session name, older versions use `jdtls`
+		return await util.lsp.request(('LSP-jdtls', 'jdtls'), method, params)

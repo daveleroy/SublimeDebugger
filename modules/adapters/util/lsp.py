@@ -1,10 +1,17 @@
+from __future__ import annotations
 from typing import Any
 
 import sublime
 from ... import dap
 from ... import core
 
-async def request(session_name: str, method: str, params: Any) -> Any:
+async def request(session_names: str | tuple[str, ...], method: str, params: Any) -> Any:
+	"""
+	Sends a request to the first active LSP session matching one of the given session names.
+	"""
+	if isinstance(session_names, str):
+		session_names = (session_names,)
+
 	try:
 		from LSP.plugin import Request, LspWindowCommand
 	except ImportError:
@@ -12,11 +19,16 @@ async def request(session_name: str, method: str, params: Any) -> Any:
 
 	# todo: get the actual window for the debugger session but good enough for now
 	lsp = LspWindowCommand(sublime.active_window())
-	lsp.session_name = session_name
 
-	session = lsp.session()
+	session = None
+	for session_name in session_names:
+		lsp.session_name = session_name
+		session = lsp.session()
+		if session:
+			break
+
 	if not session:
-		raise dap.Error('There is no active `LSP-' + session_name + '` session which is required to start debugging')
+		raise dap.Error(f'There is no active `{session_names[0]}` session which is required to start debugging')
 
 	future = core.Future()
 	session.send_request_async( # type: ignore
