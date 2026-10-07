@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Callable, ForwardRef, Generic, Any, TypeVar, cast
 from . import core
 
+import importlib
 import sublime
 
 T = TypeVar('T')
@@ -129,12 +130,6 @@ class Settings:
 		""",
 	)
 
-	installed_packages = Setting['list[str]'](
-		key='installed_packages',
-		default=[],
-		description='Some debug adapters require certain packages to be installed via package control. If you have installed these package outside of package control then you can add them to this list and they will be treated as if they are installed.',
-	)
-
 	global_debugger_configurations = Setting['list[Any]'](
 		key='global_debugger_configurations',
 		default=[],
@@ -183,17 +178,17 @@ class SettingsRegistery:
 		SettingsRegistery.package_control_settings.add_on_change('debugger_settings', on_updated)
 
 	@staticmethod
-	def is_package_installed(package: str):
-		installed_packages = cast('list[str]', SettingsRegistery.package_control_settings.get('installed_packages', []))
-		for installed_package in installed_packages:
-			if installed_package == package:
-				return True
+	def is_package_installed(package: str) -> bool:
+		# ignored packages that are not .sublime-package are still importable so they have to be checked separately
+		ignored_packages = cast('list[str]', sublime.load_settings('Preferences.sublime-settings').get('ignored_packages') or [])
+		if package in ignored_packages:
+			return False
 
-		for installed_package in Settings.installed_packages:
-			if installed_package == package:
-				return True
-
-		return False
+		try:
+			importlib.import_module(package)
+			return True
+		except Exception:
+			return False
 
 	@staticmethod
 	def save():

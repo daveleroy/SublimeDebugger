@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from ...settings import Settings
+from ...settings import Settings, SettingsRegistery
 from ...import dap
 
 import socket
 import shutil
-import sublime
 
 def version_tuple(v: str):
 	return tuple(v.split('.'))
@@ -35,15 +34,5 @@ def get_open_port() -> int:
 		return port
 
 def require_package(package: str):
-	pc_settings = sublime.load_settings('Package Control.sublime-settings')
-	installed_packages = pc_settings.get('installed_packages', [])
-
-	for installed_package in installed_packages:
-		if installed_package == package:
-			return
-
-	for installed_package in Settings.installed_packages:
-		if installed_package == package:
-			return
-
-	raise dap.Error(f'{package} must be installed via package control or listed in `installed_packages` if installed outside of package control')
+	if not SettingsRegistery.is_package_installed(package):
+		raise dap.Error(f'{package} must be installed and enabled')
