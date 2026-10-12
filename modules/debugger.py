@@ -54,27 +54,27 @@ class Debugger(core.Dispose, dap.Debugger):
 		id = window.id()
 
 		if id in Debugger.debuggers_for_window:
-			instance = Debugger.debuggers_for_window[id]
-			if not instance and create:
+			debugger = Debugger.debuggers_for_window[id]
+			if not debugger and create:
 				raise dap.Error("We shouldn't be creating another debugger instance for this window...")
 
-			if instance and create:
-				instance.open()
+			if debugger and create and not debugger.is_open():
+				debugger.open()
 
-			return instance
+			return debugger
 
 		if not create:
 			return None
 
 		Debugger.debuggers_for_window[id] = None
 		try:
-			instance = Debugger(window)
-			Debugger.debuggers_for_window[id] = instance
-			return instance
+			debugger = Debugger(window)
+			Debugger.debuggers_for_window[id] = debugger
+			return debugger
 
-		except Exception:
-			core.exception()
+		except:
 			del Debugger.debuggers_for_window[id]
+			raise
 
 	def __init__(self, window: sublime.Window) -> None:
 		self.window = window
