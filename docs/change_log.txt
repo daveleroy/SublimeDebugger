@@ -2,6 +2,12 @@ For setup see https://github.com/daveleroy/sublime_debugger
 
 For a full list of changes see https://github.com/daveleroy/sublime_debugger/commits
 
+Version 0.12.2 - Oct 26, 2026
+- Fixes issue with stepping changing the panel focus
+- Improved how required additional packages are detected @rchl
+- python: fixes openvsx adapter path
+- java: support newer versions of lsp-kdtls @rchl
+
 Version 0.12.1 - Sep 29, 2026
 - python: fixes issue installing adapter
 - csharp: fixes issue running adapter
