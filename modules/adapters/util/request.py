@@ -158,7 +158,7 @@ async def download_and_extract_targz(url: str, path: str, extract_folder: str | 
 
 		log_info('...downloaded')
 		log_info('extracting...')
-		with tarfile.open(archive_name, 'r:gz') as tz:
+		with tarfile.open(archive_name, 'r:*') as tz:
 			tz.extractall(path)
 
 		log_info('...extracted')
