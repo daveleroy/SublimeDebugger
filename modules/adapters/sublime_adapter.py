@@ -54,13 +54,16 @@ class SublimeInstaller(dap.AdapterInstaller):
 			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_mac.zip', path_app, log=log)
 		elif platform == 'windows' and arch == 'x64':
 			await util.request.download_and_extract_zip(f'https://download.sublimetext.com/sublime_text_build_{version}_x64.zip', path_app, log=log)
+		elif platform == 'linux' and arch == 'x64':
+			await util.request.download_and_extract_targz(f'https://download.sublimetext.com/sublime_text_build_{version}_x64.tar.xz', path, log=log)
+			os.rename(f'{path}/sublime_text', path_app)
 		else:
 			raise dap.Error('Install for this platform/arch is not currently supported')
 
 		# The windows version has a data folder already here here
 		core.remove_file_or_dir(f'{path_app}/Data')
 
-		await util.request.download_and_extract_zip('https://github.com/microsoft/debugpy/archive/refs/tags/v1.7.0.zip', f'{path}/debugpy', log=log)
+		await util.request.download_and_extract_zip('https://github.com/microsoft/debugpy/archive/refs/tags/v1.8.21.zip', f'{path}/debugpy', log=log)
 		await util.request.download_and_extract_zip('https://github.com/daveleroy/debugpy/archive/refs/tags/v1.5.1.zip', f'{path}/debugpy_for_3.3', log=log)
 
 		core.write(f'{path}/package.json', core.json_encode({'version': version}))
@@ -187,7 +190,7 @@ class SublimeDebugTransport(dap.Transport):
 
 		if sublime.platform() == 'osx':
 			sublime_text_directory = f'{install_path}/{Sublime.installer.debug_app_name}/Contents/MacOS'
-		elif sublime.platform() == 'windows':
+		elif sublime.platform() in ('windows', 'linux'):
 			sublime_text_directory = f'{install_path}/{Sublime.installer.debug_app_name}'
 		else:
 			raise dap.Error('Install for this platform/arch is not currently supported')
@@ -198,20 +201,20 @@ class SublimeDebugTransport(dap.Transport):
 		core.make_directory(f'{data_directory}/Packages')
 		core.make_directory(f'{data_directory}/Packages/User')
 		core.make_directory(f'{data_directory}/Lib')
-		core.make_directory(f'{data_directory}/Lib/Python33')
-		core.make_directory(f'{data_directory}/Lib/Python38')
+		core.make_directory(f'{data_directory}/Lib/python33')
+		core.make_directory(f'{data_directory}/Lib/python38')
 
 		# we put the data folder outside of the app so its easier to find and at the top level of the adapter install location
 		core.symlink(data_directory, sublime_text_data_directory)
 
 		# Add debugpy library for both runtimes
-		core.symlink(f'{install_path}/debugpy_for_3.3/src/debugpy', f'{data_directory}/Lib/Python33/debugpy')
-		core.symlink(f'{install_path}/debugpy/src/debugpy', f'{data_directory}/Lib/Python38/debugpy')
+		core.symlink(f'{install_path}/debugpy_for_3.3/src/debugpy', f'{data_directory}/Lib/python33/debugpy')
+		core.symlink(f'{install_path}/debugpy/src/debugpy', f'{data_directory}/Lib/python38/debugpy')
 
 		# Add sublime_debug_runtime library for both runtimes
 		adapters_path = os.path.dirname(os.path.realpath(__file__))
-		core.symlink(f'{adapters_path}/sublime_adapter_runtime.py', f'{data_directory}/Lib/Python33/sublime_adapter_runtime.py')
-		core.symlink(f'{adapters_path}/sublime_adapter_runtime.py', f'{data_directory}/Lib/Python38/sublime_adapter_runtime.py')
+		core.symlink(f'{adapters_path}/sublime_adapter_runtime.py', f'{data_directory}/Lib/python33/sublime_adapter_runtime.py')
+		core.symlink(f'{adapters_path}/sublime_adapter_runtime.py', f'{data_directory}/Lib/python38/sublime_adapter_runtime.py')
 
 		# Add plugin that initializes the sublime_debug_runtime module before any other packages so it can attach debugpy before any other user packages get loaded
 		core.make_directory(f'{data_directory}/Packages/0_sublime_adapter_runtime_38')
@@ -254,7 +257,11 @@ class SublimeDebugTransport(dap.Transport):
 		core.write(f'{packages_directory}/User/Preferences.sublime-settings', initial_preferences)
 
 		settings = sublime.load_settings('Preferences.sublime-settings')
-		core.write(f'{packages_directory}/User/Debugger.sublime-theme', theme.format(settings.get('theme')), overwrite_existing=True)
+		# "auto" is not a theme file so it can't be extended and the debug instance never opens
+		theme_name = settings.get('theme')
+		if theme_name == 'auto':
+			theme_name = 'Default.sublime-theme'
+		core.write(f'{packages_directory}/User/Debugger.sublime-theme', theme.format(theme_name), overwrite_existing=True)
 
 		commands = [f'{sublime_text_directory}/sublime_text', '--multiinstance']
 		commands.extend(configuration.get('args', []))
